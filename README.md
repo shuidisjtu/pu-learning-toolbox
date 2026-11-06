@@ -156,12 +156,12 @@ Supporting scripts (see each script's docstring and the Survey docs for scope an
 | Stage | Scripts |
 |---|---|
 | Data and splits | `collect_survey_public_data.py` (collect missing public raw data; excludes access-controlled ADNI), `survey_splits_archive.py` (split transfer) |
-| Runs | `run_survey_pilot.py` (whole pilot), `aggregate_survey_runs.py` |
-| Audit and reporting | `audit_survey_batches.py`, `summarize_survey_results.py`, `compare_survey_results.py` (pre-registered literature comparison), `export_survey_results.py` (delivery workbook and per-method diagnostic cards; needs the `report` extra), `_source_provenance.py` (internal helper separating script-checkout identity from the implementation actually loaded; not a standalone CLI) |
+| Runs | `run_survey_pilot.py` (scope planning, execution and resume) |
+| Reporting | `summarize_survey_results.py`, `export_survey_results.py` (workbook, diagnostics and conclusions; needs the `report` extra), `_source_provenance.py` (internal code and environment identity helper) |
 | Recipes | `prepare_survey_recipe_registry.py`, `check_survey_recipe_registry.py` (validate a registry; CI checks the frozen lock) |
 | Independent image runs | `run_candidate_image_experiment.py` (PULDA/GradPU four-role PA/OA smoke, measured snapshots and replay; not formal Survey admission) |
+| Independent classical runs | `run_classical_candidate_experiment.py` (PUET/RP/KLDCE four-role training with explicit parameters and actual-cost receipts) |
 | Independent support runs | `run_clean_support_experiment.py` (Self-PU/LaGAM/PULNS extra-label audit; explicit Self-PU TS meta-checkpoints, not a formal recipe) |
-| Resource estimate | `prepare_candidate_image_resource_plan.py` is a read-only estimate from configured candidate defaults, not a measured resource profile |
 
 These scripts are technical checks and measurements. None of them approves
 candidates, budgets, formal splits or numeric verdicts, and the audit and summary scripts only write to their own `--out-dir`,

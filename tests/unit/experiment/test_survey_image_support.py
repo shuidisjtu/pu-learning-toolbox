@@ -29,7 +29,7 @@ pytestmark = pytest.mark.unit
 #: The v3 matrix is the one the support units run under; ``load_protocol()`` still
 #: defaults to v2, whose image spec has no per-dataset block and would fit every
 #: dataset at CIFAR-10's 32x32x3.
-PROTOCOL = load_protocol(PROTOCOL_PATHS["survey-v3.0"])
+PROTOCOL = load_protocol(PROTOCOL_PATHS["survey-v3.2"])
 
 #: ``(dataset, in_channels, size)``: the two image datasets this task adds.
 IMAGES = (("cifar10", 3, 32), ("mnist", 1, 28))

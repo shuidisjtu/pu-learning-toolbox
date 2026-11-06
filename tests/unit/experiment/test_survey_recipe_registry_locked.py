@@ -19,11 +19,11 @@ from pu_toolbox.experiment.survey_recipe_registry import (
 pytestmark = pytest.mark.unit
 
 ROOT = Path(__file__).resolve().parents[3]
-ARTIFACT = ROOT / "pu_toolbox/experiment/survey_recipe_registry_v1.json"
+ARTIFACT = ROOT / "pu_toolbox/experiment/survey_recipe_registry_v1_2.json"
 
 
 def protocol():
-    return load_protocol(resolve_protocol_path("survey-v3.0"))
+    return load_protocol(resolve_protocol_path("survey-v3.2"))
 
 
 def committed():
@@ -42,7 +42,7 @@ def methods_with_lifecycle(registry, state):
 
 def test_basic_committed_registry_locks_exactly_the_runnable_profiles():
     registry = committed()
-    assert registry["recipe_registry_version"] == "survey-recipes-v1.0"
+    assert registry["recipe_registry_version"] == "survey-recipes-v1.2"
     assert registry["recipe_lifecycle"] == "locked"
     locked = methods_with_lifecycle(registry, "locked")
     excluded = methods_with_lifecycle(registry, "excluded")
@@ -97,6 +97,23 @@ def test_param_draft_registry_cannot_bind_at_runtime():
             dataset="spambase",
             training_path="native_2d",
         )
+
+
+@pytest.mark.parametrize(
+    ("version", "artifact"),
+    [
+        ("survey-v3.2", "survey_recipe_registry_v1_2.json"),
+    ],
+)
+def test_param_each_supported_registry_binds_its_own_protocol(version, artifact):
+    loaded = load_protocol(resolve_protocol_path(version))
+    registry = json.loads((ARTIFACT.parent / artifact).read_text(encoding="utf-8"))
+    assert validate_registry(registry, loaded) == []
+    binding = bind_recipe_candidate(
+        registry, loaded, method="upu", dataset="spambase", training_path="native_2d"
+    )
+    assert binding["recipe_registry_version"] == registry["recipe_registry_version"]
+    assert binding["recipe_binding_status"] == "registry_bound"
 
 
 def test_edge_hand_edited_snapshot_parameter_is_refused():

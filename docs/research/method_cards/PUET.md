@@ -58,11 +58,10 @@ W_N(S)=W_U(S)-W_P(S).
 
 2026-11-01 图像测试：v3.2 在四个图像数据集使用现有固定随机 ResNet-18 的 512 维特征
 接本算法（100 棵树），非原生 CNN。与下述作者原图 3072 维有明确表示差异；为统一传统
-方法表示而选择，不按成绩调表示，不能据此称论文复现。SCAR/SAR 造标签仍在源空间，
+方法表示而选择。SCAR/SAR 造标签仍在源空间，
 特征提取不使用标签，TS 节点风险规则不变；完整数据首轮通过才释放对应五 seed 队列。
 
-2026-10-07 [阶段/预算规格](../pu_survey/p3_stage_budget_review_20261007.md)另列
-CPU 单次森林 fit、100棵默认树与独立模型存储，不伪造神经 epoch/provenance 或 GPU 验收。
+预算按 CPU 单次森林 fit、100 棵默认树与独立模型存储记录。
 正式预算、表示、GPU 条款豁免仍待决定。
 
 P1-2 公开对照准备（`p3_public_comparison_20261005.md`，已归档于 tag `survey-docs-archive-20261025`）登记原表 Table2
@@ -81,8 +80,7 @@ nonnegative/quadratic CIFAR accuracy79.74(0.37)，5次拟合；不是邻列 logi
 2026-10-31：`scripts/run_classical_candidate_experiment.py --method puet` 已补显式树预算、
 输入/源码/环境锁定计划、SCAR 四角色 PA/OA 和模型回放，保留 OS/TS 原义，运行在 CPU。
 `ClassicalCandidateTrainer(receipt_dir=...)` 可将每次尝试的实际逐树成本（包括失败部分）独立落盘，
-重试不覆盖旧记录；持久化失败不接受 fitted 模型。此入口不抽取/认证输入特征，不修改核心算法，
-也不构成正式预算或完整资源验收；没有假造 neural epoch 或论文数值复现。
+重试不覆盖旧记录；持久化失败不接受 fitted 模型。输入特征及其预处理由调用方提供。
 
 Issue #114 修复后，bootstrap 的 U 抽样数等于**实际 U 风险池大小**：OS 抽 n_U，
 TS 抽 n_U+n_P（含 P 角色副本）；逐树根质量保持 P=总体π、U=1，P 仍抽 n_P。
@@ -92,4 +90,3 @@ TS 抽 n_U+n_P（含 P 角色副本）；逐树根质量保持 P=总体π、U=1�
 零增益。正整数 max_features 超过输入维数时，保留工具箱既有“截断到 n_features、
 不修改构造参数”的行为；作者 tree.py:199-207 则打印提示并返回 None，不完成拟合，
 不是抛 ValueError。差异已显式登记，不为对齐作者而静默改变现有配置。
-算例、证据与边界见[补项记录](../pu_survey/reviews/puet_adaptation_completion_20261017.md)。

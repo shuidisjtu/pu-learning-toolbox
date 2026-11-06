@@ -1,1269 +1,293 @@
 {
-  "schema_version": "1.1",
-  "purpose": "PU 调研实验方法台账（结果标注真相源）。协议 pu_survey_protocol.md §4 要求的实现台账：slots 字段 + paper/code_version/implementation_status 身份与来源字段；现含冻结矩阵方法及后续技术预集成条目，台账有记录不代表进入 Survey v1 执行矩阵。实验脚本按此标注 TS-OS 校准与结果（原生适用 vs 假设违背鲁棒性）。先验必传门禁以 registry requires_class_prior 为权威，本台账 prior_semantics 只做结果标注。",
-  "slots": {
-    "native_sampling_assumption": "方法原生假设的抽样视图：os / ts / both",
-    "run_view": "实验运行视图：os-compatible / ts-compatible",
-    "calibration_applied": "是否启用 TS-OS 校准（协议 §2.3 第 1 条：仅原生 TS 且训练接口允许替换未标记损失输入的方法）",
-    "calibration_hooked": "是否实现 OS→TS 风险角色替换 hook；native-TS 方法可为 false 且不等同不支持其原生 TS 输入",
-    "calibration_review_ref": "TS 校准作用范围/不变量的技术核验记录；不代表负责人签署",
-    "prior_semantics": "class_prior 参数语义：population π / train π / 估计器（无需外部）/ 无 / 可选初始化",
-    "adaptation_level": "source-faithful（官方源码忠实适配）/ benchmark-adapted（重写或基准适配）",
-    "modality_backbone": "支持模态与 backbone（代码级能力声明 + 论文原生形式）"
-  },
-  "evidence_convention": "evidence 字段格式： 文件:行号 原文摘录。卡片内天然源与 registry 内标注共同构成。",
-  "fillers": {
-    "shuidisjtu": ["upu", "kldce", "dist_pu", "pusb", "pusb_kernel", "lbe", "lbe_neural", "vpu"],
-    "HENG958": ["nnpu", "self_pu"]
-  },
-  "pending_owner_review_methods": ["robust_pu", "split_pu", "cvir", "tedn", "pulda", "puet", "gradpu", "lagam", "pan", "rp", "pulns", "genpu", "holistic_pu", "p3mix"],
+  "schema_version": "2.0",
+  "purpose": "Current Survey routing defaults and method-specific interpretation; capabilities and source metadata live in the algorithm registry, actual run choices in manifests.",
   "methods": {
     "p3mix": {
-      "project_recipe_binding": {"protocol": "survey-v3.1", "registry": "survey-recipes-v1.1", "owner_confirmed_on": "2026-11-01", "execution_adapter": "survey-backlog-1", "decision_ref": "docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md", "formal_admission": false, "paper_numerical_reproduction": false},
-      "class": "P3MixClassifier",
-      "candidate_resource_planner": {"implementation_ref": "scripts/prepare_candidate_image_resource_plan.py", "variants": ["base", "e", "c"], "batching_policies": ["role_balanced", "merged_shuffle"], "optimizer_and_extra_forward_counts_separated": true, "default_budget_is_not_frozen_recipe": true, "formal_resource_profile_complete": false},
-      "candidate_image_execution": {"implementation_ref": "scripts/run_candidate_image_experiment.py", "trainer_ref": "pu_toolbox/experiment/candidate_image_runner.py", "training_view": "os", "backbone": "shared_resnet18_engineering_alternative_not_paper_backbone", "selection_components": ["student"], "variants": ["base", "e", "c"], "batching_policies": ["role_balanced", "merged_shuffle"], "four_role_pa_oa_cpu_replay_verified": true, "formal_admission": false, "formal_resource_profile_complete": false},
-      "paper": {
-        "title": "Who Is Your Right Mixup Partner in Positive and Unlabeled Learning?",
-        "authors": "Changchun Li, Ximing Li, Lei Feng, Jihong Ouyang",
-        "venue": "ICLR",
-        "year": 2022
-      },
-      "code_version": {
-        "upstream_url": null,
-        "source_status": "not_found（已核对用户提供的14页ICLR 2022全文；论文正文/附录未给作者代码地址；不等于证明作者实现不存在；本实现独立依据原文公式和Algorithm 1）"
-      },
-      "source_behavior_review_ref": "docs/research/pu_survey/admission/p3mix_paper_review_20261019.md",
-      "inference_state_review_ref": "docs/research/pu_survey/admission/p3mix_paper_review_20261019.md",
-      "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
-      "implementation_status": "NATIVE; experimental OS PU classifier with P3Mix/E/C variants; MLP or trainable CNN; legacy role-balanced default and explicit merged-shuffle batching with exact row exposure; not a paper recipe or formal admission",
-      "native_sampling_assumption": "os（原文 §2/Algorithm 1 对单一训练集合 P∪U 分批；没有TS风险替换）",
+      "native_sampling_assumption": "os",
+      "calibration_hooked": false,
       "run_view": "os-compatible",
       "calibration_applied": false,
-      "calibration_hooked": false,
-      "prior_semantics": "无外部先验；class_prior 仅保留兼容参数并校验，不参与训练",
-      "adaptation_level": "benchmark-adapted（按原文式(1)–(8)与Algorithm 1实现分类器、每epoch top-k 熵池刷新及互斥E/C变体；论文未指定的MLP、优化器学习率、批次构成、EMA decay以公开参数作为工程选择；非作者代码重放或正式数值复现）",
-      "modality_backbone": {
-        "modalities": ["tabular", "image"],
-        "backbone": "二维输入默认MLP；图像输入要求调用者注入独立deepcopy并端到端训练的CNN encoder",
-        "code_capability": {
-          "native_architectures": ["mlp", "cnn"],
-          "input_ndims": [2, 4],
-          "encoder_parameter": "encoder",
-          "trains_encoder": true
-        }
-      },
-      "checkpoint_accounting": {
-        "epoch_bound": "max_epochs",
-        "bound_is_upper_limit": true,
-        "optimizer_steps_attribute": "optimizer_steps_",
-        "formal_budget_approved": false,
-        "batching_policy_parameter": "batching_policy",
-        "merged_shuffle_steps_per_epoch": "ceil((n_P+n_U)/batch_size); each original row once",
-        "legacy_role_balanced_steps_per_epoch": "max(ceil(n_P/batch_size),ceil(n_U/batch_size)); shorter role cycled"
-      },
-      "admitted": false,
-      "owner_decisions": {},
-      "specific_blockers": [
-        "paper_image_backbones_differ_and_complete_training_recipe_pending",
-        "official_source_code_and_exact_training_recipe_not_found",
-        "formal_dataset_protocol_selection_budget_and_resource_profile_pending",
-        "method_owner_review_pending"
-      ],
-      "evidence": {
-        "native_sampling_assumption": "30_who_is_your_right_mixup_partne.pdf, §2 and Algorithm 1, pp. 3–5",
-        "prior_semantics": "30_who_is_your_right_mixup_partne.pdf, Eqs. (1)–(8); no class-prior input",
-        "adaptation_level": "30_who_is_your_right_mixup_partne.pdf, Eqs. (1)–(8), Algorithm 1; docs/research/method_cards/P3MIX.md",
-        "mixup_numerics_and_role_exposure": "docs/research/pu_survey/admission/p3mix_paper_review_20261019.md: 2026-10-20 common floating dtype and observed P/U row-use receipts; tests/unit/estimators/test_p3mix_math.py and tests/unit/estimators/test_p3mix.py",
-        "input_isolation_and_public_cnn_path": "docs/research/pu_survey/admission/p3mix_paper_review_20261019.md: 2026-10-20 private forward input clones; tests/unit/estimators/test_p3mix_input_isolation.py and tests/integration/test_p3mix_pipeline_cnn.py cover all three variants, CV, four-role PA/OA checkpoints and optional reclamation; synthetic CPU evidence only",
-        "merged_shuffle_batching": "docs/research/method_cards/P3MIX.md: 2026-10-31 Algorithm 1 line 3 opt-in; tests/unit/estimators/test_p3mix_batching.py and tests/integration/test_p3mix_pipeline_cnn.py verify exact row exposure, singleton/empty-role conventions, all variants, PA/OA, clone and pickle; no GPU numerical reproduction"
-      },
-      "uncertainty": [
-        "Paper Table 1 specifies image backbones and Algorithm 1 line 3 shuffles merged P∪U. Explicit merged_shuffle now implements that order without repeating/dropping rows; absent-role batch loss contributes zero, an engineering convention not defined by the paper. Default role_balanced retains independent P/U batches with the shorter role cycled. Receipts disclose actual row use. Learning rate, epochs, batch size, teacher EMA decay and frozen recipe still require specification; CPU tests do not establish numerical paper reproduction.",
-        "Paper §2.1 updates the top-k candidate pool once per epoch; the initial pool is described as random. The implementation initializes it uniformly from observed training P, then refreshes it from training P only.",
-        "P3Mix-E uses the printed log(1-<f, target>) regularizer with EMA teacher probabilities; implementation caps agreement at 1-1e-7 to avoid log(0). It updates EMA at epoch end as Algorithm 1 orders it. Algorithm 1 says initialize both student Θ and teacher eΘ randomly but does not state whether independently; implementation copies student into teacher as an explicit engineering choice. Paper does not specify EMA decay.",
-        "The paper reports 5 runs and class accuracy anchors, but local benchmark data, exact split identities, and author code are not established by this integration. No result is added to the frozen comparison matrix.",
-        "Section 3.1 reports 500 validation instances but does not identify their sampling frame, class composition, or model/parameter-selection use; do not map this to clean-label validation or PA/OA without further evidence.",
-        "No TS calibration hook, formal survey admission, approved resource profile, or GPU multi-seed result is claimed. P3Mix-E and P3Mix-C are independent paper variants, not a combined variant."
+      "prior_semantics": "No external prior; class_prior is validated but does not affect training.",
+      "adaptation_level": "benchmark-adapted",
+      "notes": [
+        "Benchmark adaptation with base/e/c variants and role_balanced or merged_shuffle batching.",
+        "Native OS objective; no OS-to-TS loss-role replacement hook."
       ]
     },
     "holistic_pu": {
-      "class": "HolisticPUClassifier",
-      "fit_failure_review_ref": "docs/research/pu_survey/reviews/extended_candidate_fit_failure_20261019.md",
-      "inference_state_review_ref": "docs/research/pu_survey/admission/candidate_eval_transition_20261019.md",
-      "checkpoint_provenance_ref": "docs/research/pu_survey/p3_stage_budget_review_20261007.md",
-      "paper": {"title": "Beyond Myopia: Learning from Positive and Unlabeled Data through Holistic Predictive Trends", "authors": "Xinrui Wang, Wenhai Wan, Chuanxing Geng, Shaoyuan Li, Songcan Chen", "venue": "NeurIPS", "year": 2023},
-      "code_version": {"upstream_url": "https://github.com/wxr99/HolisticPU", "upstream_commit": "4d4ce7d6ba29722995d308293374c0f475d988d3", "source_status": "official_related（已锁定作者仓库；独立论文目标适配，非发布源码重放；2026-10-18 复核未发现 LICENSE，登记 license=unknown；不复制/执行/再分发作者代码）"},
-      "implementation_status": "NATIVE; experimental MLP or injected trainable CNN balanced resampling + paper pairwise trend/variance partition + pseudo-PN fit; explicit continue/reinitialize and fixed/lzo_positive_loss engineering recipes; terminal state/prefix restoration with full executed cost; both-stage inference checkpoints, not author replay or formal admission",
-      "native_sampling_assumption": "os（标准 CIFAR 分支 dataset/cifar.py:74-93 的 p_u_split 用 setdiff1d 排除已标记 P；非 lt_p_u_split 的独立长尾抽样分支）",
-      "run_view": "os-compatible", "calibration_applied": false, "calibration_hooked": false,
-      "prior_semantics": "无需外部先验；趋势伪标签估计 U 内正类比例仅为诊断；class_prior 若传入只校验，不影响训练",
-      "adaptation_level": "benchmark-adapted（论文式4/5全时序 signed robust score、式8分组 variance 和最终 CE 独立实现；MLP/注入 CNN；默认 fixed warmup，显式 lzo_positive_loss 用训练正例固定 mixup/全预算 CE argmin/最早平局，恢复终点和轨迹前缀但计全部成本；默认 continue，显式 reinitialize 重建网络/Adam；发布邻差/Jenks/渐进目标/增强配方未照搬，不声称完整源数值复现）",
-      "modality_backbone": {"modalities": ["tabular", "image"], "backbone": "二维 MLP 或独立 deepcopy 的可训练 CNN+MLP head；平衡 P/U 重采样，分批 eval 轨迹伪标签后默认继续分类器/Adam，reinitialize 可重建全部网络/优化器；原始数据留 CPU",
-        "code_capability": {"native_architectures": ["cnn", "mlp"], "input_ndims": [2, 4], "encoder_parameter": "encoder", "trains_encoder": true}},
-      "source_behavior_review_ref": "docs/research/pu_survey/holistic_source_cnn_review_20261007.md",
-      "stage_initialization_review_ref": "docs/research/pu_survey/holistic_stage_initialization_20261007.md",
-      "warmup_selection_review_ref": "docs/research/pu_survey/holistic_lzo_selection_20261007.md",
-      "evidence": {"native_sampling_assumption": "Holistic-PU.md；固定 commit dataset/cifar.py:86 的 setdiff1d，限标准分支", "prior_semantics": "Holistic-PU.md；论文 §2.4 按趋势划分，无外部先验；当前 estimated_unlabeled_prior_ 只作诊断", "adaptation_level": "Holistic-PU.md；train.py 尾部邻差评分、jenkspy 与 utils/misc.py:101-105；公式及独立暴力分割测试 test_holistic_pu.py"},
-      "uncertainty": ["默认 fixed 不是 LZO；已提供 lzo_positive_loss 工程终点选择，非 patience 提前退出或作者代码重放；辅助集仅来自已标记训练 P，不需新增真负标签，但 positive CE 不等于总体 accuracy/正式 PA 准则；固定集合/大小/alpha/候选范围/平局/随机流须正式预注册", "论文 signed 全时序分数与发布代码 log(1+delta+delta²/2) 邻差不等价；式8 variance 与 jenkspy SSE 也不等价；两 variant 的数学函数分别命名，classifier 只用论文路径", "发布 train_phase1 在 breakpoint>0 时调用 three_sigma，实际硬过滤 x<0.2/9 而不是三倍标准差；当前不照搬该未预注册常数", "默认标准 OS；没有可安全同形替换的 TS risk，显式 ts fail-loud；lt_p_u_split 源分支和 SAR 不在本适配声明内", "两阶段逐 epoch 分类器权重支持推断回放，不支持训练恢复；LZO 内部终点恢复不是 checkpoint 续训 API；history 和 callback 仍覆盖全预算，终点后诊断 warmup 快照不得据此认定正式候选；官方 fine-tune/EMA/图像配方及精确源 LZO 复现、公开数值与资源验收均未完成；未进旧冻结协议", "补充材料 Algorithm 2 页22/main.py:329-335 的后段新建已提供显式 reinitialize 工程变体；默认 continue 兼容旧调用；自定义编码器参数所有者须实现 reset_parameters，legacy weight_norm 拒绝；全局更新数不因重建归零，正式初始化变体 recipe 仍待决定；singleton BN 用运行统计，外部 encoder 模板不被修改", "LZO 全预算运行，discarded_warmup_optimizer_steps_ 仍计入已付成本；continue 保存一份最佳 CPU 网络/Adam，reinitialize 仅保存最佳随机流；全时序概率、前缀 pickle、辅助集计划和额外验证 forwards 都需纳入资源规格；当前 RNG 恢复面向单设备 CPU/CUDA，不宣称分布式训练复现"]
+      "native_sampling_assumption": "os",
+      "calibration_hooked": false,
+      "run_view": "os-compatible",
+      "calibration_applied": false,
+      "prior_semantics": "No external prior; pseudo-label estimates come from U predictions.",
+      "adaptation_level": "benchmark-adapted",
+      "notes": [
+        "Native OS follows the released standard split that excludes labeled positives from U.",
+        "The released long-tail branch is a distinct data recipe."
+      ]
     },
     "genpu": {
-      "class": "GenPUClassifier",
-      "fit_failure_review_ref": "docs/research/pu_survey/reviews/extended_candidate_fit_failure_20261019.md",
-      "inference_state_review_ref": "docs/research/pu_survey/admission/candidate_eval_transition_20261019.md",
-      "checkpoint_provenance_ref": "docs/research/pu_survey/p3_stage_budget_review_20261007.md",
-      "paper": {"title": "Generative Adversarial Positive-Unlabelled Learning", "authors": "Ming Hou, Brahim Chaib-draa, Chao Li, Qibin Zhao", "venue": "IJCAI", "year": 2018},
-      "code_version": {
-        "upstream_url": "https://qibinzhao.github.io/assets/publications/IJCAI_2018_HouMing/gen_pu_demo.zip",
-        "upstream_sha256": "a0975a3da5979febbd0504d5ee5b2638b4f9074a66e72d45198278933f54e6c0",
-        "source_status": "official_related（作者主页 Code 页明确链接的源码归档，2026-10-05 下载锁定摘要；2026-10-18 复核未发现 LICENSE，登记 license=unknown；不复制/执行/再分发归档代码和权重）"
-      },
-      "implementation_status": "NATIVE; experimental paper-objective dense 2G/3D + synthetic PN; MLP or four independent trainable CNN score encoders and explicit NCHW pixel outputs; not author-demo replay or formal admission",
-      "native_sampling_assumption": "ts（论文 §2.1/§3.2 的 U 为总体边缘 p(x)；发布 MNIST demo 实际从 U 排除已标记 P，差异单列）",
-      "run_view": "ts-compatible", "calibration_applied": true,
+      "native_sampling_assumption": "ts",
       "calibration_hooked": true,
-      "calibration_review_ref": "docs/research/pu_survey/reviews/additional_ts_calibration_review_20261019b.md",
-      "prior_semantics": "population π；论文式 (3) 正负生成分布与 Du 假样本混合权重，最终合成 PN risk 同按 π 加权；需要明确总体先验，fit/构造冲突 fail-loud",
-      "adaptation_level": "benchmark-adapted（按论文带先验权重的 minimax/anti-GAN 独立实现；与官方 demo 的非饱和 generator 和无先验 Du 配方不同；图像生成器仍为稠密像素 MLP，输出显式 NCHW，三个判别器和新建 PN 各有独立可训练 CNN；G 步冻结 D 权重/BN/dropout 而保留输入梯度；默认 identity 兼容，显式 tanh 要求训练数据已在 [-1,1]；不合并成 source-faithful）",
-      "modality_backbone": {
-        "modalities": ["tabular", "image"], "backbone": "二维特征 MLP 或显式 NCHW 双稠密像素 generator；Dp/Dn/Du/最终 PN 分别 deepcopy 外部 CNN 模板并端到端训练；原始数据留 CPU，仅批次送设备；非作者 Table 1 的全 MLP 实验",
-        "code_capability": {"native_architectures": ["cnn", "mlp"], "input_ndims": [2, 4], "encoder_parameter": "encoder", "trains_encoder": true}
-      },
-      "source_behavior_review_ref": "docs/research/pu_survey/genpu_source_cnn_review_20261007.md",
-      "evidence": {
-        "native_sampling_assumption": "GEN-PU.md；论文 §2.1 U~p(x)，官方 utils/data_wrapper.py:160-168 排除已标记正例",
-        "prior_semantics": "GEN-PU.md；原论文式 (3)-(11)、Proposition 1 的 Du 混合项；官方 demo pun_demo_main.py:249-263 未加该权重",
-        "adaptation_level": "GEN-PU.md；gen_pu.py 的 paper_minimax_prior_weighted；test_gen_pu.py 检查 anti-GAN 方向、Du risk 池和两阶段预算"
-      },
-      "uncertainty": ["作者归档未发现 LICENSE（2026-10-18 复核，登记 license=unknown）；未复制、执行或再分发作者程序/预置 pickle", "2026-10-18 决定：正式目标采用论文 minimax/prior-weighted；官方 demo 的非饱和 generator/未按先验混合 Du 仅作差异对照，不宣称官方 replay", "ts 仅 Du 真实风险池取 U∪P，Dp/Dn 真实行始终 P；生成流与最终 PN 标签不靠真值数据，默认 OS 非原生视图", "epoch callback 仅合成 PN 分类器阶段；checkpoint_epoch_count=classifier_epochs，不输出 GAN 分类器空壳；六模型可信 pickle 不等于训练恢复或正式存储规格；GAN+PN 全部 optimizer steps 按六网络分别计数，正式选模候选资格待预注册，未进入旧冻结矩阵", "有限步 GAN 不保证收敛或负分布恢复；原论文 Table 1/作者 demo 生成器和判别器均为稠密网络；注入 CNN 是显式工程表征适配，不是作者 CNN 或数值复现；identity/tanh、归一化、四份 CNN/BN 与 G 步模式须批准 recipe", "tanh 不自动重标定或截断；train-only 标准化可能超出 [-1,1]，这时必须保持 identity 或采用另行批准的数据坐标；模板不被修改，singleton BN 用运行统计；双像素 MLP、四份 CNN、全部优化器及保留 GAN 状态要计资源，旧二维 CPU/GPU 探针不可外推；超参数网格、公开数值与正式资源验收未完成"]
+      "run_view": "ts-compatible",
+      "calibration_applied": true,
+      "prior_semantics": "population pi weights the mixture/discriminator objective and synthetic PN risk.",
+      "adaptation_level": "benchmark-adapted",
+      "notes": [
+        "Dense pixel generator with independent CNN discriminators is a project recipe.",
+        "The paper assumes marginal U; the released MNIST demo excludes labeled positives from U.",
+        "Upstream license is unresolved; the project does not copy or execute author source."
+      ]
     },
     "pulns": {
-      "class": "PULNSClassifier",
-      "fit_failure_review_ref": "docs/research/pu_survey/reviews/extended_candidate_fit_failure_20261019.md",
-      "inference_state_review_ref": "docs/research/pu_survey/admission/candidate_eval_transition_20261019.md",
-      "paper": {
-        "title": "PULNS: Positive-Unlabeled Learning with Effective Negative Sample Selector",
-        "authors": "Chuan Luo, Pu Zhao, Chen Chen, Bo Qiao, Chao Du, Hongyu Zhang, Wei Wu, Shaowei Cai, Bing He, Saravanakumar Rajmohan, Qingwei Lin",
-        "venue": "AAAI", "year": 2021
-      },
-      "code_version": {"upstream_url": null, "source_status": "not_found（2026-10-19 复核 AAAI 正式全文与论文页，论文未提供可确认作者仓库/源码链接；不等于证明源码不存在；论文独立适配，证据见 docs/research/pu_survey/pulns_source_cnn_review_20261007.md）"},
-      "implementation_status": "NATIVE; experimental MLP or injected trainable CNN RL selector/classifier; independent reward probe and full stage cost; requires clean support, not PU-only or formal survey admission",
-      "native_sampling_assumption": "ts（原论文 §Experimental Setup 印刷页8788：P与U分别抽样，gamma是U内正类比例而非标记率c；CIFAR-10/MNIST设置|P|=2000、|U|=4000，并需独立含真值正负的奖励验证集）",
-      "run_view": "os-compatible", "calibration_applied": false,
+      "native_sampling_assumption": "ts",
       "calibration_hooked": false,
-      "prior_semantics": "无外部先验；需要独立带正负真值的 support_data 计算终端奖励和内部最优分类器，PA-ineligible",
-      "adaptation_level": "benchmark-adapted（论文状态/动作/折扣奖励/REINFORCE 与更新后重采样独立实现；MLP 或注入 CNN 最后隐层作状态，分类器/独立 probe 均端到端训练编码器；CNN 特征分批提取并在 CPU 缓存，顺序 policy 图仍随 U 增长；工程架构/Adam 重置/预算，不声称完整作者 CNN 数值复现；论文 Table 3 数值和 SD 单位歧义仅作外部来源锚点，见 pulns_source_cnn_review_20261007.md，不并入冻结矩阵）",
-      "requires_clean_support": true,
-      "pa_eligible": false,
-      "extra_supervision_adapter": {
-        "entry": "pu_toolbox.experiment.pulns_adapter.PULNSExtraSupportTrainer",
-        "checkpoint_variant": {
-          "entry": "pu_toolbox.experiment.support_checkpoints.PULNSCleanSupportCheckpointTrainer",
-          "review_ref": "docs/research/pu_survey/delivery/clean_support_checkpoints_20261022.md",
-          "scope": "explicit exploratory SCAR OS, completed episode classifiers before internal best restoration; no reward-probe snapshots",
-          "selection_protocols": ["PA+clean-support", "OA"],
-          "requires_clean_support": true,
-          "pa_eligible": false,
-          "pa_clean_support_eligible": true,
-          "formal_admission": false,
-          "protocol_review_complete": false
-        },
-        "support_artifact_preparer": "scripts/prepare_clean_support.py",
-        "cpu_exploratory_runner": "scripts/run_clean_support_experiment.py",
-        "artifact_workflow_ref": "docs/research/pu_survey/delivery/clean_support_workflow_20261017.md",
-        "scope": "opt-in exploratory SCAR OS, terminal OA only; frozen Survey/Pipeline/CLI unchanged",
-        "dataset_rules_ref": "docs/research/pu_survey/data/pulns_dataset_adaptation_20261017.json",
-        "roles": ["train", "pu_val", "clean_val", "test", "prior_estimation", "support"],
-        "support_labels_affect": ["training_reward", "internal_best_classifier_selection"],
-        "comparison_group": "extra_clean_support",
-        "formal_support_artifacts_materialized": false
-      },
-      "modality_backbone": {
-        "modalities": ["tabular", "image"], "backbone": "MLP 或独立 deepcopy 的可训练 CNN + hidden_dim 隐层/score head；selector 输入为当前样本/负例质心/正例质心，64-32-1；原始图像/奖励数据留 CPU",
-        "code_capability": {"native_architectures": ["cnn", "mlp"], "input_ndims": [2, 4], "encoder_parameter": "encoder", "trains_encoder": true}
-      },
-      "source_behavior_review_ref": "docs/research/pu_survey/pulns_source_cnn_review_20261007.md",
-      "evidence": {
-        "native_sampling_assumption": "PULNS.md；原论文 §Experimental Setup 印刷页 8788，P/U 分别抽样",
-        "prior_semantics": "PULNS.md；印刷页 8787 明确奖励验证集需要真实正/负标签",
-        "adaptation_level": "PULNS.md；Algorithm 1 与折扣 REINFORCE；独立 clean support 参数不可用选模验证集隐式替代"
-      },
-      "uncertainty": [
-        "原生 TS 但没有可安全同形替换的未标记风险项，当前不启用 U∪P 校准；显式 ts fail-loud；默认 OS 仅是工程输入，不声称原生假设对齐",
-        "需要独立干净 support set，禁止复用 PA/OA selection 或 test；只提供数组时隔离未验证，提供双方 sample IDs 可核对 train/support 互斥；完整四角色/support 隔离需新协议",
-        "REINFORCE 每 U 逐行图构造，负例集合可能为空；空集合跳过分类器更新，不强制捏造负例",
-        "预训练、reward-probe、policy 和实际 classifier 的累计更新分别计入 stage_optimizer_steps_；返回较早最优网络不倒退 optimizer_steps_/history；probe 与实际分类器最优权重/BN 不混淆",
-        "2026-10-22 已补完成 episode 的 epoch_callback 与 weights-only 快照：每 episode 一份当前 classifier，发生在最终内部 best 恢复之前；不保存 reward probe 或 selector，不支持训练恢复。旧终点 OA 保留；新 PA+clean-support/OA 仅显式探索接线，正式资源与执行单元仍待",
-        "CNN 仅为工程原生路径，不是已确认作者 CNN；编码器须输出有限二维且保留 batch；原模板独立，singleton BN 采用运行统计；CNN hidden 缓存为 CPU n_train×hidden_dim，但 policy activation graph、probe/模型/最佳权重及额外奖励 forwards 仍需资源规格；旧二维探针不可外推",
-        "公共 Pipeline/CLI/Survey 当前没有独立 support 角色传参，因此仍不能直接 fit_evaluate/run 该方法；架构接线不等于支持标签预算已开放；不隐式复用 selection/test"
+      "run_view": "os-compatible",
+      "calibration_applied": false,
+      "prior_semantics": "No external prior; requires separately budgeted clean support labels.",
+      "adaptation_level": "benchmark-adapted",
+      "notes": [
+        "Requires clean support labels; PA+clean-support is separate from pure PU PA.",
+        "Paper P/U sampling is TS; the support adapter uses explicit OS and has no calibration hook."
       ]
     },
     "pan": {
-      "project_recipe_binding": {"protocol": "survey-v3.1", "registry": "survey-recipes-v1.1", "owner_confirmed_on": "2026-11-01", "execution_adapter": "survey-backlog-1", "decision_ref": "docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md", "formal_admission": false, "paper_numerical_reproduction": false},
-      "class": "PANClassifier",
-      "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
-      "paper": {
-        "title": "Predictive Adversarial Learning from Positive and Unlabeled Data",
-        "authors": "Wenpeng Hu, Ran Le, Bing Liu, Feng Ji, Jinwen Ma, Dongyan Zhao, Rui Yan",
-        "venue": "AAAI", "year": 2021
-      },
-      "code_version": {"upstream_url": "https://github.com/morning-dews/PAN", "upstream_commit": "5be703639e4c1eb2c63d869ba150d84ebf0c116e", "source_status": "official_related（README 写 Code for paper；论文正文未直接给链接；无 LICENSE；2026-10-18 复核）", "source_files_sha256": {
-        "main.py": "fde2d2b01d4a04cbafbbde82d3e18765f3f8f86b15cef3aeda7a43be346e8ba9",
-        "helper/pu_learning_dataset.py": "d1c077ed86c838ace17ada7ada0fdfec3f475d03ddefcf67e279d58f394b5541",
-        "helper/cifar10_dataset.py": "c0d64ee423811a415e4e2774235789fa649c96cc33c1adaf7a5e1ef3794b7ce2",
-        "helper/mnist_dataset.py": "9524d9b82aea7a4a98cf53719bd96e70222ef20f23357b84ec8d16b8cb4c8d00",
-        "cfg/cifar10/uPU": "ca7010b528e826920d4a2f4e1ee623a319c627b2df49143d0dd396703add267a",
-        "cfg/mnist/uPU": "fa1ac93e41105ed5fc04b7a95a9aa9e8624a340e004ddf0f6998d1c58a6fbf06",
-        "cfg/news/uPU": "0f105017d56c058223b76cb507d36adecf6415a63827da1998ae35d1d9ebefe3",
-        "cfg/sddd/uPU": "ef6b5797fc5e5cb31c95ff63a28c552211ac13cc410612cef31463ff941ab508",
-        "README.md": "f5a36b3ac93539438f55aa01375723ee15da07ec9b8b4556e2bad2a2e46b7f63"
-      }},
-      "source_behavior_review_ref": "docs/research/pu_survey/data/pan_source_review_20261018.json",
-      "implementation_status": "NATIVE; experimental MLP or injected end-to-end CNN with independent C/D encoders; standalone four-role image CLI records native OS, both optimizer costs and C-only inference checkpoints; not formal survey admission or paper numeric reproduction",
-      "native_sampling_assumption": "os（论文 §5.1 脚注 5 为 single-training-set；2026-10-18 决定正式 Survey 跟随论文。作者源码 cfg/*/uPU 用 overlap=True，U 为完整训练池、P 为标注正例副本，属 case-control/overlap；PU-Bench fixture 亦为 case-control；差异已登记，不改变正式 OS 决定）",
-      "run_view": "os-compatible", "calibration_applied": false,
+      "native_sampling_assumption": "os",
       "calibration_hooked": false,
-      "prior_semantics": "无；目标不需要外部类先验，兼容 fit 参数仅校验后忽略",
-      "adaptation_level": "paper-faithful benchmark-adapted（论文 Eq.7/Algorithm 1 独立实现；二维 MLP 或注入 CNN 编码器的 C/D 两份独立副本；官方源码 morning-dews/PAN@5be7036 的 max-margin U 项/eps=1e-2/sums/overlap=True/Adam betas+wd 差异已登记，不声称 source-faithful；不声称作者图像/文本架构复现）",
-      "modality_backbone": {
-        "modalities": ["tabular", "image"], "backbone": "独立 classifier C 与 discriminator D；默认 MLP128 或共享初始模板的两份独立可训练 CNN+head；预测只使用 C",
-        "code_capability": {"native_architectures": ["mlp", "cnn"], "input_ndims": [2, 4], "encoder_parameter": "encoder", "trains_encoder": true}
-      },
-      "evidence": {
-        "native_sampling_assumption": "PAN.md §抽样与校准；论文 §5.1，印刷页 7810 脚注 5",
-        "prior_semantics": "PAN.md；原论文 §5.1 明确无需先验",
-        "adaptation_level": "PAN.md；pan.py 的 Eq.7 objective / alternating update；test_pan_cnn.py、test_pan_pipeline_cnn.py 与 test_cv_fold_isolation.py 的双编码器/原生 CNN/折隔离证据",
-        "source_review": "PAN.md §源码差异（2026-10-18）；morning-dews/PAN@5be7036 main.py:351-423；PU-Bench train/pan/core.py；PUBench core/algorithms.py:1694"
-      },
-      "uncertainty": ["显式 ts fail-loud：原生 OS 不套用 case-control U∪P 校准", "source_status=official_related 是 2026-10-18 复核结果；作者源码目标/采样与论文 Eq.7/single-training-set 不同，当前实现保留 paper-faithful 并登记差异", "未进入旧冻结协议；参数/训练预算、共享架构、公开数值和 GPU 资源验收仍待独立登记；epoch 权重只恢复 C 的推理，不支持对抗训练续跑"]
-    },
-    "rp": {
-      "image_project_binding": {"protocol": "survey-v3.2", "registry": "survey-recipes-v1.2", "training_path": "cnn_feature_adapter", "encoder": "resnet18_random_frozen", "datasets": ["cifar10", "mnist", "fashion_mnist", "adni"], "source_space_label_generation": true, "formal_admission": false, "paper_numerical_reproduction": false},
-      "project_recipe_binding": {"protocol": "survey-v3.1", "registry": "survey-recipes-v1.1", "owner_confirmed_on": "2026-11-01", "execution_adapter": "survey-backlog-1", "decision_ref": "docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md", "formal_admission": false, "paper_numerical_reproduction": false},
-      "class": "RankPruningClassifier",
-      "candidate_cost_adapter": {"implementation_ref": "pu_toolbox/experiment/classical_candidate.py", "budget_unit": "cross_fits_and_final_refit", "records_actual_inner_fits": true, "neural_epoch_count": 0, "formal_admission": false, "review_ref": "docs/research/method_cards/RP.md"},
-      "candidate_cli": {"implementation_ref": "scripts/run_classical_candidate_experiment.py", "execution_device": "cpu", "training_views": ["os"], "four_role_pa_oa_replay": true, "durable_per_attempt_cost_receipts": true, "formal_admission": false},
-      "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
-      "paper": {
-        "title": "Learning with Confident Examples: Rank Pruning for Robust Classification with Noisy Labels",
-        "authors": "Curtis G. Northcutt, Tailin Wu, Isaac L. Chuang", "venue": "UAI", "year": 2017
-      },
-      "code_version": {"upstream_url": "https://github.com/cgnorthcutt/rankpruning", "upstream_commit": "40ae17cc50fcfeec8d7a345a1c5426036d2bdb1a", "source_status": "official_related（作者代码核查；仅 clean-positive PU 特例的独立适配，非通用双向噪声 PN）", "source_files_sha256": {
-        "rankpruning/rankpruning.py": "1891f73ba5cfe960b5d4377c5dbb7581e65f44f9bb20dbbe099b344172773342",
-        "LICENSE": "3532f0d8789e2fe36fd6025ecfe9ba68634899d0362971d5052cd1aeefd17ac0",
-        "README.md": "210d7f4d552a640938ccd56fdb998fe5676455c5a923277209731b83908061e8",
-        "setup.py": "2544431c5f33f224b156fe29a06271ca06d7d52422fcb6000669713b8a2fba26"
-      }},
-      "source_behavior_review_ref": "docs/research/pu_survey/data/rp_source_review_20261018.json",
-      "implementation_status": "NATIVE; PU-only confident counts + fold-mean rho1 + strict rank pruning + inverse-noise reweighting",
-      "native_sampling_assumption": "os（观测 s 的随机漏标：rho1=P(s=0|Y=1)，rho0=0；总体样本中估计观测比例）",
-      "run_view": "os-compatible", "calibration_applied": false,
-      "calibration_hooked": false,
-      "prior_semantics": "无需外部；估计 rho1 与观测比例推导的 pi，外部 fit 先验仅校验后忽略",
-      "adaptation_level": "benchmark-adapted（独立 sklearn 适配；CV clone/固定随机种子；默认保留每类至少 10 个，与作者严格阈值和 ties 保留相同；正例均值用 max(P) 仅修正上溢舍入，避免空 confident/NaN，非逐位源复现）",
-      "modality_backbone": {
-        "modalities": ["tabular"], "backbone": "默认 LogisticRegression；可注入支持 predict_proba 和 sample_weight 的 sklearn 二分类器",
-        "code_capability": {"native_architectures": [], "input_ndims": [2], "encoder_parameter": null, "trains_encoder": false}
-      },
-      "evidence": {
-        "native_sampling_assumption": "RP.md；作者 rankpruning.py: RankPruning.fit(pulearning=True) / compute_ps1_py1_pi1_pi0",
-        "prior_semantics": "RP.md；rho0=0 时 pi=mean(s)/(1-rho1)",
-        "adaptation_level": "RP.md；作者 compute_noise_rates_and_cv_pred_proba/get_noise_indices 的 PU 分支"
-      },
-      "uncertainty": ["无可安全同形替换的未标记风险项；显式 ts fail-loud，不能给 P 添加虚假 s=0 标签", "每次外部候选额外包含 n_cv_folds 次内部拟合，调参/资源预算不可只算最终模型", "退化分类器可能产生大于 1 的推导 pi；与作者保留原估计并夹断 pi0 的行为一致，需显式诊断，不当成合法先验", "作者旧包已弃用但论文来源保留；未实现通用双向 noisy PN，也未进旧冻结矩阵"]
-    },
-    "upu": {
-      "class": "UPUClassifier",
-      "paper": {
-        "title": "Convex Formulation for Learning from Positive and Unlabeled Data",
-        "authors": "Marthinus Christoffel du Plessis, Gang Niu, Masashi Sugiyama",
-        "venue": "ICML 2015 (JMLR W&CP Vol. 37)",
-        "year": 2015
-      },
-      "code_version": {
-        "upstream_url": "https://github.com/t-sakai-kure/pywsl",
-        "upstream_commit": "79a5bf104a53cb6d3498918e435bd88ac5331543",
-        "source_status": "official_bundle (pinned pywsl snapshot; package declares ICML 2015 uPU support, but does not imply equivalence for all toolbox loss branches)"
-      },
-      "implementation_status": "NATIVE, backend NUMPY; C-DH SLSQP / C-LL L-BFGS / Squared 闭式解 (Convex_Formulation_for_PU_DATA_Learning.md:495)",
-      "native_sampling_assumption": "ts",
-      "run_view": "ts-compatible",
-      "calibration_applied": true,
-      "calibration_hooked": true,
-      "calibration_review_ref": "docs/research/pu_survey/reviews/rv6_ts_calibration_technical_review_20261019.md",
-      "prior_semantics": "population π（requires_class_prior=True；训练时需要 π=p(y=1)，Convex_Formulation_for_PU_DATA_Learning.md:19/68, registry:upu）",
-      "adaptation_level": "benchmark-adapted（重写：官方 pywsl 仅提供 Squared Loss 闭式解，Convex_Formulation_for_PU_DATA_Learning.md:498）",
-      "modality_backbone": {
-        "modalities": ["tabular"],
-        "backbone": "线性参数模型 g(x)=αᵀφ(x)+b，basis 可选 Gaussian/linear/polynomial (Convex_Formulation_for_PU_DATA_Learning.md:188-194)",
-        "code_capability": {
-          "native_architectures": [],
-          "input_ndims": [2],
-          "encoder_parameter": null,
-          "trains_encoder": false
-        }
-      },
-      "evidence": {
-        "native_sampling_assumption": "Convex_Formulation_for_PU_DATA_Learning.md:17 case_control（P 和 U 分别收集）; Convex_Formulation_for_PU_DATA_Learning.md:16 要求 P 为 p(x|y=1) 的 i.i.d. 抽样（SCAR）; registry:upu",
-        "prior_semantics": "Convex_Formulation_for_PU_DATA_Learning.md:19/68; registry:upu requires_class_prior=True",
-        "adaptation_level": "Convex_Formulation_for_PU_DATA_Learning.md:495-499; registry:upu",
-        "source_behavior_review": "docs/research/pu_survey/admission/upu_source_behavior_review_20261019.md"
-      },
-      "uncertainty": [
-        "API 默认 loss=\"squared\"（upu.py:93）与方法卡推荐变体 C-DH（double hinge，Convex_Formulation_for_PU_DATA_Learning.md:15）不一致，pilot 候选池需明确 loss 选择",
-        "已锁定 pywsl@79a5bf1；其 PU_SL 平方闭式方程仅在同一设计矩阵且 reg_lambda=源码 lam/2 时与工具箱系数解代数对应。默认 basis、截距/正则语义及 RBF 中心抽样不同；官方 pu_sl 调参 helper 有静态可见实现错误，不声称 source-faithful，详见 upu_source_behavior_review_20261019.md",
-        "卡末（Convex_Formulation_for_PU_DATA_Learning.md:460）明确不要把后起 nnPU 的 non-negative correction 视为本文目标",
-        "TS-OS 校准已接入训练执行链（fit 接受 os_or_ts；全量求解下把承担无标签风险角色的集合换成 D_U ∪ D_P，RBF 中心候选池跟随视图、中心数量不变）；本台账字段为方法默认配置，逐 run 实际值以 manifest 的 run_view/calibration_applied 为准",
-        "ts 视图路径尚未经合作者复核（协议 §2.3）；按 D20 的单方技术验收放行，manifest 已不再挂 ts_view_collaborator_review 阻断正式资格——**放行不等于合作者已复核**，呈报时不得读作已签署"
-      ],
-      "source_behavior_review_ref": "docs/research/pu_survey/admission/upu_source_behavior_review_20261019.md"
-    },
-    "kldce": {
-      "project_recipe_binding": {"protocol": "survey-v3.1", "registry": "survey-recipes-v1.1", "owner_confirmed_on": "2026-11-01", "execution_adapter": "survey-backlog-1", "decision_ref": "docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md", "formal_admission": false, "paper_numerical_reproduction": false},
-      "class": "KLDCEClassifier",
-      "candidate_resource_planner": {"implementation_ref": "scripts/prepare_kldce_resource_plan.py", "scope": "declared_dtype_dense_named_array_payload_not_peak_RSS", "counts_rollback_qp_budget": true, "optional_qp_equality_box_feasibility": true, "infeasible_exit_code": 3, "declared_prior_and_flip_not_generator_verified": true, "below_cap_is_not_fit_approval": true, "data_loaded": false, "formal_resource_profile_complete": false, "formal_admission": false},
-      "candidate_cli": {"implementation_ref": "scripts/run_classical_candidate_experiment.py", "trainer_ref": "pu_toolbox/experiment/kernel_candidate.py", "execution_device": "cpu", "training_views": ["os"], "flip_probability_binding": "one_minus_train_SCAR_c_realized", "prior_policies": ["derived", "population_override"], "qp_equality_box_preflight": true, "durable_per_attempt_cost_receipts": true, "rollback_actual_work_observed": false, "formal_admission": false, "formal_resource_profile_complete": false},
-      "paper": {
-        "title": "Loss Decomposition and Centroid Estimation for Positive and Unlabeled Learning (kernelized version, RBF)",
-        "authors": "Chen Gong, Hong Shi, Tongliang Liu, Chuang Zhang, Jian Yang, Dacheng Tao",
-        "venue": "IEEE TPAMI",
-        "year": 2021
-      },
-      "code_version": {
-        "upstream_url": null,
-        "source_status": "not_found（未找到可确认的 KLDCE 作者实现；CEGE_PAMI20.rar 是线性 LDCE 家族的早期会议版本，不能作为核化 PAMI 方法的源码身份；论文正文与在线补充附录是当前唯一方法来源）"
-      },
-      "implementation_status": "NATIVE; 广义 pair-SMO 已接入 fit（解析可行 pair steps、KKT 检查）；在联合 [α;γ] 变量中全局选对，不是附录 Algorithm 1 的分组逐步复现；SLSQP oracle 对照校验; 2026-08-25 质心单调回滚并定格 inner_tol=1e-6（KLDCE.md §8）",
-      "native_sampling_assumption": "os（censoring PU，单一 i.i.d. 训练样本内 P 与污染负类混合；SCAR 型 censoring，KLDCE.md:13/31/37, registry:kldce）",
       "run_view": "os-compatible",
       "calibration_applied": false,
-      "calibration_hooked": false,
-      "prior_semantics": "估计器（requires_class_prior=False；正类先验 p=k/[n(1-h)] 由 h 与观测正例比例估计，KLDCE.md:16/46, registry:kldce）",
-      "adaptation_level": "重写（论文正文 + 附录为唯一权威；广义 pair-SMO/ACS 顺序为实现适配，KLDCE.md §8 与来源审计）",
-      "modality_backbone": {
-        "modalities": ["tabular"],
-        "backbone": "RBF 核 K(x,z)=exp(-‖x-z‖²/(2σ²))（KLDCE.md:13/52）",
-        "code_capability": {
-          "native_architectures": [],
-          "input_ndims": [2],
-          "encoder_parameter": null,
-          "trains_encoder": false
-        }
-      },
-      "evidence": {
-        "native_sampling_assumption": "KLDCE.md:13/31/37; registry:kldce scenario=SINGLE_TRAINING_SET",
-        "prior_semantics": "KLDCE.md:16/46; registry:kldce",
-        "adaptation_level": "KLDCE.md:233-234; registry:kldce source_status=NOT_FOUND; CEGE archive belongs only to related early linear LDCE lineage",
-        "source_behavior_review": "docs/research/pu_survey/admission/kldce_source_behavior_review_20261019.md"
-      },
-      "uncertainty": [
-        "方法卡 16 行（先验由 h 与观测正例比例估计）与卡 240 行（探针网格曾传 class_prior=π 作 SCAR 简化构造）口径待澄清",
-        "论文来源/实现单方核查见 KLDCE 来源审计；原生 solver 在拼接 [α;γ] 上全局选 pair，并非附录 Algorithm 1 两组分别更新；ACS 顺序不同，论文未规定的 KKT 违反度/边界与停止细节、质心单调回滚、b0 类对称恢复均属实现适配，待 RV8 复核",
-        "多处论文未覆盖的实现决策：质心单调回滚处理 period-2 极限环（KLDCE.md §3.2/§6）、b0 类对称中位数恢复（§6）"
-      ],
-      "source_behavior_review_ref": "docs/research/pu_survey/admission/kldce_source_behavior_review_20261019.md"
+      "prior_semantics": "No external prior in the objective; fit validates but ignores class_prior.",
+      "adaptation_level": "benchmark-adapted",
+      "notes": [
+        "Native OS follows the paper's single-training-set assumption.",
+        "Paper objective and released margin/overlap implementation differ; no numerical reproduction claim."
+      ]
     },
-    "dist_pu": {
-      "class": "DistPUClassifier",
-      "paper": {
-        "title": "Dist-PU: Positive-Unlabeled Learning from a Label Distribution Perspective",
-        "authors": "Yunrui Zhao, Qianqian Xu, Yangbangyan Jiang, Peisong Wen, Qingming Huang",
-        "venue": "CVPR 2022",
-        "year": 2022
-      },
-      "code_version": {
-        "upstream_url": "https://github.com/Ray-rui/Dist-PU-Positive-Unlabeled-Learning-from-a-Label-Distribution-Perspective",
-        "upstream_commit": "cb74be1a87176fd38270873c06374e53905b7354",
-        "source_status": "official_exact (locked commit cb74be1a87176fd38270873c06374e53905b7354; identifies upstream source only, not toolbox training fidelity)"
-      },
-      "source_behavior_review_ref": "docs/research/pu_survey/admission/dist_pu_source_behavior_review_20261019.md",
-      "encoder_integration_review_ref": "docs/research/pu_survey/admission/distpu_encoder_stream_20261020.md",
-      "inference_state_review_ref": "docs/research/pu_survey/admission/distpu_encoder_stream_20261020.md",
-      "implementation_status": "NATIVE; 默认 clean-room 单阶段全量小型 MLP；author_staged + author_histogram 显式 opt-in 两阶段 mini-batch/persistent-pseudo-label 路径可注入可训练 encoder，支持四维图像、CPU-stream、分批推理与独立 CV 模板；不复现作者数据、backbone、预处理或 test-based 选模",
-      "native_sampling_assumption": "ts（case_control; X_P~p_P(x), X_U~p(x)=πp_P+(1-π)p_N; Dist-PU.md:14/24-30, registry:dist_pu）",
+    "rp": {
+      "native_sampling_assumption": "os",
+      "calibration_hooked": false,
+      "run_view": "os-compatible",
+      "calibration_applied": false,
+      "prior_semantics": "Estimates missing-positive noise rho1 and pi from out-of-fold predictions.",
+      "adaptation_level": "benchmark-adapted",
+      "notes": [
+        "SCAR missing-positive noise uses rho0=0, held-out crossfits and one weighted refit.",
+        "Degenerate inferred priors remain diagnostics rather than clipped valid priors."
+      ]
+    },
+    "upu": {
+      "native_sampling_assumption": "ts",
+      "calibration_hooked": true,
       "run_view": "ts-compatible",
       "calibration_applied": true,
+      "prior_semantics": "population pi is required by the PU risk objective.",
+      "adaptation_level": "benchmark-adapted",
+      "notes": [
+        "The implemented variant uses a fixed squared-loss closed form and project basis/intercept defaults."
+      ]
+    },
+    "kldce": {
+      "native_sampling_assumption": "os",
+      "calibration_hooked": false,
+      "run_view": "os-compatible",
+      "calibration_applied": false,
+      "prior_semantics": "Estimates its own prior via h: p=k/[n(1-h)]; no external class_prior.",
+      "adaptation_level": "benchmark-adapted",
+      "notes": [
+        "Frozen low-c settings can be mathematically infeasible; failures and numerical risks remain excluded.",
+        "Chunked kernel/QP execution changes memory use, not feasibility or numerical acceptance."
+      ]
+    },
+    "dist_pu": {
+      "native_sampling_assumption": "ts",
       "calibration_hooked": true,
-      "calibration_review_ref": "docs/research/pu_survey/reviews/rv6_ts_calibration_technical_review_20261019.md",
-      "prior_semantics": "population π（R_lab 以「角色集合均值 = π」对齐；该 identity 的角色集**随视图变化**——os 下是 X_U，ts 下是 X_U ∪ X_P，目标始终是总体 π、不因观测 P/U 比例重估；Dist-PU.md:15/57/96, registry:dist_pu）",
-      "adaptation_level": "benchmark-adapted（默认 clean-room 重写；opt-in author_staged 依据锁定 train.py/utils.py/dataTools/mixupDataset.py/losses 适配两阶段损失、持久伪标签和 scheduler cadence；使用 toolbox MLP 或显式 encoder+MLP/调用方 prior，不复现作者数据集模型/增强/splits或 test-based 选模，非作者程序重放，Dist-PU.md:231-245）",
-      "modality_backbone": {
-        "modalities": ["tabular", "image"],
-        "backbone": "默认小型 MLP；显式 author_staged + author_histogram 可注入 deepcopy 后解冻训练的 encoder + 同构 MLP 头；冻结 Pilot 图像仍用原 cnn_feature_adapter",
-        "code_capability": {
-          "native_architectures": ["mlp", "cnn"],
-          "input_ndims": [2, 4],
-          "encoder_parameter": "encoder",
-          "trains_encoder": true
-        }
-      },
-      "evidence": {
-        "native_sampling_assumption": "Dist-PU.md:14/24-30; registry:dist_pu",
-        "prior_semantics": "Dist-PU.md:15/57/96; registry:dist_pu",
-        "adaptation_level": "Dist-PU.md:228-265; author histogram/staged adapter and its non-replay boundary: dist_pu_source_behavior_review_20261019.md"
-      },
-      "checkpoint_accounting": {
-        "epoch_bound": "warmup_epochs + pu_epochs for author_staged; epochs for clean_room",
-        "bound_is_upper_limit": true,
-        "optimizer_steps_attribute": "optimizer_steps_",
-        "formal_budget_approved": false
-      },
-      "uncertainty": [
-        "默认 expectation/单阶段全量 clean-room 路径保持旧训练目标与更新轨迹；其中 batch_size 未生效，author_histogram 在 clean-room 下仅换 histogram loss 组件。新增 author_staged 必须与 author_histogram 同用，适配 warm-up+PU 两阶段、batch_size=256、持久批次伪标签/更新、分阶段 Adam/weight decay、warm-up scheduler 每 epoch 末 step，PU scheduler 每 batch 后 step、熵/mixup 系数。仍非完整作者程序重放：使用 toolbox MLP 或显式 encoder+MLP/调用方 prior，不含官方 dataset-specific backbone/preprocessing/data split/augmentation，且不照搬 test accuracy 选模。详见 dist_pu_source_behavior_review_20261019.md",
-        "不应直接与论文图像 backbone 结果比较（Dist-PU.md:185）；冻结 pilot 图像模态仍须走 cnn_feature_adapter 并强制分组。新 encoder 路径须显式 author_staged + author_histogram；单行训练 batch 的 BN 使用运行统计，伪标签扫描 batch 为 min(128,batch_size)，这些是透明工程适配，正式 backbone/增强/预算/资源与准入仍未批准",
-        "TS-OS 校准已接入（协议 §2.3）：`clean_room` 的 ts 视图把 alignment 与 entropy 角色集合由 X_U 换成 X_U∪X_P；`author_staged` 按同一项目规则将当前 batch 的 marginal histogram/entropy roles 扩为 P∪U，正例 histogram term 仍只用 observed P，alignment target 仍是总体 π。两路径均不复制物理训练行；clean_room Mixup 仍用完整 X，author_staged Mixup 仍限当前 batch，TS 不改变各自的 Mixup pool/RNG 调用形状。优化目标的适配依据与协议选择详见来源复核和执行计划 D18/D20，不将 histogram 源程序等同于原生 TS。该口径的量化依据是本次 Spambase split_0 制品观测（不是 Dist-PU 的一般性质，换 seed/数据集/c 数值会不同）。数学 golden、结构回归和校准路由测试不依赖真实跑批指标"
+      "run_view": "ts-compatible",
+      "calibration_applied": true,
+      "prior_semantics": "population pi is the distribution-alignment target in both risk views.",
+      "adaptation_level": "benchmark-adapted",
+      "notes": [
+        "Default clean-room variant and opt-in author_staged recipe are distinct.",
+        "author_staged has two stages, persistent pseudo labels and a stage scheduler; it does not replay author test-based selection, architecture or preprocessing."
       ]
     },
     "pusb": {
-      "class": "PUSBClassifier",
-      "paper": {
-        "title": "Learning from Positive and Unlabeled Data with a Selection Bias",
-        "authors": "Masahiro Kato, Takeshi Teshima, Junya Honda",
-        "venue": "ICLR 2019",
-        "year": 2019
-      },
-      "code_version": {
-        "upstream_url": "https://github.com/MasaKat0/PUlearning",
-        "source_status": "official_related (locked paper repository is relevant to PUSB, but this linear P/U LogisticRegression baseline is not claimed as the official algorithm)"
-      },
-      "implementation_status": "NATIVE；linear baseline（StandardScaler + LogisticRegression 附加工程基线，PUSB.md:143/251）",
-      "native_sampling_assumption": "ts（两集合视图 P_+^obs=p(x|y=1,s=1) 与 P_U=p(x)；原生标注机制为 SAR（e(x) 随 x 变化），PUSB.md:15/27-28, registry:pusb）",
+      "native_sampling_assumption": "ts",
+      "calibration_hooked": false,
       "run_view": "os-compatible",
       "calibration_applied": false,
-      "calibration_hooked": false,
-      "prior_semantics": "无（fit 接受 class_prior 但不参与计算；不依赖 π，PUSB.md:16, registry:pusb）",
-      "adaptation_level": "benchmark-adapted（sklearn LR 附加工程基线，不能声称 PUSB 论文复现，PUSB.md:143）",
-      "modality_backbone": {
-        "modalities": ["tabular"],
-        "backbone": "StandardScaler + LogisticRegression linear baseline（PUSB.md:143）",
-        "code_capability": {
-          "native_architectures": [],
-          "input_ndims": [2],
-          "encoder_parameter": null,
-          "trains_encoder": false
-        }
-      },
-      "evidence": {
-        "native_sampling_assumption": "PUSB.md:15/27-28; registry:pusb",
-        "prior_semantics": "PUSB.md:16; registry:pusb requires_class_prior=False",
-        "adaptation_level": "PUSB.md:143; registry:pusb source_status=OFFICIAL_RELATED",
-        "source_behavior_review": "docs/research/pu_survey/admission/pusb_linear_baseline_review_20261019.md"
-      },
-      "uncertainty": [
-        "Table 2 审计：72 单元仅 45 个满足声明样本量，不可声称复现六数据集比较（PUSB.md:174）",
-        "决策阈值双语义：公共 predict 冻结训练先验分位数 vs predict_with_prior_quantile 复刻官方批次分位数（PUSB.md:169-172）",
-        "predict_proba 非校准后验（PUSB.md:175）",
-        "pilot 行采用 pusb_kernel（2026-09-14 决策，issue #42）；pusb 为附加工程基线不入榜",
-        "原生 case-control（ts）；线性 PUSB 训练信号将 U 直接作为负类，不存在可替换的未标记风险输入，按 survey_execution_plan.md 决策 D20② 判定 TS-OS 校准不适用（run_view=os-compatible、calibration_applied=false）；该附加基线不入 Pilot，Pilot 使用 pusb_kernel 并已单独接线"
-      ],
-      "source_behavior_review_ref": "docs/research/pu_survey/admission/pusb_linear_baseline_review_20261019.md"
-    },
-    "pusb_kernel": {
-      "class": "PUSBKernelClassifier",
-      "paper": {
-        "title": "Learning from Positive and Unlabeled Data with a Selection Bias (kernelized version, RBF)",
-        "authors": "Masahiro Kato, Takeshi Teshima, Junya Honda",
-        "venue": "ICLR 2019",
-        "year": 2019
-      },
-      "code_version": {
-        "upstream_url": "https://github.com/MasaKat0/PUlearning",
-        "upstream_commit": "3401b77ccdd653d39f4f3a6258a42c7938fa9ede",
-        "source_status": "official_related (locked author repository commit; source relevance does not imply line-by-line reproduction)"
-      },
-      "implementation_status": "NATIVE, backend NUMPY；clean-room RBF 核适配器：复刻官方基选择（中心一次选取）、shuffled-fold CV、PU 目标与先验分位数规则，暴露 sklearn 估计器 API（pusb_kernel.py:3-9, PUSB.md:145）",
-      "native_sampling_assumption": "ts（两集合视图 P_+^obs=p(x|y=1,s=1) 与 P_U=p(x)；原生标注机制为 SAR（e(x) 随 x 变化），PUSB.md:15/27-28, registry:pusb_kernel）",
-      "run_view": "ts-compatible",
-      "calibration_applied": true,
-      "calibration_hooked": true,
-      "calibration_review_ref": "docs/research/pu_survey/reviews/rv6_ts_calibration_technical_review_20261019.md",
-      "prior_semantics": "population π（必填：PU 风险与分位数规则中的 π，PUSB.md:16/230, registry:pusb_kernel）",
-      "adaptation_level": "source-faithful（official-aligned RBF 核适配器，clean-room 依据官方发布代码；registry 为 OFFICIAL_RELATED）",
-      "modality_backbone": {
-        "modalities": ["tabular"],
-        "backbone": "RBF 核（n_basis=300 中心 + 官方 σ/λ 网格 CV，PUSB.md:221-230）",
-        "code_capability": {
-          "native_architectures": [],
-          "input_ndims": [2],
-          "encoder_parameter": null,
-          "trains_encoder": false
-        }
-      },
-      "evidence": {
-        "native_sampling_assumption": "PUSB.md:15/27-28; registry:pusb_kernel",
-        "prior_semantics": "PUSB.md:16/230; registry:pusb_kernel requires_class_prior=True",
-        "adaptation_level": "PUSB.md:145/167; registry:pusb_kernel source_status=OFFICIAL_RELATED",
-        "source_behavior_review": "docs/research/pu_survey/admission/pusb_kernel_source_behavior_review_20261019.md"
-      },
-      "uncertainty": [
-        "官方目标与梯度在正则项上相差系数 2，适配器采用与官方梯度一致的 0.5*λ‖b‖²（PUSB.md:167, ADR-0014 #10）",
-        "决策阈值双语义：公共 predict 冻结训练先验分位数 vs predict_with_prior_quantile 复刻官方批次分位数（PUSB.md:169-172）",
-        "CV 折内类别覆盖：官方折分配在低 c / 小样本下可能使某折缺 P 或 U，folds 校验会直接拒绝该候选（pusb_kernel.py:204-214）",
-        "Table 2 审计：72 单元仅 45 个满足声明样本量，不可声称复现六数据集比较（PUSB.md:174）",
-        "TS-OS 校准已接入（协议 §2.3）：ts 视图把无标签风险项的集合由 X_U 换成 X_U ∪ X_P，分母随之取 n_P + n_U；正例项、class prior、RBF 中心候选池与先验分位数阈值池都不变（中心池本就取自完整 X，故与 upu 不同、不随视图变化）。**CV 验证折固定保持 OS**，因此这是协议驱动的跨目标选参决策——用 OS 目标的验证值去选 TS 训练目标的超参数，不是论文结论，代价是选出的超参数可能偏向 OS 部署表现；被否决的替代（验证折并入该折自己的 P，同样 held-out 且更自洽）与理由见执行计划 D17。其正确性由独立 objective/gradient golden 与变异检验锁定，不靠真实跑批指标"
-      ],
-      "source_behavior_review_ref": "docs/research/pu_survey/admission/pusb_kernel_source_behavior_review_20261019.md"
-    },
-    "lbe_neural": {
-      "class": "NeuralLBEClassifier",
-      "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
-      "inference_state_review_ref": "docs/research/pu_survey/admission/vpu_lbe_scoring_modes_20261019.md",
-      "source_behavior_review_ref": "docs/research/pu_survey/data/lbe_source_review_20261012.json",
-      "review": {"owner": "shuidisjtu", "reviewer": "HENG958", "status": "pending_collaborator_review"},
-      "paper": {
-        "title": "Instance-Dependent Positive and Unlabeled Learning with Labeling Bias Estimation",
-        "authors": "Chen Gong, Qizhou Wang, Tongliang Liu, Bo Han, Jane You, Jian Yang, Dacheng Tao",
-        "venue": "IEEE TPAMI", "year": 2022
-      },
-      "code_version": {
-        "upstream_url": "https://gcatnjust.github.io/ChenGong/code/LBE_TPAMI21.rar",
-        "source_status": "official_related（独立神经 EM；采用单独锁定的用户包 MLP 时序，不称旧官方配方重放；license needs_review）",
-        "user_supplied_archive_sha256": "86034d5bfb9b8f6660784a7098d58b776c473c53580c366a2df373301718b6aa",
-        "review_evidence": "docs/research/pu_survey/data/lbe_source_review_20261012.json"
-      },
-      "implementation_status": "NATIVE; experimental clean-room two-network Adam generalized EM; separate from frozen linear lbe",
-      "native_sampling_assumption": "os（single_training_set + selection_biased；单一 X/observed s 的联合观测似然，不复制 P 到 U）",
-      "run_view": "os-compatible", "calibration_applied": false, "calibration_hooked": false,
-      "calibration_applicability": "not_applicable_native_os_joint_likelihood",
-      "prior_semantics": "无需外部先验；class_prior 若传入仅校验，不参与该预训练/EM 配方，拟合后均值后验只是诊断",
-      "adaptation_level": "benchmark-adapted（双 MLP100/tanh；20+20 预训练、20 EM×40 M 更新、每次重抽10%训练行、wd=1e-3；稳定 logits、CPU 分批/梯度累积及注入 CNN 是工程适配，不是官方数值复现）",
-      "modality_backbone": {
-        "modalities": ["tabular", "image"],
-        "backbone": "双独立 MLP 或各自 deepcopy 的可训练 encoder+head；原始数据/固定 E posterior 留 CPU；每个 M step 分批累积后只做一次 Adam 更新",
-        "code_capability": {
-          "native_architectures": ["mlp", "cnn"], "input_ndims": [2, 4],
-          "encoder_parameter": "encoder", "trains_encoder": true
-        }
-      },
-      "evidence": {
-        "native_sampling_assumption": "LBE.md §10; registry:lbe_neural",
-        "prior_semantics": "LBE.md §10; registry:lbe_neural",
-        "adaptation_level": "docs/research/pu_survey/delivery/lbe_neural_integration_20261014.md"
-      },
-      "uncertainty": [
-        "独立工程变体，待 HENG958 接口/方法学复核；不在冻结645-run协议或正式候选中，原 lbe 不变",
-        "用户包与旧官方包的预训练/正则化/small-loss配方不同；未复制、执行或再分发上游源码，license/版本归属仍未解除",
-        "用户包 LBE_LF 的 breast/toydata 主入口调用 Adam 时会覆盖传入的 Theta 参数、且两者重初始化规则不同；这是未执行 MATLAB 源码的已记录控制流，不是本项目 lbe_neural 的算法声明或源码重放；见 lbe_source_review_20261012.json",
-        "稳定 BCE/log-space 后验与源 probability+epsilon 不逐位一致；CNN/小样本至少抽1行/分批BN与dropout语义为适配",
-        "不消费 clean_val/test/隐藏PN真值；不接 TS，不以训练似然作为 PA/OA 的通用选模准则",
-        "standalone 序列化保留双网络；runner epoch checkpoint 只承诺 classifier 推理，不支持恢复 propensity/optimizer 的继续EM训练",
-        "CPU合成测试不代表GPU资源、真实数据数值对齐、可辨识性或正式准入"
+      "prior_semantics": "No external prior; linear baseline fit ignores class_prior.",
+      "adaptation_level": "benchmark-adapted",
+      "notes": [
+        "Linear sklearn logistic-regression baseline; distinct from the kernel implementation and without a calibration hook."
       ]
     },
-    "lbe": {
-      "class": "LBEClassifier",
-      "paper": {
-        "title": "Instance-Dependent Positive and Unlabeled Learning with Labeling Bias Estimation",
-        "authors": "Chen Gong, Qizhou Wang, Tongliang Liu, Bo Han, Jia You, Jian Yang, Dachen Tao",
-        "venue": "IEEE TPAMI",
-        "year": 2022
-      },
-      "code_version": {
-        "upstream_url": "https://gcatnjust.github.io/ChenGong/code/LBE_TPAMI21.rar",
-        "source_status": "official_exact（2026-10-19 对作者发表页当前链接只读下载，SHA-256 与 official_archive_sha256 锁一致；不代表 clean-room 实现等价；用户包 hash/配方不同且 upstream variant 未确认；两模型 EM 公式确认，页面 research-only 商用需许可提示不是明确软件许可证，license 仍 needs_review）",
-        "official_archive_sha256": "79cc2c3635a6bcefef1d12832cc9e29be4c0c42a6c31ce6e7b44c6aeac504c6a",
-        "user_supplied_archive_sha256": "86034d5bfb9b8f6660784a7098d58b776c473c53580c366a2df373301718b6aa",
-        "review_evidence": "docs/research/pu_survey/data/lbe_source_review_20261012.json"
-      },
-      "implementation_status": "NATIVE；线性 clean-room EM（LBE.md:243）",
-      "native_sampling_assumption": "os（single_training_set + selection_biased；输入单一样本 X/s，s=1 为 labeled positive；SAR 型 instance-dependent labeling，LBE.md:15-16/159-160, registry:lbe）",
+    "pusb_kernel": {
+      "native_sampling_assumption": "ts",
+      "calibration_hooked": true,
+      "run_view": "ts-compatible",
+      "calibration_applied": true,
+      "prior_semantics": "population pi is required by the kernel PU objective and quantile threshold.",
+      "adaptation_level": "benchmark-adapted",
+      "notes": [
+        "Official-aligned RBF kernel variant; source identity does not establish numerical reproduction."
+      ]
+    },
+    "lbe_neural": {
+      "native_sampling_assumption": "os",
+      "calibration_hooked": false,
       "run_view": "os-compatible",
       "calibration_applied": false,
-      "calibration_hooked": false,
-      "calibration_applicability": "not_applicable_native_os_joint_likelihood",
-      "prior_semantics": "无/可选（class_prior 仅作 U latent posterior 初始化先验；不是独立的先验估计器，LBE.md:17/234, registry:lbe）",
-      "adaptation_level": "benchmark-adapted（clean-room 重写；线性 logistic + 交替 soft-label 近似论文 EM+Adam 框架，不能宣称复现论文神经网络实验，LBE.md:185/243）",
-      "modality_backbone": {
-        "modalities": ["tabular"],
-        "backbone": "linear logistic（两份样本副本 + 权重 q_i、1-q_i 调用 sklearn logistic regression，LBE.md:185/188）",
-        "code_capability": {
-          "native_architectures": [],
-          "input_ndims": [2],
-          "encoder_parameter": null,
-          "trains_encoder": false
-        }
-      },
-      "evidence": {
-        "native_sampling_assumption": "LBE.md:15-16/159-160; registry:lbe",
-        "prior_semantics": "LBE.md:17/234; registry:lbe",
-        "adaptation_level": "LBE.md §6/§9; docs/research/pu_survey/data/lbe_source_review_20261012.json",
-        "source_behavior_review": "docs/research/pu_survey/data/lbe_source_review_20261012.json"
-      },
-      "uncertainty": [
-        "predict_label_proba 输出被标记概率 P(S=1|x) 而非类别概率（LBE.md:179）",
-        "propensity 与 class posterior 分解需数据机制支持、局部最优风险（LBE.md:246）",
-        "用户包 MLP 为20步预训练/wd=1e-3/不筛small-loss；旧官方包为100步/wd=1e-2/保留80%，不可混用；仅作源码核查，未执行、未复现公开数值",
-        "用户包 LF demo 从训练真值选择 ROC 阈值，不能接入 PU-only PA；MLP demo 对全量数据归一化后切分且反复评测 test，迁移须保持 train-only 和独立选模；没有发现明确再分发 license",
-        "原 lbe estimator 仍为线性 EM；2026-10-14 独立 lbe_neural 变体另立台账/配方，不替换本项，历史645-run不回填或改写"
+      "prior_semantics": "No external prior; fit validates but ignores class_prior in the neural EM recipe.",
+      "adaptation_level": "benchmark-adapted",
+      "notes": [
+        "Explicit double-MLP 100/tanh EM variant, distinct from linear LBE.",
+        "Native OS joint likelihood has no TS calibration hook; fitted prior is output only."
       ],
-      "source_behavior_review_ref": "docs/research/pu_survey/data/lbe_source_review_20261012.json"
+      "calibration_applicability": "not_applicable_native_os_joint_likelihood"
+    },
+    "lbe": {
+      "native_sampling_assumption": "os",
+      "calibration_hooked": false,
+      "run_view": "os-compatible",
+      "calibration_applied": false,
+      "prior_semantics": "Optional class_prior initializes the latent U posterior; it is not a fixed objective prior.",
+      "adaptation_level": "benchmark-adapted",
+      "notes": [
+        "Linear observed-label joint-likelihood model; native OS with no TS calibration hook.",
+        "Toolbox warm-start behavior differs from the released MATLAB MStep overwriting Theta."
+      ],
+      "calibration_applicability": "not_applicable_native_os_joint_likelihood"
     },
     "nnpu": {
-      "class": "NonNegativePUClassifier",
-      "fit_failure_review_ref": "docs/research/pu_survey/admission/nnpu_source_behavior_review_20261019.md",
-      "inference_state_review_ref": "docs/research/pu_survey/admission/nnpu_source_behavior_review_20261019.md",
-      "paper": {
-        "title": "Positive-Unlabeled Learning with Non-Negative Risk Estimator",
-        "authors": "Ryuichi Kiryo, Gang Niu, Marthinus C. du Plessis, Masashi Sugiyama",
-        "venue": "NIPS",
-        "year": 2017
-      },
-      "code_version": {
-        "upstream_url": "https://github.com/kiryor/nnPUlearning",
-        "upstream_commit": "a92c5365c07490c871e338c07f6e31d3eae2ca37",
-        "source_status": "official_exact（官方 Chainer 实现，MIT；来源锁 a92c5365c07490c871e338c07f6e31d3eae2ca37；本项目为 clean-room native PyTorch，nnpu.md:339）"
-      },
-      "implementation_status": "NATIVE, backend TORCH（支持 GPU），接口按 BasePUClassifier 契约（nnpu.md:340）",
-      "native_sampling_assumption": "ts（两样本：可靠正例 P + 边缘分布无标签 U；X_p~p_p(x)、X_u~p(x)，nnpu.md:13/38-39, registry:nnpu）",
+      "native_sampling_assumption": "ts",
+      "calibration_hooked": true,
       "run_view": "ts-compatible",
       "calibration_applied": true,
-      "calibration_hooked": true,
-      "calibration_review_ref": "docs/research/pu_survey/reviews/rv6_ts_calibration_technical_review_20261019.md",
-      "prior_semantics": "population π（必填；本文不负责估计类别先验，nnpu.md:14/26-27/44, registry:nnpu）",
-      "adaptation_level": "benchmark-adapted（clean-room 重写；跨框架（Chainer→PyTorch）而非逐行适配，nnpu.md:339-340）",
-      "modality_backbone": {
-        "modalities": ["tabular", "image"],
-        "backbone": "mlp/cnn 双架构（encoder 可选注入；encoder=None 时默认 nn.Linear(d,1)）",
-        "code_capability": {
-          "native_architectures": ["mlp", "cnn"],
-          "input_ndims": [2, 4],
-          "encoder_parameter": "encoder",
-          "trains_encoder": true
-        }
-      },
-      "evidence": {
-        "native_sampling_assumption": "nnpu.md:13/38-39; registry:nnpu",
-        "prior_semantics": "nnpu.md:14/26-27/44; registry:nnpu",
-        "adaptation_level": "nnpu.md:339-340; registry:nnpu",
-        "source_behavior_review": "docs/research/pu_survey/admission/nnpu_source_behavior_review_20261019.md"
-      },
-      "uncertainty": [
-        "先验必须外部提供；训练时必须保持 Algorithm 1 的分支梯度，不能对 max(0,r) 直接反传播（nnpu.md:341）",
-        "官方实现为 Chainer，本项目为原生 PyTorch clean-room 实现；实验数值只能在共享协议下对照，不能宣称逐行复现",
-        "来源/行为审计显示论文成对 P/U mini-batch 与官方合并 Chainer SerialIterator 的批次构成不同。官方 a92c5365c07490c871e338c07f6e31d3eae2ca37 及六个关键文件的 Git blob SHA-256 已核验并登记来源锁；只读核查未执行 Chainer。源码 exp-cifar 复用训练 P 到整体 U、采用 /255 与 Adam WeightDecay(0.005)，不同于本项目隔离 split/train-only 统计与默认无 weight decay；见 nnpu_source_behavior_review_20261019.md",
-        "TS-OS 校准已接入训练执行链（fit 接受 os_or_ts，逐 mini-batch 执行 D_U ∪ D_P）；本台账字段为方法默认配置，逐 run 实际值以 manifest 的 run_view/calibration_applied 为准",
-        "ts 视图路径尚未经合作者复核（协议 §2.3）；按 D20 的单方技术验收放行，manifest 已不再挂 ts_view_collaborator_review 阻断正式资格——**放行不等于合作者已复核**，呈报时不得读作已签署"
-      ],
-      "source_behavior_review_ref": "docs/research/pu_survey/admission/nnpu_source_behavior_review_20261019.md",
-      "filler": "HENG958",
-      "owner_review": {
-        "status": "completed",
-        "reviewed_on": "2026-09-16",
-        "evidence": "docs/research/pu_survey/reviews/heng958_independent_review.md#2-p13a-nnpuself-pu-方法台账复核",
-        "conclusion": "六槽、来源、registry 能力声明与 Algorithm 1 分支梯度一致；保留跨框架 clean-room 复现边界"
-      }
+      "prior_semantics": "population pi is required by the non-negative PU risk objective.",
+      "adaptation_level": "benchmark-adapted",
+      "notes": [
+        "Mini-batch TS calibration appends P to the unlabeled loss pool while preserving its positive-loss role."
+      ]
     },
     "self_pu": {
-      "class": "SelfPUClassifier",
-      "fit_failure_review_ref": "docs/research/pu_survey/admission/selfpu_lifecycle_20261020.md",
-      "inference_state_review_ref": "docs/research/pu_survey/admission/selfpu_lifecycle_20261020.md",
-      "parameter_validation_review_ref": "docs/research/pu_survey/admission/selfpu_lifecycle_20261020.md",
-      "source_version_review_ref": "docs/research/pu_survey/admission/selfpu_source_pin_review_20261019.md",
-      "source_behavior_review_ref": "docs/research/pu_survey/admission/selfpu_source_behavior_review_20261019.md",
-      "paper": {
-        "title": "Self-PU: Self Boosted and Calibrated Positive-Unlabeled Training",
-        "authors": "Xuxi Chen, Wuyang Chen, Tianlong Chen, Ye Yuan, Chen Gong, Kewei Chen, Zhangyang Wang",
-        "venue": "ICML 2020 (PMLR 119:1510-1519)",
-        "year": 2020
-      },
-      "code_version": {
-        "upstream_url": "https://github.com/VITA-Group/Self-PU",
-        "upstream_commit": "a0e332ae4f8110e2490d597876e36bf837e1060f",
-        "source_status": "official_exact（作者仓库/MIT license 已确认，来源锁 commit a0e332ae4f8110e2490d597876e36bf837e1060f；不代表工具箱 clean-room 实现逐行等价）"
-      },
-      "implementation_status": "NATIVE clean-room core；显式 distillation_scope=paper_population 路径覆盖论文 D-D_trust / D 一致性域，默认 untrusted_u 保持历史消融不变；paper-like benchmark 待完成（Self-PU.md:399/450）",
-      "extra_supervision_adapter": {
-        "entry": "pu_toolbox.experiment.clean_support_adapters.SelfPUCleanSupportTrainer",
-        "support_artifact_preparer": "scripts/prepare_clean_support.py",
-        "cpu_exploratory_runner": "scripts/run_clean_support_experiment.py",
-        "artifact_workflow_ref": "docs/research/pu_survey/delivery/clean_support_workflow_20261017.md",
-        "scope": "opt-in exploratory SCAR OS, terminal OA after support teacher selection; frozen pilot remains no-meta ablation",
-        "checkpoint_variant": {
-          "entry": "pu_toolbox.experiment.support_checkpoints.SelfPUCleanSupportCheckpointTrainer",
-          "review_ref": "docs/research/pu_survey/delivery/clean_support_checkpoints_20261022.md",
-          "scope": "explicit exploratory SCAR OS, completed meta-active epochs, both EMA teacher streams",
-          "selection_protocols": ["PA+clean-support", "OA"],
-          "requires_clean_support": true,
-          "pa_eligible": false,
-          "pa_clean_support_eligible": true,
-          "formal_admission": false,
-          "protocol_review_complete": false
-        },
-        "roles": ["train", "pu_val", "clean_val", "test", "prior_estimation", "support"],
-        "support_labels_affect": ["meta_reweighting", "internal_teacher_selection"],
-        "comparison_group": "extra_clean_support",
-        "pa_eligible": false,
-        "formal_support_artifacts_materialized": false,
-        "formal_admission": false
-      },
-      "native_sampling_assumption": "ts（case_control; D=D_P∪D_U, x_i^p~p(x|Y=+1), x_i^u~p(x)，Self-PU.md:15/36-48, registry:self_pu）",
+      "native_sampling_assumption": "ts",
+      "calibration_hooked": true,
       "run_view": "ts-compatible",
       "calibration_applied": true,
-      "calibration_hooked": true,
-      "calibration_review_ref": "docs/research/pu_survey/reviews/rv6_ts_calibration_technical_review_20261019.md",
-      "prior_semantics": "population π（论文沿用 π_p 已知设定，Self-PU.md:16/29-32/419, registry:self_pu）；TS 下 α_P 是 batch 行数质量而非 π——P 不按 π 重加权、π 不重估",
-      "adaptation_level": "benchmark-adapted（clean-room 核心；官方图像 benchmark（MNIST 6-layer MLP/CIFAR-13-layer CNN/ADNI multi-scale 3-branch CNN）与论文协议均未对齐，Self-PU.md:437-439/449-450/454）",
-      "modality_backbone": {
-        "modalities": ["tabular"],
-        "backbone": "MLP（原生实现）；论文为 MLP/CNN（未对齐）；不支持 native CNN（mlp-only；input_ndims {2,4} 按模板\"支持输入维度\"口径声明，4D 展平为估计器层实际支持、非 CNN 能力，2026-09-14 审阅 P1#1；survey 图像行走 cnn_feature_adapter）",
-        "code_capability": {
-          "native_architectures": ["mlp"],
-          "input_ndims": [2, 4],
-          "encoder_parameter": null,
-          "trains_encoder": false
-        }
-      },
-      "evidence": {
-        "native_sampling_assumption": "Self-PU.md:15/36-48; registry:self_pu",
-        "prior_semantics": "Self-PU.md:16/29-32/419; registry:self_pu",
-        "adaptation_level": "Self-PU.md:437-439/449-450/454; 视图叠加与消融分支口径（Self-PU.md:407-409）",
-        "consistency_scope_review": "docs/research/pu_survey/admission/selfpu_consistency_scope_review_20261019.md",
-        "source_version_review": "docs/research/pu_survey/admission/selfpu_source_pin_review_20261019.md",
-        "source_behavior_review": "docs/research/pu_survey/admission/selfpu_source_behavior_review_20261019.md"
-      },
-      "uncertainty": [
-        "self-calibrated 模块依赖含真实正负标签的 clean validation batch；无 D_V 时仅 self-paced+distillation 消融（Self-PU.md:386）；2026-10-17 独立支持集 adapter 接通现有完整 meta 路径并经 CPU 实训回归，不改变旧试点消融或代表完整论文复现",
-        "validation_data（clean-label 元重加权）与 pu_validation_data（仅 P/U 标签 nnPU risk 恢复 checkpoint）两入口严格分离（Self-PU.md:388-389）",
-        "最终模型取验证更好的 teacher 而非最后 student（Self-PU.md:397）",
-        "官方仓库当前规范地址为 VITA-Group/Self-PU；方法卡中的 TAMU-VITA 旧组织链接会重定向到同一仓库",
-        "official_sources.lock.json 固定的是 2026-10-19 观察到的 master commit；official_exact 只表示作者来源身份已确认，不表示工具箱实现逐行等价或论文数值复现",
-        "锁定官方 train_2s2t_mix.py 将 split=test loader 用作 meta 输入；外层负预测熵目标使用测试特征，且逐 epoch test 真值准确率选 checkpoint。工具箱 clean-support 路径不得照搬该测试集使用；见 selfpu_source_behavior_review_20261019.md",
-        "原生 CNN 未接入：依 dual_architecture_plan 阶段 3 长期搁置（元学习再加权依赖干净验证标签，encoder 适配不解决该前置条件）；需原生 CNN 时单独立项（issue #38，2026-09-14）",
-        "原生 case-control（ts）；TS-OS 校准已接入训练执行链（协议 §2.3，Self-PU.md:407-409）：ts 视图把**负 PU 项的角色集合**由「未信任 U 行」换成「未信任 U 行 ∪ 正例批」，两侧按**实际行数**混合（α_P 是 batch 质量、不是 π；class prior 不重估）；trusted 人口与 pace、伪标签、meta 矩阵、consistency、验证/选模与 checkpoint 一概不随视图变化，故已知正例在任何得分下都拿不到伪标签；复用正例批 logits，零额外前向、零额外 RNG；OS 路径与改造前一致（冻结基线，本切片实测逐位为 0 偏差）。**一致性范围更新（2026-10-19）**：默认 `distillation_scope=untrusted_u` 保持历史 U-only；独立 clean-support full-meta adapter 显式使用 `paper_population`，student 覆盖 P+未信任 U、teacher 覆盖 P+全部 U，见 Self-PU.md §6 及 admission/selfpu_consistency_scope_review_20261019.md。TS 不修改该定义域。Pilot 不向 PU 方法传 clean validation，仍为无 meta 消融；新增支持集接线只做探索性 SCAR OS/OA，不扩大 frozen TS 或监督预算。ts 视图的方法学复核仍待合作者"
-      ],
-      "filler": "HENG958",
-      "owner_review": {
-        "status": "completed",
-        "reviewed_on": "2026-09-16",
-        "evidence": "docs/research/pu_survey/reviews/heng958_independent_review.md#2-p13a-nnpuself-pu-方法台账复核",
-        "conclusion": "六槽、来源与 registry 能力声明一致；完整 self-calibration、原生 CNN 和 paper-like benchmark 仍明确不在当前实现声明内"
-      }
+      "prior_semantics": "population pi weights the PU risk; TS loss-pool weighting retains pi.",
+      "adaptation_level": "benchmark-adapted",
+      "notes": [
+        "Default no-meta ablation and full-meta clean-support variant are separate supervision regimes.",
+        "Full-meta uses an OS adapter, all-epoch dual-teacher trajectories and separately budgeted clean support.",
+        "Distillation over untrusted_u and paper_population are explicit variants."
+      ]
     },
     "pulda": {
-      "class": "PULDAClassifier",
-      "source_behavior_review_ref": "docs/research/method_cards/PULDA.md",
-      "fit_failure_review_ref": "docs/research/pu_survey/reviews/candidate_fit_failure_20261018.md",
-      "paper": {
-        "title": "Positive-Unlabeled Learning with Label Distribution Alignment",
-        "authors": "Yangbangyan Jiang, Qianqian Xu, Yunrui Zhao, Zhiyong Yang, Peisong Wen, Xiaochun Cao, Qingming Huang",
-        "venue": "IEEE TPAMI 2023",
-        "year": 2023
-      },
-      "code_version": {
-        "upstream_url": "https://github.com/jiangyangby/PULDA",
-        "upstream_commit": "7b3dcad95bd7caa0a9477af37a05764fbe6e27bc",
-        "source_status": "official_related (method card audited commit 7b3dcad95bd7caa0a9477af37a05764fbe6e27bc)"
-      },
-      "implementation_status": "NATIVE, backend TORCH; LDA + two-way margin warm-up and pseudo-label MixUp, dense MLP or trainable injected CNN adapter; standalone candidate image CLI includes the grayscale ADNI-substitute slot (engineering only)",
-      "native_sampling_assumption": "ts（P 为可靠正类、U 为总体边缘分布；PULDA.md:10-15）",
+      "native_sampling_assumption": "ts",
+      "calibration_hooked": true,
       "run_view": "ts-compatible",
       "calibration_applied": true,
-      "calibration_hooked": true,
-      "calibration_review_ref": "docs/research/pu_survey/reviews/additional_ts_calibration_review_20261019.md",
-      "prior_semantics": "population π（分布对齐目标固定为总体正类先验；PULDA.md:10）",
-      "adaptation_level": "benchmark-adapted（二维 MLP 或独立 deepcopy 后训练的注入 CNN+MLP head；图像分批搬入 GPU、eval 分批刷新伪标签；非作者 CIFAR CNN/完整预处理和数值复现）",
-      "modality_backbone": {
-        "modalities": ["tabular", "image"],
-        "backbone": "dense MLP64 or injected trainable CNN + same MLP head",
-        "code_capability": {"native_architectures": ["mlp", "cnn"], "input_ndims": [2, 4], "encoder_parameter": "encoder", "trains_encoder": true}
-      },
-      "evidence": {
-        "native_sampling_assumption": "PULDA.md:10-15; registry scenario=CASE_CONTROL",
-        "prior_semantics": "PULDA.md:10; pulda.py distribution/margin targets",
-        "adaptation_level": "PULDA.md 原生 CNN 工程路径；test_pulda_cnn.py / test_cv_fold_isolation.py / test_pan_pipeline_cnn.py；非上游完整训练复现",
-        "source_behavior_review": "PULDA.md：锁定作者损失/两阶段流程、缺失 entropyMinimization 源依赖、采样/调度/选模差异与实现边界"
-      },
-      "uncertainty": [
-        "TS-OS 校准仅替换 LDA 和 two-way margin 的 U 期望角色为逐 batch U∪P，EMA 跟随该角色；正例期望、总体 π、MixUp 物理池与伪标签持久索引不变。实际视图以逐 run manifest 为准",
-        "原仓库锁定提交缺失 entropyMinimization 模块，工具箱只对照可审计损失文件；无端到端上游复现声明",
-        "锁定来源丢弃 U 尾批并循环 P；本实现保留尾批、P 有放回抽样，等 epoch 不等更新数。两实现 warmup cosine 均用 pu_epochs（本实现 max(1, pu_epochs)）；作者报告测试最高准确率、使用 ImageNet 统计，本项目外置 PA/OA 与 train-only 统计不等价；详见 admission_evidence_ref",
-        "已接可训练 CNN 工程路径与两阶段权重回放；共享 backbone/正式图像规格、公开数值对照、多 seed 资源记录及合作者复核未完成；不进入冻结 Survey v1 矩阵"
+      "prior_semantics": "population pi is the fixed distribution-alignment target.",
+      "adaptation_level": "benchmark-adapted",
+      "notes": [
+        "The distribution-alignment recipe and architecture are benchmark adaptations."
       ]
     },
     "puet": {
-      "image_project_binding": {"protocol": "survey-v3.2", "registry": "survey-recipes-v1.2", "training_path": "cnn_feature_adapter", "encoder": "resnet18_random_frozen", "datasets": ["cifar10", "mnist", "fashion_mnist", "adni"], "source_space_label_generation": true, "formal_admission": false, "paper_numerical_reproduction": false},
-      "project_recipe_binding": {"protocol": "survey-v3.1", "registry": "survey-recipes-v1.1", "owner_confirmed_on": "2026-11-01", "execution_adapter": "survey-backlog-1", "decision_ref": "docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md", "formal_admission": false, "paper_numerical_reproduction": false},
-      "class": "PUExtraTreesClassifier",
-      "candidate_cost_adapter": {"implementation_ref": "pu_toolbox/experiment/classical_candidate.py", "budget_unit": "tree_build", "records_actual_tree_builds_and_role_mass": true, "neural_epoch_count": 0, "formal_admission": false, "review_ref": "docs/research/method_cards/PUET.md"},
-      "candidate_cli": {"implementation_ref": "scripts/run_classical_candidate_experiment.py", "execution_device": "cpu", "training_views": ["os", "ts"], "four_role_pa_oa_replay": true, "durable_per_attempt_cost_receipts": true, "formal_admission": false},
-      "source_behavior_review_ref": "docs/research/method_cards/PUET.md",
-      "fit_failure_review_ref": "docs/research/pu_survey/reviews/candidate_fit_failure_20261018.md",
-      "paper": {
-        "title": "Positive-Unlabeled Learning using Random Forests via Recursive Greedy Risk Minimization",
-        "authors": "Jonathan Wilton, Abigail M. Y. Koay, Ryan K. L. Ko, Miao Xu, Nan Ye",
-        "venue": "NeurIPS 2022",
-        "year": 2022
-      },
-      "code_version": {
-        "upstream_url": "https://github.com/jonathanwilton/PUExtraTrees",
-        "upstream_commit": "5cb15d7e021a6e24d4cd300278500c38729e2775",
-        "source_status": "official_related (clean-room nnPU quadratic branch only)"
-      },
-      "implementation_status": "NATIVE, backend NUMPY; randomized forest with closed-form nnPU quadratic node risk",
-      "bootstrap_risk_contract": {
-        "scope": "per_tree_root",
-        "positive_resample_count": "n_P",
-        "unlabeled_resample_count": "effective_U_risk_pool_size",
-        "positive_total_weight": "population_pi",
-        "unlabeled_total_weight": 1.0,
-        "ts_unlabeled_pool": "U_plus_positive_role_copies"
-      },
-      "native_sampling_assumption": "ts（可靠 P 与总体边缘 U 分别贡献节点风险质量；PUET.md:9-16）",
+      "native_sampling_assumption": "ts",
+      "calibration_hooked": true,
       "run_view": "ts-compatible",
       "calibration_applied": true,
-      "calibration_hooked": true,
-      "calibration_review_ref": "docs/research/pu_survey/reviews/additional_ts_calibration_review_20261019.md",
-      "prior_semantics": "population π（节点正类风险质量 π·n_P,node/n_P；PUET.md:10/24）",
-      "adaptation_level": "benchmark-adapted（仅作者 nnPU/quadratic 分支；非论文完整实验协议）",
-      "modality_backbone": {
-        "modalities": ["tabular"],
-        "backbone": "randomized Extra Trees, no neural backbone, CPU only",
-        "code_capability": {"native_architectures": [], "input_ndims": [2], "encoder_parameter": null, "trains_encoder": false}
-      },
-      "evidence": {
-        "native_sampling_assumption": "PUET.md:9-16; registry scenario=CASE_CONTROL",
-        "prior_semantics": "PUET.md:10/24; puet.py node risk",
-        "adaptation_level": "PUET.md:43-47",
-        "source_behavior_review": "PUET.md：作者 nnPU/quadratic 子集、节点与树分裂适配及边界差异"
-      },
-      "uncertainty": [
-        "TS-OS 校准把 P 行复制为 U 风险角色的树行，原 P 行仍为正例；U 权重分母由 n_U 变为 n_P+n_U；Issue #114 后 bootstrap 的 U 抽样数等于实际 U 风险池大小，每棵树根质量 P=population_pi、U=1；OS 抽 n_U、TS 抽 n_U+n_P。逐 run manifest 记录实际视图",
-        "PUET 是 CPU 树方法，P3.2 的 GPU 条款不适用；正式任务分组调整需合作者复核",
-        "锁定作者源码的随机叶 tie、裁边阈值区间、零/负增益划分、父节点 min_samples_leaf，与工具箱负类 tie、完整区间、严格正增益和子节点最小样本约束不同；仅 nnPU/quadratic，不声称完整源码重放；详见 admission_evidence_ref",
-        "正整数 max_features 超过输入维数时保留既有截断到 n_features 的工程行为，不改构造参数；作者 tree.py:199-207 打印提示并返回 None、不完成拟合；差异已登记并回归，不声称上游等价",
-        "未完成共享规格下的公开数值对照、正式执行矩阵及合作者复核"
+      "prior_semantics": "population pi weights node positive mass pi*n_P,node/n_P.",
+      "adaptation_level": "benchmark-adapted",
+      "notes": [
+        "Each tree bootstraps nP positives and the actual U risk-pool count; positive total weight is pi and U total weight is one.",
+        "TS calibration includes copied P rows in the U risk pool."
       ]
     },
     "gradpu": {
-      "project_recipe_binding": {"protocol": "survey-v3.1", "registry": "survey-recipes-v1.1", "owner_confirmed_on": "2026-11-01", "execution_adapter": "survey-backlog-1", "decision_ref": "docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md", "formal_admission": false, "paper_numerical_reproduction": false},
-      "class": "GradPUClassifier",
-      "source_behavior_review_ref": "docs/research/pu_survey/admission/gradpu_source_review_20261005.md",
-      "fit_failure_review_ref": "docs/research/pu_survey/reviews/candidate_fit_failure_20261018.md",
-      "paper": {
-        "title": "GradPU: Positive-Unlabeled Learning via Gradient Penalty and Positive Upweighting",
-        "authors": "Songmin Dai, Xiaoqiang Li, Yue Zhou, Xichen Ye, Tong Liu",
-        "venue": "AAAI 2023",
-        "year": 2023
-      },
-      "code_version": {
-        "upstream_url": null,
-        "source_status": "not_found (2026-10-19 rechecked the official AAAI article page, which lists only the PDF, and searched the paper title/author names with GitHub terms without confirming an author repository; see docs/research/pu_survey/data/gradpu_source_review_20261005.json. This does not prove no public, private, or unindexed implementation exists.)"
-      },
-      "implementation_status": "NATIVE, backend TORCH; paper Eq. 5-7 clean-room MLP or injected no-BatchNorm CNN, raw-image second-order gradient penalty; standalone candidate image CLI includes the grayscale ADNI-substitute slot (engineering only)",
-      "source_protocol_review_ref": "docs/research/pu_survey/data/gradpu_source_review_20261005.json",
-      "native_sampling_assumption": "ts（P 与总体边缘 U 分别贡献风险和插值梯度惩罚；GradPU.md:10-17）",
+      "native_sampling_assumption": "ts",
+      "calibration_hooked": true,
       "run_view": "ts-compatible",
       "calibration_applied": true,
-      "calibration_hooked": true,
-      "calibration_review_ref": "docs/research/pu_survey/reviews/additional_ts_calibration_review_20261019.md",
-      "prior_semantics": "无（目标不使用 class_prior，fit 仅接口兼容；GradPU.md:12）",
-      "adaptation_level": "benchmark-adapted（MLP128 或注入无 BatchNorm CNN+MLP头；显式 cnn13_no_bn 为工具箱13卷积变体，不是作者未公开完整架构；论文预处理/调参/学习率规格未复现）",
-      "modality_backbone": {
-        "modalities": ["tabular", "image"],
-        "backbone": "MLP128 or injected no-BatchNorm CNN with MLP/raw-score head; explicit cnn13_no_bn adapter",
-        "code_capability": {"native_architectures": ["mlp", "cnn"], "input_ndims": [2, 4], "encoder_parameter": "encoder", "trains_encoder": true}
-      },
-      "evidence": {
-        "native_sampling_assumption": "GradPU.md:10-17; registry scenario=CASE_CONTROL plus SELECTION_BIASED",
-        "prior_semantics": "GradPU.md:12; grad_pu.py fit discards class_prior",
-        "adaptation_level": "GradPU.md:57-64",
-        "source_behavior_review": "gradpu_source_review_20261005.md：论文来源事实、无已确认作者代码、实验采样与工具箱适配边界"
-      },
-      "uncertainty": [
-        "TS-OS 校准使 U 风险和输入梯度插值的边缘角色在逐 mini-batch 取 U∪P；正例权重不变，类先验仍不进入目标；逐 run manifest 记录实际视图",
-        "原论文印刷页7300 的实验为原训练集取 P/500 validation 后剩余 U，与理论边缘 U 分开登记；TS 校准不可直接称为该实验流程复现。CNN13 明确移除 BatchNorm，当前默认含 BN 骨干不可静默套用；MLP128/batch256/固定学习率亦非论文配方；详见 source_protocol_review_ref，待方法负责人复核",
-        "SCAR 理论与作者选择偏差实验不能混为一般 SAR 保证；已有无 BN 原生图像工程路径/原图梯度验证，正式图像规格、公开数值对照、多 seed GPU/资源记录和合作者复核未完成"
+      "prior_semantics": "No objective prior; class_prior exists for fit-interface compatibility.",
+      "adaptation_level": "benchmark-adapted",
+      "notes": [
+        "Private cnn13_no_bn is a project architecture, not the exact author architecture.",
+        "Image encoder degeneration and numerical-risk results remain deferred; memory optimizations do not resolve them."
       ]
     },
     "lagam": {
-      "class": "LaGAMClassifier",
-      "paper": {
-        "title": "Positive-Unlabeled Learning by Latent Group-Aware Meta Disambiguation",
-        "authors": "Lin Long, Haobo Wang, Zhijie Jiang, Lei Feng, Chang Yao, Gang Chen, Junbo Zhao",
-        "venue": "CVPR 2024",
-        "year": 2024
-      },
-      "code_version": {
-        "upstream_url": "https://github.com/llong-cs/LaGAM",
-        "upstream_commit": "362a7f41fcf3d4e4161fe99f4aab4e6128b6a5d8",
-        "source_status": "official_exact (作者源码可得并锁定；非复现声明，source_scope/EMA/损失/优化器等差异见 lagam_source_review_20261015.json)"
-      },
-      "implementation_status": "NATIVE, backend TORCH; explicit clean-support MLP or trainable injected CNN; CPU-streamed training/clustering/inference, head-only virtual meta update; not author replay or formal admission",
-      "extra_supervision_adapter": {
-        "entry": "pu_toolbox.experiment.clean_support_adapters.LaGAMCleanSupportTrainer",
-        "checkpoint_variant": {
-          "entry": "pu_toolbox.experiment.support_checkpoints.LaGAMCleanSupportCheckpointTrainer",
-          "review_ref": "docs/research/pu_survey/delivery/clean_support_checkpoints_20261022.md",
-          "scope": "explicit exploratory SCAR OS, completed post-warmup classifier snapshots",
-          "selection_protocols": ["PA+clean-support", "OA"],
-          "requires_clean_support": true,
-          "pa_eligible": false,
-          "pa_clean_support_eligible": true,
-          "formal_admission": false,
-          "protocol_review_complete": false
-        },
-        "support_artifact_preparer": "scripts/prepare_clean_support.py",
-        "cpu_exploratory_runner": "scripts/run_clean_support_experiment.py",
-        "artifact_workflow_ref": "docs/research/pu_survey/delivery/clean_support_workflow_20261017.md",
-        "scope": "opt-in exploratory SCAR OS, terminal OA only; frozen Survey/Pipeline/CLI unchanged",
-        "roles": ["train", "pu_val", "clean_val", "test", "prior_estimation", "support"],
-        "support_labels_affect": ["meta_label_disambiguation"],
-        "comparison_group": "extra_clean_support",
-        "pa_eligible": false,
-        "formal_support_artifacts_materialized": false,
-        "formal_admission": false
-      },
-      "native_sampling_assumption": "os（锁定作者发布实验 utils/utils_data.py:182-193 排除验证和已标记 P；登记发布采样配方，不断言理论仅适用 OS；Issue #115）",
+      "native_sampling_assumption": "os",
+      "calibration_hooked": false,
       "run_view": "os-compatible",
       "calibration_applied": false,
-      "calibration_hooked": false,
-      "prior_semantics": "无（class_prior 不进入目标；LaGAM.md:20）",
-      "adaptation_level": "benchmark-adapted（MLP/注入可训练 CNN，CPU-stream 图像/support/聚类/预测；默认虚拟 weight+bias，meta_update_bias=false 仅补作者 weight-only 参数范围；新 CNN 虚拟步用冻结 eval 特征，不改 BN/dropout；原 hard-observed 元标签、rho 端点及稳定 BCE 保留，非作者网络/Faiss/增强/预算重放）",
-      "source_behavior_review_ref": "docs/research/pu_survey/data/lagam_source_review_20261015.json",
-      "source_protocol_review_ref": "docs/research/pu_survey/data/lagam_paper_review_20261020.json",
-      "fit_failure_review_ref": "docs/research/pu_survey/reviews/extended_candidate_fit_failure_20261019.md",
-      "inference_state_review_ref": "docs/research/pu_survey/admission/lagam_inference_modes_20261019.md",
-      "sampling_review": {"registry_view": "os", "source_split_view": "os", "review_status": "source_aligned_metadata_corrected", "registry_relabelled": true},
-      "checkpoint_accounting": {"epoch_bound": "max_epochs includes warmup_epochs", "bound_is_upper_limit": false, "optimizer_steps_attribute": "optimizer_steps_", "virtual_steps_attribute": "virtual_steps_", "formal_budget_approved": false},
-      "modality_backbone": {
-        "modalities": ["tabular", "image"],
-        "backbone": "default MLP128 or cloned trainable CNN + same MLP head/hidden contrastive features; sklearn KMeans; independent clean support required",
-        "code_capability": {"native_architectures": ["mlp", "cnn"], "input_ndims": [2, 4], "encoder_parameter": "encoder", "trains_encoder": true}
-      },
-      "evidence": {
-        "native_sampling_assumption": "Issue #115; pinned 362a7f41 utils/utils_data.py:182-193 removes labeled positives from U; registry SINGLE_TRAINING_SET and ledger os aligned",
-        "prior_semantics": "LaGAM.md:20; lagam.py class_prior ignored",
-        "adaptation_level": "lagam_source_review_20261015.json; admission/lagam_source_cnn_review_20261015.md"
-      },
-      "uncertainty": [
-        "必须由调用者提供独立干净 support set；标准 PU-only PA 不符合资格，OA 若复用 clean_val 会泄漏。Survey v1/runner 不传 support_data，不能进入冻结矩阵",
-        "无可直接替换的同形未标记风险角色，且校准不能绕开 support 标签预算；无 os_or_ts 接口，显式 ts fail-loud",
-        "已补注入 CNN 工程路径和 weight-only 虚拟范围开关；作者 projection head/Faiss/增强/SGD/学习率/400轮等未重放；原始数据与全量聚类特征仍占 CPU 内存，support 标签预算不消失；公开数值、多 seed GPU 和合作者协议审阅未完成",
-        "Issue #115 已按发布源码将 registry/台账纠正为 OS；不推断理论上仅适用 OS，不登记 TS 校准；原 HTTP403 记录保留，10-20 已读取全文并补 source_protocol_review_ref；源码许可仍未发现",
-        "全文新增待裁决项：正文式(10)零梯度含等号，补充Algorithm1严格大于；补充Table15的beta默认0与发布代码直接加对比项无法直接对应；论文统一100簇而README CIFAR-10显式5簇。当前实现不静默改缺省，不将全文获取等同于RV8或配方批准",
-        "CNN 虚拟步冻结 eval 提取特征，防止真实 encoder 的 BN 缓冲或 dropout RNG 被 support 前向改变；不是源虚拟克隆的 train-mode 行为。数组共享内存拒绝只排除明显物理重叠，不能证明跨文件同样本/角色索引独立"
+      "prior_semantics": "No external prior; class_prior does not enter the objective.",
+      "adaptation_level": "benchmark-adapted",
+      "notes": [
+        "Native OS follows the released split; requires separately budgeted clean support.",
+        "meta_update_bias=false is a weight-only variant; CNN training uses independent streamed data."
       ]
     },
     "cvir": {
-      "project_recipe_binding": {"protocol": "survey-v3.1", "registry": "survey-recipes-v1.1", "owner_confirmed_on": "2026-11-01", "execution_adapter": "survey-backlog-1", "decision_ref": "docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md", "formal_admission": false, "paper_numerical_reproduction": false},
-      "class": "CVIRClassifier",
-      "candidate_image_execution": {"implementation_ref": "scripts/run_candidate_image_experiment.py", "trainer_ref": "pu_toolbox/experiment/candidate_image_runner.py", "training_views": ["os", "ts"], "source_sampling": "os", "population_prior_binding_ref": "pu_toolbox/experiment/cvir_adapter.py", "backbone": "shared_resnet18_engineering_alternative", "stages": ["warm_start", "cvir"], "singleton_training_policy": "reject_only_one_value_per_BN_channel; private_CPU_eval_shape_probe", "formal_admission": false, "formal_resource_profile_complete": false},
-      "calibration_review_ref": "docs/research/pu_survey/delivery/cvir_calibration_20261022.md",
-      "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
-      "inference_state_review_ref": "docs/research/pu_survey/admission/cvir_source_cnn_review_20261015.md",
-      "parameter_validation_review_ref": "docs/research/pu_survey/admission/cvir_source_cnn_review_20261015.md",
-      "paper": {
-        "title": "Mixture Proportion Estimation and PU Learning: A Modern Approach",
-        "authors": "Saurabh Garg, Yifan Wu, Alexander J. Smola, Sivaraman Balakrishnan, Zachary C. Lipton",
-        "venue": "NeurIPS 2021",
-        "year": 2021
-      },
-      "code_version": {
-        "upstream_url": "https://github.com/acmi-lab/PU_learning",
-        "upstream_commit": "5e5e350dc0588de95a36eb952e3cf5382e786aec",
-        "source_status": "official_exact (作者 CVIR 代码存在并已锁定；此标签只表示来源可得性，不表示重放；本实现采用论文 Algorithm 2，和发布代码权重/取整/时序不同，不是 TEDn/BBE)"
-      },
-      "implementation_status": "NATIVE, backend TORCH; paper fixed-alpha weighted CVIR, 2-D MLP or injected trainable CNN with CPU-streamed batches; not author-code replay or formal admission",
-      "native_sampling_assumption": "ts（独立 P 与边缘分布 U；原文 α 为 U 内正类比例；NeurIPS 2021 §3 p4 / Algorithm 2 p6）",
+      "native_sampling_assumption": "ts",
+      "calibration_hooked": true,
       "run_view": "os-compatible",
       "calibration_applied": false,
-      "calibration_hooked": true,
-      "runtime_input_contract": {
-        "native_ts": "direct estimator input_sampling=ts; caller supplies independent P and marginal U with explicit alpha_U/source; no OS conversion",
-        "os": "CVIRKnownPriorTrainer with input_sampling=os, explicit alpha_U and prior_source; known-prior exploratory adaptation, not native TS equivalence",
-        "population_pi_forwarded_to_fit": false,
-        "os_to_ts_calibration": "explicit fit(os_or_ts=ts) restores train U union P before global ranking/retention; CVIRPopulationPriorTrainer binds population pi to the actual risk view; exploratory SCAR only",
-        "population_prior_adapter": "CVIRPopulationPriorTrainer; constructor alpha/source must be unset; os alpha=(pi*n-n_L)/(n-n_L), ts alpha=pi; population class_prior never forwarded to estimator.fit",
-        "exploratory_cli": "scripts/run_survey_experiment.py --method cvir --cvir-population-prior-source SOURCE --class-prior PI --checkpoint-bytes-per-component BYTES; SCAR only, no --protocol; OS/TS use the existing population-prior adapter; existing nonempty run directories are not overwritten",
-        "provenance": "candidate_runs[].training_provenance; source traceable but caller assertion not independently verified"
-      },
-      "prior_semantics": "unlabeled_positive_prior=所用风险池的正类比例；默认 OS/native-TS 仍显式给原始 U 的 α_U。CVIRPopulationPriorTrainer 按协议§3换算：OS为(pi*n-n_L)/(n-n_L)，TS校准为pi；requires_class_prior=False，estimator.fit仍拒绝总体class_prior；先验来源声明不等于分布/有限样本比例验证",
-      "adaptation_level": "benchmark-adapted（论文 α_U 加权目标；MLP/注入可训练 CNN，CPU-stream 分批排序/训练/预测；默认一次 warm-start 与固定 epoch 不变；发布代码 balanced CE/取整/loader/SGD/TEDn warm-start 不同，未重放作者图像/文本配方）",
-      "source_behavior_review_ref": "docs/research/pu_survey/data/cvir_source_review_20261015.json",
-      "independent_extensions": {
-        "bbe": {
-          "status": "standalone paper Algorithm 1 plus internal-holdout 2-D PvU scoring pipeline; not wired into CVIR",
-          "implementation": "pu_toolbox/prior/bbe.py:BBEMixtureEstimator",
-          "review_ref": "docs/research/pu_survey/data/bbe_source_review_20261017.json",
-          "target": "alpha_U, not automatic population pi",
-          "calibration_applied": false,
-          "calibration_hooked": false,
-          "formal_admission": false
-        },
-        "tedn": {
-          "status": "standalone end-to-end Algorithm 3 engineering path: warm-start, per-round held-out BBE, discard, unweighted update and training-error stop; not registered or wired into CVIR",
-          "implementation": "pu_toolbox/estimators/deep/tedn.py:TEDnClassifier",
-          "inference_state_review_ref": "docs/research/pu_survey/admission/tedn_scoring_modes_20261019.md",
-          "fit_failure_review_ref": "docs/research/pu_survey/reviews/extended_candidate_fit_failure_20261019.md",
-          "review_ref": "docs/research/pu_survey/data/tedn_source_review_20261017.json",
-          "native_sampling_assumption": "explicit ts input, caller sampling assertion unverified",
-          "target": "alpha_U estimated before each round, never generic population pi",
-          "native_architectures": ["mlp", "cnn"],
-          "input_ndims": [2, 4],
-          "epoch_bound": "warm_start_epochs+max_epochs (upper limit; early convergence supported)",
-          "optimizer_accounting": "all warm/tedn steps, per-epoch context and pre-update BBE receipts",
-          "calibration_applied": false,
-          "calibration_hooked": false,
-          "formal_admission": false,
-          "method_owner_review": "pending"
-        }
-      },
-      "checkpoint_accounting": {"epoch_bound": "warm_start_epochs + max_epochs", "bound_is_upper_limit": false, "optimizer_steps_attribute": "optimizer_steps_", "formal_budget_approved": false},
-      "modality_backbone": {
-        "modalities": ["tabular", "image"],
-        "backbone": "default MLP64 or deepcopied trainable encoder + same MLP head; not author architecture; encoder inputs remain on CPU",
-        "code_capability": {
-          "native_architectures": ["mlp", "cnn"],
-          "input_ndims": [2, 4],
-          "encoder_parameter": "encoder",
-          "trains_encoder": true
-        }
-      },
-      "evidence": {
-        "native_sampling_assumption": "Garg et al., NeurIPS 2021 §3 p4 / Algorithm 2 p6; cvir_source_review_20261015.json",
-        "prior_semantics": "Garg et al., NeurIPS 2021 §3 and Algorithm 2 input α; cvir.py:fit rejects class_prior",
-        "adaptation_level": "cvir_source_review_20261015.json; admission/cvir_source_cnn_review_20261015.md; cvir.py",
-        "input_and_inference_isolation": "admission/cvir_source_cnn_review_20261015.md: 2026-10-20 private forward inputs, per-module mode restoration and pre-training validation; tests/unit/estimators/test_cvir_input_modes.py; not a TS-calibration or formal resource result",
-        "ts_calibration": "delivery/cvir_calibration_20261022.md; test_cvir_calibration.py and test_cvir_population_adapter.py; global train risk pool substitution before truncation; engineering evidence, not paper numerical reproduction or formal admission"
-      },
-      "uncertainty": [
-        "2026-10-22 已补协议§3的 known-prior换算与显式SCAR工程adapter；正式protocol v3 profiles/units/runner接线、配方预算、真实数据与GPU验收仍未完成，不修改冻结Survey v1/v2或历史结果",
-        "OS→TS-compatible用训练U∪P替换全局排序/保留风险池，P项保持独立；这是协议校准，不是原文独立TS抽样。有限样本混合与批次采样近似仍按协议§2.3，不能把工程对照当成论文效果复现或数据生成正确性证明",
-        "有限样本保留数使用 floor((1-α)*n_U)，至少 1；默认 warm-start 一轮、固定 epoch，未实现收敛停机或 BBE/TEDn 先验估计",
-        "锁定作者代码实际用 balanced CE、n_U-int(α*n_U)、zip原始P/U loader后mask、SGD默认；CVIR分支不进入TEDn专用warm-start。当前保留论文加权与既有默认，不把公式符合或新增CNN工程能力称为源码重放；CNN的分开P/N forward与源合并forward在BN下尤其不同",
-        "本地训练与公式 smoke 不等于公开行为对照、GPU 多 seed 验证或合作者复核"
+      "prior_semantics": "unlabeled_positive_prior is the positive fraction of the actual risk pool: alpha_U in OS, pi after explicit TS calibration; the estimator rejects class_prior.",
+      "adaptation_level": "benchmark-adapted",
+      "notes": [
+        "Explicit opt-in adapter converts pi to the risk-pool prior: (pi*n-nL)/(n-nL) in OS and pi in calibrated TS.",
+        "The default view remains OS despite a native TS assumption and an available TS hook."
       ]
     },
     "tedn": {
-      "class": "TEDnClassifier",
-      "paper": {
-        "title": "Mixture Proportion Estimation and PU Learning: A Modern Approach",
-        "authors": "Saurabh Garg, Yifan Wu, Alexander J. Smola, Sivaraman Balakrishnan, Zachary C. Lipton",
-        "venue": "NeurIPS 2021",
-        "year": 2021
-      },
-      "code_version": {
-        "upstream_url": "https://github.com/acmi-lab/PU_learning",
-        "upstream_commit": "5e5e350dc0588de95a36eb952e3cf5382e786aec",
-        "source_status": "official_exact (locked source receipt and license recorded in tedn_source_review_20261017.json)",
-        "license_observed": "Apache-2.0"
-      },
-      "implementation_status": "NATIVE, backend TORCH; standalone experimental Algorithm 3 path with internal P/U holdout BBE, explicit native-TS declaration, MLP or injected trainable CNN; not author-code replay or formal admission",
-      "source_behavior_review_ref": "docs/research/pu_survey/data/tedn_source_review_20261017.json",
-      "inference_state_review_ref": "docs/research/pu_survey/admission/tedn_scoring_modes_20261019.md",
-      "fit_failure_review_ref": "docs/research/pu_survey/reviews/extended_candidate_fit_failure_20261019.md",
-      "native_sampling_assumption": "ts（原文 P 与总体边缘 U 独立采样；显式 input_sampling='ts' 由调用方声明且尚未自动验证，TEDn.md / tedn_source_review_20261017.json）",
+      "native_sampling_assumption": "ts",
+      "calibration_hooked": false,
       "run_view": "ts-compatible",
       "calibration_applied": false,
-      "calibration_hooked": false,
-      "calibration_applicability": "not_applicable_native_ts",
-      "runtime_input_contract": {
-        "required_constructor_parameter": "input_sampling='ts'",
-        "class_prior": "rejected; TEDn estimates alpha_U internally",
-        "external_clean_labels": "not accepted",
-        "os_to_ts_conversion": false,
-        "caller_sampling_assertion_verified": false
-      },
-      "prior_semantics": "内部 BBE 估计原始边缘 U 的 α_U；不是人口 π，不接受 class_prior，估计值仅用于逐轮丢弃 U，不按 α_U 加权风险",
-      "adaptation_level": "benchmark-adapted（clean-room Algorithm 3 训练入口；复用已单独审计的 BBE；单 logit/MLP或注入CNN、Adam、有限收敛容差和分批策略为工程适配，非作者配方重放）",
-      "modality_backbone": {
-        "modalities": ["tabular", "image"],
-        "backbone": "默认 MLP64；可注入 deepcopy 后端到端训练的 CNN encoder + MLP head",
-        "code_capability": {
-          "native_architectures": ["mlp", "cnn"],
-          "input_ndims": [2, 4],
-          "encoder_parameter": "encoder",
-          "trains_encoder": true
-        }
-      },
-      "checkpoint_accounting": {
-        "epoch_bound": "warm_start_epochs + max_epochs",
-        "bound_is_upper_limit": true,
-        "optimizer_steps_attribute": "optimizer_steps_",
-        "formal_budget_approved": false
-      },
-      "admitted": false,
-      "owner_decisions": {},
-      "specific_blockers": [
-        "method_owner_review_pending",
-        "formal_recipe_selection_and_compute_budget_pending",
-        "independent_ts_sampling_design_not_verified",
-        "no_public_numeric_reproduction_or_formal_resource_profile"
+      "prior_semantics": "Internal BBE estimates alpha_U of the supplied marginal U; rejects external class_prior.",
+      "adaptation_level": "benchmark-adapted",
+      "notes": [
+        "Caller asserts input_sampling=ts; no automatic OS-to-TS conversion or clean-label support.",
+        "Internal BBE/ranking estimates alpha_U and controls retention; it is not the shared prior-estimator API."
       ],
-      "evidence": {
-        "native_sampling_assumption": "NeurIPS 2021 Algorithm 3 / TEDn.md; explicit input_sampling='ts' declaration",
-        "prior_semantics": "tedn_source_review_20261017.json; bbe_source_review_20261017.json",
-        "adaptation_level": "tedn_source_review_20261017.json; TEDn.md; tests/unit/estimators/test_tedn.py"
-      },
-      "uncertainty": [
-        "No OS-to-TS calibration exists or is claimed; TEDn is native TS only. The constructor requires the caller to declare input_sampling='ts', but this does not verify actual sampling or group identity.",
-        "The BBE estimate targets alpha_U, not a generic population class prior. The toolbox rejects class_prior and uses alpha_U only for discarding, following Algorithm 3's unweighted role objective.",
-        "The training estimator is now registry discoverable, but formal survey admission, frozen-matrix inclusion, source-recipe reproduction, approved budgets, resource validation, and method-owner review remain pending."
-      ]
+      "calibration_applicability": "not_applicable_native_ts"
     },
     "robust_pu": {
-      "class": "RobustPUClassifier",
-      "fit_failure_review_ref": "docs/research/pu_survey/reviews/candidate_fit_failure_20261018.md",
-      "paper": {
-        "title": "Robust Positive-Unlabeled Learning via Noise Negative Sample Self-correction",
-        "authors": "Zhangchi Zhu, Lu Wang, Pu Zhao, Chao Du, Wei Zhang, Hang Dong, Bo Qiao, Qingwei Lin, Saravan Rajmohan, Dongmei Zhang",
-        "venue": "KDD 2023",
-        "year": 2023
-      },
-      "code_version": {
-        "upstream_url": "https://github.com/woriazzc/Robust-PU",
-        "upstream_commit": "34d950f2c6e56510855a922acb5f84b6459773ef",
-        "source_status": "official_exact (paper explicitly links the pinned repository; availability, not exact source replay)",
-        "license_observed": "unknown; no LICENSE/COPYING/NOTICE file or explicit code license notice found in locked tree; registry needs_review remains"
-      },
-      "implementation_status": "NATIVE, backend TORCH; nnPU warm-up plus self-paced weighted BCE on MLP or trainable injected CNN; technical pre-integration only",
-      "source_behavior_review_ref": "docs/research/pu_survey/data/robustpu_source_review_20261018.json",
-      "inference_state_review_ref": "docs/research/pu_survey/admission/robustpu_inference_modes_20261019.md",
-      "runtime_prior_contract": {
-        "calibrated_ts_input": "population_pi",
-        "explicit_os_input": "supplied_U_positive_fraction",
-        "automatic_prior_conversion": false,
-        "prior_used_in": "nnPU_pretrain_only",
-        "post_pretrain_pseudo_negative_pool": "original_U_only"
-      },
-      "checkpoint_accounting": {"epoch_bound": "pretrain_epochs + episodes", "bound_is_upper_limit": true, "inner_epochs_emit_extra_snapshots": false, "optimizer_steps_attribute": "optimizer_steps_", "formal_budget_approved": false},
-      "native_sampling_assumption": "ts（P 与边缘分布 U 分别采样；Robust-PU.md:13-17，registry:robust_pu）",
+      "native_sampling_assumption": "ts",
+      "calibration_hooked": true,
       "run_view": "ts-compatible",
       "calibration_applied": true,
-      "calibration_hooked": true,
-      "calibration_review_ref": "docs/research/pu_survey/reviews/additional_ts_calibration_review_20261019b.md",
-      "prior_semantics": "population π（case-control 的 U 为总体边缘分布，因此 π_U=π；仅用于 nnPU 预训练；Robust-PU.md:13, registry:robust_pu）",
-      "adaptation_level": "benchmark-adapted（MLP 或注入可训练 CNN+MLP/raw-logit头；图像批次上卡、原行权重在 CPU 计算；非官方 CIFAR CNN/增强/scheduler/完整预算复现）",
-      "modality_backbone": {
-        "modalities": ["tabular", "image"],
-        "backbone": "MLP100 or injected trainable CNN + MLP/raw-logit head",
-        "code_capability": {
-          "native_architectures": ["mlp", "cnn"],
-          "input_ndims": [2, 4],
-          "encoder_parameter": "encoder",
-          "trains_encoder": true
-        }
-      },
-      "evidence": {
-        "native_sampling_assumption": "Robust-PU.md:13-17; registry:robust_pu",
-        "prior_semantics": "Robust-PU.md:13; robust_pu.py:258-266",
-        "adaptation_level": "Robust-PU.md:24-31"
-      },
-      "uncertainty": [
-        "TS-OS 校准只作用于 nnPU 预训练的未标记风险：ts 时逐 batch 使用 U∪P，正例风险和先验不变；自步加权 BCE 的伪负例仍仅为原始 U，不能把已知 P 当伪负例；pretrain_epochs=0 时显式拒绝 ts。逐 run 实际视图以 manifest 为准",
-        "已有注入 CNN 工程路径但非原论文 CIFAR backbone/增强/官方 scheduler/重启/真实标签选模复现；未做公开数值对照、GPU 正式多 seed 验证或合作者复核；不进入冻结 Survey v1 矩阵",
-        "作者预训练/episode 用 clean validation best 恢复及 patience，本实现内部固定预算、从最后预训练模型继续，选模外置；作者 parser pre_epochs=400/epochs=100 对比工具箱默认 10/20，不能仅按参数名称预算等价；详见 admission_evidence_ref",
-        "上游许可证未确认；clean-room 实现，不复制官方源码"
+      "prior_semantics": "population pi is used in nnPU pretraining; explicit OS instead requires the original U positive fraction, with no automatic estimator conversion.",
+      "adaptation_level": "benchmark-adapted",
+      "notes": [
+        "The post-pretraining pseudo-negative pool remains the original U.",
+        "Direct OS and calibrated TS require different prior semantics; the estimator does not convert them automatically."
       ]
     },
     "split_pu": {
-      "class": "SplitPUClassifier",
-      "source_behavior_review_ref": "docs/research/method_cards/Split-PU.md",
-      "inference_state_review_ref": "docs/research/pu_survey/admission/splitpu_inference_modes_20261019.md",
-      "fit_failure_review_ref": "docs/research/pu_survey/reviews/candidate_fit_failure_20261018.md",
-      "paper": {
-        "title": "Split-PU: Hardness-aware Training Strategy for Positive-Unlabeled Learning",
-        "authors": "Chengming Xu, Chen Liu, Siqian Yang, Yabiao Wang, Shijie Zhang, Lijie Jia, Yanwei Fu",
-        "venue": "ACM Multimedia 2022",
-        "year": 2022
-      },
-      "code_version": {
-        "upstream_url": "https://github.com/loadder/SplitPU_MM2022",
-        "upstream_commit": "82fb9730597a65a12156736419d4588675bc24d5",
-        "source_status": "official_exact (method card audited commit 82fb9730597a65a12156736419d4588675bc24d5)"
-      },
-      "implementation_status": "NATIVE, backend TORCH; MLP or injected trainable CNN with real intermediate/final encoder features, nnPU teacher, agreement split and two-round student distillation; technical pre-integration only",
-      "checkpoint_accounting": {"epoch_bound": "teacher_epochs + split_epochs + rounds * student_epochs", "bound_is_upper_limit": true, "splitter_early_stop_may_reduce_actual": true, "optimizer_steps_attribute": "optimizer_steps_", "formal_budget_approved": false},
-      "native_sampling_assumption": "ts（P 与边缘分布 U 分别采样；Split-PU.md:9-13，registry:split_pu）",
+      "native_sampling_assumption": "ts",
+      "calibration_hooked": true,
       "run_view": "ts-compatible",
       "calibration_applied": true,
-      "calibration_hooked": true,
-      "calibration_review_ref": "docs/research/pu_survey/reviews/additional_ts_calibration_review_20261019b.md",
-      "prior_semantics": "population π（case-control 的 U 为总体边缘分布，因此 π_U=π；仅用于 nnPU teacher 训练；Split-PU.md:9, registry:split_pu）",
-      "adaptation_level": "benchmark-adapted（MLP 或独立训练的注入 CNN：真实中间层 MSE/最终编码特征余弦；CPU 池分批上设备；Gaussian 扰动及余弦替代官方图像增强/SimSiam，非论文完整 CNN 配方）",
-      "modality_backbone": {
-        "modalities": ["tabular", "image"],
-        "backbone": "dense MLP100 or injected CNN encoder + MLP head; intermediate module feature and final encoder vector",
-        "code_capability": {
-          "native_architectures": ["mlp", "cnn"],
-          "input_ndims": [2, 4],
-          "encoder_parameter": "encoder",
-          "trains_encoder": true
-        }
-      },
-      "evidence": {
-        "native_sampling_assumption": "Split-PU.md:9-13; registry:split_pu",
-        "prior_semantics": "Split-PU.md:9; split_pu.py:223-231",
-        "adaptation_level": "Split-PU.md:29-34",
-        "source_behavior_review": "Split-PU.md：锁定源码阶段/损失、TS 角色与测试集监控和模型选择边界"
-      },
-      "uncertainty": [
-        "TS-OS 校准只作用于 nnPU teacher 的未标记风险：ts 时逐 batch 使用 U∪P，正例风险和先验不变；后续 temporary、easy/hard 及 student 仍只使用原始 U，保证已知 P 不被分入伪负例；逐 run 实际视图以 manifest 为准",
-        "原生注入 CNN 工程路径已接，但中间层默认首个 MaxPool（否则 Conv/Linear）、末端为编码特征，非作者完整 CIFAR CNN/投影头配方；官方弱强图像增强/SimSiam 及 easy 拼接行归一化未复现；上游 teacher/student 返回末轮权重，测试准确率仅监控，不据 unused best_acc 声称 test-best 选模；未做公开数值对照、GPU 正式多 seed 验证或合作者复核；不进入冻结 Survey v1 矩阵；详见 admission_evidence_ref",
-        "上游许可证未确认；clean-room 实现，不复制官方源码"
+      "prior_semantics": "population pi is used in nnPU teacher training.",
+      "adaptation_level": "benchmark-adapted",
+      "notes": [
+        "Uses the released JSD weight 0.7, whose direction differs from the paper equation.",
+        "Private augmentation and SimSiam paths are benchmark approximations."
       ]
     },
     "vpu": {
-      "project_recipe_binding": {"protocol": "survey-v3.1", "registry": "survey-recipes-v1.1", "owner_confirmed_on": "2026-11-01", "execution_adapter": "survey-backlog-1", "decision_ref": "docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md", "formal_admission": false, "paper_numerical_reproduction": false},
-      "class": "VPUClassifier",
-      "source_behavior_review_ref": "docs/research/pu_survey/admission/vpu_sampling_audit.md",
-      "fit_failure_review_ref": "docs/research/pu_survey/reviews/remaining_candidate_fit_failure_20261019.md",
-      "inference_state_review_ref": "docs/research/pu_survey/admission/vpu_lbe_scoring_modes_20261019.md",
-      "paper": {
-        "title": "A Variational Approach for Learning from Positive and Unlabeled Data",
-        "authors": "Hui Chen, Fangqing Liu, Yin Wang, Liyue Zhao, Hao Wu",
-        "venue": "NeurIPS 2020",
-        "year": 2020
-      },
-      "code_version": {
-        "upstream_url": "https://github.com/HC-Feynman/vpu",
-        "upstream_commit": "603bcc1e628795f57a5ac87e5b0b977273b7cf91",
-        "source_status": "official_related (公式与关键训练逻辑对照作者锁定提交；网络与实验协议为工具箱适配)"
-      },
-      "implementation_status": "NATIVE, backend TORCH; 先验无关的变分风险 + 对数 MixUp 正则；二维特征或注入 encoder 的四维图像；独立四角色图像候选 CLI 核对原生 TS、逐 epoch 归一化及实际优化器成本，CPU 工程验证不等于正式准入",
-      "native_sampling_assumption": "ts（边缘项要求总体边缘分布：论文式 (6) 的 f 即训练总体边缘；作者 x_loader 覆盖正例与未标记且 P 池是 X 池的子集，故边缘池 = D_U ∪ D_P。四层证据与逐行核对见 admission/vpu_sampling_audit.md，裁决 D21；both 可辩但需改 registry，本切片不做。VPU.md:40, registry:vpu）",
+      "native_sampling_assumption": "ts",
+      "calibration_hooked": true,
       "run_view": "ts-compatible",
       "calibration_applied": true,
-      "calibration_hooked": true,
-      "calibration_review_ref": "docs/research/pu_survey/admission/vpu_sampling_audit.md",
-      "prior_semantics": "无；fit 接受 class_prior 仅做校验，不进入损失、初始化或结果元数据；边缘池由视图角色决定，不由观测 P/U 比例推断 (VPU.md:34, registry:vpu)",
-      "adaptation_level": "benchmark-adapted；clean-room MLP/注入可训练 CNN，非作者网络/脚本/数值复现；默认 constant 与数据量推导步数不变，源重置调度/固定步数可选；encoder 强制 CPU 数据分批，旧二维 auto 保留 resident；见 delivery/vpu_encoder_stream_20261015.md",
-      "training_recipe_review_ref": "docs/research/pu_survey/data/vpu_schedule_source_20261015.json",
-      "image_engineering_review_ref": "docs/research/pu_survey/delivery/vpu_encoder_stream_20261015.md",
-      "modality_backbone": {
-        "modalities": [
-          "tabular",
-          "image"
-        ],
-        "backbone": "默认小型 MLP；可 deepcopy 注入可训练 encoder，输出二维特征后接 MLP 头；非作者七层 MLP300/CIFAR CNN",
-        "code_capability": {
-          "native_architectures": [
-            "mlp",
-            "cnn"
-          ],
-          "input_ndims": [
-            2,
-            4
-          ],
-          "encoder_parameter": "encoder",
-          "trains_encoder": true
-        }
-      },
-      "evidence": {
-        "native_sampling_assumption": "VPU.md:40; admission/vpu_sampling_audit.md §2-§5; registry:vpu",
-        "prior_semantics": "VPU.md:34; registry:vpu",
-        "adaptation_level": "VPU.md:53; admission/vpu_sampling_audit.md §9",
-        "source_behavior_review": "vpu_sampling_audit.md：锁定作者 x_loader/P∪U 边缘池与目标、MixUp、优化器和验证口径逐项核查"
-      },
-      "uncertainty": [
-        "已有工具箱 MLP（默认两层 MLP64）及注入 CNN 工程路径，不是论文 UCI 七层 MLP300/CIFAR CNN；正式共享 backbone 规格、增强与公开数值对照未完成；CPU-stream 验证风险以全局 float64 归约，可能有浮点末位差异，不改旧 resident 归约",
-        "2026-10-15 仅补可选源调度与固定轮内步数，不改变默认 constant / 自适应步数；作者在零基epoch19/39前重建Adam而非StepLR保留动量；默认lr=3e-4、epochs=100、batch=128仍不同于作者3e-5/50/500，网络与有放回采样仍为适配",
-        "TS/OS 视图裁决由 shuidisjtu 单方技术审计（D21），合作者复核未获得",
-        "VPU 输出是归一化分数，不是独立概率校准后验 (VPU.md:34)",
-        "显式 os 对照是协议定义的消融（边缘池被限制到 p(x|s=0)），不是 VPU 在其原生假设下的运行；引用 OS 结果不得读作原生结果 (D21, admission/vpu_sampling_audit.md §6)",
-        "验证变分风险按上游目标的函数形式计算（工具箱使用验证 PU 分区的边缘池与其中的已标记正例；上游 val_p_loader 由全量 clean 类标签抽样，并非 val_x_loader 的正例子集），与协议 §2.3 验证 OS 要求的关系由 D22 限定为 source diagnostic、不得充当 PA/OA 选模准则；若将来进入执行矩阵且需 PA 选模，必须另行裁决（2026-10-18 复核更正，见 admission/vpu_d21_d22_review_20261018.md F1）",
-        "GPU 只有 2026-09-19 的单次技术 smoke（RTX A6000 限定 0 号卡），不替代正式多 seed 资源验收 (VPU.md:52)",
-        "后续已补可选源调度、注入 CNN 与 CPU-stream 工程接线；VPU 仍不进入冻结执行矩阵，不得读作 P3.1/P3.2 正式完成"
+      "prior_semantics": "No external prior; fit validates but ignores class_prior in loss and initialization.",
+      "adaptation_level": "benchmark-adapted",
+      "notes": [
+        "Native TS marginal-risk pool uses explicit role construction, never the observed P/U ratio as pi.",
+        "Merged validation-pool risk can be recorded as a source diagnostic, not used for PA/OA selection."
       ]
     }
   }

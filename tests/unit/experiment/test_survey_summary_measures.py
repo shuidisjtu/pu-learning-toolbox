@@ -7,16 +7,12 @@ observation rather than a missing seed; and a status that belongs to no report
 table is a defect in the vocabulary.  Collapsing them either invents defects or
 hides them, so each is asserted separately here.
 
-The counterpart on the audit side -- which of these degrade a row's status -- is
-``test_survey_audit_checks.py``.
 """
 
 import pytest
 from _survey_summary_helpers import manifest
 
-from pu_toolbox.experiment import survey_comparison
 from pu_toolbox.experiment.survey_summary import (
-    COMPARISON_METRIC,
     REPORT_TIERS,
     STATUSES,
     SummaryError,
@@ -150,10 +146,3 @@ def test_determ_the_matrix_selector_is_spelled_the_way_the_matrix_reads():
     assert first["selection_protocol"] == "oa"
     oracle = matrix_selector(manifest(c_independent=True), selection_protocol="OA")
     assert oracle["c_token"] == oracle["labeling_mechanism"] == "c_independent"
-
-
-def test_determ_the_comparison_metric_is_the_matrix_own_constant():
-    # Two modules name the same pre-registered fact; pinned so neither can move
-    # without the other, and so a selector cannot be built on a metric the matrix
-    # does not compare.
-    assert COMPARISON_METRIC == survey_comparison._COMPARISON_METRIC

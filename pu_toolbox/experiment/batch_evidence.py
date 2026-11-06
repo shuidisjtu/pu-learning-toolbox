@@ -4,7 +4,7 @@ Protocol §5 clause 6 asks every run artifact to fix the code commit, the
 dependency lock and the software stack it ran on.  D44 puts that identity at the
 batch layer instead of in every manifest: a survey batch is one unit script
 invocation covering many runs, and repeating one commit and one lock hash in each
-of them is noise rather than evidence.  :data:`survey_audit.BATCH_IDENTITY_FIELDS`
+of them is noise rather than evidence.  :data:`BATCH_IDENTITY_FIELDS`
 names the two fields a packet has to carry -- ``code_commit`` and
 ``dependency_lock`` -- and the packet adds what a reproducer on another machine
 needs on top of them: the protocol matrix it planned from, the frozen recipe
@@ -58,6 +58,9 @@ from .survey_provenance import (
 #: Format version of the packet.  Moved only when a field is removed, renamed or
 #: retyped: adding one is backward compatible and leaves this alone.
 SCHEMA_VERSION = "batch-evidence-v1"
+
+#: Reproducibility identity shared by all runs citing one evidence packet.
+BATCH_IDENTITY_FIELDS: tuple[str, ...] = ("code_commit", "dependency_lock")
 
 #: Directory under the results root that holds the packets, one per batch.
 DIRECTORY = "batch_evidence"

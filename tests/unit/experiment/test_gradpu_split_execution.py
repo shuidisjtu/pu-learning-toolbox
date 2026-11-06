@@ -140,7 +140,7 @@ def test_edge_chunk_size_requires_split_mode(tmp_path, survey_script, capsys):
     "extra",
     [
         [],
-        ["--protocol", "survey-v3.1", "--method", "vpu", "--dataset", "adni"],
+        ["--protocol", "survey-v3.2", "--method", "vpu", "--dataset", "adni"],
     ],
 )
 def test_param_split_wrong_scope_rejected_before_loading_data(

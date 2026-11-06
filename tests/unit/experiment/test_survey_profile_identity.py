@@ -16,10 +16,9 @@ from pu_toolbox.experiment.survey_profile_identity import (
     require_four_role_profile,
     validate_profile_identities,
 )
-from pu_toolbox.experiment.survey_protocol import digest, load_protocol
+from pu_toolbox.experiment.survey_protocol import digest, load_protocol, resolve_protocol_path
 from pu_toolbox.experiment.survey_recipe_binding import bind_recipe
 from pu_toolbox.experiment.survey_recipe_registry import (
-    BASE_REF_PREFIX,
     build_draft_registry,
     resolve_candidate,
     validate_registry,
@@ -43,12 +42,16 @@ def test_basic_explicit_mapping_is_not_a_registered_algorithm_alias(tmp_path):
         get_algorithm("upu_recipe")
 
 
-def test_determ_legacy_paths_keep_identity_and_protocol_bytes_without_extra_fields():
+def test_determ_current_profiles_keep_explicit_identity_and_protocol_bytes():
     protocol = load_protocol()
     original = copy.deepcopy(protocol)
     assert profile_algorithm(protocol, "self_pu") == "self_pu"
     assert profile_algorithm({}, "nnpu") == "nnpu"
-    assert profile_manifest_identity(protocol, "self_pu") == {}
+    assert profile_manifest_identity(protocol, "self_pu") == {
+        FIELD: SCHEMA,
+        "profile_id": "self_pu",
+        "algorithm_id": "self_pu",
+    }
     validate_profile_identities(protocol)
     assert protocol == original and digest(protocol) == digest(original)
 
@@ -170,7 +173,7 @@ def test_edge_full_meta_class_can_be_constructed_but_not_run_via_four_roles():
 
 
 def test_edge_registry_schema_binds_only_its_own_protocol_identity():
-    old = load_protocol()
+    old = load_protocol(resolve_protocol_path("survey-v3.2"))
     registry = build_draft_registry(old)
     new = draft()
     v3_registry = build_draft_registry(new)
@@ -178,12 +181,12 @@ def test_edge_registry_schema_binds_only_its_own_protocol_identity():
     assert v3_registry["profiles"]["upu_recipe"]["algorithm"] == "upu"
     assert validate_registry(v3_registry, new) == []
     findings = validate_registry(registry, new)
-    assert len(findings) == 1 and findings[0].code == "protocol_basis_mismatch"
-    with pytest.raises(ValueError, match="protocol_basis_mismatch"):
+    assert "unknown_method" in {finding.code for finding in findings}
+    with pytest.raises(ValueError):
         bind_recipe(
             registry, new, method="upu_recipe", dataset="spambase", training_path="native_2d"
         )
     profile = copy.deepcopy(v3_registry["profiles"]["upu_recipe"])
-    profile["base_ref"] = f"{BASE_REF_PREFIX}{profile['method']}"
+    profile["base_ref"] = f"survey_protocol_v2.method_profiles.{profile['method']}"
     with pytest.raises(ValueError, match="base_ref"):
         resolve_candidate(profile, profile["candidate_pool"][0], new)

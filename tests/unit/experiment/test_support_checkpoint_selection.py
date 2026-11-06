@@ -28,7 +28,8 @@ def test_basic_real_meta_checkpoints_both_protocols_candidates_and_reclaim(metho
     assert disclosure["pa_clean_support_eligible"] and not disclosure["pa_eligible"]
     assert not disclosure["formal_admission"] and not manifest["formal_eligible"]
     assert disclosure["comparison_group"] == "extra_clean_support"
-    assert disclosure["protocol_pending_review_items"][0] == "v2_p4_clean_support_policy"
+    assert disclosure["protocol_policy_basis"] is None
+    assert disclosure["protocol_pending_review_items"] == ["protocol_policy_not_bound"]
     expected_epochs = {"self_pu": [1, 2, 3], "lagam": [1, 2], "pulns": [0, 1, 2]}[method]
     components = {"teacher_1", "teacher_2"} if method == "self_pu" else {"model"}
     all_checkpoints = []

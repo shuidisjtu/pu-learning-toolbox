@@ -13,19 +13,18 @@
 
 LaGAM 先用观测 PU 标签 warmup；之后每轮聚类当前表征形成潜在组。每个训练批次对分类器层做一次可微虚拟更新，再用**独立干净 support set** 的分类损失对训练标签扰动求元梯度，从梯度方向产生 U 的候选标签；观测 P 恒固定为正，U 的候选标签经 EMA 更新。实际训练包含平衡 BCE、Beta(4,4) mixup、双视图 instance InfoNCE 和同潜在组对比损失。
 
-公开类 `LaGAMClassifier`，注册名 `lagam`（别名 `la_gam`），使用二维 MLP 或独立复制后联合训练的注入 CNN、Gaussian 双视图与 sklearn KMeans。支持 CPU/CUDA、随机种子、训练历史、epoch 回调与权重推理恢复；`decision_function` 为 raw logit。非空 `sample_weight` 会报错。作者 ResNet/projection 配方、Faiss GPU 聚类、图像增强、classifier cutoff/kNN augment、400 epoch 调度未重放，**不得声称数值复现**。
+公开类 `LaGAMClassifier`，注册名 `lagam`（别名 `la_gam`），使用二维 MLP 或独立复制后联合训练的注入 CNN、Gaussian 双视图与 sklearn KMeans。支持 CPU/CUDA、随机种子、训练历史、epoch 回调与权重推理恢复；`decision_function` 为 raw logit。非空 `sample_weight` 会报错。作者 ResNet/projection 配方、Faiss GPU 聚类、图像增强、classifier cutoff/kNN augment、400 epoch 调度未重放。
 
-2026-10-15 来源补记：发布源码的虚拟 classifier 更新筛选 ndim>1，因此不更新 bias。新增 `meta_update_bias=False` 仅对齐该参数范围，默认 True 保留旧行为。原硬观测元目标/稳定 BCE、EMA 端点时序、optimizer 等与作者仍不同；标量与两列扰动的等价只在同损失/目标/范围下成立。来源文件摘要与逐项边界见[来源/CNN 复核](../pu_survey/admission/lagam_source_cnn_review_20261015.md)。
+2026-10-15 来源补记：发布源码的虚拟 classifier 更新筛选 ndim>1，因此不更新 bias。新增 `meta_update_bias=False` 仅对齐该参数范围，默认 True 保留旧行为。原硬观测元目标/稳定 BCE、EMA 端点时序、optimizer 等与作者仍不同；标量与两列扰动的等价只在同损失/目标/范围下成立。
 
 新图像路径强制 CPU 数据分批，训练/聚类/预测 batch_size、support_batch_size 各自限流；CPU 仍需全量嵌入。CNN 虚拟步冻结 eval 特征并恢复模式，避免 support 更新真实 BN/dropout；实际分类/对比端到端训练。旧二维 auto 保留 resident。`optimizer_steps_` / `virtual_steps_` / `clustering_passes_` 分列成本；max_epochs 已含 warmup，两阶段快照上下文不是选模批准，也不支持训练续跑。
 
-2026-10-20 已补[正文/补充材料交叉复核](../pu_survey/admission/lagam_paper_review_20261020.md)，
-不覆盖旧 HTTP403 历史。新登记三项待裁决差异：正文零梯度投影含等号而补充伪代码不含；
+2026-10-20 正文与补充材料交叉复核确认三项待裁决差异：正文零梯度投影含等号而补充伪代码不含；
 补充 Table 15 的 β 默认 0 与发布代码直接加入对比损失无法直接对应；补充统一100簇而
 README 的 CIFAR-10 命令指定5簇。当前梯度零时 U 取0、`contrastive_weight=1`、
-`num_clusters=5` 保持不变，不声称完整 LGA（当前无 cutoff/kNN）或论文默认配方。
+`num_clusters=5` 保持不变；cutoff/kNN 尚未实现。
 正文普通 BCE 均值也不同于当前平衡稳定 BCE；support 按原始子类配额采样不能等同于
-当前 preparer 的均匀抽样。全文已获取不等于 RV8 签署或正式数值验收。
+当前 preparer 的均匀抽样。
 
 ## 协议门禁：干净 support set
 
@@ -33,7 +32,7 @@ README 的 CIFAR-10 命令指定5簇。当前梯度零时 U 取0、`contrastive_
 
 注册元数据 `requires_clean_support=true`；普通 PU-only 推荐器会排除该方法，以免自动工作流挑中一个无法安全训练的候选。
 
-发布 `utils/utils_data.py:182-193` 从 U 排除已标记 P，属于 OS split。2026-10-17 按 Issue #115 将 registry 改为 SINGLE_TRAINING_SET、台账改为 os，来源收据保留原冲突并补整改记录。此定位描述作者发布实验，不断言理论仅适用 OS；不新增 TS 接口或校准。source_status=official_exact 只表示作者源码可得，不证明数值重放。support 数组共享内存将拒绝，但不同副本的样本/角色独立仍须协议索引证据。
+发布 `utils/utils_data.py:182-193` 从 U 排除已标记 P，属于 OS split。2026-10-17 按 Issue #115 将 registry 改为 SINGLE_TRAINING_SET、台账改为 os，来源收据保留原冲突并补整改记录。此定位描述作者发布实验，不断言理论仅适用 OS；不新增 TS 接口或校准。source_status=official_exact 表示作者源码可得。support 数组共享内存将拒绝，但不同副本的样本/角色独立仍须协议索引证据。
 
 ## 验证与待办
 
@@ -41,7 +40,6 @@ README 的 CIFAR-10 命令指定5簇。当前梯度零时 U 取0、`contrastive_
 训练前核四角色、先验估计、support 的全局 IDs 与适用分组，支持集不得来自
 选模/test。实训回归确认虚拟元更新发生，manifest 显著标注额外监督/预算，
 修改 test 不影响训练或选模。旧 `EpochCheckpointTrainer`/frozen Survey 不变；
-这不是正式候选池准入，未替代实际数据支持集、来源配方与标签预算审批。
-详见[算法收尾与调用示例](../pu_survey/reviews/algorithm_completion_20261017.md)。
+实际数据支持集、来源配方与标签预算仍待审核。
 
-单元测试覆盖平衡 BCE、独立二阶元梯度、组对比损失、支持集 fail-closed、CNN 模式/缓冲、分批/成本及推理回放。2026-09-28 A6000 单次 CUDA smoke 为旧二维路径，不覆盖新 CNN，也不替代 frozen-lock 或多 seed 资源验收。台账仍为 `run_view=os-compatible`、`calibration_applied=false`：无安全的同形 U 风险替换，校准也不能消除独立 support 监督。标准 PA 不适用；全文获取已补，仍需 support/选模互斥协议、来源许可、论文/代码差异与完整配方裁决、公开数值、候选矩阵及合作者审阅。
+单元测试覆盖平衡 BCE、独立二阶元梯度、组对比损失、支持集 fail-closed、CNN 模式/缓冲、分批/成本及推理回放。2026-09-28 A6000 单次 CUDA smoke 为旧二维路径。台账仍为 `run_view=os-compatible`、`calibration_applied=false`：无安全的同形 U 风险替换，校准也不能消除独立 support 监督。标准 PA 不适用；全文获取已补，仍需 support/选模互斥协议、来源许可、论文/代码差异与完整配方裁决、公开数值、候选矩阵及合作者审阅。

@@ -156,7 +156,11 @@ def _route(row: Mapping[str, Any]) -> tuple[str, str]:
     # seeds by construction; it is a technical comparison, not an unfinished result.
     if status == "technical_probe":
         return DIAGNOSTIC_SHEET, ""
-    if row["metric"].get("missing_seeds") or status not in _RESULT_STATUSES:
+    if (
+        row["metric"].get("missing_seeds")
+        or row["metric"].get("n_observed", 0) < 5
+        or status not in _RESULT_STATUSES
+    ):
         return COVERAGE_SHEET, ""
     if mechanism == "scar":
         if protocol == "OA":
@@ -323,6 +327,19 @@ def build_workbook(
         _write_table(ws, openpyxl, _RESULT_COLUMNS, _ordered(filed[sheet]))
     ws = workbook.create_sheet(COVERAGE_SHEET)
     _write_table(ws, openpyxl, _COVERAGE_COLUMNS, _ordered(filed[COVERAGE_SHEET]))
+    sources = report.get("sources", [])
+    if sources:
+        ws.append([])
+        ws.append(["source_path", "source_state", "formal_blockers", "failures"])
+        for source in sources:
+            ws.append(
+                [
+                    source["path"],
+                    source["state"],
+                    str(source.get("formal_blockers", [])),
+                    str(source.get("failures", [])),
+                ]
+            )
     ws = workbook.create_sheet(CONCLUSIONS_SHEET)
     _write_table(
         ws, openpyxl, _CONCLUSION_COLUMNS, [("", [list(row) for row in conclusions or ()])]

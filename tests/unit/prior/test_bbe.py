@@ -3,10 +3,8 @@
 # Feature naming mirrors the public fit API.
 # ruff: noqa: N803, N806
 
-import json
 import math
 from dataclasses import FrozenInstanceError
-from pathlib import Path
 
 import numpy as np
 import pytest
@@ -235,23 +233,5 @@ def test_edge_smallest_positive_delta_has_finite_selection_bounds():
     assert np.isfinite(result.selection_upper_bounds).all()
 
 
-def test_basic_ledger_preserves_prior_and_admission_boundaries():
-    root = Path(__file__).resolve().parents[3]
-    ledger = json.loads(
-        (root / "pu_toolbox/experiment/method_ledger.json").read_text(encoding="utf-8")
-    )
-    cvir = ledger["methods"]["cvir"]
-    extension = cvir["independent_extensions"]["bbe"]
-    review = json.loads((root / extension["review_ref"]).read_text(encoding="utf-8"))
-    implementation = review["implementation"]
+def test_basic_mixture_estimator_does_not_claim_population_prior_contract():
     assert not issubclass(BBEMixtureEstimator, BasePriorEstimator)
-    assert extension["target"] == "alpha_U, not automatic population pi"
-    assert cvir["calibration_applied"] is False
-    assert cvir["calibration_hooked"] is True
-    for key in ("calibration_applied", "calibration_hooked", "formal_admission"):
-        assert extension[key] is False
-        assert implementation[key] is False
-    assert implementation["wired_to_existing_cvir"] is False
-    assert implementation["registered_as_population_prior_estimator"] is False
-    assert implementation["tedn_implemented"] is False
-    assert review["owner_signatures"] == []

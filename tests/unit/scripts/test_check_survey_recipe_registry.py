@@ -57,7 +57,7 @@ def test_edge_required_materialized_artifact_cannot_disappear_silently(tmp_path,
 
 def _v3_draft() -> dict:
     """A draft generated from the v3 protocol, the same way the checked-in lock is derived."""
-    return build_draft_registry(load_protocol(resolve_protocol_path("survey-v3.0")))
+    return build_draft_registry(load_protocol(resolve_protocol_path("survey-v3.2")))
 
 
 def test_basic_generated_draft_is_checked_against_the_protocol_it_names(tmp_path, capsys):
@@ -68,7 +68,7 @@ def test_basic_generated_draft_is_checked_against_the_protocol_it_names(tmp_path
 
     assert code == 0
     assert "survey-recipes-v0.2-draft" in out
-    assert "protocol basis: survey-v3.0" in out
+    assert "protocol basis: survey-v3.2" in out
 
 
 def test_param_v3_draft_cannot_be_validated_against_a_v2_basis(tmp_path, capsys):
@@ -80,7 +80,7 @@ def test_param_v3_draft_cannot_be_validated_against_a_v2_basis(tmp_path, capsys)
     code, out, _ = _run(capsys, "--registry", str(payload))
 
     assert code == 1
-    assert "protocol_basis_mismatch" in out
+    assert "unsupported survey protocol version" in out
 
 
 def test_edge_v3_reference_is_checked_against_v3_not_the_v2_default(tmp_path, capsys):

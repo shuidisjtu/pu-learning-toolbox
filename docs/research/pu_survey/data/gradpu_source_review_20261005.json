@@ -26,7 +26,7 @@
   },
   "paper_only_identity_ref": "https://github.com/shuidisjtu/pu-learning-toolbox/issues/121",
   "author_code_required_for_paper_only_identity": false,
-  "engineering_recipe_review_ref": "docs/research/pu_survey/admission/gradpu_training_recipe_review_20261018.md",
+  "engineering_recipe_review_ref": "docs/research/method_cards/GradPU.md",
   "primary_source": {
     "url": "https://ojs.aaai.org/index.php/AAAI/article/download/25889/25661",
     "doi": "10.1609/aaai.v37i6.25889",

@@ -79,8 +79,7 @@ def test_basic_determ_cli_binds_prior_checkpoints_selection_and_reclaims(
         assert len(candidate["epoch_checkpoints"]) == 3
         remaining = [c for c in candidate["epoch_checkpoints"] if Path(c["path"]).exists()]
         assert 1 <= len(remaining) <= 2
-        ledger = json.loads((path.parent / "method_ledger_entry.json").read_text(encoding="utf-8"))
-        assert ledger["run_view"] == f"{resolved}-compatible"
+        assert manifest["run_view"] == f"{resolved}-compatible"
         manifests.append(manifest)
     assert manifests[0]["test_results"] == manifests[1]["test_results"]
     assert "Exploratory CVIR evidence only" in capsys.readouterr().out
@@ -100,7 +99,7 @@ def test_basic_determ_cli_binds_prior_checkpoints_selection_and_reclaims(
         (["--class-prior", "1"], [], "population --class-prior"),
         (["--labeling-mechanism", "sar_lbe_a"], [], "SCAR only"),
         (["--labeling-mechanism", "sar_lbe_b"], [], "SCAR only"),
-        (["--protocol", "survey-v3.0"], [], "without --protocol/--oracle"),
+        (["--protocol", "survey-v3.2"], [], "without --protocol/--oracle"),
         (["--oracle"], [], "without --protocol/--oracle"),
         (["--method", "nnpu"], [], "without --protocol/--oracle"),
     ],

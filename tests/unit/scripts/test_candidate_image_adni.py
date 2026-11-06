@@ -53,7 +53,7 @@ def plan(root, method="gradpu"):
 @pytest.mark.parametrize("method", ["gradpu", "pulda"])
 def test_basic_determ_grayscale_plan_identity_and_frozen_files_unchanged(tmp_path, method):
     root = product(tmp_path)
-    protocol = script.ROOT / "pu_toolbox/experiment/survey_protocol_v3.json"
+    protocol = script.ROOT / "pu_toolbox/experiment/survey_protocol_v3_2.json"
     before = script.file_hash(protocol)
     result = plan(root, method)
     assert result == plan(root, method)

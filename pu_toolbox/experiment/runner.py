@@ -27,14 +27,6 @@ from .bundle import DatasetBundle, DatasetPart, validate_bundle
 from .manifest import write_manifest
 from .protocols import route_training_view
 from .strategies import DeepFitTrainer, ProtocolOA, ProtocolPA, SCARGenerator, SupervisedTrainer
-from .survey_comparison import run_comparison_units
-from .survey_protocol import (
-    load_protocol,
-    resolve_unit,
-    runner_protocol_context,
-    unit_checkpoint_bytes,
-)
-from .survey_recipe_binding import bind_recipe, candidate_binding_at
 from .survey_staged_budget import FIELD as STAGED_BUDGET_FIELD
 from .survey_staged_budget import checkpoint_coverage, checkpoint_epochs, verify_trajectory
 from .tracking import RunResult, RunTrajectory
@@ -85,34 +77,17 @@ def _manifest_view_context(config: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _run_comparison(protocol_context: dict[str, Any], config: dict[str, Any]) -> dict[str, Any]:
-    """The pre-registered comparison entries of a bound run, else nothing.
+def _protocol_context(model, bundle, config, seed, generator, protocols) -> dict[str, Any]:
+    """Load Survey policy only for an explicitly bound experiment."""
+    if config.get("survey_protocol") is None:
+        return {
+            "execution_mode": "technical_smoke",
+            "formal_eligible": False,
+            "formal_blockers": ["no_versioned_survey_protocol"],
+        }
+    from .survey_protocol import runner_protocol_context
 
-    Only a versioned pilot row carries a comparison obligation: an unbound
-    technical smoke run has no execution unit, so it has nothing to resolve
-    against the matrix and must not be given a block that reads as one.
-    """
-    if protocol_context.get("execution_mode") != "versioned_pilot":
-        return {}
-    from .survey_profile_identity import has_profile_identities
-    from .survey_profile_map import profile_map_available
-
-    # A profile is not its base algorithm's frozen comparison row: its units
-    # resolve through the versioned profile map.  Until that map exists the
-    # manifest records only that no lookup path was available, so nothing here
-    # may borrow the base algorithm's entry.
-    if has_profile_identities(protocol_context):
-        if not profile_map_available():
-            return {}
-        return run_comparison_units(
-            protocol_context, config, profile_id=protocol_context["profile_id"]
-        )
-    return run_comparison_units(protocol_context, config)
-
-
-def _comparison_entry(comparison: dict[str, Any]) -> dict[str, Any]:
-    """Expose the comparison block, omitting it rather than writing an empty one."""
-    return {"comparison": comparison} if comparison else {}
+    return runner_protocol_context(model, bundle, config, seed, generator, protocols)
 
 
 def _recipe_context(
@@ -131,6 +106,7 @@ def _recipe_context(
     if request is None or protocol_context.get("execution_mode") != "versioned_pilot":
         raise ValueError("recipe binding requires a versioned survey execution unit")
     from .survey_protocol import digest, load_protocol
+    from .survey_recipe_binding import bind_recipe
 
     protocol = load_protocol(request["path"])
     if digest(protocol) != protocol_context["protocol_sha256"]:
@@ -159,7 +135,7 @@ def _recipe_context(
         if (
             type(model) is not GradPUClassifier
             or request["method"] != "gradpu"
-            or protocol["protocol_version"] not in {"survey-v3.1", "survey-v3.2"}
+            or protocol["protocol_version"] != "survey-v3.2"
             or memory not in ("device", "cpu_offload")
             or model.activation_memory != memory
         ):
@@ -173,7 +149,7 @@ def _recipe_context(
         if (
             type(model) is not GradPUClassifier
             or request["method"] != "gradpu"
-            or protocol["protocol_version"] not in {"survey-v3.1", "survey-v3.2"}
+            or protocol["protocol_version"] != "survey-v3.2"
             or backward_mode not in ("joint", "split")
             or (chunk_size is not None and (type(chunk_size) is not int or chunk_size < 1))
             or (chunk_size is not None and backward_mode != "split")
@@ -304,27 +280,23 @@ class ExperimentRunner:
         _require_view_routable(self.config, trainer, model)
 
         disk_preflight: dict[str, Any] = {}
-        comparison: dict[str, Any] = {}
         selection_prior: float | None = None
         selection_prior_source: str | None = None
         recipe_context: dict[str, Any] = {}
         recipe_candidates = None
         try:
-            protocol_context = runner_protocol_context(
+            protocol_context = _protocol_context(
                 model, bundle, self.config, self.seed, self.generator, self.protocols
             )
             recipe_context = _recipe_context(model, self.config, protocol_context)
             protocol_context.update(recipe_context)
             if recipe_context:
+                from .survey_recipe_binding import candidate_binding_at
+
                 # The candidate pool used after label generation must be the
                 # one that passed binding, even if a strategy mutates config.
                 recipe_candidates = copy.deepcopy(self.config.get("candidates", [{}]))
                 model = clone(model)
-            # Resolved inside the preflight, not after it: a row the comparison
-            # matrix does not cover is a preregistration defect, and a run that
-            # produced results without stating what they may be compared against
-            # would leave P2.2 unable to adjudicate them at all.
-            comparison = _run_comparison(protocol_context, self.config)
             if STAGED_BUDGET_FIELD in protocol_context.get("budget", {}) and not (
                 _captures_checkpoints(self.config, trainer, model)
             ):
@@ -369,7 +341,6 @@ class ExperimentRunner:
                         "formal_blockers": ["protocol_preflight_failure"],
                         **recipe_context,
                         **_manifest_view_context(self.config),
-                        **_comparison_entry(comparison),
                         "generation": {},
                         "selection": {},
                         "test_results": {},
@@ -617,7 +588,6 @@ class ExperimentRunner:
                 "split_ref": self.config.get("split_ref", {}),
                 **_manifest_c_context(self.config),
                 **_manifest_view_context(self.config),
-                **_comparison_entry(comparison),
                 "generation": {"train": meta_train, "pu_val": meta_val},
                 "candidate_runs": candidate_runs,
                 "selection": {},
@@ -648,16 +618,9 @@ class ExperimentRunner:
                 self.threshold_candidates,
                 **_select_kwargs(proto, selection_prior),
             )
+            if art.protocol != getattr(proto, "name", art.protocol):
+                raise ValueError("selection artifact disagrees with its protocol")
             selections[art.protocol] = art
-        # The two key sets are what lets P2.2 join a result row to its
-        # pre-registered unit, and nothing else checks that the matrix's
-        # protocol names and the selection strategies' own names agree.  An
-        # un-joinable manifest is worse than a refused run.
-        if comparison and set(comparison) != set(selections):
-            raise ValueError(
-                "comparison entries and selections disagree on the result units: "
-                f"{sorted(comparison)} vs {sorted(selections)}"
-            )
 
         selection_elapsed = time.perf_counter() - selection_started_at
         _add_checkpoint_resources(resources, candidate_runs, trajectories, selection_elapsed)
@@ -753,7 +716,6 @@ class ExperimentRunner:
             "split_ref": self.config.get("split_ref", {}),
             **_manifest_c_context(self.config),
             **_manifest_view_context(self.config),
-            **_comparison_entry(comparison),
             "generation": {"train": meta_train, "pu_val": meta_val},
             "candidate_runs": candidate_runs,
             "selection": selection_payload,
@@ -819,6 +781,8 @@ class ExperimentRunner:
             epochs = trainer.checkpoint_epoch_bound()
         formal = protocol_context.get("execution_mode") == "versioned_pilot"
         if formal:
+            from .survey_protocol import load_protocol, resolve_unit, unit_checkpoint_bytes
+
             request = self.config.get("survey_protocol") or {}
             if not request.get("path") or input_dim is None:
                 raise ValueError(

@@ -9,15 +9,15 @@ assembled here once instead of three times.
 reproducibility of a *result*, which the survey runner satisfies through the
 batch evidence packet (:mod:`pu_toolbox.experiment.batch_evidence`): that identity
 is recorded once per batch rather than once per manifest, which is what
-``survey_audit.BATCH_IDENTITY_FIELDS`` names.  The plan snapshot names the runs a
+``batch_evidence.BATCH_IDENTITY_FIELDS`` names.  The plan snapshot names the runs a
 request covers; it does not carry a commit.
 
 The block here answers a different question, asked of a *report*: which checkout
 and which input tree was read when this report was written?  A reader who
 conflates the two will look for a commit in every manifest and find none.
 
-**Why the git call is not in the builders.**  ``build_audit`` and
-``build_summary`` are pure functions of what they are handed, and there is a
+**Why the git call is not in the builders.**  Result builders are pure functions
+of what they are handed, and there is a
 determinism check that compares two builds over one tree.  Reading a commit is
 process I/O, so it happens only in each entry point's ``main``, through
 :func:`resolve_code_commit`.  Everything else here is pure: no clock, no

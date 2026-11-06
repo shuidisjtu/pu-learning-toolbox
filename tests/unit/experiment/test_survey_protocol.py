@@ -1,8 +1,9 @@
 # ruff: noqa: N803, F811
-"""Matrix, runner enforcement and honest eligibility for P2.0a."""
+"""Formal execution scope, runner enforcement and honest eligibility."""
 
 import copy
 import json
+from dataclasses import replace
 
 import pytest
 from _survey_script_helpers import make_splits, survey_script  # noqa: F401
@@ -45,9 +46,10 @@ def _bound(survey_script, tmp_path):
     return model, parts, config
 
 
-def test_basic_matrix_covers_seven_methods_and_oracle():
+def test_basic_matrix_covers_declared_profiles_and_oracle():
     protocol = load_protocol()
-    assert len(protocol["execution_units"]) == 25
+    assert len(protocol["execution_units"]) == 179
+    assert len(protocol["method_profiles"]) == 23
     assert "pusb_kernel" in protocol["method_profiles"]
     assert "pusb" not in protocol["method_profiles"]
     assert protocol["budgets"]["kernel_cv"]["internal_hyperparameter_pairs"] == 72
@@ -61,7 +63,7 @@ def test_basic_a_clean_support_group_names_exactly_one_method():
     aggregation down with it. One group per method states that they are reported
     side by side and never averaged across methods.
     """
-    protocol = load_protocol(PROTOCOL_PATHS["survey-v3.0"])
+    protocol = load_protocol(PROTOCOL_PATHS["survey-v3.2"])
     members: dict[str, set[str]] = {}
     for unit in protocol["execution_units"]:
         if "clean_support" in unit["comparability_group"]:
@@ -104,25 +106,39 @@ def test_edge_empty_and_duplicate_matrices_rejected(tmp_path):
 def test_param_cnn_oracle_never_falls_back_to_flattened_mlp():
     with pytest.raises(ValueError, match="ambiguous"):
         resolve_unit(load_protocol(), "cifar10", "pn_oracle")
-    with pytest.raises(ValueError, match="Phase 2"):
-        resolve_unit(load_protocol(), "cifar10", "pn_oracle", "native_cnn")
+    native = resolve_unit(load_protocol(), "cifar10", "pn_oracle", "native_cnn")
+    adapter = resolve_unit(load_protocol(), "cifar10", "pn_oracle", "cnn_feature_adapter")
+    assert native["runnable"] is True
+    assert native["backbone"] == "resnet18_end_to_end"
+    assert adapter["backbone"] == "resnet18_random_frozen"
 
 
 def test_basic_runner_consumes_matrix_and_records_blockers(survey_script, tmp_path):
     model, parts, config = _bound(survey_script, tmp_path)
     result = ExperimentRunner(class_prior=0.3, config=config).fit(model, *parts)
     manifest = result.manifest
-    assert manifest["protocol_version"] == "survey-v2.0"
-    assert manifest["protocol_pending_review_items"] == [
-        "v2_p4_clean_support_policy",
-        "v2_p10_self_pu_scope",
-    ]
+    assert manifest["protocol_version"] == "survey-v3.2"
+    assert manifest["protocol_pending_review_items"] == []
     assert manifest["budget"]["unit"] == "one_closed_form_fit"
     assert manifest["formal_eligible"] is False
     assert "seed_subset" in manifest["protocol_deviation"]
     assert manifest["selection_checkpoint_scope"] == "single_point_no_epoch"
     assert "per_epoch_independent_PA_OA_checkpoint_selection" not in manifest["formal_blockers"]
     assert len(manifest["representation"]["feature_sha256"]) == 4
+
+
+def test_edge_selection_artifact_cannot_change_its_declared_protocol(survey_script, tmp_path):
+    from pu_toolbox.experiment.strategies import ProtocolOA, ProtocolPA
+
+    class ChangedPA(ProtocolPA):
+        def select(self, *args, **kwargs):
+            return replace(super().select(*args, **kwargs), protocol="pa")
+
+    model, parts, config = _bound(survey_script, tmp_path)
+    with pytest.raises(ValueError, match="selection artifact disagrees with its protocol"):
+        ExperimentRunner(class_prior=0.3, config=config, protocols=[ChangedPA(), ProtocolOA()]).fit(
+            model, *parts
+        )
 
 
 def test_param_runner_preflight_rejects_budget_override_with_failure_manifest(
@@ -149,11 +165,26 @@ def test_param_runner_rejects_estimator_identity_and_config_override(survey_scri
         ExperimentRunner(config=config).fit(model, *parts)
 
 
-def test_edge_custom_candidates_excluded_from_formal_results(survey_script, tmp_path):
+@pytest.mark.parametrize("deviation", ["c", "candidate_pool", "noncanonical_protocol_matrix"])
+def test_param_modified_execution_is_excluded_from_formal_results(
+    survey_script, tmp_path, deviation
+):
     model, parts, config = _bound(survey_script, tmp_path)
-    config["candidates"] = [{"reg_lambda": 0.01}]
+    if deviation == "c":
+        config.update(c=0.9, c_requested_token="0.9")
+    elif deviation == "candidate_pool":
+        config["candidates"] = [{"reg_lambda": 0.01}]
+    else:
+        protocol = load_protocol()
+        protocol["formal_blockers"] = []
+        path = tmp_path / "custom.json"
+        path.write_text(json.dumps(protocol))
+        config["survey_protocol"]["path"] = str(path)
     payload = ExperimentRunner(class_prior=0.3, config=config).fit(model, *parts).manifest
-    assert "candidate_pool" in payload["protocol_deviation"]
+    assert deviation in payload["protocol_deviation"]
+    assert payload["formal_eligible"] is False
+    assert set(payload["selection"]) == {"PA", "OA"}
+    assert "comparison" not in payload
     with pytest.raises(ValueError, match="formal aggregation"):
         validate_comparable_manifests([payload])
 
@@ -205,16 +236,4 @@ def test_edge_diy_runner_is_explicitly_technical(survey_script, tmp_path):
     config.pop("survey_protocol")
     payload = ExperimentRunner(class_prior=0.3, config=config).fit(model, *parts).manifest
     assert payload["execution_mode"] == "technical_smoke"
-    assert payload["formal_eligible"] is False
-
-
-def test_param_changed_matrix_always_marks_deviation(survey_script, tmp_path):
-    model, parts, config = _bound(survey_script, tmp_path)
-    protocol = load_protocol()
-    protocol["formal_blockers"] = []
-    path = tmp_path / "custom.json"
-    path.write_text(json.dumps(protocol))
-    config["survey_protocol"]["path"] = str(path)
-    payload = ExperimentRunner(class_prior=0.3, config=config).fit(model, *parts).manifest
-    assert "noncanonical_protocol_matrix" in payload["protocol_deviation"]
     assert payload["formal_eligible"] is False

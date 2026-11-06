@@ -132,7 +132,7 @@ def collect(dataset, raw_dir):
         "files": records,
         "status": "raw_collected_not_formal_splits",
         "extracted": False,
-        "license_review": "see collaborator_followup_20261004.md",
+        "license_review": "see docs/research/pu_survey/data/README.md",
     }
     if dataset in PROJECT_PINNED:
         payload["mirror_url"] = f"https://github.com/{ADNI_MIRROR_REPO}/tree/{ADNI_MIRROR_COMMIT}"

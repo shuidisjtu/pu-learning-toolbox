@@ -60,21 +60,21 @@ paper/source 差异保留登记；按 2026-10-18 用户决定，尊重队友实�
 - 注册名 `pulda`，别名 `label_distribution_alignment`；支持稠密二维数值特征、注入 encoder 的四维图像、CPU 和显式 CUDA。默认两层 MLP64 是工具箱技术适配，不是作者 CIFAR CNN。
 - 默认值对齐发布脚本的关键训练量：预热/PU 各 60 epoch、P/U 批次 16/128、温度 3.5、EMA 0.85/0.5、margin 0.6、MixUp 权重 4.2、Beta 参数 11；优化器为两阶段 Adam + cosine schedule。
 - `decision_function` 返回原始 logit，`predict` 在 0 阈值分类，`predict_proba` 仅为 sigmoid 分数，未经过独立概率校准。非空 `sample_weight` 明确报错。
-- 已有公式 golden、两阶段轨迹、确定性、类先验覆盖、注册/pipeline 与逐 epoch 权重恢复测试；2026-09-19 在 RTX A6000（限定 0 号卡）完成 CUDA smoke，2026-09-28 又通过全局 PyTorch 2.6.0+cu124 环境下的原生与 TS 特征路径单次 CUDA smoke。这些技术 smoke 不替代 frozen-lock 或正式多 seed GPU/资源验收。
+- 已有公式 golden、两阶段轨迹、确定性、类先验覆盖、注册/pipeline 与逐 epoch 权重恢复测试；2026-09-19 在 RTX A6000（限定 0 号卡）完成 CUDA smoke，2026-09-28 又通过全局 PyTorch 2.6.0+cu124 环境下的原生与 TS 特征路径单次 CUDA smoke。
 - 当前为 **P3.1 技术预集成**。方法台账已登记；`fit(os_or_ts="ts")` 的 LDA 与 two-way margin 的 U 期望角色逐批取 `U∪P`，EMA 同步该角色。正例项、总体先验、MixUp 物理池和持久伪标签索引不变；默认视图为 `ts-compatible`，逐 run 实际值以 manifest 为准。方法身份/适配已于 2026-10-18 复核；冻结 Survey 执行矩阵尚未登记，共享 backbone/正式 CIFAR 规格、公开数值对照、多 seed 资源记录与正式准入仍未完成，不得进入正式榜。
 
 ## 原生 CNN 工程路径（2026-10-05）
 
-2026-10-18 修复[逐子模块推理模式恢复](../pu_survey/admission/pulda_gradpu_inference_modes_20261018.md)：
+2026-10-18 修复逐子模块推理模式恢复：
 预测及异常退出不再覆盖调用者单独设置的Dropout/BN模式；不改变训练BN策略或默认数值。
 
-2026-10-18 根据 #119 补[共享图像接线](../pu_survey/admission/pulda_gradpu_image_review_20261018.md)：
+2026-10-18 根据 #119 补共享图像接线：
 可选 `train_transform` 在两个阶段逐训练 batch 重新采样，先增强、再 MixUp、最后
 encoder 内归一化；推理和伪标签扫描不增强。新增独立技术构造入口使用同 seed
 ResNet-18，并验证训练 BN 与模板隔离；默认仍不启用增强。2026-10-21 #119 决定：
 端到端组训练 BN；共享增强不启用（协议 `train_augmentation=none`），PULDA 输入 MixUp
 保留；MLP64/分类头 method-private；warmup 保持 LDA。正式 recipe/runner 与 120 快照
-资源实测仍待 P3.2/P3.3，不构成正式准入。
+资源实测仍待 P3.2/P3.3。
 
 `encoder=nn.Module` 输出须为有限二维特征；其 deepcopy 被解冻训练，调用方原模板和不同 CV 折
 互不影响，后接原 MLP 头。四维图像缺 encoder 时拒绝，不静默 flatten。probe 在 eval 下执行。
@@ -87,7 +87,7 @@ ResNet-18，并验证训练 BN 与模板隔离；默认仍不启用增强。2026
 
 ## 准入证据补全（2026-10-05）
 
-2026-10-07 补[阶段/预算规格](../pu_survey/p3_stage_budget_review_20261007.md)：
+2026-10-07 补[阶段/预算规格](../../dev/experiment_layer.md)：
 warmup/pu_mixup 快照保留阶段内位置与累计更新数；当前技术 selector 仍遍历两阶段。
 哪些阶段可获正式 PA/OA 资格仍 null，训练目标、校准范围和默认预算未改。
 
@@ -131,4 +131,4 @@ stage/budget、候选/资源和正式准入仍单独讨论。
 结果标为 `end-to-end CNN` / `benchmark-adapted`，不声称作者 CNN 或论文
 数值复现。共享初始化、BN、每 epoch 增强、输入/归一化及表格 MLP 共享规格
 待 [#119](https://github.com/shuidisjtu/pu-learning-toolbox/issues/119)
-与队友确认；本决定不改变阶段/预算/阈值，也不构成正式准入。
+与队友确认；阶段/预算/阈值保持原定义。

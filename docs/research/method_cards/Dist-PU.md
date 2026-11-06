@@ -221,7 +221,7 @@ H(q)=-q\log q-(1-q)\log(1-q).
 
 上表仅描述默认 clean-room 路径的映射。`author_staged` 使用独立参数 `warmup_*`、`pu_*`、`mixup_alpha`、
 `mixup_entropy_weight` 和 `mixup_bce_weight`；其默认值按锁定作者脚本可见配置设置，但仍是 MLP adapter 的
-工程配置，不代表原始数据集 recipe 或已批准的超参搜索。
+工程配置，实际运行时须显式记录。
 
 ### 7.2 论文实验
 
@@ -243,14 +243,13 @@ H(q)=-q\log q-(1-q)\log(1-q).
 
 本节记录 2026-10-19 的 MLP 适配交付；2026-10-20 的显式 encoder 扩展见 §8.2。
 
-2026-10-19 对锁定作者提交 `cb74be1a87176fd38270873c06374e53905b7354` 完成只读交叉核对，
-见[来源行为审计](../pu_survey/admission/dist_pu_source_behavior_review_20261019.md)。作者 `train.py`
-不是仅将上述几项核心损失放入一个训练循环：程序先做 60 epoch warm-up，再做 60 epoch Dist-PU；
+2026-10-19 对锁定作者提交 `cb74be1a87176fd38270873c06374e53905b7354` 完成只读交叉核对。
+作者 `train.py` 先做 60 epoch warm-up，再做 60 epoch Dist-PU；
 使用 batch_size 256 的 shuffled DataLoader；PU 阶段每个 batch 基于持久伪标签做 mixup，优化后更新当前行
 伪标签；进入 PU 阶段会重建 Adam、切换学习率/weight decay，并运行余弦调度和逐 epoch 熵系数日程。
 作者把两个阶段的 `CosineAnnealingLR` 都设为 `T_max=pu_epochs`，但计步 cadence 不同：warm-up 的
 `utils.train()` 在每个 epoch 的 DataLoader 循环结束后 step 一次；PU 阶段 `train_mixup()` 在每个
-mini-batch 更新后 step。源码位置与差异见[来源行为审计](../pu_survey/admission/dist_pu_source_behavior_review_20261019.md)。
+mini-batch 更新后 step。
 作者 `losses/factory.py::create_loss()` 的 warm-up 默认使用直方图损失加 `co_mu=0.002` 的 U 熵；PU 阶段把
 `entropy=0`，用同一基础直方图损失另加动态熵与 mixup 项。作者 `distributionLoss.py` 使用 batch 内直方图分布距离，目标为 P 直方图与单点正类 proxy 的距离，加上
 `1/(2*pi)` 加权的 U 直方图与边缘先验混合 proxy 的距离；不等同于本卡 §3 的单样本均值平方对齐 clean-room
@@ -264,12 +263,11 @@ warm-up/PU 两阶段长度、Adam/weight decay、batch size、熵权重、mixup 
 增强和训练/test split，故 `upstream_training_recipe_reproduced=false`。作者脚本每个 epoch 在 test loader
 上按 accuracy 记录 best，这种选择不能移入本项目。
 
-因此，本卡和台账中的 `official_exact` 仅表示已锁定作者来源身份，不表示 toolbox estimator 忠实重放作者
-训练程序。默认仍是 clean-room 小型 MLP；其 `batch_size` 不生效。只有 `author_staged` 中该参数才控制真实
+本卡和台账中的 `official_exact` 表示已锁定作者来源身份。
+默认仍是 clean-room 小型 MLP；其 `batch_size` 不生效。只有 `author_staged` 中该参数才控制真实
 mini-batch。拟合后的 `training_provenance_` 会逐 run 记录训练路径、两阶段参数、scheduler 实际步数、伪标签时序、
 OS/TS 角色适配、优化步数与 epoch 数。`author_staged` 不重放作者 test accuracy 选模，也不改变默认训练路径、
-历史 Pilot 或正式准入。仍待完成的是正式数据/backbone/PA-OA 选择协议、批准预算与资源验收；不得把 MLP 短拟合
-或该适配器称作论文数值复现。
+历史 Pilot 或正式准入。正式数据/backbone/PA-OA 选择协议、预算与资源验收仍待完成。
 
 ### 8.2 显式 encoder 与 CPU-stream（2026-10-20）
 
@@ -284,5 +282,4 @@ clean-room 默认仍是原全量 MLP，不隐式切换损失或训练 recipe。R
 工程决定；旧 MLP pickle 回填缺失可选参数，原模型参数和已保存结果不作改写。
 
 冻结 Pilot 的 fullbatch/mlp128/CIFAR feature-adapter 路径保持原定义；新 CNN 结构、
-阶段资格、预算与资源仍需新协议登记和复核。具体接口、UI 限制与验证见
-[Dist-PU encoder 接入记录](../pu_survey/admission/distpu_encoder_stream_20261020.md)。
+阶段资格、预算与资源仍需新协议登记和复核。

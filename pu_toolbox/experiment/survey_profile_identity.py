@@ -10,8 +10,8 @@ import re
 
 SCHEMA = "survey-profile-identity-1"
 FIELD = "profile_identity_schema_version"
-PROTOCOL_VERSION = "survey-v3.0"
-PROTOCOL_VERSIONS = (PROTOCOL_VERSION, "survey-v3.1", "survey-v3.2")
+PROTOCOL_VERSION = "survey-v3.2"
+PROTOCOL_VERSIONS = (PROTOCOL_VERSION,)
 MANIFEST_FIELDS = (FIELD, "profile_id", "algorithm_id")
 _NAME = re.compile(r"[a-z][a-z0-9_]*\Z")
 
@@ -32,7 +32,7 @@ def validate_profile_identities(protocol):
         return
     profiles = protocol["method_profiles"]
     if protocol[FIELD] != SCHEMA or protocol.get("protocol_version") not in PROTOCOL_VERSIONS:
-        raise ValueError("profile identity schema requires explicit survey-v3.0")
+        raise ValueError("profile identity schema requires explicit survey-v3.2")
     from ..core.base import BasePUClassifier
     from ..core.exceptions import RegistryError
     from ..registry import get_algorithm, get_algorithm_registry, register_all_builtin_methods
@@ -177,7 +177,7 @@ def require_four_role_profile(protocol, profile_id, *, clean_support=False):
             "four-role execution unavailable"
         )
     if algorithm == "cvir" and not (
-        protocol.get("protocol_version") in ("survey-v3.1", "survey-v3.2")
+        protocol.get("protocol_version") == PROTOCOL_VERSION
         and protocol["method_profiles"][profile_id].get("execution_adapter") == "survey-backlog-1"
     ):
         raise ValueError(

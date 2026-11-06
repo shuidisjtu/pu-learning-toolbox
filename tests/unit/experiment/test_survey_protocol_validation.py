@@ -1,4 +1,4 @@
-"""Fail-closed matrix validation for collaborator review of the pilot."""
+"""Fail-closed validation for formal Survey execution matrices."""
 
 import copy
 import json
@@ -23,15 +23,14 @@ def _load_changed(tmp_path, change):
     return load_protocol(path)
 
 
-def test_basic_kldce_is_explicitly_non_runnable_for_all_three_datasets():
+def test_basic_kldce_has_explicit_scar_only_runtime_bound_units():
     protocol = load_protocol()
     rows = [row for row in protocol["execution_units"] if row["method"] == "kldce"]
-    assert {row["dataset"] for row in rows} == {"spambase", "imdb", "cifar10"}
-    assert all(row["runnable"] is False for row in rows)
-    assert all("flip_probability" in row["non_runnable_reason"] for row in rows)
+    assert len({row["dataset"] for row in rows}) == 8
+    assert all(row["runnable"] is True for row in rows)
+    assert protocol["method_profiles"]["kldce"]["labeling_mechanisms"] == ["scar"]
     for row in rows:
-        with pytest.raises(ValueError, match="flip_probability"):
-            resolve_unit(protocol, row["dataset"], "kldce")
+        assert resolve_unit(protocol, row["dataset"], "kldce", row["training_path"]) == row
 
 
 def test_basic_smoke_verified_cifar_native_cnn_oracle_is_runnable_under_frozen_protocol():
@@ -39,7 +38,7 @@ def test_basic_smoke_verified_cifar_native_cnn_oracle_is_runnable_under_frozen_p
         Path(__file__).resolve().parents[3]
         / "pu_toolbox"
         / "experiment"
-        / "survey_protocol_v3.json"
+        / "survey_protocol_v3_2.json"
     )
     protocol = load_protocol(protocol_path)
 
@@ -48,12 +47,8 @@ def test_basic_smoke_verified_cifar_native_cnn_oracle_is_runnable_under_frozen_p
     assert row["runnable"] is True
     assert row["oracle_alignment"] == "shared_resnet18_end_to_end_and_minibatch_budget"
     assert "non_runnable_reason" not in row
-    assert protocol["review_status"] == "accepted"
-    remaining_blocker = (
-        "CVIR, KLDCE, P3MIX, PAN, PUET, RP, VPU, the GradPU native-2d path, and the "
-        "cifar10 rows for LaGAM and PULNS still lack a frozen main-chain budget or runner."
-    )
-    assert remaining_blocker in protocol["formal_blockers"]
+    assert protocol["review_status"] == "pending_collaborator_review"
+    assert protocol["formal_blockers"]
 
 
 @pytest.mark.parametrize(
@@ -98,7 +93,8 @@ def test_param_malformed_review_fields_fail_closed(tmp_path, key, value, message
 )
 def test_param_execution_rows_reject_ambiguous_runnability(tmp_path, field, value, message):
     def change(payload):
-        row = next(row for row in payload["execution_units"] if not row["runnable"])
+        row = payload["execution_units"][0]
+        row.update(runnable=False, non_runnable_reason="caller excludes this unit")
         row[field] = value
 
     with pytest.raises(ValueError, match=message):
@@ -113,8 +109,7 @@ def test_edge_missing_row_field_and_runnable_reason_rejected(tmp_path):
         _load_changed(tmp_path, missing_field)
 
     def missing_reason(payload):
-        row = next(row for row in payload["execution_units"] if not row["runnable"])
-        row.pop("non_runnable_reason")
+        payload["execution_units"][0]["runnable"] = False
 
     with pytest.raises(ValueError, match="non_runnable_reason"):
         _load_changed(tmp_path, missing_reason)
@@ -131,11 +126,17 @@ def test_basic_self_pu_budget_and_selection_spec_prose_are_explicit():
             assert "no_matched" in row["oracle_alignment"]
 
 
-def test_determ_review_matrix_and_kldce_rejection_are_stable():
+def test_determ_review_matrix_and_explicit_exclusion_are_stable():
     first, second = load_protocol(), load_protocol()
     assert first == second
     for protocol in (first, second):
-        with pytest.raises(ValueError, match="flip_probability"):
+        row = resolve_unit(protocol, "spambase", "kldce")
+        row.update(runnable=False, non_runnable_reason="caller excludes this unit")
+        protocol["execution_units"] = [
+            row if unit["dataset"] == "spambase" and unit["method"] == "kldce" else unit
+            for unit in protocol["execution_units"]
+        ]
+        with pytest.raises(ValueError, match="caller excludes this unit"):
             resolve_unit(protocol, "spambase", "kldce")
 
 
@@ -144,7 +145,7 @@ def test_kldce_runtime_binding_is_scar_only_and_uses_realized_c():
         Path(__file__).resolve().parents[3]
         / "pu_toolbox"
         / "experiment"
-        / "survey_protocol_v3.json"
+        / "survey_protocol_v3_2.json"
     )
     profile = load_protocol(protocol_path)["method_profiles"]["kldce"]
 

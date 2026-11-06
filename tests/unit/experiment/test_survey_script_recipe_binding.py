@@ -19,7 +19,7 @@ def command(data, out):
     return [
         str(data),
         "--protocol",
-        "survey-v2.0",
+        "survey-v3.2",
         "--dataset",
         "spambase",
         "--method",

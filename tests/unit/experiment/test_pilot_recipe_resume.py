@@ -12,6 +12,7 @@ from pu_toolbox.experiment.pilot_plan import (
     planned_runs,
     select_execution_units,
 )
+from pu_toolbox.experiment.survey_profile_identity import profile_manifest_identity
 from pu_toolbox.experiment.survey_protocol import digest, load_protocol
 from pu_toolbox.experiment.survey_recipe_registry import bind_recipe_candidate
 
@@ -49,6 +50,7 @@ def plan():
         "candidate_runs": [{"candidate_index": 0, **binding}],
         **binding,
         **protocol_identity,
+        **profile_manifest_identity(full, run.method),
     }
     return protocol, views, recipes, payload
 
@@ -60,8 +62,14 @@ def write(tmp_path, name, payload):
 
 
 def resume(plan, tmp_path):
-    protocol, views, recipes, _ = plan
-    return pending_runs(protocol, tmp_path, expected_views=views, expected_recipe_bindings=recipes)
+    protocol, views, recipes, payload = plan
+    return pending_runs(
+        protocol,
+        tmp_path,
+        expected_views=views,
+        expected_recipe_bindings=recipes,
+        source_protocol_sha256=payload["protocol_sha256"],
+    )
 
 
 def test_basic_determ_matching_bound_result_satisfies_exactly_one_run(plan, tmp_path):

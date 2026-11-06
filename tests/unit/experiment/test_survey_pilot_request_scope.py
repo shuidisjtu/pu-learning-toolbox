@@ -17,6 +17,7 @@ import json
 import pytest
 from _survey_pilot_helpers import (  # noqa: F401 - imported fixtures are used by name
     ALL_PRIORS,
+    SMOKE_DATASETS,
     driver,
     splits_tree,
     unit_calls,
@@ -37,7 +38,9 @@ def _protocol_without(tmp_path, *datasets: str) -> str:
     """
     payload = json.loads(PROTOCOL_PATH.read_text(encoding="utf-8"))
     payload["execution_units"] = [
-        unit for unit in payload["execution_units"] if unit["dataset"] not in datasets
+        unit
+        for unit in payload["execution_units"]
+        if unit["dataset"] in SMOKE_DATASETS and unit["dataset"] not in datasets
     ]
     path = tmp_path / "custom_protocol.json"
     path.write_text(json.dumps(payload), encoding="utf-8")
@@ -143,10 +146,10 @@ def test_edge_a_subset_is_validated_against_the_protocol_the_request_names(
 
 
 def test_param_a_protocol_name_resolves_to_the_matrix_it_denotes(tmp_path):
-    v1 = PROTOCOL_PATH.with_name("survey_protocol_v1.json")
     for alias in ("survey-v1", "survey-v1.1", "survey-v1.2"):
-        assert resolve_protocol_path(alias) == v1
-    assert resolve_protocol_path("survey-v2.0") == PROTOCOL_PATH
+        with pytest.raises(ValueError, match="retired|unsupported"):
+            resolve_protocol_path(alias)
+    assert resolve_protocol_path("survey-v3.2") == PROTOCOL_PATH
     custom = tmp_path / "custom.json"
     assert resolve_protocol_path(str(custom)) == custom.resolve()
 

@@ -108,7 +108,7 @@
   },
   "inference_followup": {
     "date": "2026-10-19",
-    "review_ref": "docs/research/pu_survey/admission/robustpu_inference_modes_20261019.md",
+    "review_ref": "docs/research/method_cards/Robust-PU.md",
     "test_ref": "tests/unit/estimators/test_pulda_gradpu_inference_modes.py",
     "scope": "Robust-PU prediction restores every module mode on success, forward failure and eval transition failure",
     "training_fit_changed": false,

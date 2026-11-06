@@ -17,6 +17,7 @@
 | 操作 | [user/howto/pipeline.md](user/howto/pipeline.md) | PUPipeline 端到端训练评估 |
 | 操作 | [user/howto/cli.md](user/howto/cli.md) | 命令行接口 |
 | 操作 | [user/howto/model_tuning.md](user/howto/model_tuning.md) | 模型参数与 PU-aware 网格搜索 |
+| 操作 | [user/howto/custom_experiments.md](user/howto/custom_experiments.md) | 四角色实验 API、参数调整与策略扩展示例 |
 | 操作 | [user/howto/ui.md](user/howto/ui.md) | 图形界面安装与使用 |
 | 操作 | [user/howto/data_profiling.md](user/howto/data_profiling.md) | 数据画像与假设提示 |
 | 操作 | [user/howto/diagnostic_reports.md](user/howto/diagnostic_reports.md) | 生成诊断报告 |
@@ -50,7 +51,7 @@
 | [dev/new_algorithm_template.md](dev/new_algorithm_template.md) | 新算法接入模板——能力声明清单、自动门禁与 CNN 最低测试要求 |
 | [dev/label_semantics_plan.md](dev/label_semantics_plan.md) | 标签语义契约：`label_semantics` 能力声明、检查点与实施计划（值层不可判定性、与防泄漏守卫的分工） |
 | [research/distribution_shift/](research/distribution_shift/) | 分布漂移：`distribution_shift_metric_contract.md` 审计/跨域目标评估/部署监控指标、`joint_shift_research_protocol.md` JointShift 评估协议与声明边界、`joint_shift_metadata_review_20261019.md` issue #69 元数据裁决 |
-| [research/pu_survey/](research/pu_survey/) | PU 调研实验（工具箱首次实际应用）：交付物与完成定义、剩余工作、协议、执行计划与决策账本、冻结的证据文档——详见 [pu_survey/README.md](research/pu_survey/README.md) |
+| [research/pu_survey/](research/pu_survey/) | PU 调研实验：能力与当前状态、科学协议、运行与报告指南、数据来源说明；入口见 [pu_survey/README.md](research/pu_survey/README.md) |
 | [dev/experiment_layer.md](dev/experiment_layer.md) | 实验层（`pu_toolbox/experiment/`）关键设计机制：可注入策略接口、视图/轨迹语义、P0 已知局限 |
 | [dev/single_source_map.md](dev/single_source_map.md) | 单源地图：九个概念的权威真相源、消费者与重复判定（审计快照） |
 

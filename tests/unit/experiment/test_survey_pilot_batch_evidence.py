@@ -41,7 +41,7 @@ def matrix(driver):
     scope = driver.PilotScope(
         datasets=(DATASET,), methods=(METHOD,), training_paths=(TRAINING_PATH,)
     )
-    return driver.select_execution_units(load_protocol(PROTOCOL_PATHS["survey-v3.0"]), scope)
+    return driver.select_execution_units(load_protocol(PROTOCOL_PATHS["survey-v3.2"]), scope)
 
 
 @pytest.fixture
@@ -64,7 +64,7 @@ def run(driver, tmp_path, *extra: str, results: Path | None = None) -> int:
     return driver.main(
         [
             "--protocol",
-            "survey-v3.0",
+            "survey-v3.2",
             "--splits",
             str(splits),
             "--results",
@@ -116,7 +116,7 @@ def test_basic_every_batch_hands_the_unit_script_a_packet_that_describes_it(
         payload = be.load(Path(argv[argv.index("--batch-evidence") + 1]))
         request = unit_request(argv)
         be.require_matches(payload, protocol_sha256=digest(stub), **request)
-        assert payload["protocol_version"] == "survey-v3.0"
+        assert payload["protocol_version"] == "survey-v3.2"
         # Written out rather than recomputed: scar runs 3 c tokens here and each
         # SAR variant 2, over the protocol's five seeds.
         assert (

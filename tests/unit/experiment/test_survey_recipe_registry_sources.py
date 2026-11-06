@@ -72,8 +72,15 @@ def test_param_external_local_evidence_must_declare_itself_and_cite_lines():
 
 
 def test_param_excluded_profile_may_omit_source_refs():
-    value = base_registry(profiles={"kldce": excluded_profile("kldce", source_refs=[])})
-    assert validate_registry(value, load_protocol()) == []
+    protocol = load_protocol()
+    for unit in protocol["execution_units"]:
+        if unit["method"] == "kldce":
+            unit["runnable"] = False
+    value = base_registry(
+        protocol=protocol,
+        profiles={"kldce": excluded_profile("kldce", source_refs=[])},
+    )
+    assert validate_registry(value, protocol) == []
 
 
 def test_edge_unknown_source_ref_is_reported():

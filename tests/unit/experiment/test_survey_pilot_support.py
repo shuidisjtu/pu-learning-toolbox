@@ -40,7 +40,7 @@ FOUR_ROLE_DIGEST = "a" * 64
 
 @pytest.fixture(scope="module")
 def v3():
-    return load_protocol(PROTOCOL_PATHS["survey-v3.0"])
+    return load_protocol(PROTOCOL_PATHS["survey-v3.2"])
 
 
 @pytest.fixture
@@ -126,7 +126,7 @@ def test_basic_a_support_plan_without_the_artifacts_is_refused(
     code = raw_driver.main(
         [
             "--protocol",
-            "survey-v3.0",
+            "survey-v3.2",
             "--splits",
             str(splits),
             "--results",
@@ -153,7 +153,7 @@ def test_basic_a_support_plan_reads_the_artifacts(raw_driver, stub_protocol, tmp
     code = raw_driver.main(
         [
             "--protocol",
-            "survey-v3.0",
+            "survey-v3.2",
             "--splits",
             str(splits),
             "--results",
@@ -179,7 +179,7 @@ def test_param_one_command_covers_the_batchs_seeds():
         batch(seeds=(0, 2)),
         splits_root=Path("data/splits"),
         out_root=Path("results"),
-        protocol="survey-v3.0",
+        protocol="survey-v3.2",
         support_root=Path("/products"),
     )
     assert argv[0] == str(Path("/products/mnist/split_{seed}"))
@@ -195,7 +195,7 @@ def test_param_a_four_role_batch_keeps_the_splits_root():
         batch(),
         splits_root=Path("data/splits"),
         out_root=Path("results"),
-        protocol="survey-v3.0",
+        protocol="survey-v3.2",
     )
     assert argv[0] == str(Path("data/splits/mnist"))
     assert "--support-dir" not in argv
@@ -244,7 +244,7 @@ def test_basic_a_scar_only_profile_plans_no_sar_cell(v3):
         "scar",
         "sar_lbe_a",
     }
-    assert len(planned) == 3320
+    assert len(planned) == 5445
 
 
 def test_determ_each_kind_of_run_is_held_to_its_own_product(v3, tmp_path):

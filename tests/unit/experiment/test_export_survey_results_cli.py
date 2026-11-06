@@ -1,14 +1,4 @@
-# tests/unit/experiment/test_export_survey_results_cli.py
-
-# ruff: noqa: F811, S101
-
-"""The export entry point end to end: a batch tree in, the delivery files out.
-
-The layout, the signals and the conclusions are pinned by their own suites; what
-these add is the wiring -- that one command goes from a batch config to every
-delivery file, that a finished ``summary.json`` goes through the same path, and
-that a bad input is an error rather than an empty delivery.
-"""
+"""Result-to-report commands preserve statistics, exclusions and optional facts."""
 
 import importlib
 import json
@@ -16,103 +6,77 @@ import sys
 from pathlib import Path
 
 import pytest
+from _survey_summary_helpers import manifest, write_tree
 
 pytest.importorskip("openpyxl")
-
 import openpyxl  # noqa: E402
-from _survey_summary_helpers import (  # noqa: E402, F401
-    config_for,
-    load_protocol,
-    manifest,
-    summary_cli,
-    write_config,
-    write_tree,
-)
 
 pytestmark = pytest.mark.unit
-
-_SCRIPTS = Path(__file__).resolve().parents[3] / "scripts"
-
-
-@pytest.fixture(scope="module")
-def export_cli():
-    if str(_SCRIPTS) not in sys.path:
-        sys.path.insert(0, str(_SCRIPTS))
-    return importlib.import_module("export_survey_results")
+SCRIPTS = Path(__file__).resolve().parents[3] / "scripts"
 
 
-def _grid():
-    c_tokens = [float(token) for token in load_protocol()["c_tokens"]["scar"]]
-    return {
-        f"c_{c}_seed_{seed}": manifest(c=c, seed=seed, accuracy=0.8 + 0.01 * seed)
-        for c in c_tokens
-        for seed in range(5)
-    }
-
-
-def _config(tmp_path):
-    tree = write_tree(tmp_path / "tree", _grid())
-    return write_config(tmp_path / "roots.json", config_for({"B1": (tree, len(_grid()))}))
-
-
-def test_basic_one_command_goes_from_a_batch_config_to_every_delivery_file(
-    export_cli, tmp_path, capsys
-):
-    out = tmp_path / "out"
-
-    code = export_cli.main(
-        ["--config", str(_config(tmp_path)), "--out-dir", str(out), "--protocol", "survey-v2.0"]
+@pytest.fixture
+def commands():
+    if str(SCRIPTS) not in sys.path:
+        sys.path.insert(0, str(SCRIPTS))
+    return importlib.import_module("summarize_survey_results"), importlib.import_module(
+        "export_survey_results"
     )
 
-    assert code == 0, capsys.readouterr().err
-    assert (out / "survey_results.xlsx").is_file()
-    assert (out / "diagnostic_cards.md").is_file()
-    cards = json.loads((out / "diagnostic_cards.json").read_text(encoding="utf-8"))
-    assert "nnpu" in cards
-    assert (out / "summary.json").is_file()
-    conclusions = json.loads((out / "conclusions.json").read_text(encoding="utf-8"))
-    assert conclusions["conclusions"]
-    assert (out / "conclusions.md").is_file()
 
-
-def test_basic_the_workbook_it_writes_reads_back_with_the_four_group_sheets(export_cli, tmp_path):
-    out = tmp_path / "out"
-    export_cli.main(
-        ["--config", str(_config(tmp_path)), "--out-dir", str(out), "--protocol", "survey-v2.0"]
+def _tree(root):
+    return write_tree(
+        root, {f"seed_{seed}": manifest(seed=seed, accuracy=0.8 + seed * 0.01) for seed in range(5)}
     )
 
+
+@pytest.mark.parametrize("mode", ["summary", "manifests"])
+def test_basic_param_result_commands_export_identical_group_statistics(commands, tmp_path, mode):
+    summarizer, exporter = commands
+    tree = _tree(tmp_path / "runs")
+    summary_dir = tmp_path / "summary"
+    assert summarizer.main(["--manifests", str(tree), "--out-dir", str(summary_dir)]) == 0
+    summary = json.loads((summary_dir / "summary.json").read_text(encoding="utf-8"))
+    assert all(row["metric"]["mean"] == pytest.approx(0.82) for row in summary["rows"])
+    out = tmp_path / mode
+    source = (
+        ["--summary", str(summary_dir / "summary.json")]
+        if mode == "summary"
+        else ["--manifests", str(tree)]
+    )
+    assert exporter.main([*source, "--out-dir", str(out)]) == 0
     workbook = openpyxl.load_workbook(out / "survey_results.xlsx")
-
-    assert {"SCAR-PA", "SCAR-OA", "SAR-OA", "PN-oracle", "coverage", "readme"} <= set(
+    assert {"SCAR-PA", "SCAR-OA", "SAR-OA", "PN-oracle", "coverage", "conclusions"} <= set(
         workbook.sheetnames
     )
-    flat = [c for r in workbook["SCAR-OA"].iter_rows(values_only=True) for c in r if c]
-    assert "nnpu" in flat
-    assert any(isinstance(c, str) and "±" in c for c in flat)
+    cells = [cell for row in workbook["SCAR-OA"].iter_rows(values_only=True) for cell in row]
+    assert any("82.00" in str(cell) and "±" in str(cell) for cell in cells)
+    assert (out / "conclusions.json").is_file()
 
 
-def test_basic_a_finished_summary_json_exports_the_same_way(export_cli, summary_cli, tmp_path):
-    summary_dir = tmp_path / "summary"
-    summary_cli.main(
-        [
-            "--config",
-            str(_config(tmp_path)),
-            "--out-dir",
-            str(summary_dir),
-            "--protocol",
-            "survey-v2.0",
-        ]
-    )
+def test_basic_pending_input_remains_visible_in_workbook_and_summary(commands, tmp_path):
+    _, exporter = commands
+    tree = _tree(tmp_path / "runs")
+    pending = tree / "seed_4/manifest.json"
+    before = pending.read_bytes()
     out = tmp_path / "out"
+    assert (
+        exporter.main(["--manifests", str(tree), "--pending", str(pending), "--out-dir", str(out)])
+        == 0
+    )
+    report = json.loads((out / "summary.json").read_text(encoding="utf-8"))
+    assert report["coverage"]["pending"] == 1
+    assert all(row["metric"]["missing_seeds"] == [4] for row in report["rows"])
+    workbook = openpyxl.load_workbook(out / "survey_results.xlsx")
+    cells = [cell for row in workbook["coverage"].iter_rows(values_only=True) for cell in row]
+    assert str(pending.resolve()) in cells
+    assert "pending" in cells
+    assert pending.read_bytes() == before
 
-    code = export_cli.main(["--summary", str(summary_dir / "summary.json"), "--out-dir", str(out)])
 
-    assert code == 0
-    assert (out / "survey_results.xlsx").is_file()
-    assert not (out / "summary.json").exists()
-
-
-def test_basic_registered_literature_facts_reach_the_conclusions_file(export_cli, tmp_path):
+def test_basic_optional_literature_and_native_views_reach_diagnostics(commands, tmp_path):
+    _, exporter = commands
+    tree = _tree(tmp_path / "runs")
     literature = tmp_path / "literature.json"
     literature.write_text(
         json.dumps(
@@ -121,7 +85,7 @@ def test_basic_registered_literature_facts_reach_the_conclusions_file(export_cli
                     {
                         "fact_id": "f1",
                         "method": "nnpu",
-                        "statement": "论文报告该方法在 mnist 上较好。",
+                        "statement": "Published experimental setting.",
                         "signals": ["c_sensitivity"],
                         "source": "Wang et al. 2026, Table 3",
                     }
@@ -130,90 +94,67 @@ def test_basic_registered_literature_facts_reach_the_conclusions_file(export_cli
         ),
         encoding="utf-8",
     )
+    views = tmp_path / "views.json"
+    views.write_text('{"nnpu": "os"}', encoding="utf-8")
     out = tmp_path / "out"
-
-    code = export_cli.main(
-        [
-            "--config",
-            str(_config(tmp_path)),
-            "--out-dir",
-            str(out),
-            "--protocol",
-            "survey-v2.0",
-            "--literature",
-            str(literature),
-        ]
+    assert (
+        exporter.main(
+            [
+                "--manifests",
+                str(tree),
+                "--out-dir",
+                str(out),
+                "--literature",
+                str(literature),
+                "--native-views",
+                str(views),
+            ]
+        )
+        == 0
     )
-
-    assert code == 0
-    bundle = json.loads((out / "conclusions.json").read_text(encoding="utf-8"))
-    facts = [item for item in bundle["conclusions"] if item["kind"] == "文献事实"]
-    assert facts and facts[0]["source"].startswith("Wang et al.")
-    assert "文献事实" in (out / "conclusions.md").read_text(encoding="utf-8")
+    cards = json.loads((out / "diagnostic_cards.json").read_text(encoding="utf-8"))
+    assert cards["nnpu"]["native_view"] == "os"
+    conclusions = json.loads((out / "conclusions.json").read_text(encoding="utf-8"))
+    assert any(item["kind"] == "文献事实" for item in conclusions["conclusions"])
 
 
-def test_param_exactly_one_input_is_required(export_cli, tmp_path):
-    with pytest.raises(SystemExit):
-        export_cli.main(["--out-dir", str(tmp_path / "out")])
-
-
-def test_param_a_missing_summary_file_is_an_error_and_writes_nothing(export_cli, tmp_path, capsys):
+@pytest.mark.parametrize("source", ["bad_json", "missing_file", "bad_seeds", "bad_views"])
+def test_edge_param_invalid_inputs_fail_without_traceback(commands, tmp_path, capsys, source):
+    _, exporter = commands
     out = tmp_path / "out"
-
-    code = export_cli.main(["--summary", str(tmp_path / "nope.json"), "--out-dir", str(out)])
-
-    assert code == 1
-    assert "error:" in capsys.readouterr().err
-    assert not (out / "survey_results.xlsx").exists()
-
-
-def test_edge_a_summary_with_an_unknown_mechanism_is_refused_not_dropped(
-    export_cli, tmp_path, capsys
-):
-    bad = {
-        "rows": [
-            {
-                "result_identity": {"dataset": "d", "training_path": "p", "method": "m"},
-                "row_key": {
-                    "comparability_group": "g",
-                    "run_view": "os-compatible",
-                    "mechanism": "mystery",
-                    "method": "m",
-                    "selection_protocol": "OA",
-                    "c_token": "0.1",
-                },
-                "metric": {"mean": 0.5, "std": 0.1, "mean_percent": 50.0, "std_percent": 10.0},
-                "status": "formal",
-                "reasons": [],
-            }
-        ]
-    }
-    path = tmp_path / "bad.json"
-    path.write_text(json.dumps(bad), encoding="utf-8")
-
-    code = export_cli.main(["--summary", str(path), "--out-dir", str(tmp_path / "out")])
-
-    assert code == 1
-    assert "mechanism" in capsys.readouterr().err
+    path = tmp_path / "invalid.json"
+    path.write_text("{", encoding="utf-8")
+    args = ["--summary", str(path)]
+    if source == "missing_file":
+        args = ["--summary", str(tmp_path / "missing.json")]
+    elif source == "bad_seeds":
+        args = ["--manifests", str(_tree(tmp_path / "runs")), "--expected-seeds", "0,0"]
+    elif source == "bad_views":
+        path.write_text('{"nnpu": "unknown"}', encoding="utf-8")
+        args = ["--manifests", str(_tree(tmp_path / "runs")), "--native-views", str(path)]
+    assert exporter.main([*args, "--out-dir", str(out)]) == 1
+    error = capsys.readouterr().err
+    assert "error:" in error and "Traceback" not in error
+    assert not out.exists()
 
 
-def test_determ_exporting_the_same_summary_twice_gives_identical_cards(
-    export_cli, summary_cli, tmp_path
-):
-    summary_dir = tmp_path / "summary"
-    summary_cli.main(
-        [
-            "--config",
-            str(_config(tmp_path)),
-            "--out-dir",
-            str(summary_dir),
-            "--protocol",
-            "survey-v2.0",
-        ]
-    )
-    summary = str(summary_dir / "summary.json")
-    export_cli.main(["--summary", summary, "--out-dir", str(tmp_path / "a")])
-    export_cli.main(["--summary", summary, "--out-dir", str(tmp_path / "b")])
-    names = ("diagnostic_cards.json", "diagnostic_cards.md", "conclusions.json", "conclusions.md")
-    for name in names:
-        assert (tmp_path / "a" / name).read_bytes() == (tmp_path / "b" / name).read_bytes()
+def test_determ_repeated_summary_keeps_values_and_provenance(commands, tmp_path, monkeypatch):
+    summarizer, _ = commands
+    tree = _tree(tmp_path / "runs")
+    monkeypatch.setattr(summarizer, "resolve_code_commit", lambda: ("f" * 40, True))
+    reports = []
+    for name in ("one", "two"):
+        out = tmp_path / name
+        assert summarizer.main(["--manifests", str(tree), "--out-dir", str(out)]) == 0
+        report = json.loads((out / "summary.json").read_text(encoding="utf-8"))
+        report.pop("generated_at")
+        reports.append(report)
+        assert {path.name for path in out.iterdir()} == {
+            "summary.json",
+            "summary.md",
+            "summary.csv",
+            "coverage.csv",
+            "refusals.json",
+        }
+    assert reports[0] == reports[1]
+    assert reports[0]["provenance"]["code_commit"] == "f" * 40

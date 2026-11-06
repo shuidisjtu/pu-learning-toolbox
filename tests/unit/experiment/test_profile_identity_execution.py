@@ -63,9 +63,7 @@ def execute(script, directory, protocol, name="upu_recipe", prepare=make_splits)
     return code, output
 
 
-def test_basic_real_unit_cli_writes_profile_algorithm_and_correct_native_ledger(
-    survey_script, tmp_path
-):
+def test_basic_real_unit_cli_writes_profile_algorithm_and_actual_view(survey_script, tmp_path):
     code, output = execute(survey_script, tmp_path, draft())
     assert code == 0
     path = next(output.rglob("manifest.json"))
@@ -75,10 +73,10 @@ def test_basic_real_unit_cli_writes_profile_algorithm_and_correct_native_ledger(
     assert not manifest["formal_eligible"]
     assert "profile_identity_extension_engineering_only" in manifest["formal_blockers"]
     assert set(manifest["selection"]) == {"PA", "OA"}
-    assert manifest["comparison_registration_status"] == "missing_versioned_profile_mapping"
+    assert "comparison_registration_status" not in manifest
     assert "comparison" not in manifest
-    ledger = json.loads((path.parent / "method_ledger_entry.json").read_text(encoding="utf-8"))
-    assert ledger["class"] == "UPUClassifier"
+    assert manifest["run_view"] == "os-compatible"
+    assert not (path.parent / "method_ledger_entry.json").exists()
 
 
 def test_determ_same_algorithm_profiles_keep_separate_outputs_and_equal_metrics(

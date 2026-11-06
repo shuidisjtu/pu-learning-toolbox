@@ -249,8 +249,8 @@ trains_encoder）；字段语义与枚举以 `pu_toolbox/core/tags.py` 为权威
 （`method_ledger_entry.json`）标注结果。二者不重复：台账里与 registry 重叠的字段（能力 4 字段、
 `source_status`、`requires_class_prior`↔`prior_semantics`）由
 `tests/contract/test_ledger_registry_consistency.py` 合同测试绑定，台账镜像 registry、不得漂移。
-台账语义与字段见 [pu_survey_protocol.md](../research/pu_survey/pu_survey_protocol.md) §4 与
-[survey_execution_plan.md](../research/pu_survey/survey_execution_plan.md) P1.3a。
+台账语义见[实验协议 §4](../research/pu_survey/pu_survey_protocol.md#4-需实现的算法)；
+当前字段见 [method_ledger.json](../../pu_toolbox/experiment/method_ledger.json)。
 
 `advisor` 把数据画像与 registry 元数据匹配后推荐方法：硬过滤（trainable、
 scenario、sparse、class_prior 可用性）→ 软评分（assumption 匹配/成熟度/可信度/

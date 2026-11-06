@@ -15,10 +15,8 @@ disagree about whether two runs are in the same row.
 """
 
 import pytest
-from _aggregate_script_helpers import aggregate_script  # noqa: F401
-from _aggregate_script_helpers import manifest as gate_manifest
 
-from pu_toolbox.experiment.survey_summary import group_key, row_key
+from pu_toolbox.experiment.survey_summary import row_key
 
 pytestmark = pytest.mark.unit
 
@@ -153,24 +151,6 @@ def test_determ_the_row_key_is_a_pure_function_of_the_manifest():
     # read by name, not by position.
     shuffled = dict(reversed(list(manifest.items())))
     assert _key(shuffled) == _key(manifest)
-
-
-def test_basic_the_group_key_equals_the_aggregation_gates_own(aggregate_script):
-    """The gate owns this key; this module must not arrive at a different one.
-
-    Compared against the production function rather than against a restatement of
-    it, because the failure being guarded against *is* the two drifting apart --
-    a summary that grouped runs differently from the gate would average rows the
-    gate keeps in separate leaderboards, and nothing else would notice.
-    """
-    ordinary = gate_manifest(method="nnpu", dataset="spambase", budget="minibatch", seed=0)
-    oracle = gate_manifest(method="pn_oracle", run_view="os-compatible", c_independent=True, seed=0)
-
-    assert group_key(ordinary) == aggregate_script.group_key(ordinary)
-    assert group_key(oracle) == aggregate_script.group_key(oracle)
-    # The oracle's mechanism is the one its manifest records, not the matrix's
-    # word for it: answering "c_independent" here would regroup the oracle.
-    assert group_key(oracle)[2] == "pn_oracle"
 
 
 def test_param_a_view_contradicted_by_its_calibration_flag_is_refused():

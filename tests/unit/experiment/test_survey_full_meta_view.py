@@ -19,7 +19,7 @@ pytestmark = pytest.mark.unit
 
 @pytest.fixture(scope="module")
 def protocol():
-    return load_protocol(PROTOCOL_PATHS["survey-v3.0"])
+    return load_protocol(PROTOCOL_PATHS["survey-v3.2"])
 
 
 @pytest.mark.parametrize("requested, expected", [(None, "os"), ("os", "os"), ("ts", "ts")])
@@ -63,7 +63,7 @@ def test_basic_cli_resolves_profile_before_loading_any_data(
     argv = [
         str(tmp_path / "not-loaded"),
         "--protocol",
-        "survey-v3.0",
+        "survey-v3.2",
         "--dataset",
         "spambase",
         "--method",

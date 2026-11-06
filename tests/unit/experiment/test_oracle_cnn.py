@@ -1,5 +1,5 @@
 # ruff: noqa: N806
-"""End-to-end supervised oracle support does not change the frozen pilot."""
+"""End-to-end supervised oracle training and formal Survey identity checks."""
 
 import copy
 
@@ -102,11 +102,12 @@ def test_param_edge_cnn_rejects_flattened_input_and_missing_encoder():
         PilotOracleCNN(encoder=nn.Identity(), max_epochs=1).fit(X.reshape(4, -1), y)
 
 
-def test_assembly_support_is_separate_from_frozen_matrix_admission():
+def test_basic_current_protocol_assembles_the_admitted_native_cnn_oracle():
     protocol = load_protocol()
-    with pytest.raises(ValueError):
-        resolve_unit(protocol, "cifar10", "pn_oracle", "native_cnn")
-    row = {"method": "pn_oracle", "training_path": "native_cnn"}
+    row = resolve_unit(protocol, "cifar10", "pn_oracle", "native_cnn")
+    assert row["runnable"] is True
+    assert row["backbone"] == "resnet18_end_to_end"
+    assert row["oracle_alignment"] == "shared_resnet18_end_to_end_and_minibatch_budget"
     model = assemble_model(
         protocol, row, 512, seed=0, params={}, class_prior=None, device="cpu", encoder=nn.Identity()
     )
@@ -164,7 +165,7 @@ def test_runner_oa_checkpoint_recovery_and_reclaim(tmp_path, architecture):
 def test_basic_the_native_cnn_oracle_passes_the_protocol_model_check(dataset):
     from pu_toolbox.experiment.survey_protocol import _validate_model, resolve_protocol_path
 
-    protocol = load_protocol(resolve_protocol_path("survey-v3.0"))
+    protocol = load_protocol(resolve_protocol_path("survey-v3.2"))
     row = resolve_unit(protocol, dataset, "pn_oracle", "native_cnn")
     profile = protocol["method_profiles"][row["method"]]
     model = assemble_model(
@@ -177,7 +178,7 @@ def test_edge_the_mlp_oracle_is_still_refused_on_the_native_cnn_row():
     from pu_toolbox.experiment.survey_execution import PilotOracleMLP
     from pu_toolbox.experiment.survey_protocol import _validate_model, resolve_protocol_path
 
-    protocol = load_protocol(resolve_protocol_path("survey-v3.0"))
+    protocol = load_protocol(resolve_protocol_path("survey-v3.2"))
     row = resolve_unit(protocol, "cifar10", "pn_oracle", "native_cnn")
     profile = protocol["method_profiles"][row["method"]]
     mlp = PilotOracleMLP(**profile["params"], random_state=0, device="cpu")

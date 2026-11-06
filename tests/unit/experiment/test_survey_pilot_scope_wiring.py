@@ -28,6 +28,7 @@ from _survey_pilot_helpers import (  # noqa: F401 - imported fixtures are used b
     unit_calls,
 )
 
+from pu_toolbox.experiment.survey_profile_identity import profile_manifest_identity
 from pu_toolbox.experiment.survey_protocol import PROTOCOL_PATH, digest, load_protocol
 
 pytestmark = pytest.mark.unit
@@ -86,6 +87,9 @@ def _finished_run(
     path.parent.mkdir(parents=True, exist_ok=True)
     payload: dict = {
         "execution_mode": "versioned_pilot",
+        "protocol_version": "survey-v3.2",
+        "protocol_sha256": digest(load_protocol(PROTOCOL_PATH)),
+        **profile_manifest_identity(load_protocol(PROTOCOL_PATH), method),
         "seed": 0,
         "execution_unit": {
             "dataset": dataset,
@@ -134,7 +138,7 @@ def test_basic_the_checkpoint_estimate_follows_the_selection(driver, tmp_path, c
     assert "10.3 GiB for the whole pilot" in _dry_run(driver, tmp_path, capsys, *B3B)
     # The dataset alone would have bought 308 GiB of native CNN checkpoints
     # this shard never writes.
-    assert "318.4 GiB for the whole pilot" in _dry_run(
+    assert "362.3 GiB for the whole pilot" in _dry_run(
         driver, tmp_path, capsys, "--datasets", "cifar10"
     )
 
@@ -417,18 +421,14 @@ def test_determ_two_slices_differ_in_their_selection_but_not_in_the_protocol(dri
     assert b3b["source_protocol_sha256"] == digest(load_protocol(PROTOCOL_PATH))
 
 
-def test_determ_an_unfiltered_request_records_no_selection(driver, tmp_path):
-    """Naming no axis is recorded as naming none, not as naming everything.
-
-    The two are different requests -- an empty list is refused, and the plan is
-    the matrix either way -- so the record has to show which one was made.
-    """
+def test_determ_the_fixture_records_its_explicit_smoke_scope(driver, tmp_path):
+    """The shared fixture scope is a real request and is recorded as such."""
     snapshot = _snapshot(driver, tmp_path)
 
     assert snapshot["selection"] == {
-        "datasets": None,
-        "methods": None,
+        "datasets": ["cifar10", "imdb", "spambase"],
+        "methods": ["dist_pu", "lbe", "nnpu", "pn_oracle", "pusb_kernel", "self_pu", "upu"],
         "training_paths": None,
     }
     assert snapshot["datasets"] == ["cifar10", "imdb", "spambase"]
-    assert snapshot["totals"]["planned"] == 645
+    assert snapshot["totals"]["planned"] == 650

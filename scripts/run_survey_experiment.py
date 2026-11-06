@@ -316,7 +316,7 @@ def _run_directory(
     """Output directory for one run, keyed by the training view.
 
     The view is the outermost layer because both views write a same-named
-    ``manifest.json`` (and ``method_ledger_entry.json``) into their run
+    ``manifest.json`` into their run
     directory: without it, training a method under a second view silently
     replaces the first view's record while its checkpoints stay behind.
     """
@@ -343,6 +343,11 @@ def _record_run_context(
         payload["c_requested_token"] = c_token
     if batch is not None:
         payload["batch"] = dict(batch)
+    else:
+        from pu_toolbox.experiment.batch_evidence import code_identity, dependency_lock
+
+        payload["code_identity"] = code_identity()
+        payload["dependency_lock"] = dependency_lock()
     write_manifest(manifest_path, payload)
 
 
@@ -473,21 +478,6 @@ def resolve_class_prior(
     return provided
 
 
-def _write_ledger_entry(run_dir: Path, entry: dict[str, Any], run_view: str) -> None:
-    """Copy the ledger entry beside the run, annotated with the view it used.
-
-    The ledger records the method's *default*; this copy documents one run, so
-    an explicit ``--os-or-ts os`` override must not leave behind a copy that
-    still claims the calibrated view (``_record_c_token`` sets the precedent).
-    """
-    payload = dict(entry)
-    payload["run_view"] = f"{run_view}-compatible"
-    payload["calibration_applied"] = run_view == "ts"
-    (run_dir / "method_ledger_entry.json").write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
-
-
 def run_one(
     model,
     parts: tuple[DatasetPart, ...],
@@ -537,18 +527,29 @@ def resolve_split_ref(data_dir: Path, explicit: str | None) -> dict[str, Any]:
     with.  The addition is inert for split identity — nothing decides which split
     ran by reading ``split_ref``.
     """
+    from pu_toolbox.experiment.bundle import split_indices_digest
+
     if explicit is not None:
-        return json.loads(Path(explicit).read_text(encoding="utf-8"))
+        reference = json.loads(Path(explicit).read_text(encoding="utf-8"))
+        is_support = reference.get("schema_version") == "independent-clean-support-v1"
+        actual = split_indices_digest(
+            data_dir, declared=reference.get("indices_sha256"), include_support=is_support
+        )
+        if not is_support:
+            reference["indices_sha256"] = actual
+        return reference
     manifest_path = Path(data_dir) / "split_manifest.json"
     if not manifest_path.is_file():
-        return {}
+        return {"indices_sha256": split_indices_digest(data_dir)}
     split_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     return {
         "manifest_path": str(manifest_path.resolve()),
         "dataset": split_manifest.get("dataset"),
         "seed": split_manifest.get("seed"),
         "role_sizes": split_manifest.get("role_sizes"),
-        "indices_sha256": split_manifest.get("indices_sha256"),
+        "indices_sha256": split_indices_digest(
+            data_dir, declared=split_manifest.get("indices_sha256")
+        ),
         "class_prior": split_manifest.get("class_prior"),
     }
 
@@ -637,8 +638,8 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         "--protocol",
         default=None,
         help=(
-            "survey-v2.0 (v1/v1.1/v1.2 aliases resolve to their own files) "
-            "or matrix JSON; otherwise technical smoke"
+            "survey-v3.2 or a matrix JSON derived from this configuration; "
+            "otherwise technical smoke"
         ),
     )
     parser.add_argument("--dataset", choices=DATASET_CHOICES, default=None)
@@ -714,39 +715,8 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def _coverage_profile_map(protocol) -> dict | None:
-    """The versioned profile map, when the protocol carries profile identities.
-
-    The matrix is keyed on the algorithm a profile inherits (D40), so the
-    coverage check has to translate profiles before it can see the units that
-    are registered.  A protocol that declares profiles and has no map binding
-    it cannot be checked at all: reporting that as "units without a mapping"
-    would blame the matrix for a missing lookup path.
-    """
-    from pu_toolbox.experiment.survey_profile_identity import has_profile_identities
-    from pu_toolbox.experiment.survey_profile_map import (
-        load_profile_map,
-        profile_map_binds,
-        profile_map_path,
-    )
-
-    if not has_profile_identities(protocol):
-        return None
-    profile_map = load_profile_map(profile_map_path(protocol))
-    if not profile_map_binds(profile_map, protocol):
-        raise ValueError(
-            "no versioned profile map binds this protocol matrix; the coverage "
-            "gate cannot translate its profiles into comparison units"
-        )
-    return profile_map
-
-
 def _versioned_main(args, c_values, seed_values) -> int:
     """Execute a bound pilot unit; no mutation of the generic smoke path."""
-    from pu_toolbox.experiment.survey_comparison import (
-        comparison_for_protocol,
-        validate_comparison_coverage,
-    )
     from pu_toolbox.experiment.survey_execution import (
         SourceSpaceGenerator,
         assemble_model,
@@ -795,11 +765,11 @@ def _versioned_main(args, c_values, seed_values) -> int:
             raise ValueError("extraction batch size must be positive")
         protocol = load_protocol(protocol_path)
         if args.gradpu_activation_memory != "device" and (
-            method != "gradpu" or protocol["protocol_version"] not in {"survey-v3.1", "survey-v3.2"}
+            method != "gradpu" or protocol["protocol_version"] != "survey-v3.2"
         ):
             raise ValueError("GradPU activation offload requires the versioned GradPU backlog")
         if (args.gradpu_backward_mode != "joint" or args.gradpu_gp_chunk_size is not None) and (
-            method != "gradpu" or protocol["protocol_version"] not in {"survey-v3.1", "survey-v3.2"}
+            method != "gradpu" or protocol["protocol_version"] != "survey-v3.2"
         ):
             raise ValueError(
                 "GradPU backward execution policy requires the versioned GradPU backlog"
@@ -809,28 +779,6 @@ def _versioned_main(args, c_values, seed_values) -> int:
                 raise ValueError("GradPU GP chunk size must be positive")
             if args.gradpu_backward_mode != "split":
                 raise ValueError("GradPU GP chunk size requires --gradpu-backward-mode split")
-        shipped = load_protocol(resolve_protocol_path(protocol["protocol_version"]))
-        if digest(protocol) == digest(shipped):
-            # Prove the pre-registered pair covers every unit it must, here
-            # rather than per run.  A ghost mapping, a unit covered twice and a
-            # mapping that covers nothing are properties of the two files, and
-            # the last is visible only when both directions are checked; per run
-            # they would surface as a unit that quietly carries no comparison
-            # entry, long after the runs that could have revealed it were paid
-            # for.  Keyed on the matrix contents rather than on its path, so a
-            # copy of the shipped file is still checked.
-            #
-            # The baseline is the shipped matrix of *this* protocol version:
-            # while one default served every version, a v3 run never reached
-            # this gate, so the units v5 registers were never proven to cover
-            # the protocol before a run paid for them.  A genuinely different
-            # matrix is still not checked -- it has no pre-registered rules to
-            # be checked against, and its units resolve, or do not, one by one.
-            validate_comparison_coverage(
-                protocol,
-                comparison_for_protocol(protocol),
-                profile_map=_coverage_profile_map(protocol),
-            )
         row = resolve_unit(protocol, args.dataset, method, args.training_path)
         algorithm = profile_algorithm(protocol, method)
         if args.batch_evidence is not None:
@@ -996,7 +944,6 @@ def _versioned_main(args, c_values, seed_values) -> int:
         except (OSError, KeyError, TypeError, ValueError, ImportError) as exc:
             print(f"error: cannot assemble survey unit: {exc}", file=sys.stderr)
             return 1
-        warned_about_evidence = False
         for c_value in [None] if args.oracle else c_values:
             runtime_binding_inputs = {}
             if c_value is not None:
@@ -1122,19 +1069,6 @@ def _versioned_main(args, c_values, seed_values) -> int:
                 config["runtime_parameters"] = config["survey_protocol"]["runtime_parameters"]
             if not args.oracle:
                 config["c_requested_token"] = c_value.token
-            if args.batch_evidence is None and not warned_about_evidence:
-                # Said once, right before the first run trains: a versioned
-                # manifest without a batch block is not a protocol §5.6 artifact,
-                # and the driver is the only caller that writes the packet this
-                # run cites.  Placed after every pre-training gate so a run those
-                # refuse still has its stderr starting with "error: ".
-                print(
-                    "warning: no --batch-evidence was given, so this run records no batch "
-                    "identity; formal batches are driven by run_survey_pilot.py, which "
-                    "writes the packet and passes it here",
-                    file=sys.stderr,
-                )
-                warned_about_evidence = True
             run_dir = _run_directory(
                 out_root,
                 mechanism=args.labeling_mechanism,
@@ -1168,8 +1102,6 @@ def _versioned_main(args, c_values, seed_values) -> int:
                     c_token=None if c_value is None else c_value.token,
                     batch=batch_block,
                 )
-                if not args.oracle:
-                    _write_ledger_entry(run_dir, ledger["methods"][algorithm], os_or_ts)
             except Exception as exc:  # noqa: BLE001 - user-facing run boundary
                 print(f"error: survey run failed: {exc}", file=sys.stderr)
                 return 1
@@ -1233,7 +1165,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.batch_evidence is not None and args.protocol is None:
         print(
             "error: --batch-evidence belongs to a versioned pilot run; pass "
-            "--protocol survey-v3.0 or leave the flag out",
+            "--protocol survey-v3.2 or leave the flag out",
             file=sys.stderr,
         )
         return 1
@@ -1327,7 +1259,6 @@ def main(argv: list[str] | None = None) -> int:
         protocols: list | None = [ProtocolOA()]
         class_prior = None
         method = "pn_oracle"
-        ledger_entry: dict[str, Any] | None = None
         config_extra: dict[str, Any] = {"trainer": SupervisedTrainer()}
     else:
         method = args.method or "upu"
@@ -1361,7 +1292,6 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         generator = _resolve_labeling_generator(args.labeling_mechanism)
         protocols = _resolve_labeling_protocols(args.labeling_mechanism)
-        ledger_entry = ledger["methods"].get(method)
         config_extra = {}
         if cvir_population_adapter:
             from pu_toolbox.experiment.cvir_adapter import CVIRPopulationPriorTrainer
@@ -1432,8 +1362,6 @@ def main(argv: list[str] | None = None) -> int:
             run_view=os_or_ts,
         )
         run_dir.mkdir(parents=True, exist_ok=True)
-        if ledger_entry is not None:
-            _write_ledger_entry(run_dir, ledger_entry, os_or_ts)
         manifest_path = run_dir / "manifest.json"
         try:
             metrics = run_one(

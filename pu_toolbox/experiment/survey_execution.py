@@ -4,7 +4,7 @@
 Design notes: random frozen ResNet features are shared across methods and c,
 never trained on clean labels. Oracle paths are isolated supervised estimators;
 CNN support does not expand the historical frozen experiment matrix.
-See docs/research/pu_survey/survey_execution_plan.md, P2.0a.
+See docs/research/pu_survey/pu_survey_protocol.md for execution rules.
 """
 
 from __future__ import annotations

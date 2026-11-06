@@ -22,7 +22,7 @@ from pu_toolbox.experiment.survey_recipe_registry import (
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--protocol", default="survey-v2.0")
+    parser.add_argument("--protocol", default="survey-v3.2")
     parser.add_argument(
         "--lifecycle",
         choices=("draft", "locked"),

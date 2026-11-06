@@ -702,14 +702,7 @@
       },
       "model_family": "kernel",
       "group": "classical",
-      "configuration_review": {
-        "status": "project_recipe_confirmed_source_differences_retained",
-        "findings": [
-          "flip_probability is bound as 1 minus actual fixed-count SCAR c_realized, the estimator is rebuilt per c, and requested/realized c are recorded. KLDCE remains excluded from SAR."
-        ]
-      },
       "algorithm": "kldce",
-      "configuration_status": "owner_confirmed_project_recipe_2026-11-01",
       "execution_adapter": "survey-backlog-1"
     },
     "dist_pu": {
@@ -808,13 +801,6 @@
         "batching_policy": "role_balanced"
       },
       "budget": "backlog_p3mix",
-      "configuration_status": "owner_confirmed_project_recipe_2026-11-01",
-      "configuration_review": {
-        "status": "project_recipe_confirmed_source_differences_retained",
-        "findings": [
-          "The base variant is only a constructor default. The method card documents base, E and C as distinct variants and notes paper hyperparameter choices and source/EMA gaps; variant and candidate policy remain unresolved."
-        ]
-      },
       "algorithm": "p3mix",
       "execution_adapter": "survey-backlog-1"
     },
@@ -830,13 +816,6 @@
         "bootstrap": false
       },
       "budget": "backlog_puet",
-      "configuration_status": "owner_confirmed_project_recipe_2026-11-01",
-      "configuration_review": {
-        "status": "project_recipe_confirmed_source_differences_retained",
-        "findings": [
-          "100 trees is a constructor default, not a frozen tree budget; the existing budget review explicitly says tree count is not an epoch budget and requires a separate storage/resource profile."
-        ]
-      },
       "algorithm": "puet",
       "execution_adapter": "survey-backlog-1"
     },
@@ -862,13 +841,6 @@
         "mixup_alpha": 11.0
       },
       "budget": "pulda",
-      "configuration_status": "owner_confirmed_partial_on_2026-10-18",
-      "configuration_review": {
-        "status": "owner_confirmed_partial",
-        "findings": [
-          "The 60+60 epoch, P/U batch 16/128 settings match the owner's 2026-10-18 partial decision. The unit is still a draft pending protocol binding, image-runner wiring and remaining resource/selection gates."
-        ]
-      },
       "algorithm": "pulda"
     },
     "gradpu": {
@@ -886,13 +858,6 @@
         "weight_decay": 0.0005
       },
       "budget": "backlog_gradpu",
-      "configuration_status": "owner_confirmed_project_recipe_2026-11-01",
-      "configuration_review": {
-        "status": "project_recipe_confirmed_source_differences_retained",
-        "findings": [
-          "Use the method-private cnn13_no_bn image path; a frozen ResNet feature adapter would change the raw-image second-order gradient-penalty input and is not an equivalent image recipe."
-        ]
-      },
       "algorithm": "gradpu",
       "execution_adapter": "survey-backlog-1"
     },
@@ -918,13 +883,6 @@
         "phi": 0.0
       },
       "budget": "robust_pu",
-      "configuration_status": "provisional_constructor_defaults",
-      "configuration_review": {
-        "status": "provisional_or_unresolved",
-        "findings": [
-          "Pretrain/episode defaults are not an approved budget; eligible checkpoint stages and prior/validation policy remain open."
-        ]
-      },
       "algorithm": "robust_pu"
     },
     "split_pu": {
@@ -946,13 +904,6 @@
         "noise_std": 0.05
       },
       "budget": "split_pu",
-      "configuration_status": "provisional_constructor_defaults",
-      "configuration_review": {
-        "status": "resolved_by_adjudication",
-        "findings": [
-          "The source-default JSD weight 0.7 is confirmed by the 2026-10-24 #122 adjudication: keep the locked source direction and its normalization denominator, register the paper Eq. (6) direction as a difference, and register the TS balanced-batch union ratio as a benchmark approximation. The ledger pointer fix is deferred to a versioned ledger update."
-        ]
-      },
       "algorithm": "split_pu"
     },
     "pan": {
@@ -966,13 +917,6 @@
         "adversarial_weight": 1.0
       },
       "budget": "backlog_pan",
-      "configuration_status": "owner_confirmed_project_recipe_2026-11-01",
-      "configuration_review": {
-        "status": "project_recipe_confirmed_source_differences_retained",
-        "findings": [
-          "Constructor defaults do not resolve the paper/source sampling decision already recorded for Survey or the P4.1-B candidate and budget recipe."
-        ]
-      },
       "algorithm": "pan",
       "execution_adapter": "survey-backlog-1"
     },
@@ -985,13 +929,6 @@
         "min_retained": 10
       },
       "budget": "backlog_rp",
-      "configuration_status": "owner_confirmed_project_recipe_2026-11-01",
-      "configuration_review": {
-        "status": "project_recipe_confirmed_source_differences_retained",
-        "findings": [
-          "Fold count and retention defaults are not an approved survey budget; OOF/refit cost remains to be frozen."
-        ]
-      },
       "algorithm": "rp",
       "execution_adapter": "survey-backlog-1"
     },
@@ -1010,13 +947,6 @@
         "terminal_weight": 1.0
       },
       "budget": "pulns",
-      "configuration_status": "provisional_constructor_defaults",
-      "configuration_review": {
-        "status": "provisional_or_unresolved",
-        "findings": [
-          "Requires clean support and the formal support path. No imdb unit is included because imdb is outside the approved support-dataset list."
-        ]
-      },
       "algorithm": "pulns",
       "supervision": "independent_clean_support",
       "labeling_mechanisms": [
@@ -1039,15 +969,6 @@
         "generator_output": "identity"
       },
       "budget": "genpu",
-      "configuration_status": "owner_confirmed_frozen_2026-10-24",
-      "configuration_review": {
-        "status": "resolved_by_adjudication",
-        "findings": [
-          "Recipe frozen on 2026-10-24 by owner decision (docs/research/pu_survey/admission/genpu_126_adjudication_20261024.md): the paper prior-weighted minimax/anti-GAN objective is kept, Du fake samples are weighted pi/(1-pi), and the final PN risk is prior-weighted softplus.",
-          "The frozen recipe fixes identity output, a two-layer-256/latent-100 dense generator, linear Dp/Dn heads, two-layer-256 Du/PN heads, four independently seeded ResNet-18 stems, and the G-step freeze of D parameters/BN/dropout with input gradients kept. The three lambda weights stay 1.0: prior weighting lives in the Du mixture and the PN risk, not in those knobs. Full-data resource measurement and numeric parity remain outside this decision.",
-          "2026-10-25 owner decision: hidden_dim 128 was the constructor default left in place at freeze time, not the frozen recipe. It is now bound to the receipt value, so profile params, the genpu staged budget, the genpu_native_mlp backbone spec and genpu_recipe.py all say 256, and the profile label reads mlp256 instead of mlp128. genpu_recipe.GenPURecipeTrainer rejects any other width, so 128 was a value that could never have run."
-        ]
-      },
       "algorithm": "genpu"
     },
     "holistic_pu": {
@@ -1066,13 +987,6 @@
         "lzo_validation_size": null
       },
       "budget": "holistic_pu",
-      "configuration_status": "provisional_constructor_defaults",
-      "configuration_review": {
-        "status": "provisional_or_unresolved",
-        "findings": [
-          "Stage selection, initialization and storage values are constructor defaults; the P3.2 recipe blockers remain open."
-        ]
-      },
       "algorithm": "holistic_pu"
     },
     "cvir": {
@@ -1089,13 +1003,6 @@
         "prior_source": null
       },
       "budget": "backlog_cvir",
-      "configuration_status": "owner_confirmed_project_recipe_2026-11-01",
-      "configuration_review": {
-        "status": "project_recipe_confirmed_source_differences_retained",
-        "findings": [
-          "The constructor OS default does not clear the native-TS calibration gate. TS calibration or an explicit inapplicability decision is still required."
-        ]
-      },
       "algorithm": "cvir",
       "execution_adapter": "survey-backlog-1"
     },
@@ -1120,13 +1027,6 @@
         "meta_update_bias": true
       },
       "budget": "lagam",
-      "configuration_status": "provisional_constructor_defaults",
-      "configuration_review": {
-        "status": "provisional_or_unresolved",
-        "findings": [
-          "Requires clean support and a dedicated runner path. No imdb unit is included because imdb is outside the approved support-dataset list."
-        ]
-      },
       "algorithm": "lagam",
       "supervision": "independent_clean_support",
       "labeling_mechanisms": [
@@ -1135,7 +1035,6 @@
     },
     "vpu": {
       "group": "minibatch",
-      "configuration_status": "owner_confirmed_project_recipe_2026-11-01",
       "model_family": "mlp64",
       "params": {
         "max_epochs": 100,
@@ -1150,12 +1049,6 @@
         "hidden_dim": 64
       },
       "budget": "backlog_vpu",
-      "configuration_review": {
-        "status": "project_recipe_confirmed_source_differences_retained",
-        "findings": [
-          "The values match current constructor defaults, not the author recipe: the method card records 100 vs 50 epochs, batch 128 vs 500, and learning rate 3e-4 vs 3e-5. Its source validation diagnostic is not an allowed PA/OA selector under D22."
-        ]
-      },
       "algorithm": "vpu",
       "execution_adapter": "survey-backlog-1"
     },
@@ -3407,7 +3300,7 @@
     "CIFAR-10 native-CNN PN oracle passed a real-GPU two-epoch smoke on 2026-10-22; runnable denotes implementation capability, not frozen protocol admission or completed five-seed results.",
     "Completed-epoch weights are selected independently offline; inference checkpoints do not resume optimizer training.",
     "PA selects on the generated pu_val view by proxy accuracy (Wang et al. 2026 Definition 1, OS branch) over the same per-checkpoint val-side min-max threshold grid OA uses; the population class prior pi is required per run (from the run's class_prior, else the split artifact's class_prior.population) and a run without it fails loudly. Formal SCAR PA acceptance remains pending the collaborator's signature.",
-    "KLDCE binds flip_probability = 1 - c for SCAR only and is rebuilt for each c; all SAR requests are rejected. Its execution rows still require approved protocol and dataset-specific budget/resource gates.",
+    "KLDCE binds flip_probability = 1 - c_realized from actual fixed-count SCAR labeling, records requested and realized c, and rebuilds the estimator per c; all SAR requests are rejected. Dense-kernel resource caps remain mandatory.",
     "Self-PU uses two sampled optimizer steps per epoch, not a full traversal, and has no budget-matched mini-batch oracle; its comparability group is separate.",
     "selection_spec is descriptive documentation; runner behavior is enforced by code and checkpoint tests, not by dynamically consuming this prose field.",
     "Sampling-assumption adjudication follows the paper first; the reference code is used only when the paper is silent, and paper/code differences are registered.",
@@ -3423,7 +3316,12 @@
     "method_profiles.self_pu remains the explicit no-meta ablation profile used by the frozen pilot; the full clean-meta variant uses the separate self_pu_full_meta profile and its own support unit.",
     "Clean-support units on the two image datasets take the shared ResNet-18 end to end for LaGAM and PULNS; Self-PU full-meta takes the frozen feature adapter because its estimator has no native CNN (D5), matching its existing mnist/fashion_mnist rows. The support part is carried through the same image preprocessing, so it is no longer handed to the estimator as raw uint8 pixels or as 4-D images on a 2-D path.",
     "2026-11-01: owner adopts current provisional project recipes, including P3MIX base/default role_balanced batching. Historical merged_shuffle candidate results remain separate. VPU/CVIR cpu_stream preserves full batches/epochs. SAR is an OA-only stress test, not a claim of new selection-bias correction.",
-    "2026-11-01: test the remaining eight PUET/RP image cells with the existing fixed-random feature recipe. Same dataset/split/seed encoder is shared across methods and labeling mechanisms; train-only normalization, no augmentation. No changes to estimators, 100 trees, RP 3-fold/refit, or historical results. All 280 fits are canary-gated; failed families remain held."
+    "2026-11-01: test the remaining eight PUET/RP image cells with the existing fixed-random feature recipe. Same dataset/split/seed encoder is shared across methods and labeling mechanisms; train-only normalization, no augmentation. No changes to estimators, 100 trees, RP 3-fold/refit, or historical results. All 280 fits are canary-gated; failed families remain held.",
+    "GradPU uses the method-private cnn13_no_bn raw-image path. A frozen feature adapter would change the second-order input-gradient penalty and is not an equivalent recipe.",
+    "Split-PU retains the locked source JSD direction, normalization denominator and weight 0.7. The paper Eq. (6) direction remains a source difference; the TS balanced-batch union ratio remains a benchmark approximation.",
+    "GEN-PU retains the paper prior-weighted minimax/anti-GAN objective: Du fake samples use pi/(1-pi), final PN risk is prior-weighted softplus, and the G step freezes discriminator parameters, BN and dropout while retaining input gradients. The three lambda weights remain 1.0; they do not replace prior weighting.",
+    "VPU uses the adopted project recipe rather than the author recipe: 100 vs 50 epochs, batch 128 vs 500 and learning rate 3e-4 vs 3e-5. Its source validation diagnostic is not an allowed PA/OA selector.",
+    "P3MIX base, E and C are distinct variants; this protocol adopts base. PUET tree count and RP out-of-fold/refit costs retain their separate non-epoch budgets."
   ],
   "draft_scope": {
     "status": "owner_confirmed_project_recipes_pending_execution_audit",
@@ -3434,129 +3332,12 @@
       "Earlier candidate results are not rebound to this version or counted as its completed runs."
     ]
   },
-  "configuration_audit": {
-    "status": "configuration_reviewed_open",
-    "review_date": "2026-10-21",
-    "scope": "static configuration audit only; no training or formal experiment was run",
-    "roster": {
-      "required_targets": [
-        "pan",
-        "genpu",
-        "pulns",
-        "rp",
-        "cvir",
-        "holistic_pu",
-        "p3mix",
-        "upu",
-        "nnpu",
-        "kldce",
-        "vpu",
-        "dist_pu",
-        "pulda",
-        "pusb_kernel",
-        "lbe",
-        "puet",
-        "gradpu",
-        "robust_pu",
-        "split_pu",
-        "lagam",
-        "self_pu",
-        "pn_oracle"
-      ],
-      "configured_targets": [
-        "cvir",
-        "dist_pu",
-        "genpu",
-        "gradpu",
-        "holistic_pu",
-        "kldce",
-        "lagam",
-        "lbe",
-        "nnpu",
-        "p3mix",
-        "pan",
-        "pn_oracle",
-        "puet",
-        "pulda",
-        "pulns",
-        "pusb_kernel",
-        "robust_pu",
-        "rp",
-        "self_pu",
-        "split_pu",
-        "upu",
-        "vpu"
-      ],
-      "missing_targets": [],
-      "extra_targets": [],
-      "mapping_notes": {
-        "pusb_kernel": "Maps the protocol PUSB target to the survey pilot implementation; method_ledger.json states the linear pusb estimator is an additional baseline and is not admitted to the pilot roster.",
-        "pn_oracle": "The one supervised oracle target; together with 21 PU methods gives 22 targets.",
-        "vpu": "Required by protocol section 4; its entry is a later addition beyond the 13 P3.1 methods."
-      }
-    },
-    "scope_limits": [
-      "Execution units inherit only the current v2 pilot dataset matrix: spambase, imdb, cifar10. This does not cover all eight available split datasets.",
-      "PULNS and LaGAM have no imdb clean-support unit because the protocol support policy covers spambase, connect_4, mnist, fashion_mnist and cifar10, not imdb.",
-      "All new execution units remain non-runnable. Clean-support artifacts are absent, and P3.2 runner wiring, P4.1-B budgets and method-specific gates remain open.",
-      "CIFAR-10 rows for trainable-encoder methods are expressed as native-CNN target paths; these are pending runner and checkpoint-storage profiles.",
-      "The current global candidate_pool contains one empty candidate. It is inherited pilot scaffolding, not an owner-approved search recipe for the added methods.",
-      "New methods have provisional method-isolated comparability groups; do not infer cross-method budget equivalence before P4.1-B."
-    ],
-    "method_findings": {
-      "p3mix": [
-        "The base variant is only a constructor default. The method card documents base, E and C as distinct variants and notes paper hyperparameter choices and source/EMA gaps; variant and candidate policy remain unresolved."
-      ],
-      "puet": [
-        "100 trees is a constructor default, not a frozen tree budget; the existing budget review explicitly says tree count is not an epoch budget and requires a separate storage/resource profile."
-      ],
-      "pulda": [
-        "The 60+60 epoch, P/U batch 16/128 settings match the owner's 2026-10-18 partial decision. The unit is still a draft pending protocol binding, image-runner wiring and remaining resource/selection gates."
-      ],
-      "gradpu": [
-        "Use the method-private cnn13_no_bn image path; a frozen ResNet feature adapter would change the raw-image second-order gradient-penalty input and is not an equivalent image recipe."
-      ],
-      "robust_pu": [
-        "Pretrain/episode defaults are not an approved budget; eligible checkpoint stages and prior/validation policy remain open."
-      ],
-      "split_pu": [
-        "The source-default JSD weight 0.7 is confirmed by the 2026-10-24 #122 adjudication: keep the locked source direction and its normalization denominator, register the paper Eq. (6) direction as a difference, and register the TS balanced-batch union ratio as a benchmark approximation. The ledger pointer fix is deferred to a versioned ledger update."
-      ],
-      "pan": [
-        "Constructor defaults do not resolve the paper/source sampling decision already recorded for Survey or the P4.1-B candidate and budget recipe."
-      ],
-      "rp": [
-        "Fold count and retention defaults are not an approved survey budget; OOF/refit cost remains to be frozen."
-      ],
-      "pulns": [
-        "Requires clean support and the formal support path. No imdb unit is included because imdb is outside the approved support-dataset list."
-      ],
-      "genpu": [
-        "Recipe frozen on 2026-10-24 (docs/research/pu_survey/admission/genpu_126_adjudication_20261024.md); full-data resources and numeric parity stay outside the freeze."
-      ],
-      "holistic_pu": [
-        "Stage selection, initialization and storage values are constructor defaults; the P3.2 recipe blockers remain open."
-      ],
-      "cvir": [
-        "The constructor OS default does not clear the native-TS calibration gate. TS calibration or an explicit inapplicability decision is still required."
-      ],
-      "lagam": [
-        "Requires clean support and a dedicated runner path. No imdb unit is included because imdb is outside the approved support-dataset list."
-      ],
-      "vpu": [
-        "The values match current constructor defaults, not the author recipe: the method card records 100 vs 50 epochs, batch 128 vs 500, and learning rate 3e-4 vs 3e-5. Its source validation diagnostic is not an allowed PA/OA selector under D22."
-      ],
-      "kldce": [
-        "SCAR runtime binding is defined as flip_probability = 1 - c and the model is constructed per c. SAR is disallowed. Execution rows remain non-runnable pending approved protocol and dataset-specific budget/resource gates."
-      ]
-    }
-  },
   "profile_identity_schema_version": "survey-profile-identity-1",
   "revision_basis": {
     "protocol_version": "survey-v3.1",
     "protocol_sha256": "2fb0116c08781f47ae6baeb50c3122e7f33d45b29aeaa40c7cc3858a665af00a",
     "owner_decision_date": "2026-11-01",
     "decision": "Owner requests determining and testing the missing PUET/RP image paths. Use the existing fixed-random feature adapter with unchanged project budgets; canary-gated execution does not certify paper reproduction or formal admission.",
-    "decision_ref": "docs/research/pu_survey/admission/p4_1b_registry_freeze_20261025.md"
+    "decision_ref": "docs/research/pu_survey/pu_survey_protocol.md"
   }
 }

@@ -110,9 +110,8 @@ class _SupportCheckpointSelection:
                 "warmup_snapshots_eligible": self._capture_all_epochs,
                 "formal_admission": False,
                 "budget_approval": "not_granted_by_adapter",
-                "protocol_policy_basis": "survey-v2.0",
-                "protocol_pending_review_items": ["v2_p4_clean_support_policy"]
-                + (["v2_p10_self_pu_scope"] if self.method_name == "self_pu" else []),
+                "protocol_policy_basis": None,
+                "protocol_pending_review_items": ["protocol_policy_not_bound"],
             }
         )
         request = config.get("survey_protocol") or {}

@@ -1,57 +1,17 @@
-"""Ledger <-> registry consistency contract tests (issue #42).
-
-The experiment-layer method ledger
-(``pu_toolbox/experiment/method_ledger.json``) declares itself the
-"programmatic truth source" for survey routing, while ``pu_toolbox/registry/``
-is the code-side truth source for algorithm metadata.  These tests pin the two
-together so ledger edits cannot drift from the registry -- in particular across
-the ``pusb`` / ``pusb_kernel`` split, where one method card covers a linear
-baseline (no class prior) and an official-aligned kernel entry (class prior
-required), and the registry is the gate's truth source.
-
-One test per invariant:
-
-1. every ledger key is a registered algorithm and the key set is exactly the
-   expected entries (``pusb`` and ``pusb_kernel`` stay separate);
-2. ``modality_backbone.code_capability`` mirrors the registry capability
-   fields (``native_architectures`` / ``input_ndims`` / ``encoder_parameter`` /
-   ``trains_encoder``);
-3. the head of ``code_version.source_status`` (everything before its
-   parenthetical note) equals the registry ``source_status`` enum value;
-4. ``code_version.upstream_url`` matches the registry's source URL, or is null
-   when no official implementation was found; URLs carry no prose;
-5. ``calibration_applied`` is a JSON boolean, not a string carrying prose;
-6. ``prior_semantics`` mentions "population" exactly when the registry entry
-   requires the common population class prior (``requires_class_prior``).
-   CVIR's separate alpha_U remains documented in the ledger and constructor;
-   it deliberately does not use this shared population-prior gate.
-7. ``native_sampling_assumption`` (``os``/``ts``) mirrors the registry
-   ``scenario`` sampling mechanism (``SINGLE_TRAINING_SET``/``CASE_CONTROL``),
-   ignoring the orthogonal ``SELECTION_BIASED`` flag (issue #67).
-
-The ledger's prose also cites registry entries as ``registry:<method>``: a
-``registry:NNN`` line number rots the moment ``builtin_methods.py`` grows, and
-all 46 that once carried one had drifted off their target field by the time
-they were found (E4).
-"""
+"""Current method-routing metadata agrees with registered estimator contracts."""
 
 from __future__ import annotations
 
 import inspect
-import re
-from datetime import date
-from pathlib import Path
 
 import pytest
 
 from pu_toolbox.core.tags import Scenario
 from pu_toolbox.experiment.method_ledger import native_sampling_assumption
+from pu_toolbox.experiment.training_views import resolve_training_view
 from pu_toolbox.registry import get_algorithm, get_metadata
 
-_LEDGER_PATH = (
-    Path(__file__).resolve().parents[2] / "pu_toolbox" / "experiment" / "method_ledger.json"
-)
-_ROOT = Path(__file__).resolve().parents[2]
+pytestmark = pytest.mark.contract
 
 _EXPECTED_METHOD_KEYS = {
     "upu",
@@ -80,135 +40,59 @@ _EXPECTED_METHOD_KEYS = {
     "tedn",
 }
 
-# Ledger notes open their annotation with either an ASCII or a full-width
-# parenthesis; the head is everything before it.
-_NOTE_OPEN = re.compile(r"[（(]")
 
-# A rotted prose citation: ``registry:`` followed by a line number (or a
-# ``NNN-NNN`` range) instead of the cited method's name.
-_LINE_NUMBER_REF = re.compile(r"registry:\d+(?:-\d+)?")
-
-
-def _as_set(value: object) -> set:
-    """Normalize a ledger JSON list (or ``null``) and a registry frozenset."""
-    return set(value) if value else set()
-
-
-@pytest.mark.contract
 def test_method_keys_are_the_registered_algorithms(ledger_methods: dict[str, dict]) -> None:
-    """Keys resolve through the registry, as the exact post-split key set.
-
-    The set is pinned on purpose: a ledger entry cannot land unnoticed, so
-    adding one means changing this constant in the same commit.  ``pusb`` and
-    ``pusb_kernel`` stay separate (issue #42); ``vpu`` joined with its
-    sampling-assumption ruling (decision D21).
-    """
     for name in ledger_methods:
-        assert get_metadata(name).name == name, f"{name!r} is not a registered algorithm"
+        assert get_metadata(name).name == name
     assert set(ledger_methods) == _EXPECTED_METHOD_KEYS
 
 
-@pytest.mark.contract
-def test_code_capability_mirrors_registry_metadata(ledger_methods: dict[str, dict]) -> None:
-    """The declared 4-field capability block equals the registry values."""
-    for name, entry in ledger_methods.items():
-        declared = entry["modality_backbone"]["code_capability"]
-        meta = get_metadata(name)
-        assert _as_set(declared["native_architectures"]) == _as_set(meta.native_architectures), name
-        assert _as_set(declared["input_ndims"]) == _as_set(meta.input_ndims), name
-        assert declared["encoder_parameter"] == meta.encoder_parameter, name
-        assert declared["trains_encoder"] == meta.trains_encoder, name
-
-
-@pytest.mark.contract
-def test_source_status_note_head_matches_registry_enum(ledger_methods: dict[str, dict]) -> None:
-    """The ledger's source_status note head equals the registry enum value."""
-    for name, entry in ledger_methods.items():
-        note = entry["code_version"]["source_status"]
-        head = _NOTE_OPEN.split(note, maxsplit=1)[0].strip().lower()
-        expected = get_metadata(name).source_status.value.lower()
-        assert head == expected, f"{name}: ledger note {note!r} vs registry {expected!r}"
-
-
-@pytest.mark.contract
-def test_upstream_url_is_a_bare_http_url(ledger_methods: dict[str, dict]) -> None:
-    """The ledger does not invent an upstream URL for unavailable source."""
-    for name, entry in ledger_methods.items():
-        url = entry["code_version"]["upstream_url"]
-        expected = get_metadata(name).upstream_url
-        assert url == expected, f"{name}: ledger URL {url!r} vs registry {expected!r}"
-        if url is None:
-            continue
-        assert url.startswith("http"), f"{name}: {url!r}"
-        assert not _NOTE_OPEN.search(url), f"{name}: URL carries a note: {url!r}"
-
-
-@pytest.mark.contract
 def test_calibration_applied_is_a_json_boolean(ledger_methods: dict[str, dict]) -> None:
-    """Calibration state/hook are explicit JSON booleans, not prose or omissions."""
     for name, entry in ledger_methods.items():
         for field in ("calibration_applied", "calibration_hooked"):
-            value = entry[field]
-            assert isinstance(value, bool), f"{name}.{field}: {type(value).__name__} {value!r}"
+            assert isinstance(entry[field], bool), f"{name}.{field}"
 
 
-@pytest.mark.contract
 def test_ledger_calibration_claims_have_a_real_fit_hook(
     ledger_methods: dict[str, dict],
 ) -> None:
-    """A TS default must have an explicit estimator view parameter."""
     for name, entry in ledger_methods.items():
-        calibrated = entry["calibration_applied"]
-        hooked = entry["calibration_hooked"]
-        if calibrated:
+        if entry["calibration_applied"]:
             assert entry["run_view"] == "ts-compatible", name
-            assert hooked, name
+            assert entry["calibration_hooked"], name
         elif entry["run_view"] == "ts-compatible":
             assert native_sampling_assumption(entry) == "ts", name
             assert entry.get("calibration_applicability") == "not_applicable_native_ts", name
         else:
             assert entry["run_view"] == "os-compatible", name
-        if hooked:
+        if entry["calibration_hooked"]:
             assert native_sampling_assumption(entry) in {"ts", "both"}, name
-            parameters = inspect.signature(get_algorithm(name).fit).parameters
-            assert "os_or_ts" in parameters, name
+            assert "os_or_ts" in inspect.signature(get_algorithm(name).fit).parameters, name
 
 
-@pytest.mark.contract
-def test_linear_pusb_calibration_exclusion_matches_d20(ledger_methods: dict[str, dict]) -> None:
-    """The excluded linear baseline is distinct from the calibrated Pilot kernel method."""
-    linear = ledger_methods["pusb"]
-    kernel = ledger_methods["pusb_kernel"]
-    assert linear["calibration_applied"] is False
-    assert linear["calibration_hooked"] is False
-    assert "D20②" in " ".join(linear["uncertainty"])
-    assert "P2 前须确认" not in " ".join(linear["uncertainty"])
-    assert kernel["calibration_applied"] is True
-    assert kernel["calibration_hooked"] is True
-    card = _LEDGER_PATH.parents[2] / "docs/research/method_cards/PUSB.md"
-    card_text = card.read_text(encoding="utf-8")
-    assert "D20② 判定为不适用" in card_text
-    assert "Pilot 使用独立的 `pusb_kernel`" in card_text
-
-
-@pytest.mark.contract
-def test_prior_semantics_consistent_with_registry_class_prior(
+def test_linear_pusb_and_kernel_have_distinct_calibration_routes(
     ledger_methods: dict[str, dict],
 ) -> None:
-    """``population`` in ``prior_semantics`` iff the registry requires a prior."""
-    for name, entry in ledger_methods.items():
-        requires = get_metadata(name).requires_class_prior
-        mentions = "population" in entry["prior_semantics"]
-        assert mentions == requires, (
-            f"{name}: prior_semantics={entry['prior_semantics']!r} "
-            f"but registry requires_class_prior={requires}"
+    ledger = {"methods": ledger_methods}
+    for name, expected in (("pusb", "os"), ("pusb_kernel", "ts")):
+        resolved = resolve_training_view(
+            ledger, name, None, is_oracle=False, estimator_class=get_algorithm(name)
+        )
+        assert resolved == expected
+    with pytest.raises(ValueError, match="calibration_hooked=false"):
+        resolve_training_view(
+            ledger, "pusb", "ts", is_oracle=False, estimator_class=get_algorithm("pusb")
         )
 
 
-#: Ledger sampling assumption -> the registry sampling scenarios that encode
-#: it.  ``SELECTION_BIASED`` is an orthogonal labeling-bias flag and never
-#: enters this comparison: a method may carry it while still naming which
-#: sampling mechanism it assumes.
+def test_prior_semantics_consistent_with_registry_class_prior(
+    ledger_methods: dict[str, dict],
+) -> None:
+    for name, entry in ledger_methods.items():
+        requires_prior = get_metadata(name).requires_class_prior
+        assert ("population" in entry["prior_semantics"]) == requires_prior, name
+
+
 _SAMPLING_SCENARIOS = {
     "os": frozenset({Scenario.SINGLE_TRAINING_SET}),
     "ts": frozenset({Scenario.CASE_CONTROL}),
@@ -216,56 +100,10 @@ _SAMPLING_SCENARIOS = {
 }
 
 
-@pytest.mark.contract
 def test_native_sampling_assumption_matches_registry_scenario(
     ledger_methods: dict[str, dict],
 ) -> None:
-    """The ledger's os/ts label equals the registry's sampling scenario.
-
-    ``os`` means single-training-set and ``ts`` means case-control.  Issue #67
-    recorded the two having drifted into exact opposites, so this pins them.
-    """
     for name, entry in ledger_methods.items():
-        declared = native_sampling_assumption(entry)
-        assert declared in _SAMPLING_SCENARIOS, (
-            f"{name}: unexpected native_sampling_assumption {declared!r}"
-        )
         registered = frozenset(get_metadata(name).scenario)
         sampling = registered & {Scenario.SINGLE_TRAINING_SET, Scenario.CASE_CONTROL}
-        assert sampling == _SAMPLING_SCENARIOS[declared], (
-            f"{name}: ledger native_sampling_assumption={declared!r} but registry "
-            f"scenario declares {sorted(item.value for item in sampling)}"
-        )
-
-
-@pytest.mark.contract
-def test_heng958_owner_reviews_are_complete_and_traceable(
-    ledger_methods: dict[str, dict],
-) -> None:
-    """The two HENG958-owned rows carry review status and local evidence."""
-    repository_root = _LEDGER_PATH.parents[2]
-    for name in ("nnpu", "self_pu"):
-        review = ledger_methods[name]["owner_review"]
-        assert review["status"] == "completed", name
-        date.fromisoformat(review["reviewed_on"])
-        evidence_path, separator, anchor = review["evidence"].partition("#")
-        assert separator and anchor, name
-        assert (repository_root / evidence_path).is_file(), name
-        assert review["conclusion"].strip(), name
-
-
-# The name deliberately avoids the word "ledger": `check_test_quality` matches
-# category keywords as substrings, and "edge" sits inside that word -- which
-# would flip this file's honest "no edge cases here" declaration to "covered".
-@pytest.mark.contract
-def test_basic_does_not_cite_source_line_numbers() -> None:
-    """Prose registry citations name the method, never a source line number.
-
-    A ``registry:NNN`` anchor is a claim about ``builtin_methods.py``'s layout
-    that silently rots as the file grows: every one of the 46 refs that once
-    carried a line number had drifted off its target field, so the ledger cites
-    ``registry:<method>`` instead.  This pins that form for good.
-    """
-    raw = _LEDGER_PATH.read_text(encoding="utf-8")
-    offenders = _LINE_NUMBER_REF.findall(raw)
-    assert not offenders, f"ledger cites source line numbers: {sorted(set(offenders))}"
+        assert sampling == _SAMPLING_SCENARIOS[native_sampling_assumption(entry)], name

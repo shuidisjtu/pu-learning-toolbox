@@ -8,9 +8,9 @@ import pytest
 from _survey_pilot_helpers import driver, splits_tree, unit_calls  # noqa: F401
 from _survey_recipe_registry_helpers import locked_registry, pool_registry
 from _survey_script_helpers import make_splits, survey_script  # noqa: F401
-from _survey_summary_helpers import config_for, summary_cli  # noqa: F401
 
 from pu_toolbox.experiment.pilot_plan import completed_runs, manifest_resume_key
+from pu_toolbox.experiment.results import build_summary
 from pu_toolbox.experiment.runner import ExperimentRunner
 from pu_toolbox.experiment.strategies import ProtocolOA, ProtocolPA
 from pu_toolbox.experiment.survey_execution import assemble_model
@@ -137,7 +137,7 @@ def test_edge_completed_runs_requires_exact_pool_and_trajectory_joins(survey_scr
     assert completed_runs(tmp_path / "result", expected_recipe_bindings={key: expected}) == {}
 
 
-def test_basic_cli_single_pool_has_a_separate_namespace(survey_script, summary_cli, tmp_path):
+def test_basic_cli_single_pool_has_a_separate_namespace(survey_script, tmp_path):
     source, out = tmp_path / "splits", tmp_path / "results"
     source.mkdir()
     make_splits(source)
@@ -147,7 +147,7 @@ def test_basic_cli_single_pool_has_a_separate_namespace(survey_script, summary_c
     args = [
         str(source),
         "--protocol",
-        "survey-v2.0",
+        "survey-v3.2",
         "--dataset",
         "spambase",
         "--method",
@@ -174,20 +174,9 @@ def test_basic_cli_single_pool_has_a_separate_namespace(survey_script, summary_c
     )
     assert matches_recipe_binding(payload, expected)
     assert scalar_path.read_bytes() == before
-    config = config_for({"B1": (out / f"recipe_pool_{canonical_digest(registry)}", 1)})
-    config["schema_version"] = "survey-batch-roots-2"
-    config["batches"][0].update(
-        recipe_policy="registry_bound",
-        recipe_registry=str(path),
-        recipe_registry_sha256=canonical_digest(registry),
-        recipe_binding_schema_version=SCHEMA_VERSION,
-    )
-    report = summary_cli.build_summary(config)
-    assert report["recipe_audit"]["overall"] == "pass"
-    # 17 analytic checks plus E01, the batch-evidence citation check (D52).
-    assert len(report["checks"]) == 18
+    report = build_summary([pool_path], expected_seeds=[0])
     assert len(report["rows"]) == 2
-    assert all(row["recipe_selection_bindings"] for row in report["rows"])
+    assert report["sources"][0]["selection"] == payload["selection"]
 
 
 def test_edge_schema_flag_without_registry_is_rejected_before_data_reads(

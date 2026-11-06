@@ -1,16 +1,16 @@
 # ruff: noqa: N803, F811
 """Protocol CLI checks and small end-to-end P2.0a evidence."""
 
-import copy
+import builtins
 import json
+from pathlib import Path
 
 import numpy as np
 import pytest
 import torch
 from _survey_script_helpers import make_splits, run_manifest, survey_script  # noqa: F401
 
-from pu_toolbox.experiment import survey_comparison
-from pu_toolbox.experiment.survey_protocol import PROTOCOL_PATH, load_protocol
+from pu_toolbox.experiment.survey_protocol import load_protocol
 
 pytestmark = pytest.mark.unit
 
@@ -21,87 +21,43 @@ def _splits(path, *, seed=0, dataset="spambase"):
     (path / "split_manifest.json").write_text(json.dumps({"dataset": dataset, "seed": seed}))
 
 
-def _ghosted_comparison(monkeypatch):
-    """Stand in for the shipped matrix with one mapping that covers no unit."""
-    payload = json.loads(survey_comparison.COMPARISON_PATH.read_text(encoding="utf-8"))
-    ghost = copy.deepcopy(payload["mappings"][0])
-    ghost["mapping_id"] = "ghost_unit_mapping"
-    ghost["result_selector"]["c_token"] = "0.9"
-    payload["mappings"].append(ghost)
-    # The loader binds the file to the protocol; the defect under test is the
-    # coverage of an already-valid matrix, so the loader is stood in for.
-    monkeypatch.setattr(
-        survey_comparison, "load_comparison_protocol", lambda *args, **kwargs: payload
-    )
-
-
-def _ghosted_v3_matrix(monkeypatch):
-    """Stand in for the v3-bound matrix with one mapping that covers no unit."""
-    payload = json.loads(
-        survey_comparison.resolve_comparison_path("survey-v3.0").read_text(encoding="utf-8")
-    )
-    ghost = copy.deepcopy(payload["mappings"][0])
-    ghost["mapping_id"] = "ghost_unit_mapping"
-    ghost["result_selector"]["c_token"] = "0.9"
-    payload["mappings"].append(ghost)
-    monkeypatch.setattr(
-        survey_comparison, "load_comparison_protocol", lambda *args, **kwargs: payload
-    )
-
-
-def test_param_coverage_gate_checks_the_matrix_of_the_protocols_own_version(
-    survey_script, tmp_path, capsys, monkeypatch
+@pytest.mark.parametrize("version", ["survey-v3.2"])
+def test_basic_param_versioned_training_requires_no_comparison_modules_or_files(
+    survey_script, tmp_path, monkeypatch, version
 ):
-    """A v3 run is checked against v5; one shipped default made it skip the gate."""
-    _ghosted_v3_matrix(monkeypatch)
-    args = _args(tmp_path / "missing", tmp_path / "out")
-    args[args.index("survey-v2.0")] = "survey-v3.0"
-    args[args.index("upu")] = "nnpu"
+    """Scientific execution stays available when literature metadata is unavailable."""
+    data, out = tmp_path / "data", tmp_path / "out"
+    _splits(data)
+    real_import, real_read = builtins.__import__, Path.read_text
 
-    assert survey_script.main(args) == 1
-    assert "ghost_unit_mapping" in capsys.readouterr().err
+    def guarded_import(name, *args, **kwargs):
+        if name.rsplit(".", 1)[-1] in {"survey_comparison", "survey_profile_map"}:
+            raise AssertionError(f"training imported optional comparison module: {name}")
+        return real_import(name, *args, **kwargs)
 
+    def guarded_read(path, *args, **kwargs):
+        if path.name.startswith("survey_comparison"):
+            raise AssertionError(f"training read optional comparison metadata: {path.name}")
+        return real_read(path, *args, **kwargs)
 
-def test_param_comparison_coverage_defect_aborts_before_any_split_is_read(
-    survey_script, tmp_path, capsys, monkeypatch
-):
-    """A mapping that covers nothing is refused at startup, not left to the runs.
-
-    Checked once, before seeds, encoders or output directories exist.  Per run
-    it would be invisible: the unit it fails to cover is simply resolved by
-    nothing, and the manifest would carry no comparison entry at all.
-    """
-    _ghosted_comparison(monkeypatch)
-
-    assert survey_script.main(_args(tmp_path / "missing", tmp_path / "out")) == 1
-    assert "ghost_unit_mapping" in capsys.readouterr().err
-    assert not (tmp_path / "out").exists()
-
-
-def test_param_coverage_gate_follows_the_matrix_contents_not_its_path(
-    survey_script, tmp_path, capsys, monkeypatch
-):
-    """A byte copy of the shipped matrix is still the shipped matrix.
-
-    Keying the gate on the path let a copy skip it, while the run's comparison
-    entry was still resolved against the shipped file -- so the copy bought no
-    safety and lost the only check that catches a ghost mapping.
-    """
-    _ghosted_comparison(monkeypatch)
-    copy_path = tmp_path / "matrix.json"
-    copy_path.write_text(PROTOCOL_PATH.read_text(encoding="utf-8"))
-    args = _args(tmp_path / "missing", tmp_path / "out")
-    args[args.index("survey-v2.0")] = str(copy_path)
-
-    assert survey_script.main(args) == 1
-    assert "ghost_unit_mapping" in capsys.readouterr().err
+    monkeypatch.setattr(builtins, "__import__", guarded_import)
+    monkeypatch.setattr(Path, "read_text", guarded_read)
+    args = _args(data, out)
+    args[args.index("survey-v3.2")] = version
+    assert survey_script.main(args) == 0
+    payload = json.loads(run_manifest(out, "c_0.5", "seed_0").read_text(encoding="utf-8"))
+    assert payload["protocol_version"] == version
+    assert payload["budget"]["unit"] == "one_closed_form_fit"
+    assert set(payload["selection"]) == {"PA", "OA"}
+    assert "comparison" not in payload
+    assert "comparison_registration_status" not in payload
 
 
 def _args(data, out):
     return [
         str(data),
         "--protocol",
-        "survey-v2.0",
+        "survey-v3.2",
         "--dataset",
         "spambase",
         "--method",
@@ -120,10 +76,53 @@ def test_basic_versioned_cli_records_protocol_and_actual_budget(survey_script, t
     _splits(data)
     assert survey_script.main(_args(data, out)) == 0
     payload = json.loads(run_manifest(out, "c_0.5", "seed_0").read_text(encoding="utf-8"))
-    assert payload["protocol_version"] == "survey-v2.0"
+    assert payload["protocol_version"] == "survey-v3.2"
     assert payload["budget"]["unit"] == "one_closed_form_fit"
     assert payload["formal_eligible"] is False
     assert payload["training_path"] == "native_2d"
+    assert payload["code_identity"]["code_commit_state"] in {"recorded", "unavailable"}
+    assert payload["dependency_lock"]["state"] == "recorded"
+    assert len(payload["dependency_lock"]["sha256"]) == 64
+
+
+@pytest.mark.parametrize("batch", [None, {"batch_id": "b" * 64}])
+def test_param_run_identity_records_unavailable_or_retains_the_batch_reference(
+    survey_script, tmp_path, monkeypatch, batch
+):
+    from pu_toolbox.experiment import batch_evidence
+
+    code = {"code_commit": None, "code_commit_dirty": None, "code_commit_state": "unavailable"}
+    lock = {"path": "uv.lock", "sha256": None, "state": "unavailable"}
+    monkeypatch.setattr(batch_evidence, "code_identity", lambda: code)
+    monkeypatch.setattr(batch_evidence, "dependency_lock", lambda: lock)
+    path = tmp_path / "manifest.json"
+    path.write_text(
+        json.dumps(
+            {
+                "seed": 0,
+                "split_ref": {},
+                "generation": {},
+                "selection": {},
+                "test_results": {},
+                "elapsed": 0,
+                "failures": [],
+                "resources": {},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    survey_script._record_run_context(path, c_token="0.5", batch=batch)
+
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    assert manifest["c_requested_token"] == "0.5"
+    if batch is None:
+        assert manifest["code_identity"] == code
+        assert manifest["dependency_lock"] == lock
+    else:
+        assert manifest["batch"] == batch
+        assert "code_identity" not in manifest
+        assert "dependency_lock" not in manifest
 
 
 def test_param_locked_constructor_rejected_before_reading_splits(survey_script, tmp_path, capsys):
@@ -145,11 +144,11 @@ def test_param_locked_candidate_rejected_before_reading_splits(survey_script, tm
     assert "protocol-locked" in capsys.readouterr().err
 
 
-def test_edge_oracle_native_cnn_cannot_silently_run_mlp(survey_script, tmp_path, capsys):
+def test_edge_oracle_native_cnn_requires_image_splits(survey_script, tmp_path, capsys):
     args = [
         str(tmp_path / "missing"),
         "--protocol",
-        "survey-v2.0",
+        "survey-v3.2",
         "--dataset",
         "cifar10",
         "--oracle",
@@ -157,14 +156,14 @@ def test_edge_oracle_native_cnn_cannot_silently_run_mlp(survey_script, tmp_path,
         "native_cnn",
     ]
     assert survey_script.main(args) == 1
-    assert "Phase 2" in capsys.readouterr().err
+    assert "missing split files" in capsys.readouterr().err
 
 
-def test_edge_kldce_rejected_before_reading_splits(survey_script, tmp_path, capsys):
+def test_edge_kldce_requires_splits_before_runtime_prior_binding(survey_script, tmp_path, capsys):
     args = _args(tmp_path / "missing", tmp_path / "out")
     args[args.index("upu")] = "kldce"
     assert survey_script.main(args) == 1
-    assert "flip_probability" in capsys.readouterr().err
+    assert "missing split files" in capsys.readouterr().err
     assert not (tmp_path / "out").exists()
 
 

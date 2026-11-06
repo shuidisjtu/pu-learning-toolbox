@@ -19,7 +19,7 @@ from .cvir_adapter import CVIRPopulationPriorTrainer
 from .kernel_candidate import KLDCECandidateTrainer
 
 ADAPTER = "survey-backlog-1"
-PROTOCOLS = ("survey-v3.1", "survey-v3.2")
+PROTOCOLS = ("survey-v3.2",)
 DEEP_METHODS = ("gradpu", "pan", "p3mix", "vpu", "cvir")
 VIEWS = dict(gradpu="ts", pan="os", p3mix="os", vpu="ts", cvir="ts")
 
@@ -27,7 +27,7 @@ VIEWS = dict(gradpu="ts", pan="os", p3mix="os", vpu="ts", cvir="ts")
 def backlog_trainer(method, protocol):
     """Choose only the adapter explicitly bound by the new protocol revision."""
     if protocol.get("protocol_version") not in PROTOCOLS:
-        raise ValueError("backlog adapters require survey-v3.1 or survey-v3.2")
+        raise ValueError("backlog adapters require survey-v3.2")
     if method in DEEP_METHODS:
         return SurveyBacklogTrainer(method)
     if method in {"puet", "rp"}:

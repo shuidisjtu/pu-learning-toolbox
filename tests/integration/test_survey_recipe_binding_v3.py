@@ -8,13 +8,14 @@ from pathlib import Path
 
 import pytest
 
+from pu_toolbox.experiment.results import build_summary
 from pu_toolbox.experiment.survey_protocol import digest, load_protocol, resolve_protocol_path
-from pu_toolbox.experiment.survey_recipe_audit import validate_consumed_bindings
 from pu_toolbox.experiment.survey_recipe_registry import (
     bind_recipe_candidate,
     canonical_digest,
     load_registry,
 )
+from pu_toolbox.experiment.survey_summary import SummaryError
 from tests.unit.experiment._survey_script_helpers import (  # noqa: F401
     make_sar_splits,
     make_splits,
@@ -25,7 +26,7 @@ from tests.unit.experiment._survey_script_helpers import (  # noqa: F401
 pytestmark = pytest.mark.integration
 
 ROOT = Path(__file__).resolve().parents[2]
-REGISTRY = ROOT / "pu_toolbox/experiment/survey_recipe_registry_v1.json"
+REGISTRY = ROOT / "pu_toolbox/experiment/survey_recipe_registry_v1_2.json"
 
 #: Every place a bound manifest repeats the identity it consumed.
 CARRIED = (
@@ -39,7 +40,7 @@ CARRIED = (
 
 
 def v3():
-    return load_protocol(resolve_protocol_path("survey-v3.0"))
+    return load_protocol(resolve_protocol_path("survey-v3.2"))
 
 
 def expected_binding():
@@ -80,7 +81,7 @@ def bound_run(tmp_path_factory, survey_script):
         [
             str(data_dir),
             "--protocol",
-            "survey-v3.0",
+            "survey-v3.2",
             "--dataset",
             "spambase",
             "--method",
@@ -128,34 +129,29 @@ def test_param_candidates_and_selection_carry_the_same_binding(bound_run):
             assert child[field] == binding[field], field
 
 
-def test_basic_bound_run_passes_the_aggregation_gate(bound_run):
-    manifest, _ = bound_run
-    validate_consumed_bindings([manifest], {"nnpu": expected_binding()}, protocol=v3())
+def test_basic_bound_run_reaches_read_only_result_summary(bound_run):
+    manifest, path = bound_run
+    report = build_summary([path], expected_seeds=[0])
+    assert len(report["rows"]) == 2
+    assert report["sources"][0]["selection"] == manifest["selection"]
+    assert all(row["status"] == "partial" for row in report["rows"])
 
 
-def test_edge_tampered_binding_is_rejected(bound_run):
+def test_edge_tampered_binding_is_rejected(bound_run, tmp_path):
     manifest, _ = bound_run
     tampered = copy.deepcopy(manifest)
     tampered["selection"]["OA"]["resolved_params_sha256"] = "0" * 64
 
-    with pytest.raises(ValueError):
-        validate_consumed_bindings([tampered], {"nnpu": expected_binding()}, protocol=v3())
+    path = tmp_path / "manifest.json"
+    path.write_text(json.dumps(tampered), encoding="utf-8")
+    with pytest.raises(SummaryError, match="recipe"):
+        build_summary([path], expected_seeds=[0])
 
 
-def test_determ_repeated_audits_are_identical_and_do_not_mutate(bound_run):
-    manifest, _ = bound_run
+def test_determ_repeated_summaries_are_identical_and_do_not_mutate(bound_run):
+    manifest, path = bound_run
     before = copy.deepcopy(manifest)
-    expected = expected_binding()
-    expected_before = copy.deepcopy(expected)
-
-    validate_consumed_bindings([manifest], {"nnpu": expected}, protocol=v3())
-    validate_consumed_bindings([manifest], {"nnpu": expected}, protocol=v3())
-
+    original = path.read_bytes()
+    assert build_summary([path], expected_seeds=[0]) == build_summary([path], expected_seeds=[0])
     assert manifest == before
-    assert expected == expected_before
-
-
-def test_edge_bound_run_without_expectations_is_refused(bound_run):
-    manifest, _ = bound_run
-    with pytest.raises(ValueError, match="batch audit"):
-        validate_consumed_bindings([manifest], None, protocol=v3())
+    assert path.read_bytes() == original

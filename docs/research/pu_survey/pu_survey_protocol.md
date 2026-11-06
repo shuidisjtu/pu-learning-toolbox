@@ -4,7 +4,7 @@
 > 具有长期参考价值。
 >
 > 相关文档：实验层设计与实现现状见 [experiment_layer.md](../../dev/experiment_layer.md)；
-> 执行状态与进度审计见 [survey_execution_plan.md](survey_execution_plan.md)；
+> 当前能力边界见 [README](README.md)，命令见 [runbook](runbook.md)；
 > 与双架构计划的关系见 [dual_architecture_plan.md §7](../../dev/dual_architecture_plan.md)；
 > 算法方法实现状态与台账见 [METHOD_CARDS](../method_cards/)。
 
@@ -13,9 +13,8 @@
 > clean support 统一按 `PA+clean-support` 同表另列；明确架构例外判定标准与配方登记。
 > 见 §1.2、§2.3、§2.4、§2.5、§3、§4、§5。
 >
-> 本次新增条款的复核状态见 `pu_toolbox/experiment/survey_protocol_v2.json` 的
-> `review_items`：训练期 clean support 统一口径与 Self-PU 完整变体范围两项待HENG958复核，
-> 其余按已确认记录（2026-10-21）。
+> 新运行仅使用 `survey-v3.2` 和 `survey-recipes-v1.2`。既有 v3 结果按原始记录只读消费，
+> 历史协议与过程材料从清理前提交 `7d11f2c4` 查阅；不将历史结果改标为新版本。
 
 ## 0. 参考文献
 
@@ -83,7 +82,7 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
 - 20News 使用 `bydate` 版本，按新闻组名称的首段前缀映射为 Alt(0)、Comp(1)、Misc(2)、Rec(3)、Sci(4)、Soc(5)、Talk(6)，依据 Table B.1（`assets/Dataset.png`）。目录和文件名稳定排序，`latin-1` 解码，不额外删除头部、页脚或引用；沿用 PU-Bench `data/News20_PU.py` 的 `remove=()` 口径，之后使用固定 revision 的 SBERT。
 - Connect-4 保留 `win/loss/draw` 标签语义，42 格按 `a1,a2,…,a6,b1,…,g6` 排列；每格固定 `b,o,x` 三列独热编码为 126 维。划分后仅以 `train` 拟合逐列 z-score，其余三角色复用参数，常量列使用零方差保护。这一步标准化是shuidisjtu确定的统一表格处理口径，与所核查 PU-Bench 加载器仅独热编码的路径有差异，不声明特征完全等价。
 
-以上只锁定输入读取与 split 预处理，不改冻结的 `survey_protocol_v1.json`，也不表示新数据集的主榜运行协议已经冻结。
+以上规定输入读取与 split 预处理；执行配方、可运行范围与正式资格以所用 v3.x 协议及其绑定为准。
 
 > **ADNI 槽位说明（2026-10-12）**：论文 2 的 Table B.1 把该数据集称为 Alzheimer MRI，类别编号为 NonDemented 0、VeryMildDemented 1、ModerateDemented 2、MildDemented 3，故 `0 vs 1,2,3` 即 NonDemented 为正类（先验 0.5）。本项目实际使用的是 Kaggle 4 类集的转存（共 6400 张），**不是 ADNI 官方数据**，见[替代数据记录](data/adni_substitute_receipt_20261012.json)。PU-Bench 的加载器以 Moderate+Mild 为正类，与本协议不同，这里只借用其读取与预处理（灰度、缩放到 128×128），类别定义与切分按本协议。
 
@@ -103,14 +102,14 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
    > 若某方法的上游实现把某个验证量定义在合并边缘池上（例如 VPU 的验证变分风险，其上游
    > `val_x_loader` 取整个验证分区），该量**可以**作为 source diagnostic 计算、记录并作视图对照，
    > 但**不得**充当 PA/OA 选模准则；确需以其选模时，必须改用符合本条的 OS 视图并单独成文。
-   > 该量在方法 card 中因此须同时记录其上游定义与本条限制（见决策 D22）。
+   > 该量在方法 card 中因此须同时记录其上游定义与本条限制。
 
    > **校准的通用表述**：「训练期未标记风险项的作用集合为 $`D_U \cup D_P`$」是本协议对
    > 校准的操作定义。非 mini-batch 方法的等价实现也视为校准，例如 PUET 树模型在 TS 视图下
    > 把正例行同时复制为未标记风险角色（“逐树根”实现）；协议不要求形式上的 mini-batch。
    >
    > **校准不适用**：原生 TS、但不存在可替换未标记风险项的方法（如 PULNS 的奖励式训练、
-   > PUSB 的 D20② 判定），可以 `os` 视图运行；须在方法卡与台账论证“为何不存在可替换的
+   > PUSB 的秩选择训练），可以 `os` 视图运行；须在方法卡与台账论证“为何不存在可替换的
    > 未标记风险项”并登记，与“应校准而未校准”区分。未标记风险项可替换的原生 TS 方法必须
    > 校准（CVIR 据此重新裁决，除非另有论证）。
    >
@@ -155,7 +154,7 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
    support 正负标签均计入训练期真实标签预算
    （`budget_approval=approved_by_protocol_owner_20261021`）。本轮仅覆盖 Spambase、
    Connect-4、MNIST、F-MNIST、CIFAR-10；IMDB、20News、ADNI 排除。`PA+clean-support`
-   的正式执行路径作为 P3.2 实现门；路径完成前只报 OA，不把 OA 冒充 PA。PA 运行下
+   的执行路径必须分别记录选模结果，不把 OA 冒充 PA。PA 运行下
    不得复用 `clean_val`/`test` 作为 clean support。
 
 **（二）切分与重生成规则**
@@ -303,9 +302,8 @@ $`\pi_U`$ 还是无需先验；`calibration_applied=false` 的原生 TS 方法�
 才能进入主榜；未通过者公开列出原因。完整主榜以 22 个目标方法全部通过相应门禁为发布条件；
 在此之前只可发布明确标为 `pilot / partial benchmark` 的部分结果。
 
-> 当前源码审计与接入验收流程（`source-faithful` 判定、冒烟/对照要求）见
-> [pn_oracle_integration.md](admission/pn_oracle_integration.md)（PN oracle 口径）；算法接入台账的
-> 机器真相源是 `pu_toolbox/experiment/method_ledger.json`。
+> 实现能力和来源身份以算法注册表为准；公式、变体和局限见方法卡。
+> `method_ledger.json` 仅保存采样假设、校准接口与先验语义，不承载审核流水。
 
 ## 5. 结果、复现与交付验收
 
@@ -318,7 +316,7 @@ $`\pi_U`$ 还是无需先验；`calibration_applied=false` 的原生 TS 方法�
    比较；同步报告标准差、单配置训练成本、完整调参成本和峰值显存。暂不预设显著性检验门槛；
 3. 所有方法在同一数据集、$`c`$ 和协议下使用相同候选池、epoch 上限与早停规则；候选池按论文/
    官方代码预注册并记录候选数。超参数通过中心注册表统一管理（设计参考参考文献 1 代码库
-   `core/hparams_registry.py`；中心注册表落地属 P4.1）；
+   `core/hparams_registry.py`）；
 4. 同一数据集内统一最大 epoch、batch-size 候选范围、资源上限和调参预算；环境只规定 GPU/CPU、
    显存等级和软件栈等大类，不将本机硬件写入方案。实际型号、驱动和资源限制写入 artifact。
    单配置成本从模型初始化到最终 epoch，包含训练和每 epoch 验证，不含下载、SBERT 生成、split
@@ -328,11 +326,10 @@ $`\pi_U`$ 还是无需先验；`calibration_applied=false` 的原生 TS 方法�
    排除。修改参数后重跑视为新候选配置，须按同一条件对全部方法一致处理；
 6. 每个运行 artifact 必须固化：Python/PyTorch/CUDA/GPU 信息、方法和数据配置、中心超参数注册表
    版本、seed、split/label manifest、选择 artifact 和结果 schema 版本；代码 commit 与依赖锁文件
-   由**批次证据包**携带（一批一份，run 在 manifest 的 `batch` 块里引用它，见
-   [runbook](runbook.md) 第 4 节）。缺失任一项的结果标记为不可复现，不进入汇总主表；
-   2026-10-28 用户确认：完整 seed × c 网格可由多次合规子批次组成；子批次须在相同环境与
-   硬件配置下运行，并逐条核验批次引用、实际覆盖、协议及其余准入证据。分批本身不是实质偏离；
-   证据不足或环境不一致仍不得正式接收。历史 manifest 保持不变，裁定另行留痕；
+   可直接记录，也可由共享证据包承载（manifest 的 `batch` 块引用它，见
+   [runbook](runbook.md)）。缺失信息在结果来源与行原因中披露，导出不授予正式资格；
+   完整 seed × c 网格可由多次运行组成，但环境、划分和配置须可解释且一致。
+   历史 manifest 保持不变；已有汇总的审核结论继续作为原报告事实保留，不从新配置反推；
 7. 在上述条件满足后，再结合各方法局限性、可结合/改进点以及三类方法的优缺点分析实验结果。
    任何解释必须区分"文献事实""本实验观测"和"推断"。
 

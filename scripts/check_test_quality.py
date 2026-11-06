@@ -204,10 +204,6 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
         ),
     },
     "test_method_ledger.py": {
-        "basic": (
-            "the loader and the normaliser are asserted directly; the shipped "
-            "ledger's own consistency is asserted by the contract test"
-        ),
         "determ": "pure functions over fixed JSON payloads -- no randomness, no seed state",
         "param": (
             "the enum's rejection surface is asserted as unknown values rather "
@@ -282,24 +278,6 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
     },
     "test_training_view_routing.py": {
         "determ": ("the router is a pure function of a signature -- no randomness, no seed state"),
-    },
-    "test_aggregate_survey_budget_fairness.py": {
-        "basic": (
-            "budget-family comparability is asserted through the aggregation "
-            "entry point accepting or refusing a tree, not through its report "
-            "contents; the report path is covered by test_aggregate_survey_runs.py"
-        ),
-        "determ": (
-            "the comparison is a pure function over fixed budget dicts (no "
-            "randomness, no seed state); aggregation determinism is asserted in "
-            "test_aggregate_survey_runs.py"
-        ),
-    },
-    "test_aggregate_survey_cli.py": {
-        "determ": (
-            "the CLI decides exit codes and messages rather than values; "
-            "aggregation determinism is asserted in test_aggregate_survey_runs.py"
-        ),
     },
     "test_architecture_capability.py": {
         "basic": (
@@ -605,42 +583,7 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
             "{cpu, cuda}, never pinned to a fixed value"
         ),
     },
-    # The survey-comparison and runner-oracle suites were each split to stay
-    # under the per-file count, which by construction leaves each half holding
-    # fewer of the four categories: the named family (an ``error_rate`` test
-    # carrying "error", the ``test_param_oracle_rejects_*`` family) moved to
-    # the sibling file that owns that concern.  The categories are covered --
-    # just not by this file any more.
-    "test_survey_comparison.py": {
-        "param": (
-            "the loader's rejection surface is expressed as edge_ tests, one "
-            "_rejected call per rule; the one error_ test that carried the param "
-            "name moved to test_survey_comparison_verdict.py with the arithmetic "
-            "it belongs to"
-        ),
-    },
-    "test_survey_comparison_verdict.py": {
-        "determ": (
-            "verdicts are pure arithmetic over fixed inputs (no randomness, no "
-            "seed state); matrix digest determinism is asserted in "
-            "test_survey_comparison.py"
-        ),
-    },
-    "test_survey_comparison_classification.py": {
-        "param": (
-            "assertions over the classifications in the shipped matrix; there is "
-            "no callable here taking validated parameters"
-        ),
-        "edge": (
-            "the shipped matrix is a fixed fixture with no boundary inputs to "
-            "vary; boundary rejection is covered by test_survey_comparison.py "
-            "and test_survey_comparison_coverage.py"
-        ),
-        "determ": (
-            "reading a fixed JSON fixture decides nothing; matrix digest "
-            "determinism is asserted in test_survey_comparison.py"
-        ),
-    },
+    # Runner-oracle guards live separately from the successful execution path.
     "test_runner_oracle.py": {
         "param": (
             "the success path only; every wiring rejection is asserted in "

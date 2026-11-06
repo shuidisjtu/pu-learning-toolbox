@@ -5,7 +5,7 @@
 Protocol §5 clause 6 wants a code commit and a dependency lock behind every
 result; D44 moved them from each manifest to one packet per batch.  Three claims
 make that substitution safe, and these tests pin each of them: the packet
-carries the two fields ``survey_audit.BATCH_IDENTITY_FIELDS`` names, its identity
+carries the two fields ``batch_evidence.BATCH_IDENTITY_FIELDS`` names, its identity
 follows its content rather than its location, and a run cannot check a packet
 that describes a different batch.
 """
@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 
 from pu_toolbox.experiment import batch_evidence as be
-from pu_toolbox.experiment.survey_audit import BATCH_IDENTITY_FIELDS
+from pu_toolbox.experiment.batch_evidence import BATCH_IDENTITY_FIELDS
 from pu_toolbox.utils.serialization import file_hash
 
 pytestmark = pytest.mark.unit
@@ -43,7 +43,7 @@ def packet(**overrides) -> dict:
         "unit": UNIT,
         "seeds": (0, 1),
         "c_tokens": ("0.1",),
-        "protocol_version": "survey-v3.0",
+        "protocol_version": "survey-v3.2",
         "protocol_sha256": PROTOCOL_SHA,
         "code": CODE,
         "lock": LOCK,

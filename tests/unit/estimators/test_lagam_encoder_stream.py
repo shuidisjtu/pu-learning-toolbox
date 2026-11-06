@@ -3,9 +3,7 @@
 
 import copy
 import inspect
-import json
 import pickle
-from pathlib import Path
 
 import numpy as np
 import pytest
@@ -242,31 +240,3 @@ def test_basic_cnn_support_still_excluded_from_ui_pu_only_and_standard_trainer()
     with pytest.raises(ValueError, match="PA-ineligible"):
         EpochCheckpointTrainer().fit(model(encoder=ImageEncoder()), X, y)
     assert "os_or_ts" not in inspect.signature(LaGAMClassifier.fit).parameters
-
-
-def test_basic_source_receipt_keeps_sampling_conflict_and_unsigned_budget():
-    root = Path(__file__).resolve().parents[3]
-    receipt = json.loads(
-        (root / "docs/research/pu_survey/data/lagam_source_review_20261015.json").read_text(
-            encoding="utf-8"
-        )
-    )
-    for name, value in receipt["toolbox_defaults"].items():
-        assert inspect.signature(LaGAMClassifier).parameters[name].default == value
-    assert receipt["source"]["commit"] == "362a7f41fcf3d4e4161fe99f4aab4e6128b6a5d8"
-    assert receipt["sampling"]["published_split_view"] == "os"
-    assert receipt["sampling"]["existing_registry_view"] == "ts"
-    assert receipt["sampling"]["decision"] == "pending_method_owner_review"
-    assert receipt["sampling"]["resolution"]["registry_view"] == "os"
-    assert receipt["sampling"]["resolution"]["human_signature"] is False
-    assert not receipt["formal_admission"] and not receipt["calibration_applied"]
-    assert receipt["owner_signatures"] == [] and receipt["candidate_protocol_ref"] is None
-    from pu_toolbox.experiment.method_ledger import load_ledger
-
-    review = load_ledger()["methods"]["lagam"]["sampling_review"]
-    assert review == dict(
-        registry_view="os",
-        source_split_view="os",
-        review_status="source_aligned_metadata_corrected",
-        registry_relabelled=True,
-    )

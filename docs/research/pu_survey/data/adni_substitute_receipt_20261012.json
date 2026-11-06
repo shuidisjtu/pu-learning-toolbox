@@ -68,14 +68,7 @@
     ],
     "positive_rate_per_role": 0.5,
     "audit": "read-only audit on all five seeds: roles disjoint and together the 6400 source rows; every role's array equals the source row its index names and its label is the binarised class; train-only mean/std recomputed from train match the manifest within 1e-8; test sets differ across seeds; validate_bundle passes",
-    "not_checkable": "same-subject slices across roles (the source has no subject ids)",
-    "archive": {
-      "file": "adni-splits.tar",
-      "bytes": 292147200,
-      "sha256": "ae1a3fefe30d35aa3ef5822bee9d26d9ac110d2dbd7244b4ddcd5bea9a48414e",
-      "index": "adni_split_artifacts_index_20261012.json",
-      "verified": "all 25 files of the five splits match the index; verifying against data/splits also lists the other datasets' 15 splits as unexpected, which is expected"
-    }
+    "not_checkable": "same-subject slices across roles (the source has no subject ids)"
   },
   "known_risks": [
     "same-subject slices may fall on both sides of a split; the source has no subject ids, so this cannot be checked",

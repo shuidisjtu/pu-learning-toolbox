@@ -1,19 +1,12 @@
 # ruff: noqa: F811
-"""Approved support may be formal while remaining separate from pure PU ranking."""
+"""Support results retain their supervision budget and separate PA identity."""
 
-import copy
 import json
 
 import pytest
-from _survey_summary_helpers import (  # noqa: F401
-    config_for,
-    entry,
-    manifest,
-    summary_cli,
-    write_config,
-    write_tree,
-)
+from _survey_summary_helpers import manifest, summary_cli, write_tree  # noqa: F401
 
+from pu_toolbox.experiment.results import build_summary
 from pu_toolbox.experiment.survey_summary import SummaryError
 
 pytestmark = pytest.mark.unit
@@ -36,199 +29,79 @@ def _support(seed=0):
     return payload
 
 
-def _rows(script, payloads):
-    rows, runs, _ = script.collect_observations(
-        [entry(payload, name=f"seed_{payload['seed']}.json") for payload in payloads],
-        metrics=script.CARRIED_METRICS,
-    )
-    return script.build_rows(
-        rows, expected_seeds=[0, 1], gate_reasons={}, unrecorded_by_run={}
-    ), runs
-
-
-def _approved_support(seed=0):
-    from pu_toolbox.experiment.survey_protocol import PROTOCOL_PATHS, digest, load_protocol
-
-    protocol = load_protocol(PROTOCOL_PATHS["survey-v3.0"])
-    payload = _support(seed)
-    payload["protocol_version"] = protocol["protocol_version"]
-    payload["protocol_sha256"] = digest(protocol)
-    payload["execution_unit"] = next(
-        row
-        for row in protocol["execution_units"]
-        if row["method"] == "lagam"
-        and row["dataset"] == "spambase"
-        and row["training_path"] == "native_2d"
-    )
-    payload["extra_supervision"].update(
-        support_source_verified=True,
-        all_role_isolation_verified=True,
-        support_removed_from_train=True,
-    )
-    return payload
-
-
-def test_basic_approved_support_can_be_formal_without_pure_pu_ranking(summary_cli):
-    rows, _ = _rows(summary_cli, [_approved_support(0), _approved_support(1)])
-    assert {row["status"] for row in rows} == {"formal"}
-    assert all(not row["pure_pu_comparison_eligible"] for row in rows)
-    assert all("extra_clean_support" not in row["reasons"] for row in rows)
-
-
-@pytest.mark.parametrize(
-    "field,value",
-    [
-        ("support_source_verified", False),
-        ("all_role_isolation_verified", False),
-        ("support_removed_from_train", False),
-        ("support_samples", 101),
-        ("support_positive_labels", None),
-        ("support_negative_labels", -1),
-    ],
-)
-def test_edge_unverified_support_does_not_inherit_policy_approval(summary_cli, field, value):
-    payloads = [_approved_support(seed) for seed in (0, 1)]
-    payloads[1]["extra_supervision"][field] = value
-    rows, _ = _rows(summary_cli, payloads)
-    assert all(row["status"] == "partial" for row in rows)
-
-
-def test_edge_approved_support_keeps_unrelated_formal_blockers(summary_cli):
-    payloads = [_approved_support(seed) for seed in (0, 1)]
-    payloads[1]["formal_blockers"] = ["protocol_deviation"]
-    rows, _ = _rows(summary_cli, payloads)
-    assert all(row["status"] == "partial" for row in rows)
-    assert all("protocol_deviation" in row["reasons"] for row in rows)
-
-
-def test_basic_support_protocol_is_not_dropped_or_renamed_and_cost_is_once(summary_cli):
-    rows, runs = _rows(summary_cli, [_support(0), _support(1)])
-
-    assert {row["result_identity"]["selection_protocol"] for row in rows} == {
-        "pa+clean-support",
-        "oa",
+def test_basic_support_identity_and_per_seed_label_budget_are_preserved(tmp_path):
+    root = write_tree(tmp_path, {str(seed): _support(seed) for seed in (0, 1)})
+    report = build_summary([root], expected_seeds=[0, 1])
+    assert {row["row_key"]["selection_protocol"] for row in report["rows"]} == {
+        "PA+clean-support",
+        "OA",
     }
-    assert {row["row_key"]["selection_protocol"] for row in rows} == {"PA+clean-support", "OA"}
-    assert len(runs) == 1
-    assert len(next(iter(runs.values()))) == 2
-    for row in rows:
-        assert row["status"] == "partial"
-        assert "extra_clean_support" in row["reasons"]
+    assert len(report["run_costs"]) == 1
+    for row in report["rows"]:
         assert row["pure_pu_comparison_eligible"] is False
         assert row["metric"]["n_observed"] == 2
         assert row["extra_supervision_by_seed"]["1"]["support_positive_labels"] == 41
-        assert set(row["additional_metrics"]) == {"auc", "f1", "precision", "recall"}
+        assert row["status"] == "partial"
+    assert report["run_costs"][0]["costs"]["tuning_cost_seconds"]["sum"] == 400
 
 
-def test_edge_missing_support_seed_keeps_missing_and_unavailable_metrics_separate(summary_cli):
-    rows, _ = _rows(summary_cli, [_support()])
-    for row in rows:
+def test_edge_missing_support_seed_and_unavailable_metric_are_distinct(tmp_path):
+    tree = write_tree(tmp_path, {"run": _support()})
+    report = build_summary([tree], expected_seeds=[0, 1])
+    for row in report["rows"]:
         assert row["metric"]["missing_seeds"] == [1]
         assert row["additional_metrics"]["f1"]["unavailable_seeds"] == [0]
 
 
 @pytest.mark.parametrize("keep_metadata", [True, False])
-def test_param_support_protocol_cannot_be_ranked_even_if_manifest_claims_formal(
-    summary_cli, keep_metadata
-):
+def test_param_support_selection_cannot_gain_pure_pu_or_formal_status(tmp_path, keep_metadata):
     payload = _support()
     if not keep_metadata:
         del payload["extra_supervision"]
-    rows, _ = _rows(summary_cli, [payload])
-    assert all(row["status"] != "formal" for row in rows)
-
-
-def test_edge_pure_pa_with_explicit_extra_support_is_rejected(summary_cli):
-    payload = _support()
-    payload["test_results"]["PA"] = {"accuracy": 0.9}
-    with pytest.raises(SummaryError, match="pure PA"):
-        _rows(summary_cli, [payload])
-
-
-def test_edge_support_and_pure_results_cannot_merge_even_with_same_group_key(summary_cli):
-    with pytest.raises(SummaryError, match="supervision"):
-        _rows(summary_cli, [_support(0), manifest(seed=1)])
-
-
-def test_basic_legacy_pa_oa_remain_formal_without_new_metadata(summary_cli):
-    rows, _ = _rows(summary_cli, [manifest(seed=0), manifest(seed=1)])
-    assert {row["status"] for row in rows} == {"formal"}
-    assert all("extra_supervision_by_seed" not in row for row in rows)
-
-
-def test_basic_cli_renders_support_separately_without_formal_admission(summary_cli, tmp_path):
-    root = write_tree(tmp_path / "input", {"seed0": _support(0), "seed1": _support(1)})
-    config = write_config(tmp_path / "roots.json", config_for({"support": (root, 2)}))
-    output = tmp_path / "out"
-    summary_cli.main(["--config", str(config), "--out-dir", str(output)])
-    report = json.loads((output / "summary.json").read_text(encoding="utf-8"))
-    assert len(report["rows"]) == 2
+    tree = write_tree(tmp_path, {"run": payload})
+    report = build_summary([tree], expected_seeds=[0])
+    assert all(row["pure_pu_comparison_eligible"] is False for row in report["rows"])
     assert all(row["status"] != "formal" for row in report["rows"])
-    assert "PA+clean-support" in (output / "summary.md").read_text(encoding="utf-8")
 
 
-def test_determ_support_summary_is_repeatable_and_does_not_mutate_input(summary_cli):
-    payloads = [_support(0), _support(1)]
-    before = copy.deepcopy(payloads)
-    assert _rows(summary_cli, payloads) == _rows(summary_cli, payloads)
-    assert payloads == before
-
-
-def test_basic_independent_support_manifests_use_explicit_diagnostic_mode(summary_cli, tmp_path):
-    payloads = []
-    for seed in (0, 1):
-        payload = _support(seed)
-        for field in (
-            "execution_unit",
-            "training_path",
-            "representation",
-            "budget",
-            "protocol_version",
-            "protocol_sha256",
-        ):
-            del payload[field]
-        payload["execution_mode"] = "technical_smoke"
-        payload["formal_eligible"] = False
-        payload["formal_blockers"] = ["no_versioned_survey_protocol"]
-        payload["extra_supervision"].update(method="lagam", dataset="spambase")
-        payload["estimator_parameters"] = {"max_epochs": 3, "random_state": seed}
-        payloads.append(payload)
-    root = write_tree(tmp_path / "input", {str(p["seed"]): p for p in payloads})
-    config = write_config(
-        tmp_path / "roots.json",
-        config_for({"support": (root, 2)}, expected_seeds=[0, 1, 2]),
+def test_edge_support_blockers_remain_visible_even_when_metadata_claims_approval(tmp_path):
+    payload = _support()
+    payload["extra_supervision"].update(
+        support_source_verified=True,
+        all_role_isolation_verified=True,
+        support_removed_from_train=True,
     )
-    output = tmp_path / "out"
-    assert (
-        summary_cli.main(["--config", str(config), "--out-dir", str(output), "--clean-support"])
-        == 0
-    )
-    report = json.loads((output / "summary.json").read_text(encoding="utf-8"))
-    assert report["formal_readiness_assessed"] is False
-    assert len(report["rows"]) == 2
-    assert all(row["metric"]["missing_seeds"] == [2] for row in report["rows"])
-    assert all(row["status"] == "technical_probe" for row in report["rows"])
-    assert len(report["run_costs"]) == 1
-    assert report["rows"][0]["extra_supervision_by_seed"]["0"]["support_samples"] == 100
-    assert "PA+clean-support" in (output / "summary.md").read_text(encoding="utf-8")
-    assert len(report["input_manifest_sha256"]) == 2
-    payloads[1]["estimator_parameters"]["max_epochs"] = 4
-    write_tree(root, {str(p["seed"]): p for p in payloads})
-    split_report = summary_cli.build_clean_support_summary(
-        config_for({"support": (root, 2)}, expected_seeds=[0, 1, 2])
-    )
-    assert len(split_report["rows"]) == 4
-    assert len(split_report["run_costs"]) == 2
+    payload["formal_blockers"] = ["protocol_deviation"]
+    tree = write_tree(tmp_path, {"run": payload})
+    report = build_summary([tree], expected_seeds=[0])
+    assert all(row["status"] != "formal" for row in report["rows"])
+    assert all(row["formal_blockers"] == ["protocol_deviation"] for row in report["rows"])
 
 
-@pytest.mark.parametrize("seeds", [None, [], [0, 0], [True], [-1]])
-def test_param_diagnostic_mode_requires_explicit_expected_seeds(summary_cli, seeds):
-    with pytest.raises(SummaryError, match="expected_seeds"):
-        summary_cli.build_clean_support_summary({"expected_seeds": seeds})
+def test_edge_support_and_pure_results_cannot_merge_in_one_method_row(tmp_path):
+    tree = write_tree(tmp_path, {"support": _support(0), "pure": manifest(seed=1)})
+    with pytest.raises(SummaryError, match="configurations"):
+        build_summary([tree], expected_seeds=[0, 1])
 
 
-def test_edge_diagnostic_mode_rejects_versioned_inputs(summary_cli, tmp_path):
-    root = write_tree(tmp_path / "input", {"seed0": _support()})
-    config = config_for({"support": (root, 1)}, expected_seeds=[0])
-    with pytest.raises(SummaryError, match="independent technical_smoke"):
-        summary_cli.build_clean_support_summary(config)
+def test_basic_determ_cli_reports_support_without_mutating_inputs(summary_cli, tmp_path):
+    root = write_tree(tmp_path / "input", {"run": _support()})
+    path = root / "run/manifest.json"
+    original = path.read_bytes()
+    outputs = []
+    for name in ("one", "two"):
+        out = tmp_path / name
+        assert (
+            summary_cli.main(
+                ["--manifests", str(root), "--expected-seeds", "0", "--out-dir", str(out)]
+            )
+            == 0
+        )
+        output = json.loads((out / "summary.json").read_text(encoding="utf-8"))
+        output.pop("generated_at")
+        outputs.append(output)
+    assert outputs[0] == outputs[1]
+    assert path.read_bytes() == original
+    report = outputs[0]
+    assert all(row["status"] != "formal" for row in report["rows"])
+    assert "PA+clean-support" in (tmp_path / "one/summary.md").read_text(encoding="utf-8")

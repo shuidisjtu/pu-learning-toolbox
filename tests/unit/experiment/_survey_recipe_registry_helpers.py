@@ -18,12 +18,9 @@ from typing import Any
 
 from pu_toolbox.experiment.survey_protocol import digest, load_protocol
 from pu_toolbox.experiment.survey_recipe_registry import (
-    BASE_REF_PREFIX,
-    BUDGET_BINDING_PREFIX,
-    SCHEMA_VERSION,
-    SELECTION_SPEC_REF,
     canonical_digest,
     profile_id,
+    protocol_refs,
     resolve_candidate,
     resolved_params_digest,
 )
@@ -94,7 +91,7 @@ def inner_search(method: str = "pusb_kernel") -> dict[str, Any]:
     """
     return {
         "inner_search_id": f"{method}_sigma_reg_cv",
-        "grid_ref": f"{BASE_REF_PREFIX}{method}.params",
+        "grid_ref": f"{protocol_refs(load_protocol()).base_ref_prefix}{method}.params",
     }
 
 
@@ -118,8 +115,10 @@ def profile(
 ) -> dict[str, Any]:
     """One profile, with its budget and scope read off the frozen matrix."""
     protocol = protocol or load_protocol()
+    refs = protocol_refs(protocol)
     value: dict[str, Any] = {
         "method": method,
+        "algorithm": protocol["method_profiles"][method]["algorithm"],
         "recipe_family": "oracle" if method == "pn_oracle" else "pu",
         "variant_id": f"survey_shared_{method}",
         "recipe_lifecycle": "draft",
@@ -127,13 +126,13 @@ def profile(
             "datasets": sorted({row["dataset"] for row in unit_rows(protocol, method)}),
             "training_paths": training_paths(protocol, method),
         },
-        "base_ref": f"{BASE_REF_PREFIX}{method}",
-        "selection_spec_ref": SELECTION_SPEC_REF,
+        "base_ref": f"{refs.base_ref_prefix}{method}",
+        "selection_spec_ref": refs.selection_spec_ref,
         "source_refs": [DEFAULT_REF],
         "fixed_overrides": {},
         "candidate_pool": [candidate(f"{method}_default_v1")],
         "inner_search": None,
-        "budget_binding_ref": f"{BUDGET_BINDING_PREFIX}{budget_family(protocol, method)}",
+        "budget_binding_ref": f"{refs.budget_binding_prefix}{budget_family(protocol, method)}",
         "review": {"reviewers": [], "open_questions": []},
     }
     value.update(overrides)
@@ -166,15 +165,16 @@ def base_registry(
 ) -> dict[str, Any]:
     """A registry that validates clean unless a test perturbs one thing."""
     protocol = protocol or load_protocol()
+    refs = protocol_refs(protocol)
     value: dict[str, Any] = {
-        "schema_version": SCHEMA_VERSION,
+        "schema_version": refs.schema_version,
         "recipe_registry_version": "survey-recipes-v0.1-draft",
         "recipe_lifecycle": "draft",
         "protocol_basis": {
             "protocol_version": protocol["protocol_version"],
             "protocol_sha256": digest(protocol),
         },
-        "selection_spec_ref": SELECTION_SPEC_REF,
+        "selection_spec_ref": refs.selection_spec_ref,
         "profiles": profiles if profiles is not None else {m: profile(m) for m in methods},
         "source_evidence": evidence_index(),
         "validation": {

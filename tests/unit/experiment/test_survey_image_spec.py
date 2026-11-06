@@ -1,11 +1,5 @@
 # tests/unit/experiment/test_survey_image_spec.py
-"""The image backbone spec is chosen per dataset, and v1 (one flat spec) is read unchanged.
-
-``survey_protocol_v2.json`` carries a single flat ``backbone_specs.image`` written for
-CIFAR-10.  A later protocol may add ``per_dataset``: overrides merged over the shared
-fields.  The runner then decides "is this an image dataset" from the catalog's modality
-instead of comparing the dataset name with ``"cifar10"``.
-"""
+"""Image specifications merge dataset overrides over shared backbone settings."""
 
 # ruff: noqa: N803, N806, S101
 
@@ -67,8 +61,9 @@ def runner_script():
 
 
 @pytest.mark.parametrize("dataset", ["cifar10", "adni", "mnist"])
-def test_basic_the_flat_v1_spec_is_returned_whatever_the_dataset(dataset):
+def test_basic_a_flat_image_spec_is_returned_whatever_the_dataset(dataset):
     protocol = load_protocol()
+    protocol["backbone_specs"]["image"].pop("per_dataset", None)
 
     assert image_spec(protocol, dataset) == protocol["backbone_specs"]["image"]
 
@@ -106,7 +101,7 @@ def test_basic_prepare_image_bundle_uses_the_named_datasets_spec(tmp_path):
     assert manifest["dataset"] == "adni"
 
 
-def test_edge_v1_still_refuses_an_image_that_is_not_its_locked_size():
+def test_edge_current_spec_refuses_an_image_that_is_not_its_locked_size():
     with pytest.raises(ValueError, match="input size"):
         prepare_image_bundle(_bundle(1, 16), load_protocol(), 0, dataset="adni")
 
@@ -142,7 +137,7 @@ def test_determ_the_same_dataset_and_seed_give_the_same_manifest(tmp_path):
 def test_basic_the_shipped_v3_protocol_specifies_every_image_dataset(
     dataset, channels, size, small_stem
 ):
-    protocol = load_protocol(resolve_protocol_path("survey-v3.0"))
+    protocol = load_protocol(resolve_protocol_path("survey-v3.2"))
 
     spec = image_spec(protocol, dataset)
 
@@ -163,7 +158,7 @@ def test_basic_each_image_dataset_carries_every_runnable_cifar10_row(dataset, su
     rather than assumed, so a support row appearing on adni -- which the protocol
     excludes from PA+clean-support -- still fails here.
     """
-    rows = load_protocol(resolve_protocol_path("survey-v3.0"))["execution_units"]
+    rows = load_protocol(resolve_protocol_path("survey-v3.2"))["execution_units"]
     support = {"lagam", "pulns", "self_pu_full_meta"}
 
     def runnable(name, *, without_support):
@@ -188,7 +183,7 @@ def test_basic_each_image_dataset_carries_every_runnable_cifar10_row(dataset, su
 def test_basic_each_tabular_dataset_carries_every_runnable_row_of_its_template(
     dataset, template, support_methods
 ):
-    rows = load_protocol(resolve_protocol_path("survey-v3.0"))["execution_units"]
+    rows = load_protocol(resolve_protocol_path("survey-v3.2"))["execution_units"]
     support = {"lagam", "pulns", "self_pu_full_meta"}
 
     def runnable(name):
@@ -204,7 +199,7 @@ def test_basic_each_tabular_dataset_carries_every_runnable_row_of_its_template(
 
 
 def test_basic_a_v3_image_dataset_prepares_at_its_own_size():
-    protocol = load_protocol(resolve_protocol_path("survey-v3.0"))
+    protocol = load_protocol(resolve_protocol_path("survey-v3.2"))
 
     prepared, _, manifest = prepare_image_bundle(_bundle(1, 28), protocol, 0, dataset="mnist")
 

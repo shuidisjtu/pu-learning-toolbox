@@ -242,7 +242,7 @@ S\sim Bernoulli(Y\cdot c(X)),
 | 字段 | 内容 |
 |---|---|
 | Source status | 作者发表页当前直接链接包于 2026-10-19 复核，SHA-256 与旧官方锁一致；用户另提供包为不同变体、来源版本未证实。发表页只写明 research-only / 商用需许可，不构成明确软件许可证；详见[机器来源记录](../pu_survey/data/lbe_source_review_20261012.json) |
-| Implementation status | `lbe` 为线性 clean-room EM；`lbe_neural` 为独立实验性双网络 generalized EM（§10），均不等于论文数值复现 |
+| Implementation status | `lbe` 为线性 clean-room EM；`lbe_neural` 为独立实验性双网络 generalized EM（§10） |
 | 当前实现可声称 | 可运行 SAR 接口、类别后验、labeling propensity 和 latent posterior |
 | 当前实现不可声称 | 已复现论文的完整 Adam/深度网络实验、理论收敛条件或表格结果 |
 | 主要风险 | 潜变量模型可能存在局部最优；正类过少时两个 logistic 模型会互相补偿；propensity 与 class posterior 的分解需要数据机制支持 |
@@ -287,7 +287,7 @@ MLP demo 在切分前计算全量统计，`train.py` 的 `fea_norm` 未被训练
 
 本轮新增 32 项源码公式/接口/边界/确定性测试；连同台账契约与 pilot 拒收路由共 62 项定向回归通过。
 在基线 `25fc71d` 的线性实现与修复版上，用同一合成输入、默认及显式 0.3 初始化各运行 5 轮，
-类别概率和标记概率的最大差均为 0；这仅证明该回归样例未改变有效训练行为，不是正式数值复现。
+类别概率和标记概率的最大差均为 0；该回归样例的有效训练行为保持一致。
 
 ## 10. 2026-10-14 独立神经网络变体
 
@@ -309,6 +309,5 @@ standalone 序列化保存两网络；runner 保存的是 classifier 推理快�
 不是将“有 os_or_ts 参数”当成已校准。`class_prior` 仅校验而不影响该源配方。
 潜变量局部最优/可辨识性和适配后的数值对齐均未由合成测试解决。
 
-实现/API/预算的[工程交付](../pu_survey/delivery/lbe_neural_integration_20261014.md)及
-[机器记录](../pu_survey/data/lbe_neural_engineering_20261014.json)保留 HENG958 独立复核、
-正式协议/配方/资源批准、GPU/真实数据与原始制品前置；不提前进入主榜。
+[机器记录](../pu_survey/data/lbe_neural_engineering_20261014.json)记录工程实现与验证状态。
+HENG958 独立复核、正式协议/配方/资源审核、GPU/真实数据验证与原始制品核验仍待完成。

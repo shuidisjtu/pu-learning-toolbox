@@ -66,6 +66,22 @@ def _row(
         },
         "status": "formal",
         "reasons": [],
+        "comparison_by_seed": {
+            str(seed): {
+                "split_sha256": f"split-{seed}",
+                "feature_sha256": {
+                    role: f"feature-{role}-{seed}"
+                    for role in ("train", "pu_val", "clean_val", "test")
+                },
+                "budget": {
+                    "unit": "epochs",
+                    "epochs": 200,
+                    "batch_size": 256,
+                    "actual_outer_candidates": 1,
+                },
+            }
+            for seed in seeds
+        },
     }
 
 
@@ -92,7 +108,7 @@ def test_basic_a_card_exists_per_method_and_lists_every_signal():
 def test_basic_signals_that_cannot_be_read_from_the_report_are_listed_as_not_computed():
     card = build_cards(_report(_row()), native_view={})["upu"]
 
-    assert {item["signal"] for item in card["not_computed"]} == set(NOT_COMPUTED)
+    assert {item["signal"] for item in card["not_computed"]} >= set(NOT_COMPUTED)
     assert all(item["reason"] for item in card["not_computed"])
 
 

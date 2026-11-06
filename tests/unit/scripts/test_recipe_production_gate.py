@@ -72,7 +72,7 @@ def test_basic_ci_runs_the_frozen_production_lock():
     workflow = (Path(__file__).resolve().parents[3] / ".github/workflows/tests.yml").read_text()
     # The registry is committed, so the step is unconditional: absence must fail
     # (--require-present) rather than silently skipping a check that once ran.
-    assert "hashFiles('pu_toolbox/experiment/survey_recipe_registry_v1.json')" not in workflow
+    assert "hashFiles('pu_toolbox/experiment/survey_recipe_registry_v1_2.json')" not in workflow
     assert "--require-present --require-locked" in workflow
 
 

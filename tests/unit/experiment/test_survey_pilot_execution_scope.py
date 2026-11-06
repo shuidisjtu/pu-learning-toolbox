@@ -2,21 +2,10 @@
 
 # ruff: noqa: N803, N806, F811, S101
 
-"""Which slice of the frozen matrix a request asks for.
+"""Scope selection preserves the v3 matrix and rejects uncovered requests.
 
-``--datasets`` narrowed the matrix by dataset and nothing else, so the batches
-P2.1 runs could not be requested one at a time: asking for CIFAR-10 queued the
-adapter rows, the native CNN row and the two-student rows together.  A scope
-names one slice along three axes, and the refusals here are what keep a
-mistyped or impossible slice from planning an empty shard -- an empty plan
-exits 0, and the host that was meant to cover that slice would be believed to
-have covered it.
-
-Two invariants hold across all of it.  The rows a scope excludes stay in the
-narrowed protocol (the matrix carries its exclusions, and ``non_runnable_reason``
-is part of what it carries); what keeps them from running is
-:func:`planned_runs`, which has always skipped them.  And the narrowing is a
-pure intersection: no scope perturbs the protocol it was read from.
+Scopes intersect dataset, method and training-path allowlists. Blocked rows
+remain visible in a selected matrix, but never contribute planned runs.
 """
 
 import copy
@@ -88,7 +77,10 @@ def test_param_a_named_value_that_covers_nothing_is_refused():
 
     message = str(caught.value)
     assert "requested method(s) ['self_pu']" in message
-    assert "available matching methods: ['nnpu']" in message
+    assert (
+        "available matching methods: ['cvir', 'genpu', 'gradpu', 'lagam', 'nnpu', "
+        "'p3mix', 'pan', 'pn_oracle', 'pulda', 'pulns', 'vpu']" in message
+    )
 
 
 # --- what a name has to be, and the three ways it can be wrong ---------------
@@ -125,14 +117,14 @@ def test_param_an_unknown_training_path_is_refused_and_the_matrix_is_listed():
 
 
 def test_param_a_method_with_no_runnable_row_is_refused_by_its_own_message():
-    """A name the matrix holds but never runs is not an unknown name.
-
-    ``kldce`` is in the matrix at every dataset and runnable at none, so
-    "unknown" would send the operator looking for a spelling mistake that is
-    not there.
-    """
+    """A caller-disabled method remains known, with a distinct refusal."""
+    protocol = _protocol()
+    for row in protocol["execution_units"]:
+        if row["method"] == "kldce":
+            row["runnable"] = False
+            row["non_runnable_reason"] = "disabled in this caller-selected matrix"
     with pytest.raises(ValueError) as caught:
-        select_execution_units(_protocol(), PilotScope(methods=("kldce",)))
+        select_execution_units(protocol, PilotScope(methods=("kldce",)))
 
     message = str(caught.value)
     assert "unknown" not in message
@@ -143,28 +135,23 @@ def test_param_a_method_with_no_runnable_row_is_refused_by_its_own_message():
 # --- a slice the matrix does not have is refused, not planned empty ----------
 
 
-def test_edge_a_valid_slice_with_no_runnable_row_is_refused_with_its_alternatives():
-    """Every name is legal; the intersection still holds nothing that can run.
-
-    The CIFAR-10 oracle is the adapter row -- the native CNN oracle is in the
-    matrix and ``runnable: false`` -- so this request is spelled correctly and
-    must still be refused.  The available list is what makes it actionable.
-    """
+def test_edge_native_cnn_oracle_scope_does_not_include_the_adapter_oracle():
+    """Each runnable oracle path has one c-independent run per seed."""
+    protocol = _protocol()
     scope = PilotScope(
         datasets=("cifar10",),
         methods=("pn_oracle",),
         training_paths=("native_cnn",),
     )
 
-    with pytest.raises(ValueError) as caught:
-        select_execution_units(_protocol(), scope)
+    narrowed = select_execution_units(protocol, scope)
+    runs = planned_runs(narrowed)
 
-    message = str(caught.value)
-    assert "requested method(s) ['pn_oracle']" in message
-    assert "have no runnable execution unit" in message
-    assert "datasets=['cifar10']" in message
-    assert "training_paths=['native_cnn']" in message
-    assert "available matching methods: ['nnpu']" in message
+    assert _units(narrowed) == [("cifar10", "pn_oracle", "native_cnn")]
+    assert {run.key for run in runs} == {
+        ("cifar10", "pn_oracle", "native_cnn", None, None, seed) for seed in protocol["seeds"]
+    }
+    assert len(runs) == 5
 
 
 def test_edge_a_dataset_only_scope_keeps_the_rows_the_matrix_excluded():
@@ -175,20 +162,17 @@ def test_edge_a_dataset_only_scope_keeps_the_rows_the_matrix_excluded():
     the protocol's own statement about why they are not run.
     """
     protocol = _protocol()
+    for row in protocol["execution_units"]:
+        if row["method"] == "kldce":
+            row["runnable"] = False
+            row["non_runnable_reason"] = "disabled in this caller-selected matrix"
 
     narrowed = select_execution_units(protocol, PilotScope(datasets=("spambase",)))
-    rows = [row for row in narrowed["execution_units"] if row["dataset"] == "spambase"]
+    rows = narrowed["execution_units"]
 
-    assert [(row["method"], row["runnable"]) for row in rows] == [
-        ("upu", True),
-        ("nnpu", True),
-        ("kldce", False),
-        ("dist_pu", True),
-        ("pusb_kernel", True),
-        ("lbe", True),
-        ("self_pu", True),
-        ("pn_oracle", True),
-    ]
+    assert rows == [row for row in protocol["execution_units"] if row["dataset"] == "spambase"]
+    excluded = [row for row in rows if not row["runnable"]]
+    assert excluded and all(row["non_runnable_reason"] for row in excluded)
     # Carried, and never run -- the two halves of one invariant: no excluded row
     # contributes a run, and every row that can run does.
     assert {(run.dataset, run.method, run.training_path) for run in planned_runs(narrowed)} == {
@@ -196,7 +180,9 @@ def test_edge_a_dataset_only_scope_keeps_the_rows_the_matrix_excluded():
         for row in narrowed["execution_units"]
         if row["runnable"]
     }
-    assert _runs(narrowed) == 215
+    # Eighteen PU profiles cover seven cells each; three support profiles cover
+    # three SCAR cells each, plus one c-independent oracle, across five seeds.
+    assert _runs(narrowed) == 5 * (18 * 7 + 3 * 3 + 1)
 
 
 # --- the axes narrow together, and the narrowing is a pure function ----------
@@ -236,10 +222,18 @@ def test_basic_the_axes_intersect_each_other_and_values_union_within_one():
 
 def test_basic_a_dataset_only_scope_plans_that_dataset_s_whole_runnable_slice():
     """The dataset axis alone still means what ``--datasets`` always meant."""
-    narrowed = select_execution_units(_protocol(), PilotScope(datasets=("cifar10",)))
+    protocol = _protocol()
+    narrowed = select_execution_units(protocol, PilotScope(datasets=("cifar10",)))
 
-    assert _runs(narrowed) == 215
+    # Eighteen PU units cover seven cells each, KLDCE and three support units
+    # cover three SCAR cells, and both oracle paths ignore c.
+    assert _runs(narrowed) == 5 * (18 * 7 + 4 * 3 + 2)
     assert {run.dataset for run in planned_runs(narrowed)} == {"cifar10"}
+    assert {(run.method, run.training_path) for run in planned_runs(narrowed)} == {
+        (row["method"], row["training_path"])
+        for row in protocol["execution_units"]
+        if row["dataset"] == "cifar10" and row["runnable"]
+    }
 
 
 def test_determ_the_order_of_axis_values_does_not_change_the_selection():

@@ -1,144 +1,74 @@
-"""PU survey experiment layer (P0 pilot). See docs/dev/experiment_layer.md §2."""
+"""Public experiment API, loaded on demand without Survey process dependencies."""
 
-from .bundle import DatasetBundle, DatasetPart, validate_bundle
-from .datasets import (
-    SurveyDatasetSpec,
-    binaryize_survey_labels,
-    prepare_survey_dataset,
-    survey_dataset_catalog,
-)
-from .feature_adapter import (
-    LeaderboardRunSpec,
-    adapt_image_bundle_to_features,
-    partition_fair_leaderboard_runs,
-)
-from .image import (
-    SurveyImagePreprocessing,
-    build_survey_image_augmentation,
-    build_survey_image_encoder,
-    fit_survey_image_preprocessing,
-    transform_survey_images,
-)
-from .resources import aggregate_resource_usage
-from .runner import ExperimentRunner
-from .strategies import (
-    CleanLabelGenerator,
-    DeepFitTrainer,
-    FitTrainer,
-    ProtocolOA,
-    ProtocolPA,
-    SARLBEAGenerator,
-    SARLBEBGenerator,
-    SCARGenerator,
-    SupervisedTrainer,
-    select_threshold,
-)
-from .survey_audit import (
-    BATCH_IDENTITY_FIELDS,
-    CHECK_RESULTS,
-    CHECK_SCOPES,
-    CHECK_SEVERITIES,
-    REQUIRED_ENVIRONMENT_FIELDS,
-    REQUIRED_MANIFEST_FIELDS,
-    AuditError,
-    make_check,
-    missing_fields,
-    overall_status,
-    preflight_status,
-    rollup_gate_check,
-)
-from .survey_summary import (
-    GATE_MESSAGE_REASONS,
-    GATE_REFUSAL_REASONS,
-    REASONS,
-    STATUS_PRIORITY,
-    STATUSES,
-    SummaryError,
-    aggregate_metric,
-    choose_status,
-    mechanism_of,
-    normalize_c_token,
-    reasons_for,
-    resolve_status,
-    row_key,
-    sample_std,
-    status_for_completeness,
-    status_for_gate_block,
-    status_for_gate_error,
-    status_for_refusal,
-    summarize_costs,
-    to_result_summary,
-)
-from .text import (
-    SBERT_EMBEDDING_DIMENSION,
-    SBERT_MODEL_NAME,
-    encode_survey_texts,
-)
-from .training_views import TSOSBatchView, calibrate_ts_os_batch
+from importlib import import_module
 
-__all__ = [
-    "AuditError",
-    "BATCH_IDENTITY_FIELDS",
-    "CHECK_RESULTS",
-    "CHECK_SCOPES",
-    "CHECK_SEVERITIES",
-    "CleanLabelGenerator",
-    "DatasetBundle",
-    "DatasetPart",
-    "DeepFitTrainer",
-    "ExperimentRunner",
-    "FitTrainer",
-    "GATE_MESSAGE_REASONS",
-    "GATE_REFUSAL_REASONS",
-    "LeaderboardRunSpec",
-    "ProtocolOA",
-    "ProtocolPA",
-    "REASONS",
-    "REQUIRED_ENVIRONMENT_FIELDS",
-    "REQUIRED_MANIFEST_FIELDS",
-    "SARLBEAGenerator",
-    "SARLBEBGenerator",
-    "SBERT_EMBEDDING_DIMENSION",
-    "SBERT_MODEL_NAME",
-    "SCARGenerator",
-    "STATUSES",
-    "STATUS_PRIORITY",
-    "SummaryError",
-    "SupervisedTrainer",
-    "SurveyDatasetSpec",
-    "SurveyImagePreprocessing",
-    "TSOSBatchView",
-    "aggregate_metric",
-    "aggregate_resource_usage",
-    "adapt_image_bundle_to_features",
-    "binaryize_survey_labels",
-    "build_survey_image_augmentation",
-    "build_survey_image_encoder",
-    "calibrate_ts_os_batch",
-    "choose_status",
-    "encode_survey_texts",
-    "fit_survey_image_preprocessing",
-    "make_check",
-    "mechanism_of",
-    "missing_fields",
-    "normalize_c_token",
-    "overall_status",
-    "partition_fair_leaderboard_runs",
-    "prepare_survey_dataset",
-    "preflight_status",
-    "reasons_for",
-    "resolve_status",
-    "rollup_gate_check",
-    "row_key",
-    "sample_std",
-    "select_threshold",
-    "status_for_completeness",
-    "status_for_gate_block",
-    "status_for_gate_error",
-    "status_for_refusal",
-    "summarize_costs",
-    "survey_dataset_catalog",
-    "to_result_summary",
-    "transform_survey_images",
-    "validate_bundle",
-]
+_EXPORTS = {
+    "BATCH_IDENTITY_FIELDS": ("batch_evidence", "BATCH_IDENTITY_FIELDS"),
+    "CleanLabelGenerator": ("strategies", "CleanLabelGenerator"),
+    "DatasetBundle": ("bundle", "DatasetBundle"),
+    "DatasetPart": ("bundle", "DatasetPart"),
+    "DeepFitTrainer": ("strategies", "DeepFitTrainer"),
+    "ExperimentRunner": ("runner", "ExperimentRunner"),
+    "FitTrainer": ("strategies", "FitTrainer"),
+    "GATE_MESSAGE_REASONS": ("survey_summary", "GATE_MESSAGE_REASONS"),
+    "GATE_REFUSAL_REASONS": ("survey_summary", "GATE_REFUSAL_REASONS"),
+    "LeaderboardRunSpec": ("feature_adapter", "LeaderboardRunSpec"),
+    "ProtocolOA": ("strategies", "ProtocolOA"),
+    "ProtocolPA": ("strategies", "ProtocolPA"),
+    "REASONS": ("survey_summary", "REASONS"),
+    "SARLBEAGenerator": ("strategies", "SARLBEAGenerator"),
+    "SARLBEBGenerator": ("strategies", "SARLBEBGenerator"),
+    "SBERT_EMBEDDING_DIMENSION": ("text", "SBERT_EMBEDDING_DIMENSION"),
+    "SBERT_MODEL_NAME": ("text", "SBERT_MODEL_NAME"),
+    "SCARGenerator": ("strategies", "SCARGenerator"),
+    "STATUSES": ("survey_summary", "STATUSES"),
+    "STATUS_PRIORITY": ("survey_summary", "STATUS_PRIORITY"),
+    "SummaryError": ("survey_summary", "SummaryError"),
+    "SupervisedTrainer": ("strategies", "SupervisedTrainer"),
+    "SurveyDatasetSpec": ("datasets", "SurveyDatasetSpec"),
+    "SurveyImagePreprocessing": ("image", "SurveyImagePreprocessing"),
+    "TSOSBatchView": ("training_views", "TSOSBatchView"),
+    "adapt_image_bundle_to_features": ("feature_adapter", "adapt_image_bundle_to_features"),
+    "aggregate_metric": ("survey_summary", "aggregate_metric"),
+    "aggregate_resource_usage": ("resources", "aggregate_resource_usage"),
+    "binaryize_survey_labels": ("datasets", "binaryize_survey_labels"),
+    "build_survey_image_augmentation": ("image", "build_survey_image_augmentation"),
+    "build_survey_image_encoder": ("image", "build_survey_image_encoder"),
+    "calibrate_ts_os_batch": ("training_views", "calibrate_ts_os_batch"),
+    "choose_status": ("survey_summary", "choose_status"),
+    "encode_survey_texts": ("text", "encode_survey_texts"),
+    "fit_survey_image_preprocessing": ("image", "fit_survey_image_preprocessing"),
+    "mechanism_of": ("survey_summary", "mechanism_of"),
+    "normalize_c_token": ("survey_summary", "normalize_c_token"),
+    "partition_fair_leaderboard_runs": ("feature_adapter", "partition_fair_leaderboard_runs"),
+    "prepare_survey_dataset": ("datasets", "prepare_survey_dataset"),
+    "reasons_for": ("survey_summary", "reasons_for"),
+    "resolve_status": ("survey_summary", "resolve_status"),
+    "row_key": ("survey_summary", "row_key"),
+    "sample_std": ("survey_summary", "sample_std"),
+    "select_threshold": ("strategies", "select_threshold"),
+    "status_for_completeness": ("survey_summary", "status_for_completeness"),
+    "status_for_gate_block": ("survey_summary", "status_for_gate_block"),
+    "status_for_gate_error": ("survey_summary", "status_for_gate_error"),
+    "status_for_refusal": ("survey_summary", "status_for_refusal"),
+    "summarize_costs": ("survey_summary", "summarize_costs"),
+    "survey_dataset_catalog": ("datasets", "survey_dataset_catalog"),
+    "to_result_summary": ("survey_summary", "to_result_summary"),
+    "transform_survey_images": ("image", "transform_survey_images"),
+    "validate_bundle": ("bundle", "validate_bundle"),
+}
+
+__all__ = list(_EXPORTS)
+
+
+def __getattr__(name: str):
+    if name not in _EXPORTS:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    module, attribute = _EXPORTS[name]
+    value = getattr(import_module(f".{module}", __name__), attribute)
+    globals()[name] = value
+    return value
+
+
+def __dir__():
+    return sorted(set(globals()) | set(__all__))

@@ -53,7 +53,7 @@ gamma=0.01, classifier=None, random_state=None)`：调用前必须显式设
 随机留出指定比例（向上取整，训练/留出每个角色都须非空）。默认 train-only
 StandardScaler + balanced LogisticRegression(max_iter=1000)；注入 classifier
 须可 clone，提供 `fit`/`predict_proba` 与 `classes_={0,1}`。
-可选 sample_ids 为逐行唯一非空字符串；不证明跨来源/组/外部角色隔离。
+可选 sample_ids 为逐行唯一非空字符串；跨来源、分组及外部角色的隔离须另行核对。
 返回 self；`estimate_unlabeled_prior()` 返回 float α_U；未拟合抛 NotFittedError。
 失败 refit 清除旧估计。`train_indices_`、`holdout_indices_` 与 `provenance_`
 可审计内部隔离，不接受 clean U 标签。
@@ -96,10 +96,7 @@ NCHW。所有未由论文指定的模型/训练默认值都是工程选择，不
 
 `batching_policy="role_balanced"` 保持旧行为：`batch_size` 为每角色上限，较短角色循环。
 显式 `"merged_shuffle"` 按论文 Algorithm 1 合并打乱、总批大小为 `batch_size`，每轮主样本只用一次。
-单角色批次的缺失组损失贡献为零（论文未说明的工程约定）；该选项不代表正式配方批准。
-只读成本规划：`python scripts/prepare_candidate_image_resource_plan.py --method p3mix
---target-dir /tmp --n-positive 128 --n-unlabeled 128 --variant e --batching-policy merged_shuffle`。
-规划不加载数据或模型、不初始化 CUDA；额外 teacher/池刷新前向与 optimizer 更新分列。
+单角色批次的缺失组损失贡献为零（论文未说明的工程约定）。
 
 独立图像执行：`python scripts/run_candidate_image_experiment.py --method p3mix`，
 输入为 `train/pu_val/clean_val/test.npz` 四份互不重叠的 NCHW 数据（各含 `X/y/indices`）。
@@ -108,7 +105,7 @@ NCHW。所有未由论文指定的模型/训练默认值都是工程选择，不
 `early_learning_weight`、`teacher_decay`、`device`；其他必填参数见 `--help`。
 默认只生成计划；`--execute --out-dir <新目录>` 才训练。入口使用原生 OS、训练集统计的
 共享 ResNet-18（不是论文 backbone），独立 PA/OA 选择 student 快照并回收未选中权重；
-选择先验不进入训练，E 的 teacher 不参与选模，不构成正式 Survey 准入。
+选择先验不进入训练，E 的 teacher 不参与选模。
 
 同一图像 CLI 的 `--method cvir --view os/ts` 支持 CVIR 工程候选；显式 JSON 字段为
 `hidden_dim/warm_start_epochs/max_epochs/batch_size/learning_rate/data_device_policy/input_sampling/device`。
@@ -172,7 +169,7 @@ scores = model.decision_function(X_new)
 ```
 
 这是独立 native-TS 工程实现，不替换现有 CVIR/总体先验，不进入冻结矩阵或正式准入。
-重复使用留出并经 α 反馈更新模型，不宣称逐轮有效置信区间。
+α 在重复使用的留出集上参与反馈更新。
 原配方、真实数值、GPU 多seed和负责人准入仍待验收，见 [TEDn 方法卡](../../research/method_cards/TEDn.md)。
 
 所有分类器遵守统一契约：`fit(X, y)` + `predict(X)` + `decision_function(X)` +
@@ -434,7 +431,6 @@ PUExtraTreesClassifier(class_prior, *, n_estimators=100, max_depth=None,
 `bootstrap=True` 对 P 抽 n_P 行，对实际 U 风险池抽该池大小的行（OS: n_U，TS:
 n_U+n_P），每树根风险质量 P=总体π、U=1；不把原 U 行数错误用于 TS 风险池。
 min_samples_leaf 同时约束两个子节点；阈值取完整 min/max 区间；仅接受 gain>1e-12。
-这些明确的工程适配不表示作者完整流程复现。
 
 - 文档：[PUET 方法卡](../../research/method_cards/PUET.md)
 
@@ -449,7 +445,7 @@ PUET/RP 可选用 `from pu_toolbox.experiment.classical_candidate import Classic
 `--execute --out-dir <新目录>` 才拟合；输入四份互斥的二维 `X/y/indices` NPZ，结构与四角色契约一致。
 `--parameters` 必须完整指定 PUET 的 `n_estimators/max_depth/min_samples_leaf/max_features/max_candidates/bootstrap`，
 或 RP 的 `n_cv_folds/frac_pos2neg/min_retained`；种子、总体先验来源和 `--view` 单独指定。
-PUET 支持 OS/TS，RP 只支持 OS。入口不拟合/认证输入特征预处理，也不代表正式准入。
+PUET 支持 OS/TS，RP 只支持 OS。入口不拟合/认证输入特征预处理。
 导出的 `selected_PA/OA.pkl` 使用同模块 `ClassicalSelectionPredictor(estimator, selection)` 封装
 验证集 affine 与所选阈值；`decision_function` 保留原始分数，`predict` 重放所选规则。
 原始非 epoch runner 的 `selected_models` 不自动携带这条规则，不能用 native `predict` 代替表中预测。
@@ -507,17 +503,8 @@ JSON 完整指定 `sigma/reg_strength/centroid_radius/mom_groups/covariance_ridg
 不接受手写 `flip_probability`，它由训练 SCAR 的 `1-c_realized` 绑定。只支持 OS，不作 TS 替换。
 `KLDCECandidateTrainer(prior_policy=..., kernel_payload_cap_bytes=..., receipt_dir=None)` 可注入非正式 runner；
 单独直接 fit 时 h 来自 estimator 参数，未调用生成校验则不声称 SCAR 绑定已验证。
-QP 盒约束无可行解或命名矩阵 payload 超帽均提前拒绝；通过不代表峰值资源批准。
+QP 盒约束无可行解或命名矩阵 payload 超帽均提前拒绝。
 ACS 历史不是 neural epoch，未观测的 rollback 总成本为 null，不用末次 QP 的迭代和冒充完整成本。
-
-只读资源筛查：`python scripts/prepare_kldce_resource_plan.py --n-positive 1000
---n-unlabeled 10000 --feature-count 512 --gram-itemsize 8`。
-可加 `--prediction-rows`、`--max-acs-iter`、`--max-inner-iter` 与 `--memory-cap-bytes`；
-超出已知 payload 的帽返回退出码 2；低于帽不表示 RAM 足够。此工具不加载数据/模型，
-声明的 Gram/协方差 dtype 未认证，稠密块统计排除临时矩阵等开销，不是正式资源验收。
-可选 `--prior-policy derived --flip-probability <h>`，或 `--prior-policy population_override
---flip-probability <h> --population-prior <π>` 同时检查 QP 可行性；无解/分母近零退出码为 3。
-该 h 与先验仅为声明，不核验实际 SCAR 生成；可行不批准启动，核心求解器与冻结协议保持不变。
 
 #### `LLSVMClassifier`（注册名 `llsvm`）
 
@@ -585,7 +572,7 @@ DistPUClassifier(class_prior, *, hidden_dim=64, epochs=100, batch_size=256, lear
 | `encoder` | `nn.Module \| None` | `None` | 仅 staged/histogram 路径支持；deepcopy 后端到端训练，须输出有限二维特征；图像输入必填，不作静默 flatten |
 
 - 注入 encoder 时输入/标签常驻 CPU、训练/推理分批；伪标签扫描 batch 为 `min(128,batch_size)`，单行尾批 BN 使用运行统计。普通 MLP 的扫描与默认训练保持原行为；评分恢复逐层模式，旧 pickle 补齐缺失可选参数。
-- `author_staged` 是与锁定 `train.py` 高层训练时序对齐的工程适配，不代表作者源程序重放、图像结果复现或正式准入；冻结 Pilot 仍用原 fullbatch/feature-adapter，完整限制见 [Dist-PU 方法卡](../../research/method_cards/Dist-PU.md)。
+- `author_staged` 是与锁定 `train.py` 高层训练时序对齐的工程适配；冻结 Pilot 仍用原 fullbatch/feature-adapter，完整限制见 [Dist-PU 方法卡](../../research/method_cards/Dist-PU.md)。
 
 #### `VPUClassifier`（注册名 `vpu`，别名 `variational_pu`）
 
@@ -611,9 +598,9 @@ VPUClassifier(*, hidden_dim=64, depth=2, max_epochs=100, batch_size=128,
 | `data_device_policy` | `str` | `"auto"` | 无 encoder 时 auto 保留旧 resident；有 encoder 时 auto 强制 cpu_stream；可显式 cpu_stream，拒绝 encoder + resident |
 | `random_state` / `device` | `int \| None` / `str \| None` | `None` / `None` | 随机种子与 torch 设备 |
 
-`fit(X, y_pu, *, class_prior=None, sample_weight=None, pu_validation_data=None, epoch_callback=None, os_or_ts="ts")`：`class_prior` 只做兼容性校验，绝不进入目标；`sample_weight` 非空时报错。`pu_validation_data` 可为 PU-view `DatasetPart` 或 `(X_val, y_pu_val)`，仅用于逐轮变分风险记录；不得传真实标签视图或作为 Survey PA/OA 准则。`decision_function` 返回以 0 为阈值的对数归一化分数；`predict_proba` 返回归一化、截断至 `[0,1]` 的 VPU 分数，**不是另行校准后的概率**。`history_` 新增 `learning_rate` / `optimizer_generation`；`optimizer_resets_` 记录实际 Adam 重建次数，`optimizer_steps_` 始终累计、不因重建清零。默认原有训练行为不变，失败重训会撤销 fitted 状态。详见 [VPU 方法卡](../../research/method_cards/VPU.md)和[源调度复核](../../research/pu_survey/admission/vpu_schedule_review_20261015.md)。
+`fit(X, y_pu, *, class_prior=None, sample_weight=None, pu_validation_data=None, epoch_callback=None, os_or_ts="ts")`：`class_prior` 只做兼容性校验，绝不进入目标；`sample_weight` 非空时报错。`pu_validation_data` 可为 PU-view `DatasetPart` 或 `(X_val, y_pu_val)`，仅用于逐轮变分风险记录；不得传真实标签视图或作为 Survey PA/OA 准则。`decision_function` 返回以 0 为阈值的对数归一化分数；`predict_proba` 返回归一化、截断至 `[0,1]` 的 VPU 分数，**不是另行校准后的概率**。`history_` 新增 `learning_rate` / `optimizer_generation`；`optimizer_resets_` 记录实际 Adam 重建次数，`optimizer_steps_` 始终累计、不因重建清零。默认原有训练行为不变，失败重训会撤销 fitted 状态。详见 [VPU 方法卡](../../research/method_cards/VPU.md)。
 
-`cpu_stream` 将完整训练/验证池留在 CPU，每次仅把不超过 `batch_size` 行送入设备；归一化扫描、诊断验证和预测同样分批。验证风险在 CPU 上以 float64 合并**全局** log-sum-exp 和正例均值，非各批风险平均，可能有浮点末位差异；旧 resident 归约保持不变。`data_device_policy_` / `training_data_device_` 记录实际策略/数据驻留设备。逐轮快照包含 encoder、分类头和归一化层，并记录推理批大小；不支持优化器续训。`PUPipeline(classifier="vpu", architecture="cnn", ...)` 可注入共享编码器，但不是获批的 Survey 图像配方。见[图像与分批交付](../../research/pu_survey/delivery/vpu_encoder_stream_20261015.md)。
+`cpu_stream` 将完整训练/验证池留在 CPU，每次仅把不超过 `batch_size` 行送入设备；归一化扫描、诊断验证和预测同样分批。验证风险在 CPU 上以 float64 合并**全局** log-sum-exp 和正例均值，非各批风险平均，可能有浮点末位差异；旧 resident 归约保持不变。`data_device_policy_` / `training_data_device_` 记录实际策略/数据驻留设备。逐轮快照包含 encoder、分类头和归一化层，并记录推理批大小；不支持优化器续训。`PUPipeline(classifier="vpu", architecture="cnn", ...)` 可注入共享编码器。见 [VPU 方法卡](../../research/method_cards/VPU.md)。
 
 #### `CVIRClassifier`（注册名 `cvir`，别名 `conditional_value_ignoring_risk`）
 
@@ -630,18 +617,18 @@ CVIRClassifier(*, unlabeled_positive_prior=None, hidden_dim=64,
 默认每轮对原始 U 的分数稳定排序，保留 `max(1,floor((1-α_U)*n_U))` 个临时负例，
 再最小化论文 α_U 加权 BCE。一轮 PvU warm-start、固定20轮 CVIR；不是收敛停机、BBE
 或 TEDⁿ。发布作者代码的 balanced CE/取整/loader/SGD/warm-start 时序不同，详见
-[来源复核](../../research/pu_survey/admission/cvir_source_cnn_review_20261015.md)。
+[来源复核](../../research/method_cards/CVIR.md)。
 
 二维特征可直接输入；四维 NCHW 必须注入输出有限二维特征的 `torch.nn.Module` encoder，deepcopy 后联合训练并接 MLP 头。`data_device_policy="auto"` 无 encoder 时保留旧 resident，有 encoder 时使用 cpu_stream；可显式 cpu_stream，拒绝 encoder + resident。CPU-stream 将全量数据留 CPU，只把不超过 batch_size 行送设备，排序/预测同样分批；仍需 O(n_U) CPU 排序空间，不是磁盘流式。`data_device_policy_` / `training_data_device_` 记录实际策略/驻留位置。
 
 `fit(..., sample_weight=None, epoch_callback=None, os_or_ts="os")` 不接受非空 sample_weight。
 显式 `ts` 先把训练风险池替换为 `U∪P`（U 后 P），再全局排序/截断，P 正例项保留；
 warm-start 同步使用该池。此时显式先验对应恢复后的风险池 π，而非原始 U 的 α_U。
-不改变验证/test，不宣称独立 TS 抽样；拒绝 native TS 输入再叠加校准。
+验证/test 保持原视图；拒绝 native TS 输入再叠加校准。
 `optimizer_steps_` 计两阶段全部更新；`epoch_provenance_` 记录
 `stage / stage_epoch / round_index / optimizer_steps`，`checkpoint_epoch_count` 为两阶段轮数之和。
-推理快照含 encoder/头与上下文，不支持优化器续训，阶段上下文不批准正式 PA/OA 候选资格；
-fit 异常清除 fitted 标记。公共 pipeline 可注入 CNN 并显式提供先验；不构成冻结 Survey 准入。
+推理快照含 encoder/头与阶段上下文，支持推理恢复，不支持优化器续训；
+fit 异常清除 fitted 标记。公共 pipeline 可注入 CNN 并显式提供先验。
 
 `input_sampling="ts"` 只声明调用方已提供原生独立 P/边缘 U，必须同时提供非空
 `prior_source`；不执行 OS→TS 风险校准，不是 Survey 的 `os_or_ts="ts"`。
@@ -732,7 +719,7 @@ GenPUClassifier(*, class_prior=None, hidden_dim=128, latent_dim=100,
 只有 Du 真实池支持 TS 的 U∪P 替换。支持二维 MLP 和显式注入 CNN 的四维 NCHW；
 两个稠密像素 generator，三个独立可训练判别器编码器，新建独立 PN 编码器，不展平真实图像。
 `generator_output="identity"` 保留旧默认；`"tanh"` 要求 X 已处于 [-1,1]，不自动截断/重标定。
-G 步冻结 D 参数/BN/dropout 但保留输入梯度，原始数据留 CPU。不是作者全 MLP 图像实验或数值复现。
+G 步冻结 D 参数/BN/dropout 但保留输入梯度，原始数据留 CPU。
 `history_` / `optimizer_steps_` / `stage_optimizer_steps_` 记录 GAN+PN 全成本及六网络分项；
 `history_["optimizer_steps"]` 为 PN 轮末累计成本。callback 仅在合成 PN 分类器轮末调用，
 零起始编号；`checkpoint_epoch_count=classifier_epochs`，不把 GAN 网络冒充分类器快照。
@@ -763,7 +750,7 @@ CNN 预训练、奖励 probe 和实际分类器均端到端更新；selector 状
 仍随 U 增长；不声称全 episode 常数显存。singleton BN 用运行统计，推理不更新 BN且恢复原模式。
 `stage_optimizer_steps_` 分 pretrain/reward_probe/policy/classifier，`optimizer_steps_` 和
 `history_["optimizer_steps"]` 计实际全部更新；返回较早最佳网络不扣成本。
-CNN13/ResNet18 工程测试不代表作者架构复现。公共 Pipeline/CLI/Survey 尚无独立奖励集路由，
+公共 Pipeline/CLI/Survey 尚无独立奖励集路由，
 仍需直接调用 estimator 并显式提供隔离 support，不能因为架构可选就复用测试/选模标签。
 UI 目录保留能力元数据但标记 ui_ready=false，不提供手动/比较选项；配置导入拒绝缺少
 独立support入口的方法并保留原widget状态，不据此开放 PA/OA训练。
@@ -781,7 +768,7 @@ PAN 式 (7) 的 MLP / 注入 CNN 实验适配：C/D 交替 Adam、C 负责预测
 snapshot 不支持训练续跑。`predict_proba` 是 sigmoid 分数，不承诺校准；正式 Survey 尚未准入。
 4-D NCHW 必须显式提供 `encoder`，两份独立副本均解冻并端到端训练，不修改原模板；
 此时 `model` / `discriminator` 是 score heads（默认 linear），encoder 必须输出有限 2-D 特征。
-Pipeline 可使用 `architecture="cnn"` 注入共享初始 backbone；并不代表作者图像网络数值复现。
+Pipeline 可使用 `architecture="cnn"` 注入共享初始 backbone。
 
 #### `RankPruningClassifier`（`rp`）
 
@@ -888,8 +875,8 @@ NeuralLBEClassifier(model=None, *, propensity_model=None, encoder=None,
 `predict_proba` 返回类后验，`predict_label_proba` 返回类后验×propensity，`decision_function` 为类别 raw logit。
 `history_` / `observed_log_likelihood_history_` 仅为训练诊断，不保证单调或可辨识性，不作为通用 PA/OA 准则。
 standalone pickle 保留双网络；runner 的 epoch checkpoint 仅供 classifier 推理，不恢复 propensity 或 optimizer 继续训练。
-默认配方取自单独登记的用户包 MLP 变体，稳定 logits/分批/CNN 为适配；不是旧官方包或论文数值复现。
-来源、差异、校准边界和待复核项见[神经 LBE 交付](../../research/pu_survey/delivery/lbe_neural_integration_20261014.md)。
+默认配方取自单独登记的用户包 MLP 变体，稳定 logits/分批/CNN 为适配。
+来源、差异、校准边界和待复核项见[LBE 方法卡](../../research/method_cards/LBE.md)。
 
 ### 深度分类器
 
@@ -910,9 +897,9 @@ LaGAMClassifier(*, hidden_dim=128, warmup_epochs=2, max_epochs=20,
 
 支持二维特征或注入可训练 encoder 的四维 NCHW，support 须同输入形状。encoder deepcopy 后接原 MLP，须输出有限二维特征；auto 无 encoder 时保留旧 resident，有 encoder 时强制 cpu_stream，也可显式 cpu_stream，拒绝 encoder+resident。CPU-stream 的输入、support、伪标签及组索引留 CPU，训练/聚类/推理每次 ≤batch_size 行、support ≤support_batch_size；全量聚类特征仍占 CPU 内存。
 
-`meta_update_bias=True` 保留原虚拟 weight+bias；False 只对齐作者 classifier weight-only 范围，不是整条来源重放。新 CNN 虚拟步以冻结 eval 提取特征、恢复逐模块模式，不改真实 BN/dropout；实际损失可训练 encoder。原硬观测元目标、稳定 BCE、rho 端点及 Gaussian 增强仍为适配，详见[来源复核](../../research/pu_survey/admission/lagam_source_cnn_review_20261015.md)。
+`meta_update_bias=True` 保留原虚拟 weight+bias；False 只对齐作者 classifier weight-only 范围。新 CNN 虚拟步以冻结 eval 提取特征、恢复逐模块模式，不改真实 BN/dropout；实际损失可训练 encoder。原硬观测元目标、稳定 BCE、rho 端点及 Gaussian 增强仍为适配，详见[来源复核](../../research/method_cards/LaGAM.md)。
 
-`max_epochs` 包含 warmup；`checkpoint_epoch_count=max_epochs`。`optimizer_steps_`、`virtual_steps_`、`clustering_passes_` 分别计真实更新、虚拟二阶步与聚类次数；`epoch_provenance_` 与快照上下文区分 warmup/meta，不批准选模资格。图像快照保留推理批大小，无优化器续训。fit 普通异常会撤销 fitted。数组别名重叠将拒绝，但不证明不同副本的角色索引独立。PU-only UI/推荐器及标准 trainer 仍不会自动提供 support；新增 CNN 声明不等于这些入口已可训练。发布 OS split 与 registry TS 定位冲突待审，未新增 TS 接口。
+`max_epochs` 包含 warmup；`checkpoint_epoch_count=max_epochs`。`optimizer_steps_`、`virtual_steps_`、`clustering_passes_` 分别计真实更新、虚拟二阶步与聚类次数；`epoch_provenance_` 与快照上下文区分 warmup/meta。图像快照保留推理批大小，无优化器续训。fit 普通异常会撤销 fitted。数组别名重叠将拒绝；调用方须核对不同副本的角色索引。PU-only UI/推荐器及标准 trainer 需要独立提供 support。发布 OS split 与 registry TS 定位冲突待审，未新增 TS 接口。
 
 #### `SplitPUClassifier`（注册名 `split_pu`，别名 `split-pu`）
 
@@ -966,7 +953,6 @@ TS 风险池替换仅在 nnPU 预训练，后续伪负例仍取原始 U；跳过
 
 `encoder` deepcopy 后解冻训练，四维图像必须提供；其后接默认 MLP 或 model 原始分数头。
 CPU 保存图像/标签/原行自步权重，仅训练批次移到设备；预测分批 eval 并恢复模式。
-不等于作者完整 CIFAR 训练配方、scheduler 或图像增强。
 
 #### `GradPUClassifier`（注册名 `gradpu`，别名 `grad_pu`）
 
@@ -997,7 +983,7 @@ GradPUClassifier(model=None, *, hidden_dim=128, alpha=0.1, beta_max=1.0,
 加P项累计前向最多3B，GP插值最多2B，不是物理训练集扩为3B。
 `history_["learning_rate"]` 记录实际epoch使用值；`training_provenance_` 记录策略、
 实际batch最大值、更新数及TS/SAR边界，runner自动保存至
-`candidate_runs[].training_provenance`，不宣称一般SAR理论保证。
+`candidate_runs[].training_provenance`。
 
 - 文档：[GradPU 方法卡](../../research/method_cards/GradPU.md)
 
@@ -1797,6 +1783,39 @@ JSON 严格编码（未定义值转 `null`）。
 
 ## 实验层（experiment）
 
+### 四角色运行与策略注入
+
+上手流程与生成器、训练器、选模策略的扩展示例见
+[DIY 实验教程](../howto/custom_experiments.md)，可运行源码为
+[14_diy_experiment.py](../../../examples/minimal/14_diy_experiment.py)。
+
+```python
+ExperimentRunner(
+    *, seed=0, generator=None, protocols=None, class_prior=None,
+    threshold_candidates=None, manifest_path=None, config=None,
+)
+runner.fit(model, train, pu_val, clean_val, test) -> RunResult
+```
+
+`train`、`pu_val`、`clean_val`、`test` 均为 `view="clean"` 的 `DatasetPart`，
+输入真实 0/1 标签与互不重叠的全局样本索引；test 设置 `for_selection=False`。
+默认生成器为 `SCARGenerator()`，默认选模策略为 `[ProtocolPA(), ProtocolOA()]`。
+`generator` 和 `protocols` 接受策略实例；训练器经 `config["trainer"]` 注入实例，
+默认 `DeepFitTrainer()`。候选参数经 `config["candidates"]` 提供，默认 `[{}]`。
+总体先验由 `class_prior` 或 `config["split_ref"]["class_prior"]["population"]` 提供给 PA。
+
+扩展策略接口从 `pu_toolbox.experiment.protocols` 导入 `Generator`、`Trainer`、
+`SelectionProtocol`；轨迹和选择记录从 `pu_toolbox.experiment.tracking` 导入
+`EpochRecord`、`RunTrajectory`、`SelectionArtifact`、`RunResult`。
+普通自定义 selector 接收生成后的 pu_val；继承 `ProtocolOA` 的 selector 接收 clean_val。
+返回的 `SelectionArtifact.protocol` 须与策略 `name` 一致。
+
+`RunResult` 提供 `selections`、`test_metrics`、`manifest`、`failures`、`resources` 与
+`selected_models`。经典模型后续预测须复用所选阈值及验证侧分数变换；
+示例的 `predict_selected` 展示了完整过程。
+
+### 方法专用训练适配器
+
 2026-10-17 独立探索适配器（不改变 frozen Survey/Pipeline/CLI）：
 `pu_toolbox.experiment.cvir_adapter.CVIRKnownPriorTrainer` 将 CVIR 的显式 α_U/来源
 与 PA 总体 π 分开，拒绝校准 TS/SAR；`CVIRClassifier.input_sampling="ts"` 只表示
@@ -1805,21 +1824,19 @@ JSON 严格编码（未定义值转 `null`）。
 OS/TS-compatible 工程双轨：构造 α_U/source 必须为空，由适配器按实际 PU 计数换算 OS
 风险先验，校准 TS 则绑定 π。总体 π 不传入 estimator 的 fit；实际先验/公式/计数/来源
 写 manifest，构造参数在 fit 后恢复。必须提供 checkpoint 字节上界，拒绝正式 Survey/SAR。
-详见[校准接线与边界](../../research/pu_survey/delivery/cvir_calibration_20261022.md)。
+详见[校准接线与边界](../../research/method_cards/CVIR.md)。
 `pu_toolbox.experiment.pulns_adapter.PULNSExtraSupportTrainer` 要求独立带标签支持集，
 训练前核实际四角色/先验估计/support IDs 及适用分组，显著记录额外监督，只允许终点 OA。
 还要求 support_origin/original_role_counts（carved 时）与 support_source_verified/receipt；
 逐角色记录 original/remaining/reduced 池效应，train 减少须与 support_removed_from_train
 一致，默认来源为未核实调用方声明。
 缺来源/预算/身份或 ADNI 组证据时拒绝；不隐式挪用验证/测试。
-接口和限制见[整改与调用示例](../../research/pu_survey/reviews/algorithm_issues_114_117_20261017.md)。
 
 `pu_toolbox.experiment.clean_support_adapters.SelfPUCleanSupportTrainer` 和
 `LaGAMCleanSupportTrainer` 复用相同六角色/分组/额外标签预算审计，显式接通现有
 Self-PU clean-meta 与 LaGAM 元标签路径。构造参数与上述 PULNS adapter 相同；
 Self-PU 的支持集只用于元重加权与内部 teacher 选择，外部 OA 仍用独立 clean_val。
-仅探索性 SCAR OS、终点 OA，不是 PA、正式多 checkpoint 候选池或论文数值复现。
-调用示例与验收边界见[算法收尾记录](../../research/pu_survey/reviews/algorithm_completion_20261017.md)。
+当前探索路径支持 SCAR OS 与终点 OA。
 
 2026-10-22 新增显式 checkpoint 变体：
 `pu_toolbox.experiment.support_checkpoints.SelfPUCleanSupportCheckpointTrainer` /
@@ -1828,8 +1845,8 @@ SCAR OS，要求 runner 配置正整数 `checkpoint_bytes_per_component`；选�
 `pu_toolbox.experiment.strategies.ProtocolPACleanSupport`（输出 `PA+clean-support`）
 与/或 `ProtocolOA`，拒绝普通 PA。只记录完成 meta-active 的 epoch，Self-PU 同时保留
 两个 teacher 流供独立选择；不改旧 terminal OA 或 Self-PU 默认消融。CLI 显式
-`--selection-scope meta_checkpoints` 才启用，默认仍 terminal；详见
-[接线与命令](../../research/pu_survey/delivery/clean_support_checkpoints_20261022.md)。
+`--selection-scope meta_checkpoints` 才启用，默认仍 terminal。
+
 同日新增 `PULNSCleanSupportCheckpointTrainer`，复用相同审计与双轨选择，但候选为
 完成 episode 的 classifier（不含 reward probe），记录 `captured_episodes`；
 同一 CLI 的 `--method pulns --selection-scope meta_checkpoints` 显式启用。
@@ -1837,8 +1854,8 @@ SCAR OS，要求 runner 配置正整数 `checkpoint_bytes_per_component`；选�
 `pu_toolbox.experiment.support_data.prepare_support_dataset` 从原始数组按显式预算准备
 独立支持集，重新拟合剩余 train 的预处理；`save_support_dataset` 仅写新目录，
 `load_support_dataset` 核对五角色、抽样、文件和收据。支持五个非文本/非分组数据集；
-原始来源真实性须由调用方保证，checksum 不等于预算批准。命令入口、支持范围与
-CPU 单候选回放见[支持集制品交付](../../research/pu_survey/delivery/clean_support_workflow_20261017.md)。
+原始来源真实性须由调用方保证。
+
 制品另有 support_origin/完整原角色计数/未核验来源声明；实验入口按构造签名完整转发
 新审核分支的四个来源参数。旧 main 的制品层审计不冒充原生 adapter 审计，部分新契约拒绝。
 
@@ -1931,10 +1948,9 @@ v1 仅支持单外层候选（包括 PUSB 内部 CV）；不指定注册表则�
 `recipe_audit` 为独立版本化扩展，不改历史 A01–A17；失败时不输出数值行，成功后仍执行原有门槛。
 同份报告不混合不同 registry 或 bound/legacy namespace；不同方法可在同一 registry 下使用不同 profile。
 JSON 行/成本及扩展 CSV 保留配方身份。独立旧聚合 CLI 遇到绑定结果会要求使用 v2 审计/汇总入口。
-完整契约与剩余多外层候选/正式冻结缺口见[P4.1-A 工程记录](../../research/pu_survey/delivery/p4_1_runtime_binding_20261014.md)。
 
 显式配置 `recipe_binding_schema_version="survey-recipe-binding-2"` 或 CLI/pilot
-`--recipe-binding-schema-version survey-recipe-binding-2` 可采用[候选池身份契约](../../research/pu_survey/delivery/p4_1_pool_binding_20261014.md)：
+`--recipe-binding-schema-version survey-recipe-binding-2` 可记录候选池身份：
 运行根记录完整候选池，candidate/PA/OA 各记实际身份，并核对失败排除后的 trajectory 索引。
 输出目录为独立 `recipe_pool_<SHA256>/`；外部 batch 白名单必须同步声明相同 schema。
 池格式仍要求 locked registry，不允许参数级候选覆盖，不改变冻结 Pilot 的单候选预算。
@@ -1965,8 +1981,7 @@ Robust-PU、Split-PU、Holistic-PU、GenPU 使用 `batch_size`。
 旧 reference 缺少此字段时仍使用历史默认值 256，不重新解释已冻结的快照。
 
 当前单元属于工程级 `benchmark-adapted`；PA 分离度代理与正式 Accuracy/阈值准则仍不一致，
-checkpoint 接线完成不意味着完整选模协议与 P2.0b/c 已验收。
-共享规格、命令与 oracle 边界见 [P2.0a 交付](../../research/pu_survey/delivery/p2_0a_delivery.md)。
+完整选模协议仍待验收。
 
 若全部候选均失败，runner 会先写 manifest（配置了路径时），再抛出 `RuntimeError`。
 
@@ -1991,73 +2006,44 @@ NumPy、scikit-learn、PyTorch、CUDA/cuDNN、GPU 与驱动信息。`aggregate_r
 | `TrainingView` | 一次训练分区上的三个角色（`positive` / `native_unlabeled` / `loss_unlabeled`）及来源索引；**每个角色都非空**（它描述的是训练分区）；自有数组（三组 positions、`source_indices`）只读，大数组（features/labels）借用——**视图只在申请它的那一步训练内有效**，不得跨重排、原地归一化或重标注复用 |
 | `build_training_view` | 纯构造器：只收**已裁决的** `requested_view`（`"os"`/`"ts"`）与 `role`；TS 下损失无标签角色为 `D_U ∪ D_P`（原始 U 在前、正例在后），OS 下即 `D_U`；**P 与 U 均非空对所有 `role` 强制**（非 train 角色出现在签名里，只是为了让“校准仅限 train”这条能被具名拒绝，不是用来描述验证/测试分区）；校准仅限 train 角色 |
 
-### P2.2 审计与汇总（`survey_audit` / `survey_summary`）
+### 结果读取、统计与导出（`results` / `reporting`）
 
-两个模块服务于 B5/B6 的交付面：`scripts/audit_survey_batches.py` 按白名单读结果树逐项出审计报告，
-`scripts/summarize_survey_results.py` 把 manifest 汇总为五 seed 均值与样本标准差。两者只读结果制品，
-不写、不移动、不删除结果树下的任何文件。注意 `check_api_docs.py` 的扫描面是包根 `__all__` 与内置注册表，
-**不含实验层子包**，因此本表是人工维护的公共面契约，增删公共符号须同步此处。
+结果接口直接读取调用者给出的 manifest 文件或结果目录，不依赖实验阶段文档、审批正文、
+批次名称、队列、历史执行配置或比较矩阵。文件只读，生成的报告写入独立输出目录。
 
-| 符号 | 用途 |
-|---|---|
-| `STATUSES` / `STATUS_PRIORITY` | 交付状态的七档闭集与优先级；聚合门槛自己的 `comparable` / `blocked` 是**单元状态**，不是本状态取值 |
-| `REASONS` | reason 代码词表（机器校验）；不变式为 `status` 取 `formal` 当且仅当 `reasons` 为空 |
-| `choose_status` / `reasons_for` / `resolve_status` | 状态归并：候选集取最高优先级、校验 `reasons` 与 `status` 的对应、合并多路检查的结论 |
-| `status_for_refusal` / `status_for_gate_block` / `status_for_gate_error` / `status_for_completeness` | 四类来源各自的状态判定：门槛整体拒收、被公平性阻断的单元、组级门槛错误、seed 完整性 |
-| `GATE_REFUSAL_REASONS` / `GATE_MESSAGE_REASONS` | 门槛拒收码闭集，以及门槛消息子串到细分 reason 的映射；未识别的消息回落为 `fairness_gate_blocked` 而不是被丢弃 |
-| `aggregate_metric` / `sample_std` | 五 seed 的均值与**样本**标准差（`n-1`）；观测数小于 2 时 std 为 `null` 而非 0，重复 seed 或协议外 seed 直接拒绝 |
-| `summarize_costs` | 协议 §5 第 2 条的三项成本：单配置（mean 与 sum）、完整调参（sum）、峰值显存（**取全过程最大值**，不是跨 run 求和） |
-| `normalize_c_token` / `mechanism_of` | manifest 的两个身份读法：`c_independent` 先于任何 c 值读取（oracle 的名义 `c_requested` 为 `0.1`）；机制按 manifest 原样读，供分榜使用 |
-| `row_key` | 报告行键：门槛组键加方法、选择协议与 `c_token`；**不含 seed**，seed 是聚合维度 |
-| `to_result_summary` | 报告行到预注册矩阵入参的唯一翻译点（`result_identity` / `mean` / `std` / `n_repeats` / `metric_unit`） |
-| `SummaryError` | 上述纯函数的拒绝异常 |
-| `preflight_status` / `missing_fields` | 单个 manifest 的预检，**不抛异常**：结构与环境身份字段缺失判 `not_reproducible`；仅有成本计时与显存测量值缺失不属此列 |
-| `REQUIRED_MANIFEST_FIELDS` / `REQUIRED_ENVIRONMENT_FIELDS` / `BATCH_IDENTITY_FIELDS` | 必填字段清单；批次级身份（代码 commit 与依赖锁）**不在 manifest 内**，故单列 |
-| `make_check` / `rollup_gate_check` / `overall_status` | check 的构造与汇总：校验三个词表、组级失败归并为一条 check、`overall` 按 fail 优先于 not_run 优先于 partial 优先于 pass |
-| `CHECK_RESULTS` / `CHECK_SEVERITIES` / `CHECK_SCOPES` | check 的结果、严重度与作用域三个闭集 |
-| `AuditError` | check 构造或不可用的审计请求 |
+```python
+from pu_toolbox.experiment.results import build_summary
+from pu_toolbox.experiment.reporting import export, write_summary
 
-未在包级重新导出的模块内 API：`group_key`、`result_labeling_mechanism`、`RESULT_IDENTITY_FIELDS`、
-`METRIC_UNIT` 与 `SCHEMA_VERSION` 由 `pu_toolbox.experiment.survey_summary` 直接提供，两个 CLI 入口按子模块
-路径导入。其中 `result_labeling_mechanism` 承担矩阵词汇与 manifest 词汇之间的翻译——矩阵把 c-independent
-行记作 `c_independent`，而 manifest 记作 `pn_oracle`——该翻译只在出口使用，不参与分榜。
-
-`RESULT_SELECTION_PROTOCOLS` 另含原始键 `PA+clean-support`；
-`manifest_selection_protocol` 将规范化 selector `pa+clean-support` 映射回该键，
-不能直接整体大写或折回纯 PA。`uses_clean_support` 根据显式监督记录/协议键识别额外监督，
-不按方法名猜测；对应汇总行保留 `extra_supervision_by_seed` 并暂不授 formal。
-`SELECTION_PROTOCOLS` 的旧 PA/OA 期望网格不变。
-
-独立探索产物可显式用汇总 CLI 的 `--clean-support` 模式读取，配置必须提供
-`expected_seeds`。该模式只输出诊断结果，原协议身份为空，不授正式或纯 PU 比较资格；
-同一训练的两轨成本不重复计入。输入范围、报告本地分组及输出说明见
-[P2.2 交付记录](../../research/pu_survey/delivery/p2_2_delivery.md)。
-
-### P2.2 报告身份块（`survey_provenance`）
-
-三份报告（批次审计 / 数值汇总 / 文献对照附着）各自携带**同一形状**的身份块：输入结果根、代码 commit
-与其状态、协议摘要、对照矩阵摘要。组装是纯函数；读 git 只在各入口的 `main` 里发生一次，因此
-`build_audit` / `build_summary` 仍是「handed 什么就是什么」的纯函数，两次构建可比较。
-
-两条刻意的设计：
-
-- **Markdown 不带时间戳。** 汇总的 md 与 csv 被钉住为同一输入下逐字节相同，所以渲染不读时钟、
-  集合排序后才渲染；`generated_at` 只进 JSON。
-- **读不到的摘要不留空。** `code_commit_state` 取 `recorded` / `unavailable`，不在 git 工作树内时
-  **明说**而不留空——留空读起来像「没有可记录的东西」。`code_commit_dirty` 再区分「该提交完整描述代码」
-  与「工作区有未提交改动」。
-
-文献对照附着入口**不读白名单也不读 git**：它的输入就是那份 summary，因此输入结果根与 commit 由
-summary **前向携带**而非重新派生——重新派生会让它与自己所附着的报告产生分歧。
+report = build_summary(
+    ["results/current"],
+    expected_seeds=(0, 1, 2, 3, 4),
+    excluded_paths=(),
+    pending_paths=(),
+)
+write_summary(report, "reports/current")
+export(report, "reports/current")
+```
 
 | 符号 | 用途 |
 |---|---|
-| `build_provenance` | 身份块的纯组装（无时钟、无 I/O）；输入根按批名排序，每个键在每条路径上都存在 |
-| `input_result_roots` / `recorded_source_roots` | 读白名单 config 的结果根，以及可选的上游源根块（非 schema 键，缺失即空表） |
-| `with_code_commit` | 入口 `main` 的盖章：返回副本并派生 `code_commit_state`；传入 `None` 也不抛 |
-| `resolve_code_commit` | 唯一有 I/O 者：`git rev-parse HEAD` 与 `git status --porcelain`；失败降级为 `(None, None)` 并向 stderr 告警 |
-| `render_provenance_lines` | 不读时钟的 Markdown 行；无块时返回空表，不重印协议与对照摘要 |
-| `CODE_COMMIT_STATES` | `code_commit_state` 的两值闭集 |
+| `results.build_summary(manifest_paths, *, expected_seeds, excluded_paths, pending_paths)` | 读取明确范围，校验运行和选择身份，按可比配置形成五 seed 汇总；显式待审核/排除输入保留为来源状态，不当观测 |
+| `reporting.write_summary(report, out_dir)` | 写 `summary.json/md/csv`、`coverage.csv`、`refusals.json` |
+| `reporting.export(report, out_dir, *, literature=(), native_view=None)` | 写含四组结果页的 `survey_results.xlsx`、诊断卡和 `conclusions.md/json`；需要 `report` extra；文献与方法事实是可选输入 |
+
+分组保留 dataset、method/profile、训练路径、实际视图、mechanism、c、selector 和配方身份。
+PN oracle 为 c-independent；`PA+clean-support` 不并入纯 PU PA。相同实验的 PA/OA 共享一个
+`cost_id`，fit 成本只记一次；树、fold、多阶段与 epoch 的实际工作口径保留。
+
+同配置按明确的期望 seed 计算均值与样本标准差（n−1）；缺 seed、缺指标、失败或数值风险
+显式展示，单 seed 不伪造标准差。无法重算的 recipe pool、未知候选、选择记录与 checkpoint
+摘要不一致等证据损坏会拒绝读取；审核状态按原始记录保留。
+期望范围涵盖本次输入中的行。
+
+底层 `survey_summary` 保留 `aggregate_metric`、`sample_std`、`summarize_costs`、
+selector/c token 规范化等统计工具。`SummaryError` 表示结果结构、身份或统计输入不满足契约。
+诊断与结论区分文献事实、实验观测和推断；缺少证据时保留原因，不以解释替代观测。
+复现命令与输出结构见[运行指南](../../research/pu_survey/runbook.md)。
 
 ## 错误与异常
 

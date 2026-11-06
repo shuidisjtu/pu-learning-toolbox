@@ -1,10 +1,10 @@
 # pu_toolbox/experiment/survey_diagnostics.py
 
-"""Per-method diagnostic cards from the summary report (execution plan §1.4.5).
+"""Per-method diagnostic cards from recorded summary observations.
 
-A card lists, for one method, what each signal of the §1.4.5 table shows across the
+A card lists, for one method, what each diagnostic signal shows across the
 datasets, paths, views and ``c`` values the report holds, and flags the shapes the
-table calls anomalous.  Three rules keep it from over-claiming:
+diagnostic contract calls anomalous. Three rules keep it from over-claiming:
 
 * **A flag is a prompt to look, never a verdict.**  The thresholds below are the
   card's own heuristics, not protocol numbers; a flag says "go back to the
@@ -12,8 +12,8 @@ table calls anomalous.  Three rules keep it from over-claiming:
 * **Only complete rows count.**  A row short of the protocol's seeds is excluded and
   counted, because a single-seed reading does not enter a conclusion table.
 * **What cannot be read from the report is listed, not skipped.**  The class-prior,
-  cross-dataset-trend and external-anchor signals need manifest fields or the
-  comparison matrix, so every card names them as not computed and says why.  The
+  cross-dataset-trend and external-anchor signals need additional run or
+  literature facts, so every card names them as not computed and says why. The
   card has no anchor signal at all, so a method with no direct anchor is never
   described as agreeing or disagreeing with a paper.
 
@@ -27,7 +27,7 @@ from collections import defaultdict
 from collections.abc import Mapping
 from typing import Any
 
-#: Signals the card computes from report rows, in §1.4.5 order.
+#: Signals the card computes from report rows.
 SIGNALS: tuple[str, ...] = (
     "mechanism_scar_to_sar",
     "view_os_ts",
@@ -38,7 +38,7 @@ SIGNALS: tuple[str, ...] = (
     "seed_variance",
 )
 
-#: Signals §1.4.5 lists that the report rows cannot answer, and why.
+#: Signals that cannot be answered by the available report fields, and why.
 NOT_COMPUTED: Mapping[str, str] = {
     "class_prior_semantics": (
         "needs c_realized, c_requested and the three priors from the manifest; "
@@ -49,7 +49,7 @@ NOT_COMPUTED: Mapping[str, str] = {
         "fact the report does not hold"
     ),
     "external_anchor_deviation": (
-        "needs the comparison matrix; a method with no direct anchor must not be "
+        "needs optional external anchor facts; a method with no direct anchor must not be "
         "read as agreeing or disagreeing with a paper"
     ),
     "native_assumption_split": (
@@ -72,7 +72,7 @@ ORACLE_GAP_SPREAD_POINTS = 15.0  # gap to the oracle varying this much across da
 
 _C_ORDER = ("0.1", "0.3", "0.5")
 
-#: The direction the plan names for each computed signal; the conclusion
+#: The review direction for each computed signal; the conclusion
 #: layer reuses it so both artifacts point a reader the same way.
 DIRECTIONS: Mapping[str, str] = {
     "mechanism_scar_to_sar": "标注机制处理、权重/score 更新是否真的随机制变化",
@@ -87,7 +87,11 @@ DIRECTIONS: Mapping[str, str] = {
 
 def _complete(row: Mapping[str, Any]) -> bool:
     metric = row["metric"]
-    return not metric.get("missing_seeds") and metric.get("mean") is not None
+    return (
+        not metric.get("missing_seeds")
+        and metric.get("mean") is not None
+        and metric.get("n_observed", 0) >= 5
+    )
 
 
 def _points(row: Mapping[str, Any]) -> float:
@@ -269,21 +273,79 @@ def _c_curves(rows: list[Mapping[str, Any]]) -> list[dict[str, Any]]:
     return out
 
 
+def _oracle_identity_reason(row: Mapping[str, Any], base: Mapping[str, Any]) -> str | None:
+    """Compare actual roles and budgets, independently of PU labels and OS/TS view."""
+    actual, reference = row.get("comparison_by_seed"), base.get("comparison_by_seed")
+    if not isinstance(actual, Mapping) or not isinstance(reference, Mapping):
+        return "missing per-seed split, feature and budget evidence"
+    if not actual or set(actual) != set(reference):
+        return "PN and PU comparison evidence covers different seeds"
+    for member, evidence in ((row, actual), (base, reference)):
+        observed = member["metric"].get("seeds_observed")
+        if observed is not None and set(evidence) != {str(seed) for seed in observed}:
+            return "comparison evidence does not cover the observed seeds"
+    for seed in sorted(actual):
+        for evidence in (actual[seed], reference[seed]):
+            if not isinstance(evidence, Mapping) or not evidence.get("split_sha256"):
+                return f"seed {seed}: missing actual split identity"
+            features = evidence.get("feature_sha256")
+            if not isinstance(features, Mapping) or any(
+                not isinstance(features.get(role), str) or not features[role]
+                for role in ("train", "pu_val", "clean_val", "test")
+            ):
+                return f"seed {seed}: missing four-role feature identities"
+            budget = evidence.get("budget")
+            if (
+                not isinstance(budget, Mapping)
+                or not budget.get("unit")
+                or not budget.get("actual_outer_candidates")
+            ):
+                return f"seed {seed}: missing actual training budget"
+            if budget["unit"] == "epochs" and any(
+                budget.get(field) is None for field in ("epochs", "batch_size")
+            ):
+                return f"seed {seed}: missing epoch or batch-size budget"
+        for field in (
+            "split_sha256",
+            "feature_sha256",
+            "representation",
+            "backbone",
+            "budget",
+            "clean_support",
+        ):
+            if actual[seed].get(field) != reference[seed].get(field):
+                return f"seed {seed}: PN and PU have different {field}"
+    return None
+
+
 def _oracle(
     rows: list[Mapping[str, Any]], oracle_rows: list[Mapping[str, Any]]
-) -> list[dict[str, Any]]:
-    oracle = {}
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    oracle: dict[tuple, list] = defaultdict(list)
     for row in oracle_rows:
         ctx = _context(row)
         if ctx["selection_protocol"] == "OA":
-            oracle.setdefault((ctx["dataset"], ctx["training_path"]), row)
+            oracle[(ctx["dataset"], ctx["training_path"])].append(row)
     out = []
+    unavailable = []
     gaps = []
     for row in rows:
         ctx = _context(row)
-        base = oracle.get((ctx["dataset"], ctx["training_path"]))
-        if base is None or ctx["selection_protocol"] != "OA" or ctx["mechanism"] != "scar":
+        if ctx["selection_protocol"] != "OA" or ctx["mechanism"] != "scar":
             continue
+        candidates = oracle.get((ctx["dataset"], ctx["training_path"]), [])
+        matched = [base for base in candidates if _oracle_identity_reason(row, base) is None]
+        if len(matched) != 1:
+            reason = (
+                "no complete PN oracle for this dataset and training path"
+                if not candidates
+                else "multiple PN oracles share the recorded comparison identity"
+                if matched
+                else "; ".join(sorted({_oracle_identity_reason(row, base) for base in candidates}))
+            )
+            unavailable.append({"signal": "pn_oracle_alignment", "context": ctx, "reason": reason})
+            continue
+        base = matched[0]
         gap = _points(base) - _points(row)
         gaps.append(gap)
         out.append(
@@ -299,7 +361,7 @@ def _oracle(
         for item in out:
             item["flag"] = True
             item["gap_varies_across_rows"] = True
-    return out
+    return out, unavailable
 
 
 def _pa_oa(rows: list[Mapping[str, Any]]) -> list[dict[str, Any]]:
@@ -391,6 +453,7 @@ def build_cards(
     cards: dict[str, dict[str, Any]] = {}
     for method in methods:
         rows = by_method.get(method, [])
+        oracle_observations, oracle_unavailable = _oracle(rows, oracle_rows)
         cards[method] = {
             "method": method,
             "native_view": native_view.get(method),
@@ -401,13 +464,16 @@ def build_cards(
                 "view_os_ts": _views(rows, native_view.get(method)),
                 "backbone_path": _paths(rows),
                 "c_sensitivity": _c_curves(rows),
-                "pn_oracle_alignment": _oracle(rows, oracle_rows),
+                "pn_oracle_alignment": oracle_observations,
                 "pa_oa_gap": _pa_oa(rows),
                 "seed_variance": _variance(
                     method, rows, [r for r in complete if r["row_key"]["mechanism"] != "pn_oracle"]
                 ),
             },
-            "not_computed": [{"signal": name, "reason": why} for name, why in NOT_COMPUTED.items()],
+            "not_computed": [
+                *({"signal": name, "reason": why} for name, why in NOT_COMPUTED.items()),
+                *oracle_unavailable,
+            ],
         }
     return cards
 
@@ -464,6 +530,8 @@ def render_cards(cards: Mapping[str, Mapping[str, Any]]) -> str:
             name = (
                 "外部锚点偏差" if item["signal"] == "external_anchor_deviation" else item["signal"]
             )
-            lines.append(f"- {name}：{item['reason']}")
+            context = " / ".join(str(value) for value in item.get("context", {}).values())
+            scope = f"（{context}）" if context else ""
+            lines.append(f"- {name}{scope}：{item['reason']}")
         lines.append("")
     return "\n".join(lines)
