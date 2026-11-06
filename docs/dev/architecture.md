@@ -8,6 +8,12 @@
 依赖方向、数据流、算法推荐与注册约定）；文件清单与目录结构以 [`project_structure.md`](project_structure.md) 为权威来源。
 **API 契约**：类的精确签名与方法语义以 [`user/reference/api.md`](../user/reference/api.md) 为权威来源，本文档不重复。
 
+**研究设置语义**：输入采样、标记/抽样政策、风险角色、先验目标、验证监督与表征分别表达。
+沿用 core 的角色事实、estimator/registry 的能力声明与 experiment 的研究政策边界；
+公共理论入口见[PU 问题设定](../user/concepts/pu_problem.md)，当前逐实现事实见
+[语义基线](pu_research_semantics.md)，整合决策见 [ADR-0021](../adr/0021-pu-research-semantics.md)。
+采样入口与先验目标契约按语义基线的实施记录更新。
+
 ## 2. 模块分层
 
 > 分层为概念归类；"模块"列给出对应 `pu_toolbox/` 子包；职责为模块级边界。

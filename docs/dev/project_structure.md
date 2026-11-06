@@ -399,6 +399,7 @@ tests/
       test_profiling.py                 # 数据画像统计(pu_data_summary/pnu_data_summary 计数与比率、NaN/Inf 标记、稀疏输入与标签规范化)
       test_data_profiler.py             # 结构化报告、质量规则与审计诊断
       __init__.py
+      test_sampling_semantics.py        # 同池定额、独立 TS、来源与旧入口兼容回归
     scripts/
       test_check_api_docs.py            # api.md 公共符号覆盖门禁(防漂移)脚本测试
       test_check_baseline_configs.py    # 基线配置一致性门禁脚本测试
@@ -722,6 +723,7 @@ examples/
     12_shift_decision_tools.py (配对决策、窗口监控、双域假设与主动复核)
     13_dynamic_joint_shift.py (论文式动态联合漂移 research 求解器)
     14_diy_experiment.py      (四角色实验与三类策略扩展示例)
+    15_pu_sampling.py         (同一目标总体的 OS/独立 TS 配对构造与先验计数)
 ```
 
 ## 4.1 Benchmark（`benchmarks/`）
@@ -837,6 +839,10 @@ docs/
       pu_problem.md                       # PU 问题设定、符号表与 π 的角色
       scar_sar.md                         # SCAR/SAR 机制与识别边界
       method_selection.md                 # 选型决策原理（推荐器 + 决策表）
+      class_prior_semantics.md            # 总体/U/风险池先验、换算条件与实现边界
+      pu_model_selection.md               # PA/OA 原理、监督角色与独立选择
+      pu_sampling.md                      # OS/TS、有限池来源与训练风险视图
+      representations.md                  # encoder、原生 CNN 与冻结特征的比较条件
     howto/
       pipeline.md                         # PUPipeline 端到端工作流
       cli.md                              # 命令行接口
@@ -850,6 +856,7 @@ docs/
       custom_experiments.md               # 四角色实验 API 与策略扩展教程
       ui.md                               # 图形界面安装与使用
       using_skill.md                      # 启用与使用 pu-workflow Skill
+      pu_sampling.md                      # 同池定额与独立 TS 构造、元数据及入口迁移
     reference/
       api.md                              # 核心 API 精确契约
       index.md                            # API 索引：按模块分组的符号导航
@@ -871,6 +878,7 @@ docs/
     distribution_shift_aware_pu_checklist.md # 漂移感知实现检查清单
     process_checklist.md                  # 进度清单与发布状态（权威来源）
     release_process.md                    # 发布流程：版本策略、预检清单、上传、回滚与维护
+    pu_research_semantics.md              # 研究整合的采样/先验/方法消费基线与阶段退出条件
   research/
     method_cards/
       class_prior_estimation.md

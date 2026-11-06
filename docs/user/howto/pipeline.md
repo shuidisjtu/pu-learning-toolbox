@@ -36,6 +36,11 @@ report.save("results/pipeline.json")
 
 ## 类先验解析
 
+先确认数值对应的分布，见[先验语义](../concepts/class_prior_semantics.md)。
+当前自动估计链原样转发 `.estimate()` 的标量，尚未执行 OS 的 U→总体换算；
+KM/penL1 的原生 U mixture 目标及 ReCPE 的重组目标需分别核对。
+需要总体先验时，可在满足条件后自行换算并显式传入 `class_prior`，记录来源和计算依据。
+
 先验按「显式传入 → 构造参数 → 自动估计 → 不需要」四级解析（完整优先级表见
 [API 参考](../reference/api.md)）。要点：
 

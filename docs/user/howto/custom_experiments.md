@@ -5,6 +5,11 @@
 官方 Survey 脚本的运行流程见[运行指南](../../research/pu_survey/runbook.md)；
 接口签名见 [API 参考](../reference/api.md#四角色运行与策略注入)。
 
+研究设置的原理分别见[输入采样与风险池](../concepts/pu_sampling.md)、
+[标记政策](../concepts/scar_sar.md)、[先验目标](../concepts/class_prior_semantics.md)、
+[PA/OA](../concepts/pu_model_selection.md)与[表征路径](../concepts/representations.md)。
+本教程使用 OS 输入；历史 `os_or_ts="ts"` 是训练风险池适配，不会重建独立 TS 数据。
+
 ## 1. 先运行完整示例
 
 在仓库根目录执行：

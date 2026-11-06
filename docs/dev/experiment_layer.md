@@ -6,6 +6,11 @@
 
 使用接口和编写自定义策略，见面向使用者的 [DIY 实验教程](../user/howto/custom_experiments.md)。
 
+公共统计概念见[采样与风险视图](../user/concepts/pu_sampling.md)、
+[先验语义](../user/concepts/class_prior_semantics.md)和[PA/OA](../user/concepts/pu_model_selection.md)。
+当前实现差异及后续兼容边界见[语义基线](pu_research_semantics.md)与
+[ADR-0021](../adr/0021-pu-research-semantics.md)；角色事实与 Survey 政策继续分层。
+
 实验层是面向研究者/实验用户的公共 API 层，补齐 `PUPipeline` 缺失的「数据角色声明 + 显式模型选择协议」。
 本文档只记本层**独有的设计机制**（D1–D5 各决策如何实现、为何这样设计、如何扩展使用）。
 分层位置与数据流见 [architecture.md](architecture.md) §Experiment 与 §3.1；

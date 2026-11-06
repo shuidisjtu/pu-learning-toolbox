@@ -1686,23 +1686,46 @@ result = recommend_from_profile(
 
 ## 数据生成
 
-用法见 [howto/sar_simulation.md](../howto/sar_simulation.md)；示例：
-[06_sar_simulation.py](../../../examples/minimal/06_sar_simulation.py)。
+从 `pu_toolbox.preprocessing` 导入下列入口。用法见
+[SCAR/SAR 模拟](../howto/sar_simulation.md)和 [OS/TS 采样](../howto/pu_sampling.md)；
+示例：[06](../../../examples/minimal/06_sar_simulation.py)、
+[15](../../../examples/minimal/15_pu_sampling.py)。
 
 | 函数 | 签名与返回 |
 |---|---|
-| `make_sar_propensity` | `(X, y_true, mechanism="linear", label_frequency=0.4, strength=1.5) -> propensity`：逐样本标记倾向 `P(S=1|Y,X)`，真实负类位置固定为 0 |
-| `make_sar_labels` | `(X, y_true, mechanism=..., label_frequency=..., random_state=..., return_propensity=False, ensure_labeled=True) -> (y_pu[, propensity])` |
-| `make_sar_dataset` | `(n_samples, n_features, class_prior, separation, mechanism, label_frequency, strength, random_state) -> (X, y_pu, y_true, propensity)` |
-| `make_scar_dataset` | `(n, c, n_features=5, separation=1.0, random_state=None) -> (X, y_pu, class_prior)`：SCAR 机制，CLI `make-demo-data` 内部使用 |
+| `make_sar_propensity` | `(X, y_true, *, mechanism="linear", label_frequency=0.5, strength=1.0, feature_weights=None) -> propensity`：逐样本标记倾向 `P(S=1|Y,X)`，真实负类位置固定为 0 |
+| `make_sar_labels` | `(X, y_true, *, mechanism="linear", label_frequency=0.5, strength=1.0, feature_weights=None, ensure_labeled=True, random_state=None, return_propensity=False) -> y_pu`；`return_propensity=True` 时返回 `(y_pu, propensity)` |
+| `make_sar_dataset` | `(n_samples=1000, *, n_features=5, class_prior=0.3, separation=2.0, mechanism=None, label_frequency=0.5, strength=1.0, feature_weights=None, ensure_labeled=True, random_state=None) -> (X, y_pu, y_true, propensity)` |
+| `make_scar_labels` | `(y_true, c=0.5, random_state=None) -> y_pu`：同池正类定额均匀无放回，`max(1, round(c*n_pos))`；无正类时返回全 U |
+| `make_fixed_count_labels` | `(y_true, n_labeled, random_state=None) -> y_pu`：同池正类均匀无放回，保留全部输入行序 |
+| `make_pu_labels` | `(y_true, mechanism="scar", c=None, n_labeled=None, random_state=None) -> y_pu`：scar 用 c，fixed_count 用 n_labeled |
+| `make_case_control_labels` | `(y_true, n_labeled, random_state=None) -> y_pu`：定额标记兼容名字，发出 FutureWarning，计划 2.0 移除 |
+| `make_scar_dataset` | `(n=100, c=0.5, n_features=5, separation=4.0, random_state=None) -> (X, y_pu, y_true)`：每类 n 个样本，CLI `make-demo-data` 使用 |
+| `make_gaussian_case_control_data` | `(n_p=50, n_u=100, *, class_prior=0.5, n_features=5, separation=2.0, random_state=None) -> (X, y_pu, y_true, metadata)`：独立 TS 的高斯 P 与总体混合 U |
+| `make_gaussian_pu_data` | `(n_p=50, n_u=100, n_features=5, separation=2.0, random_state=None) -> (X, y_pu, class_prior)`：全部生成正类可见，U 来自负类；第三项为拼接表真实正类比例 |
+
+`make_fixed_count_labels` 接受一维真实二元标签；`n_labeled` 是 `[1,n_positive]` 内整数，
+接受 `numpy.integer`，拒绝 bool 和浮点数。全部为正类的输入也可定额标记。
+旧别名延续双类别输入校验；分派器中的 `mechanism="case_control"` 使用同一兼容入口。
+
+`make_gaussian_case_control_data` 中 `n_p/n_u/n_features` 为正整数，bool 除外；
+`class_prior` 是 `[0,1]` 内有限实数，`separation` 是非负有限实数，二者拒绝 bool 和字符串。
+每个 U 样本先独立抽取真实类别，再从对应高斯条件分布抽取特征。
+输出行序为 P 后 U；`y_true` 用于合成审计与评测。
+`metadata` 字段为 `input_sampling="ts"`、`sampling_policy="independent_generative"`、
+`population_class_prior`、`unlabeled_class_prior`、`training_class_prior`、
+`n_positive`、`n_unlabeled`、`source_distribution`、`sample_ids`、`random_state`。
+`source_distribution` 记录 family、positive_mean、negative_mean、identity covariance 与 n_features；
+`sample_ids` 为当前输出唯一的 `positive:i` / `population:i` 抽样事件身份。
+`random_state` 接受整数、RandomState 或 None；元数据仅在整数 seed 时记录该数值。
 
 - `mechanism`：`"scar"` / `"linear"` / `"nonlinear"`（定义见 [concepts/scar_sar.md](../concepts/scar_sar.md)）；
   不传默认 `"linear"`（SAR，标记依赖特征）并发 `UserWarning`；类先验估计器假设 SCAR，
   SCAR 场景需显式 `mechanism="scar"`。
-- `label_frequency`：正类 propensity 的目标均值（校准），不是抽样后的精确比例。
+- `label_frequency`：正类 propensity 的目标均值（校准）；实际标记率由抽样结果计算。
 - `make_sar_labels` 默认 `ensure_labeled=True`：小样本抽样未选中任何正类时选
   propensity 最高的真实正类，保证下游可训练。
-- `make_scar_dataset` 默认分离度（1.0）避免强分离下类先验估计系统性低估。
+- CLI `make-demo-data` 的默认分离度为 1.0；直接调用 `make_scar_dataset` 的默认值为 4.0。
 
 ## analyze_pu_sensitivity
 

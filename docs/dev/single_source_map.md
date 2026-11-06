@@ -7,6 +7,11 @@
 > 各行随其收敛落地就地更新，行号按权威源当前形态重取。**本表整体并非当前快照**——未更新行的
 > 行号可能已过期，发现重复不等于已收敛。
 
+研究整合的当前采样/先验消费事实及待收敛重复见[语义基线](pu_research_semantics.md)。
+公共定义由[概念入口](../user/concepts/pu_problem.md)导航；
+固定数 SCAR 两入口、先验目标声明与换算在后续工作包中分别收敛。
+职责边界见 [ADR-0021](../adr/0021-pu-research-semantics.md)。
+
 | 概念 | 权威真相源 | 消费者 | 兼容入口 | 判据 |
 |---|---|---|---|---|
 | 标签语义 | `pu_toolbox/core/labels.py:92` `normalize_pu_labels` / `:145` `normalize_pnu_labels`；字面值在 `pu_toolbox/core/config.py:8`-`:10` | `core/validation.py`（`validate_pu_X_y` / `validate_pnu_X_y` 的前置归一）、`metrics/classification.py`、`preprocessing/`、`model_selection/split.py`、`diagnostics/`、`workflows/shift.py`、`estimators/deep/self_pu.py`、`estimators/risk/nnpu.py`、`estimators/risk/vpu.py` | 无 | 单一 |
