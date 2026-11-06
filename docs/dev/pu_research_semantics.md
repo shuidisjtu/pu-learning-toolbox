@@ -433,3 +433,18 @@ uv run python examples/minimal/14_diy_experiment.py --output-dir tmp/pu-research
 
 格式、文档链接、API 覆盖、测试质量、生成目录和层依赖门禁通过。
 测试明细分别保存于上述 XML 与 `tmp/p5-report-regressions.xml`。
+
+## 14. PR #172 CI 契约回归修正
+
+CLI 集成和夜间快速开始 E2E 的报告断言同步为 schema `1.1`，并在 CLI 集成中核对
+总体先验目标、OS 输入、三折训练及最终重训的原生 U 消费值。
+GenPU 的校验测试同步为风险 U 先验，覆盖缺失值、0、1 与非有限值，
+同时核对 `class_prior_target="native_unlabeled"`。
+
+本地先复现两项 CI 失败及 E2E 的旧 schema 断言；修正后 CLI、GenPU、先验目标、
+质量换算和完整快速开始 E2E 共 117 项通过，GPU 用例按选择条件取消选择。
+格式、测试质量及文档门禁通过。
+
+```powershell
+uv run pytest tests/integration/test_run.py tests/unit/estimators/test_gen_pu.py tests/unit/workflows/test_pipeline_prior_targets.py tests/unit/prior/test_prior_semantics.py tests/e2e/test_e2e_quickstart.py -m 'not gpu' -o addopts='--tb=short' -q --maxfail=5 --junitxml=tmp/pr172-ci-corrected.xml
+```

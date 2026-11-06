@@ -35,14 +35,14 @@ def _cli(*args: str) -> subprocess.CompletedProcess:
 
 
 def _assert_strict_report(path: Path) -> dict:
-    """report.json must be strict JSON (no NaN/Infinity literals) with schema 1.0."""
+    """report.json must be strict JSON (no NaN/Infinity literals) with schema 1.1."""
 
     def _reject_constant(name: str) -> None:
         raise ValueError(f"non-standard JSON literal in report: {name}")
 
     with path.open("r", encoding="utf-8") as fh:
         payload = json.load(fh, parse_constant=_reject_constant)
-    assert payload["schema_version"] == "1.0"
+    assert payload["schema_version"] == "1.1"
     return payload
 
 

@@ -78,7 +78,16 @@ def _run(tmp_path, rng, *extra):
 def test_run_end_to_end(tmp_path, rng, capsys):
     """Full run produces a parseable strict-JSON report and prints a summary."""
     _, payload = _run(tmp_path, rng)
-    assert payload["schema_version"] == "1.0"
+    assert payload["schema_version"] == "1.1"
+    prior = payload["prior"]
+    assert prior["target"] == "population"
+    assert prior["input_target"] == "native_unlabeled"
+    assert prior["input_sampling"] == "os"
+    assert len(prior["training_consumption"]) == 4
+    for record in prior["training_consumption"]:
+        assert record["target"] == "native_unlabeled"
+        q = record["labeled_fraction"]
+        assert record["value"] == pytest.approx((prior["value"] - q) / (1 - q))
     assert set(payload["cv_metrics"]) == {
         "pu_zero_one_risk",
         "pu_recall",
