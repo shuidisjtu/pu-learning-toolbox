@@ -80,25 +80,36 @@ class TestBasicFlow:
 class TestCustomBaseEstimator:
     """Method card §9.2 — base_estimator injection."""
 
-    def test_basic_custom_base_estimator_is_used(self, rng):
+    @pytest.mark.parametrize("n_u, copy_fraction", [(20, 0.2), (1, 0.01), (2, 0.95)])
+    def test_basic_custom_base_estimator_is_used(self, rng, n_u, copy_fraction):
         class ConstantPrior:
             def fit(self, X, y):
-                self.seen_positive = int(np.sum(y == 1))
+                self.seen_p = X[y == 1].copy()
+                self.seen_u = X[y == 0].copy()
                 return self
 
             def estimate(self):
                 return 0.37
 
-        X = rng.normal(size=(30, 3))
-        y = np.concatenate([np.ones(10, dtype=int), np.zeros(20, dtype=int)])
+        X = rng.normal(size=(10 + n_u, 3))
+        y = np.concatenate([np.ones(10, dtype=int), np.zeros(n_u, dtype=int)])
+        order = rng.permutation(len(y))
+        X, y = X[order], y[order]
+        original_X, original_y = X.copy(), y.copy()
         estimator = ReCPEEstimator(
-            copy_fraction=0.2,
+            copy_fraction=copy_fraction,
             base_estimator=ConstantPrior(),
         ).fit(X, y)
 
         assert estimator.estimate() == pytest.approx(0.37)
-        # After regrouping: 10 original + ceil(0.2 * 20) = 14 positives
-        assert estimator.base_estimator_.seen_positive == 14
+        base = estimator.base_estimator_
+        expected_copies = max(1, int(np.ceil(copy_fraction * n_u)))
+        assert len(base.seen_p) == 10 + expected_copies
+        np.testing.assert_array_equal(base.seen_p[:10], X[y == 1])
+        np.testing.assert_array_equal(base.seen_p[10:], X[y == 0][estimator.selected_indices_])
+        np.testing.assert_array_equal(base.seen_u, X[y == 0])
+        np.testing.assert_array_equal(X, original_X)
+        np.testing.assert_array_equal(y, original_y)
 
     def test_basic_custom_classifier_is_used(self, rng):
         """Custom classifier replaces the default LogisticRegression."""

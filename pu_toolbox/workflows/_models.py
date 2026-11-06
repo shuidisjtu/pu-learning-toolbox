@@ -144,9 +144,12 @@ def fresh_estimator(
     device: str | None,
     max_epochs: int | None,
     classifier_name: str,
+    input_sampling: str = "os",
 ) -> BasePUClassifier:
     if instance is not None:
         estimator = clone(instance)
+        if prior is not None and "class_prior" in estimator.get_params():
+            estimator.set_params(class_prior=prior)
         if encoder is not None and declares_encoder_parameter(type(instance)):
             estimator.set_params(encoder=encoder)
         validate_label_semantics(estimator, "pu")
@@ -154,6 +157,8 @@ def fresh_estimator(
     assert cls is not None
     kwargs: dict[str, Any] = dict(classifier_params)
     signature = inspect.signature(cls.__init__)
+    if "input_sampling" in signature.parameters:
+        kwargs["input_sampling"] = input_sampling
     if prior is not None and "class_prior" in signature.parameters:
         kwargs["class_prior"] = prior
     if "random_state" in signature.parameters and random_state is not None:

@@ -13,6 +13,7 @@ from __future__ import annotations
 import contextlib
 import warnings
 from collections.abc import Sequence
+from dataclasses import replace
 from typing import Any
 
 import numpy as np
@@ -21,11 +22,16 @@ from ..core.base import BasePriorEstimator, BasePUClassifier
 from ..core.device import resolve_device_name
 from ..core.exceptions import PipelineError, RegistryError
 from ..core.tags import Backend, SampleWeightSupport, TrainingCost
-from ..core.validation import check_scalar_in_range, validate_label_semantics
+from ..core.validation import (
+    check_scalar_in_range,
+    validate_input_sampling,
+    validate_label_semantics,
+)
 from ..diagnostics.report import PUDiagnosticReport, build_diagnostic_report
 from ..estimators.deep.vision import CNN_BACKBONES
 from ..model_selection.split import PUStratifiedKFold
 from ..preprocessing.data_profiler import profile_pu_data
+from ..prior.semantics import native_unlabeled_to_population, population_to_native_unlabeled
 from ..progress import CancellationToken, ProgressCallback, emit_progress
 from ..registry import RecommendationResult, recommend_from_profile
 from ..registry.registry import get_algorithm, get_metadata
@@ -134,6 +140,11 @@ class PUPipeline:
         Max training epochs injected into estimators whose constructor
         signature accepts ``max_epochs`` (wconpu, self_pu, nnpu);
         estimators with other epoch parameter names are left untouched.
+    input_sampling : {"os", "ts"}, default "os"
+        Input sampling design. OS labels positives in one source pool; TS
+        supplies independent positive and population-unlabeled samples.
+        Estimates are resolved to a population prior, then converted to each
+        classifier's default-view target separately for every training fold.
 
     Notes
     -----
@@ -163,10 +174,20 @@ class PUPipeline:
         backbone: str = "cnn13",
         device: str | None = None,
         max_epochs: int | None = None,
+        input_sampling: str = "os",
     ) -> None:
         _ensure_registered()
+        validate_input_sampling(input_sampling)
+        self.input_sampling = input_sampling
         self.classifier = classifier
         self.classifier_params = dict(classifier_params or {})
+        configured_sampling = (
+            classifier.get_params().get("input_sampling", input_sampling)
+            if isinstance(classifier, BasePUClassifier)
+            else self.classifier_params.get("input_sampling", input_sampling)
+        )
+        if configured_sampling != input_sampling:
+            raise ValueError("Classifier input_sampling must match PUPipeline input_sampling.")
         if any(not isinstance(key, str) or not key for key in self.classifier_params):
             raise TypeError("classifier_params keys must be non-empty strings.")
         managed = sorted(_MANAGED_CLASSIFIER_PARAMS.intersection(self.classifier_params))
@@ -191,7 +212,7 @@ class PUPipeline:
         # -- classifier: fail fast on unresolvable names -----------------
         if isinstance(classifier, str) and classifier != "auto":
             self._classifier_cls = resolve_classifier_name(
-                classifier, provided_params=set(self.classifier_params)
+                classifier, provided_params=set(self.classifier_params) | {"input_sampling"}
             )
             validate_classifier_params(self._classifier_cls, self.classifier_params, classifier)
             self._classifier_name = classifier
@@ -329,8 +350,9 @@ class PUPipeline:
             True labels ``{0, 1}``.  Used only for oracle metrics and
             selection evidence -- never for class-prior estimation.
         class_prior : float, optional
-            Explicit class prior ``(0, 1)``.  Takes precedence over the
-            classifier's constructor value and over estimation.
+            Explicit population class prior ``(0, 1)``. Takes precedence over the
+            classifier's constructor value and over estimation. Constructor
+            values follow the classifier's class_prior_target declaration.
         sample_weight : array-like of shape (n_samples,), optional
             Per-source-sample training weights. They are sliced with every
             CV training fold and passed to the final refit. The selected
@@ -409,6 +431,7 @@ class PUPipeline:
             y_pu,
             y_true=y_true,
             class_prior=prior,
+            input_sampling=self.input_sampling,
             random_state=self.random_state,
         )
         emit_progress(
@@ -501,8 +524,16 @@ class PUPipeline:
                 )
 
         # -- Cross-validation ---------------------------------------------
+        consumption: list[dict[str, Any]] = []
+
         def evaluate_fold(train_idx: np.ndarray, test_idx: np.ndarray):
-            clf = self._fresh_estimator(classifier_cls, classifier_instance, prior)
+            training_priors, record = self._training_priors(
+                classifier_cls or classifier_instance, prior, y_pu[train_idx]
+            )
+            consumption.append({"stage": "cv", "fold": len(consumption) + 1, **record})
+            clf = self._fresh_estimator(
+                classifier_cls, classifier_instance, training_priors["class_prior"]
+            )
             return self._fit_and_evaluate_one(
                 clf,
                 X[train_idx],
@@ -512,6 +543,7 @@ class PUPipeline:
                 y_true[test_idx] if y_true is not None else None,
                 prior,
                 sample_weight[train_idx] if sample_weight is not None else None,
+                training_priors=training_priors,
             )
 
         cv_metrics = run_cross_validation(
@@ -539,8 +571,14 @@ class PUPipeline:
                 total=total_steps,
                 message="正在全量重训最佳模型",
             )
-            final_model = self._fresh_estimator(classifier_cls, classifier_instance, prior)
-            final_model.fit(X, y_pu, class_prior=prior, sample_weight=sample_weight)
+            training_priors, record = self._training_priors(
+                classifier_cls or classifier_instance, prior, y_pu
+            )
+            consumption.append({"stage": "refit", "fold": None, **record})
+            final_model = self._fresh_estimator(
+                classifier_cls, classifier_instance, training_priors["class_prior"]
+            )
+            final_model.fit(X, y_pu, sample_weight=sample_weight, **training_priors)
             if cancellation_token is not None:
                 cancellation_token.raise_if_cancelled()
             if extract_scores(final_model, X) is not None:
@@ -550,6 +588,7 @@ class PUPipeline:
                     estimator=final_model,
                     y_true=y_true,
                     class_prior=prior,
+                    input_sampling=self.input_sampling,
                     random_state=self.random_state,
                     # Reuse the profile computed above: profiling twice with
                     # identical inputs (including the CV selection diagnostic)
@@ -565,11 +604,13 @@ class PUPipeline:
                     y_pred=final_model.predict(X),
                     y_true=y_true,
                     class_prior=prior,
+                    input_sampling=self.input_sampling,
                     random_state=self.random_state,
                     profile=profile,
                 )
 
         # -- Assemble report ----------------------------------------------
+        prior_info = replace(prior_info, training_consumption=tuple(consumption))
         report = build_pipeline_report(
             profile=profile,
             prior_info=prior_info,
@@ -625,22 +666,38 @@ class PUPipeline:
         if class_prior is not None:
             _validate_prior_value(class_prior, "class_prior")
             return class_prior, PriorInfo(
-                value=class_prior, source="user", method_requires_prior=needs_prior
+                value=class_prior,
+                source="user",
+                method_requires_prior=needs_prior,
+                input_value=float(class_prior),
+                input_target="population",
+                input_sampling=self.input_sampling,
             )
 
         if classifier_instance is not None:
             carried = classifier_instance.get_params().get("class_prior")
             if carried is not None:
                 _validate_prior_value(carried, "class_prior")
-                return float(carried), PriorInfo(
-                    value=float(carried),
+                target = getattr(classifier_instance, "class_prior_target", "population")
+                value, conversion = self._population_prior(float(carried), target, y_pu)
+                return value, PriorInfo(
+                    value=value,
                     source="constructor",
                     method_requires_prior=needs_prior,
+                    input_value=float(carried),
+                    input_target=target,
+                    input_sampling=self.input_sampling,
+                    conversion=conversion,
                 )
 
         prior_spec: str | BasePriorEstimator | None = self._prior_estimator
         if not needs_prior:
-            return None, PriorInfo(value=None, source="none", method_requires_prior=False)
+            return None, PriorInfo(
+                value=None,
+                source="none",
+                method_requires_prior=False,
+                input_sampling=self.input_sampling,
+            )
         if prior_spec is None:
             if allow_degradation:
                 # Auto mode with estimation disabled: fall back to a
@@ -650,6 +707,7 @@ class PUPipeline:
                     value=None,
                     source="none",
                     method_requires_prior=needs_prior,
+                    input_sampling=self.input_sampling,
                     degraded=(
                         "class-prior estimation disabled (prior_estimator=None); "
                         "auto mode will only consider methods that need no prior"
@@ -679,8 +737,10 @@ class PUPipeline:
                 estimator_name = f"{estimator_name} (variant={variant})"
         try:
             estimator.fit(X, y_pu)
-            value = float(estimator.estimate())
-            _validate_prior_value(value, f"prior estimate from {estimator_name}")
+            raw_value = estimator.estimate()
+            _validate_prior_value(raw_value, f"prior estimate from {estimator_name}")
+            target = estimator.estimate_target
+            value, conversion = self._population_prior(float(raw_value), target, y_pu)
         except Exception as exc:
             if allow_degradation:
                 # Auto mode: fall back to a no-prior run; the recommender
@@ -691,6 +751,7 @@ class PUPipeline:
                     source="none",
                     method_requires_prior=needs_prior,
                     estimator=estimator_name,
+                    input_sampling=self.input_sampling,
                     degraded=f"estimation with {estimator_name!r} failed: {exc}",
                 )
             raise PipelineError(
@@ -702,7 +763,63 @@ class PUPipeline:
             method_requires_prior=needs_prior,
             estimator=estimator_name,
             auto_selected=self._prior_auto_selected,
+            input_value=float(raw_value),
+            input_target=target,
+            estimation_pool=estimator.estimation_pool,
+            estimation_details=(
+                estimator.get_metadata() if hasattr(estimator, "get_metadata") else None
+            ),
+            input_sampling=self.input_sampling,
+            conversion=conversion,
         )
+
+    def _population_prior(self, value: float, target: str, y_pu: np.ndarray) -> tuple[float, str]:
+        if target == "population":
+            return value, "identity"
+        if target == "training_table":
+            if self.input_sampling == "os":
+                return value, "identity"
+            result = population_to_native_unlabeled(value, float(np.mean(y_pu == 1)))
+            return result, "ts_training_table_to_population"
+        if target != "native_unlabeled":
+            raise ValueError(f"Unsupported prior target {target!r}.")
+        result = native_unlabeled_to_population(
+            value, float(np.mean(y_pu == 1)), input_sampling=self.input_sampling
+        )
+        conversion = (
+            "os_native_unlabeled_to_population" if self.input_sampling == "os" else "identity"
+        )
+        return result, conversion
+
+    def _training_priors(
+        self, classifier: Any, prior: float | None, y_pu: np.ndarray
+    ) -> tuple[dict[str, float | None], dict[str, Any]]:
+        q = float(np.mean(y_pu == 1))
+        targets = {"class_prior": getattr(classifier, "class_prior_target", "population")}
+        risk_target = getattr(classifier, "risk_class_prior_target", None)
+        if risk_target is not None:
+            targets["risk_class_prior"] = risk_target
+        values: dict[str, float | None] = {}
+        records: dict[str, dict[str, Any]] = {}
+        for parameter, target in targets.items():
+            if target not in {"native_unlabeled", "population", "training_table"}:
+                raise PipelineError(f"Unsupported classifier prior target {target!r}.")
+            value = prior
+            if prior is not None:
+                if target == "native_unlabeled":
+                    value = population_to_native_unlabeled(
+                        prior, q, input_sampling=self.input_sampling
+                    )
+                elif target == "training_table" and self.input_sampling == "ts":
+                    value = native_unlabeled_to_population(prior, q)
+                _validate_prior_value(value, f"training {parameter} for {target}")
+            values[parameter] = value
+            records[parameter] = {"target": target, "value": value}
+        return values, {
+            **records["class_prior"],
+            "labeled_fraction": q,
+            "parameters": records,
+        }
 
     def _instantiate_prior(self, name: str) -> BasePriorEstimator:
         cls = self._prior_cls
@@ -737,6 +854,7 @@ class PUPipeline:
             device=self.device,
             max_epochs=self.max_epochs,
             classifier_name=self._classifier_name,
+            input_sampling=self.input_sampling,
         )
 
     def _resolved_splitter(self, X: Any, y_pu: np.ndarray) -> Any:
@@ -772,13 +890,15 @@ class PUPipeline:
         y_true_test: np.ndarray | None,
         prior: float | None,
         sample_weight_train: np.ndarray | None,
+        *,
+        training_priors: dict[str, float | None] | None = None,
     ) -> dict[str, tuple[float | None, str | None]]:
         """Fit one fold's estimator and compute every metric on its test fold."""
         estimator.fit(
             X_train,
             y_pu_train,
-            class_prior=prior,
             sample_weight=sample_weight_train,
+            **(training_priors if training_priors is not None else {"class_prior": prior}),
         )
         pred = estimator.predict(X_test)
         scores = extract_scores(estimator, X_test)
@@ -788,7 +908,16 @@ class PUPipeline:
             else None
         )
         return {
-            name: compute_metric(name, y_pu_test, pred, scores, y_true_test, prior, proba)
+            name: compute_metric(
+                name,
+                y_pu_test,
+                pred,
+                scores,
+                y_true_test,
+                prior,
+                proba,
+                input_sampling=self.input_sampling,
+            )
             for name in self.metrics
         }
 

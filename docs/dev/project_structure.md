@@ -76,6 +76,7 @@ pu_toolbox/
     pen_l1.py                             (native: ClassPriorEstimator 罚 L1 闭式先验，theta 网格搜索)
     kernel_mean.py                        (native: KernelMeanPriorEstimator KM1/KM2 核均值混合比例估计)
     bbe.py                                (standalone: BBE α_U 统计量与隔离留出 PvU 评分，不注册为总体先验)
+    semantics.py                          (OS/独立 TS 的原生 U 与总体先验质量换算)
   utils/
     __init__.py                           (公共导出聚合)
     basis.py                              (shared: build_linear_basis/build_rbf_basis 基函数构造与中心子采样)
@@ -393,6 +394,7 @@ tests/
       test_pen_l1.py                    # penL1 特有逻辑(自动 σ=中位数带宽、先验分离带/低先验带、估计有界)
       test_kernel_mean.py               # KM1/KM2 kernel-mean 类先验估计
       test_bbe.py                       # BBE 独立尾部公式、置信准则、重复分数与训练/留出隔离
+      test_prior_semantics.py           # 先验目标、质量恒等式、非法域与可辨识混合分布
     preprocessing/
       test_pu_labeling.py               # PU/PNU 标签生成(6 公共函数、统一分发器、参数校验与确定性)
       test_selection_bias.py            # SCAR/SAR propensity、标记率校准与合成数据
@@ -472,6 +474,7 @@ tests/
       test_report_provenance.py         # 报告 provenance 架构能力 4 字段(mlp 裸配/native_cnn 全配)
       test_label_semantics_entrypoints.py # CLI/UI/调参/推荐的标签语义入口门禁
       test_pipeline_label_semantics.py  # pipeline 构造/运行/clone/auto 的语义错配拒绝
+      test_pipeline_prior_targets.py    # OS/TS 的估计目标、逐折消费、真实分类器与总体评估
     experiment/
       test_cvir_known_prior_adapter.py  # CVIR alpha_U/总体 pi、候选角色、manifest 与路径拒收
       test_pulns_support_adapter.py     # PULNS 全角色隔离、额外标签预算与 OA-only 拒收
@@ -724,6 +727,7 @@ examples/
     13_dynamic_joint_shift.py (论文式动态联合漂移 research 求解器)
     14_diy_experiment.py      (四角色实验与三类策略扩展示例)
     15_pu_sampling.py         (同一目标总体的 OS/独立 TS 配对构造与先验计数)
+    16_prior_targets.py       (known/estimated 先验在 OS/TS 报告与训练中的目标换算)
 ```
 
 ## 4.1 Benchmark（`benchmarks/`）

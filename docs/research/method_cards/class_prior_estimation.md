@@ -24,9 +24,9 @@
 令 $`p_P(x)=p(x\mid Y=1)`$、$`p_N(x)=p(x\mid Y=-1)`$，未标记边缘分布为：
 
 ```math
-p_U(x)=p(x)=\pi p_P(x)+(1-\pi)p_N(x),
+p_U(x)=\pi_U p_P(x)+(1-\pi_U)p_N(x),
 \qquad
-\pi=P(Y=1).
+\pi_U=P(Y=1\mid X\text{ 来自原生 U}).
 ```
 
 观察到两个独立样本集：
@@ -37,7 +37,9 @@ X_P=\{x_i^P\}_{i=1}^{n_P}\sim p_P(x),
 X_U=\{x_j^U\}_{j=1}^{n_U}\sim p_U(x).
 ```
 
-目标是从 $`X_P`$ 和 $`X_U`$ 中估计 `pi`，不需要观测 $`p_N`$ 或真实负标签。论文研究的是先验估计本身，不直接训练分类器。
+目标是从 $`X_P`$ 和 $`X_U`$ 估计原生 U 的 mixture proportion，以下公式以 $`\pi`$ 简写 $`\pi_U`$。
+独立 TS 下 $`\pi_U=\pi_{population}`$；SCAR OS 下
+$`\pi_U=(\pi_{population}-q)/(1-q)`$。
 
 | 论文符号 | 含义 |
 |---|---|
@@ -179,9 +181,9 @@ penL1 对系数采用非负约束和 L2 正则。固定 `theta` 后：
 
 ## 5. 论文边界
 
-- 论文研究的是先验估计 $`\pi=P(Y=1)`$，不是分类器训练，也不直接输出 posterior probability；`estimate()` 的输出不是分类器概率，也不是置信区间。
+- `estimate()` 返回原生 U 的 mixture proportion；`estimate_target=estimation_pool="native_unlabeled"`。
 - 输入的 $`P`$ 应代表 $`p(x\mid y=1)`$；若已标记正例存在 selection bias，直接使用 penL1 会把 labeling bias 混入类先验估计。
-- $`U`$ 必须来自边缘分布 $`p(x)`$。如果 U 是经过筛选的子集，论文的 mixture decomposition 不再直接成立。
+- P 代表正类条件分布，U 对应所声明的 mixture 分布。
 - Gaussian basis 对特征尺度很敏感，正式复现必须记录标准化方式及是否在训练 fold 内计算统计量。
 - $`\theta\_grid`$、$`\sigma`$ 和 $`\lambda`$ 是工程参数；论文要求通过交叉验证选择，但没有提供唯一默认网格。
 - 关键分布条件：
@@ -189,13 +191,16 @@ penL1 对系数采用非负约束和 L2 正则。固定 `theta` 后：
 | 条件 | 含义 |
 |---|---|
 | P 可靠 | `P` 中样本真实为正（由数据生成机制保证，代码无法验证） |
-| U 为 mixture | `U ~ p(x)`（由任务采样协议保证） |
+| U 为 mixture | `U ~ p_U(x)`（由任务采样协议声明） |
 | `0 < pi < 1` | 非退化 mixture |
 | 可计算密度 ratio | basis/regularization 足够表达 |
 
 ---
 
 ## 6. 实现注记
+
+P 和 U 的基函数均值分别按 $`n_P`$ 与 $`n_U`$ 归一化。
+Pipeline 将 OS 原生 U 估计换算为总体先验，独立 TS 使用同值。
 
 > 见 ADR-0014 #1（0.0380 MAE 为默认 `sigma=1.0` 时代的数字；2026-08-10 默认改为数据自适应 `sigma` 后 benchmark 复现须显式 pin `sigma`）
 

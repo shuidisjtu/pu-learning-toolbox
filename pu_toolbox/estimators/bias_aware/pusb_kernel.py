@@ -160,6 +160,8 @@ class PUSBKernelClassifier(BasePUClassifier):
     assumption = (Assumption.SAR,)
     scenario = (Scenario.CASE_CONTROL, Scenario.SELECTION_BIASED)
     requires_class_prior = True
+    class_prior_target = "training_table"
+    risk_class_prior_target = "native_unlabeled"
     implementation_status = ImplementationStatus.NATIVE
     source_status = SourceStatus.OFFICIAL_RELATED
     backend = Backend.NUMPY
@@ -222,6 +224,7 @@ class PUSBKernelClassifier(BasePUClassifier):
         class_prior=None,
         sample_weight=None,
         os_or_ts: str = "os",
+        risk_class_prior: float | None = None,
     ):
         """Fit the kernel PUSB classifier.
 
@@ -232,8 +235,12 @@ class PUSBKernelClassifier(BasePUClassifier):
         y_pu : np.ndarray of shape (n_samples,)
             PU labels.  +1 = labeled positive, 0 = unlabeled.
         class_prior : float
-            Population class prior pi.  Required -- the PU risk and the
-            quantile decision rule both use it.
+            Prior for the training-score quantile decision rule. Required.
+            The risk uses this value when risk_class_prior is omitted.
+        risk_class_prior : float, optional
+            Positive prior in the risk's unlabeled distribution. For the
+            default view this is native U. The workflow supplies this value
+            separately from the training-table prior used by the quantile rule.
         sample_weight : None
             Not supported: the official PUSB objective defines no weighting.
         os_or_ts : {"os", "ts"}, default "os"
@@ -267,6 +274,8 @@ class PUSBKernelClassifier(BasePUClassifier):
         if sample_weight is not None:
             raise NotImplementedError("The official PUSB objective does not define sample_weight")
         sigma_grid, reg_grid = self._validate_parameters(X, class_prior)
+        risk_prior = class_prior if risk_class_prior is None else risk_class_prior
+        check_scalar_in_range(risk_prior, 0.0, 1.0, "risk_class_prior", inclusive=False)
 
         # ── TS-OS calibration (protocol §2.3) ─────────────────────────────
         # The unlabeled-risk role is carried by X_U under the OS view and by the
@@ -312,7 +321,7 @@ class PUSBKernelClassifier(BasePUClassifier):
                     result = _fit_coefficients(
                         positive_train,
                         unlabeled_train,
-                        float(class_prior),
+                        float(risk_prior),
                         float(reg_lambda),
                         self.max_iter,
                         self.tol,
@@ -326,7 +335,7 @@ class PUSBKernelClassifier(BasePUClassifier):
                         result.x,
                         val_design[val_y == 1],
                         val_design[val_y == 0],
-                        float(class_prior),
+                        float(risk_prior),
                         float(reg_lambda),
                     )
                     score += fold_score
@@ -350,7 +359,7 @@ class PUSBKernelClassifier(BasePUClassifier):
         result = _fit_coefficients(
             positive_all,
             unlabeled_all,
-            float(class_prior),
+            float(risk_prior),
             self.reg_lambda_,
             self.max_iter,
             self.tol,
@@ -361,6 +370,7 @@ class PUSBKernelClassifier(BasePUClassifier):
         _, self.threshold_ = prior_quantile_predict(train_scores, float(class_prior))
         self.classes_ = np.array([0, 1])
         self._class_prior = float(class_prior)
+        self.risk_class_prior_ = float(risk_prior)
         self._X_shape_ = X.shape
         self._is_fitted = True
         return self
@@ -383,6 +393,7 @@ class PUSBKernelClassifier(BasePUClassifier):
 
     def get_pu_metadata(self) -> dict:
         metadata = super().get_pu_metadata()
+        metadata["risk_class_prior"] = getattr(self, "risk_class_prior_", None)
         metadata["official_compatibility"] = {
             "regularizer": "0.5 * lambda * ||coef||^2, matching the released gradient",
             "public_threshold": "frozen training-score prior quantile",

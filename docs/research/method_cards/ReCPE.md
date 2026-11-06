@@ -10,7 +10,7 @@
 | Authors | Yu Yao, Tongliang Liu, Bo Han, Mingming Gong, Gang Niu, Masashi Sugiyama, Dacheng Tao |
 | Venue | arXiv preprint，arXiv:2002.03673v2 |
 | Year | 2022 |
-| Setting | case-control；也可适配单一 PU 数据集，但需保证正例抽样条件 |
+| Setting | 独立 TS；SCAR OS 以原生 U 为 mixture，正例代表正类条件分布 |
 | Requires class prior | `False`，方法输出类别先验估计 |
 | Requires propensity | `False` |
 | Requires negative samples | `False` |
@@ -35,7 +35,9 @@ P_u=(1-\pi)P_n+\pi P_p,
 
 ## 2. 问题设定与符号
 
-给定正类样本和未标记样本，传统的 distributional-assumption-free CPE 方法通常估计未标记分布中正类分布的最大混合比例。它们隐含依赖 irreducibility assumption：正类分布的 support 不能被负类分布完全包含。当该假设不成立时，传统方法会系统性高估类别先验。
+给定正类样本和未标记样本，传统 CPE 方法估计未标记分布中正类分布的最大混合比例。
+可辨识条件是负类分布相对于正类分布不可约，即负类分布中可分解出的正类分布成分为零。
+负类分布可约时，最大混合比例会高于名义先验。
 
 ReCPE 不直接估计原始 $`P_p`$ 在 $`P_u`$ 中的最大比例，而是从 $`P_u`$ 中找出最像正类的一小部分样本，构造辅助正类分布 $`P_p'`$，再调用已有 CPE 方法。
 
@@ -44,7 +46,7 @@ ReCPE 不直接估计原始 $`P_p`$ 在 $`P_u`$ 中的最大比例，而是从 $
 | $`P_p`$ | 正类条件分布 |
 | $`P_n`$ | 负类条件分布 |
 | $`P_u`$ | 未标记边缘分布 |
-| $`\pi`$ | 真实类别先验 $`P(y=1)`$ |
+| $`\pi`$ | 输入 U 分布中的正类比例 $`\pi_U`$ |
 | $`S_p`$ | 正类样本集 |
 | $`S_u`$ | 未标记样本集 |
 | $`A`$ | 被 regrouping 的小样本集合 |
@@ -138,9 +140,9 @@ A^*=\arg\min_{A\in\mathcal S}
 
 1. 用 Sp 标记为来源正类、Su 标记为来源未标记，训练分类器 h。
 2. 对 Su 中每个样本计算 h 的 positive probability。
-3. 选择 positive probability 最大的前 ceil(p * |Su|) 个样本 A_hat。
+3. 选择 positive probability 最大的前 max(1, ceil(p * |Su|)) 个样本 A_hat。
 4. 将 A_hat 复制到 Sp，形成辅助正类集合 Sp'。
-5. 用 Su 和 Sp' 调用底层 CPE 算法 A。
+5. 以完整原生 Su 为 mixture、Sp' 为 component 调用底层 CPE 算法 A。
 6. 输出底层算法得到的类别先验估计 pi_hat'。
 ```
 
@@ -148,11 +150,11 @@ A^*=\arg\min_{A\in\mathcal S}
 
 ## 5. 论文边界
 
-- ReCPE 是一个**外层 regrouping 方法**，论文并未限定唯一的底层 CPE；最终效果依赖底层估计器和正类/未标记分类器。
+- ReCPE 是外层 regrouping 方法，底层 CPE 和正类/未标记排序器可分别配置。
 - 论文中的 $`S_p`$ 应来自 $`P_p=p(x\mid y=1)`$，$`S_u`$ 应来自边缘分布 $`P_u=p(x)`$。如果数据来自 single-training-set，已标记正例需要能够代表完整正类分布。
-- 论文希望缓解 irreducibility 失效导致的正向偏差，但不等于对任意数据分布都能无偏估计类别先验。
+- Regrouping 缓解负类可约带来的正向偏差；当 $`P_n(A)`$ 较小时，辅助权重 $`\pi'`$ 接近原始 $`\pi_U`$。样本复制对辅助分布进行近似。
 - 复制比例太小会使底层 CPE 对 regrouping 不敏感；太大则会显著改变辅助正类分布。论文实验统一使用 `p=10%`。
-- 论文的 regrouped 构造保证 $`P_n'`$ 与 $`P_p'`$ 满足 anchor set assumption 而可识别；当 $`P_n(A)`$ 很小时估计接近原始 $`\pi`$，但该方法不承诺任意分布上的无偏性。
+- 论文的 regrouped 构造使 $`P_n'`$ 与 $`P_p'`$ 满足 anchor set assumption。
 
 ---
 
@@ -162,10 +164,15 @@ A^*=\arg\min_{A\in\mathcal S}
 >
 > 见 ADR-0014 #12（v1.2.1 边界声明：全部 base 变体常规 SCAR 系统性低估 0.08–0.19，修复目标仅“不坍缩”≥0.1）
 
-- 当前默认排序器为 sklearn `LogisticRegression`，不是论文实验中的两层神经网络；因此当前实现是算法逻辑对齐，而不是完整实验数值复现。
-- 工程侧 classifier-based baseline（`_DensityRatioCPE`）保留为显式可选，不应与论文对比的 KM、AlphaMax 等方法混同。
-- 当前自动化验证：`pytest -q`，133 项测试通过。
-- clean-room 合成结果已归档于 `benchmarks/assigned_methods/results/clean_room_multiseed/`（以 benchmarks 产物为准）。默认 Logistic Regression 排序器和 density-ratio CPE 后端得到 prior MAE `0.2715 ± 0.0227`，明显差于同组 penL1。该负结果被保留为替换底层 CPE 和接入官方 FCNet/KM1/KM2 的回归基线，不代表论文 ReCPE 的数值表现。
+- 当前默认排序器为 sklearn `LogisticRegression`，默认底层为 KM2，可注入其他 CPE。
+- `_DensityRatioCPE` 保留为显式可选后端。
+- `estimate_target=estimation_pool="native_unlabeled"`。元数据记录
+  `copy_policy="append_to_positive_keep_unlabeled"`、`estimate_kind="regrouping_approximation"`、
+  `auxiliary_target="regrouped_component_weight"`。Pipeline 在 OS 中将近似 U 先验换算为总体值。
+- 当前验证见[语义基线](../../dev/pu_research_semantics.md)。
+- 历史 density-ratio 后端合成结果归档于 `benchmarks/assigned_methods/results/clean_room_multiseed/`：
+  Logistic Regression 排序器和 density-ratio CPE 的 prior MAE 为 `0.2715 ± 0.0227`，
+  作为后端选择的历史对照。
 
 ---
 
@@ -188,6 +195,6 @@ A^*=\arg\min_{A\in\mathcal S}
 | Upstream URL | https://github.com/a5507203/Rethinking-Class-Prior-Estimation-for-Positive-Unlabeled-Learning |
 | License | registry 中记录为 MIT；重新分发前应核验上游许可证 |
 | Framework | 论文实验使用 Python 神经网络；本项目默认使用 NumPy + scikit-learn |
-| 当前实现范围 | ReCPE regrouping 核心流程 + 可注入底层 CPE + 默认 baseline |
+| 当前实现范围 | 保留完整 U 的复制流程 + 可注入底层 CPE + 默认 KM2 |
 | 尚未完全复现 | 论文中的神经网络结构、验证集选择、UCI 全量实验和所有基线方法 |
 | 复现风险 | 论文数值只有在官方网络、底层方法和数据 manifest 全部对齐后才能标记为 `paper_like`；当前 LR 排序器和默认 CPE 只进入 `clean_room_baseline` 组，不得命名为论文结果 |

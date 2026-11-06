@@ -315,6 +315,7 @@ class InfoMaxPUClassifier(BasePUClassifier):
     assumption = (Assumption.SCAR,)
     scenario = (Scenario.CASE_CONTROL,)
     requires_class_prior = False
+    class_prior_target = "native_unlabeled"
     implementation_status = ImplementationStatus.NATIVE
     source_status = SourceStatus.NOT_FOUND
     backend = Backend.TORCH

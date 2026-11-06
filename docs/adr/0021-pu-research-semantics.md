@@ -29,7 +29,15 @@ Survey 形成了可复用的采样、风险池和选模知识。`case_control`�
 
 同池定额标记使用 `make_fixed_count_labels`，独立 TS 高斯构造使用
 `make_gaussian_case_control_data`。旧 `case_control` 名字保留原输出与随机轨迹，
-以 `FutureWarning` 提示迁移，计划在 2.0 移除。先验描述对象及字段名结合消费点和兼容测试确定。
+以 `FutureWarning` 提示迁移，计划在 2.0 移除。
+
+先验估计器通过 `estimate_target`、`estimation_pool` 声明目标与估计池；分类器通过
+`class_prior_target` 及可选的 `risk_class_prior_target` 声明消费目标。
+`prior.semantics` 统一 OS/TS 质量换算。Pipeline 的显式 `class_prior` 和 `PriorInfo.value`
+采用总体目标，每折与最终重训按分类器默认风险视图换算。
+`PriorInfo` 保存输入值/目标、估计池/细节、采样设计、换算及 `training_consumption`；
+Pipeline JSON schema 为 1.1。ReCPE 保留完整 U，并将所选 U 复制到正类 component，
+以 regrouping 近似记录估计结果。
 
 ## 备选方案
 

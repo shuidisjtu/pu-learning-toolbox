@@ -42,6 +42,7 @@ howto（操作）/ reference（契约），按阅读路径组织：
 依次读采样、标记政策、先验、[选模](concepts/pu_model_selection.md)与
 [表征](concepts/representations.md)，再运行[四角色 DIY 示例](howto/custom_experiments.md)。
 采样操作见[OS/TS 教程](howto/pu_sampling.md)与[示例 15](../../examples/minimal/15_pu_sampling.py)。
-自动先验链的目标传递与 encoder 完整教程按[实施进度](../dev/process_checklist.md)继续推进。
+先验传递见[示例 16](../../examples/minimal/16_prior_targets.py)与[Pipeline 指南](howto/pipeline.md)。
+encoder 完整教程按[实施进度](../dev/process_checklist.md)继续推进。
 
 开发者与贡献者文档见 [docs/README.md](../README.md) 的开发者栏。

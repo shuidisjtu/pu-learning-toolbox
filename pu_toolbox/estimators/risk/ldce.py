@@ -324,6 +324,7 @@ class LDCEClassifier(BasePUClassifier):
     assumption: tuple[Assumption, ...] = (Assumption.SCAR,)
     scenario: tuple[Scenario, ...] = (Scenario.SINGLE_TRAINING_SET,)
     requires_class_prior: bool = False
+    class_prior_target = "training_table"
     implementation_status: ImplementationStatus = ImplementationStatus.NATIVE
     source_status: SourceStatus = SourceStatus.OFFICIAL_RELATED
     backend: Backend = Backend.NUMPY

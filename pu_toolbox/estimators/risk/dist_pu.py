@@ -48,9 +48,8 @@ def _distribution_regularizers(
     labeled positives join ``D_U``, exactly as case-control sampling puts them
     back -- so a physical row may serve both the positive term and this one.
 
-    The unlabeled role set is the only thing the view changes: the alignment
-    target stays the population prior (it is *not* re-derived from the observed
-    P/U ratio), and both formulas are reproduced character for character from
+    The caller supplies the positive prior of the selected risk-role distribution,
+    native U in the default view. Both formulas are reproduced from
     the pre-existing objective -- including the ``1e-6`` inside the logarithms,
     which is not the numerical guard (the caller clamps the logits).
 
@@ -174,6 +173,7 @@ class DistPUClassifier(BasePUClassifier):
     assumption = (Assumption.SCAR,)
     scenario = (Scenario.CASE_CONTROL,)
     requires_class_prior = True
+    class_prior_target = "native_unlabeled"
     implementation_status = ImplementationStatus.NATIVE
     source_status = SourceStatus.OFFICIAL_EXACT
     backend = Backend.TORCH
@@ -282,8 +282,8 @@ class DistPUClassifier(BasePUClassifier):
             the empirical unlabeled role becomes ``D_U ∪ D_P``, so label
             alignment and entropy run over every training row and the alignment
             mean's denominator becomes ``n_P + n_U``.  The alignment *target*
-            stays the population prior -- it is not re-derived from the observed
-            P/U ratio -- and the positive term is untouched.
+            is supplied by the caller for that risk-role distribution; the
+            positive term is untouched.
 
             Calibration moves a role assignment, never the physical training
             matrix: the network, optimizer, epoch count and Mixup pool are

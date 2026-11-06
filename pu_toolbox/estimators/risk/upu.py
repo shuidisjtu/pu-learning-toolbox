@@ -83,7 +83,7 @@ class UPUClassifier(BasePUClassifier):
 
         J(α, b) = −(π/n_P) Σ_P g(x) + (1/n_U) Σ_U ℓ(−g(x)) + (λ/2)‖α‖²
 
-    (OS form; see :meth:`fit` ``os_or_ts="ts"`` for the calibrated
+    (Default native-U risk; see :meth:`fit` ``os_or_ts="ts"`` for the calibrated
     denominator ``n_P + n_U``.)
 
     where the margin loss ℓ is chosen so that ℓ̃(z) = ℓ(z)−ℓ(−z) = −z,
@@ -92,7 +92,7 @@ class UPUClassifier(BasePUClassifier):
     Parameters
     ----------
     class_prior : float
-        Class prior π = P(y=1).  Required.  May be overridden in
+        Positive prior in native U for the default risk view. Required. May be overridden in
         :meth:`fit` via the ``class_prior`` kwarg.
     loss : {"double_hinge", "logistic", "squared"}, default "squared"
         * ``"double_hinge"`` — ℓ(z) = max{−z, 0, (1−z)/2}.  Convex QP.
@@ -148,6 +148,7 @@ class UPUClassifier(BasePUClassifier):
     assumption: tuple[Assumption, ...] = (Assumption.SCAR,)
     scenario: tuple[Scenario, ...] = (Scenario.CASE_CONTROL,)
     requires_class_prior: bool = True
+    class_prior_target = "native_unlabeled"
     implementation_status: ImplementationStatus = ImplementationStatus.NATIVE
     source_status: SourceStatus = SourceStatus.OFFICIAL_BUNDLE
     backend: Backend = Backend.NUMPY

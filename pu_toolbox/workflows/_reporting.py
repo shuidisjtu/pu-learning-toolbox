@@ -80,6 +80,7 @@ def build_pipeline_report(
             "auto" if auto_mode else "name" if classifier_cls is not None else "instance"
         ),
         "prior_source": prior_info.source,
+        "input_sampling": prior_info.input_sampling,
         "prior_audit_flagged": prior_audit_flagged,
         "random_state": random_state,
         "classifier_params": parameter_provenance(classifier_params),

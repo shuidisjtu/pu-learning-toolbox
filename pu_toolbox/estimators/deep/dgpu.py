@@ -31,6 +31,7 @@ class DGPUClassifier(BasePUClassifier):
     assumption = (Assumption.SCAR, Assumption.SAR)
     scenario = (Scenario.CASE_CONTROL, Scenario.SELECTION_BIASED)
     requires_class_prior = True
+    class_prior_target = "native_unlabeled"
     implementation_status = ImplementationStatus.NATIVE
     source_status = SourceStatus.NOT_FOUND
     backend = Backend.TORCH

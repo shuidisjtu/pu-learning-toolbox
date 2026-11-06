@@ -32,11 +32,11 @@ F=(1-\kappa)G+\kappa H,\qquad 0\le\kappa<1.
 X_U\overset{i.i.d.}{\sim}F,\qquad X_P\overset{i.i.d.}{\sim}H.
 ```
 
-该方法只估计 $`\pi=P(Y=1)`$，不直接训练分类器。
+返回 F 中 H 的混合比例 $`\kappa`$；在代表性正例与相应不可约性条件下，解释为原生 U 正类比例。
 
 | 论文符号 | 含义 |
 |---|---|
-| $`\kappa`$ | 混合比例（正类先验） |
+| $`\kappa`$ | F 中 H 的 mixture proportion |
 | $`\lambda`$ | $`1/(1-\kappa)`$ 重参数化 |
 | $`\mu_Q`$ | 分布 $`Q`$ 的 RKHS 均值嵌入 |
 | $`C`$ | 概率分布均值嵌入集合 |
@@ -144,7 +144,7 @@ Gram matrix 的时间和内存均为 $`O(N^2)`$；每个候选宽度需要一次
 
 ## 5. 论文边界
 
-- 该方法只估计 $`\pi=P(Y=1)`$，不直接训练分类器，也不输出 posterior probability。
+- `estimate_target=estimation_pool="native_unlabeled"`，输出原生 U 的 mixture proportion。
 - **可识别性**：仅凭两个分布不能无条件识别任意 mixture proportion。论文的可辨识结论依赖 $`G`$ 相对于 $`H`$ 的不可约性；若负类分布本身含有可分解出的 $`H`$ 成分，算法估计的是最大可行 mixture proportion，而不一定是生成过程写下的名义比例。
 - $`H=p(x\mid Y=1)`$ 仅在标准 SCAR/case-control PU 设定下成立；若可靠正例受选择偏差影响，$`H`$ 不再等于总体正类条件分布，此估计量的目标也随之改变。
 - 输出被裁剪到 $`[0,1]`$；下游分类器仍要求严格位于 $`(0,1)`$，退化估计会被拒绝。
@@ -156,9 +156,9 @@ Gram matrix 的时间和内存均为 $`O(N^2)`$；每个候选宽度需要一次
 
 > 见 ADR-0014 #4（`width_selection="relative"` 默认（2026-08-10）；`mmd_grid` 系统性偏选宽带宽低估 km1 0.30→0.59、km2 0.31→0.46，真值 0.5；论文协议复现须显式 pin `width_selection="mmd_grid"`）
 
-- **数值后端**：作者 Python 2.7 代码使用 CVXOPT；本项目为避免新增重型 solver 依赖，使用带精确线搜索的 Frank-Wolfe 算法求同一个 simplex QP，并记录每次求解的迭代数与最终 dual gap。该变化是数值后端差异，不是目标函数变化；正式复现仍应检查 QP gap 和容差敏感性。
+- **数值后端**：本实现使用带精确线搜索的 Frank-Wolfe 算法求 simplex QP，并记录迭代数与 dual gap；作者 Python 2.7 代码使用 CVXOPT。
 - **standardize**：`standardize=False` 与作者 kernel routine 的直接输入行为一致。若上游没有稳定尺度，应在训练数据内标准化并记录统计量。
-- **InfoMax-PU 复现差距**：InfoMax-PU 论文在表示学习后使用 kernel-mean estimator，但没有说明使用 KM1 还是 KM2，paper-protocol 配置暂时显式锁定 KM1，并保留为复现差距；其 20-seed paper-protocol 尚未实际执行，现阶段不能声称复现论文数值。
+- **InfoMax-PU 配置**：当前 paper-protocol 显式选择 KM1，20-seed 执行列为待完成项。
 - 降采样（`max_samples_per_group`）会改变统计估计量，必须进入实验配置和结果记录。
 
 ---

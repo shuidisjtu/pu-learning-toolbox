@@ -9,11 +9,11 @@
 | 总体先验 $`\pi_{population}`$ | 目标总体中的 $`P(Y=1)`$ | 总体风险、OS 的 PA |
 | 原生 U 先验 $`\pi_U`$ | 输入 U 内的正类比例 | 原生 U mixture 估计、相应 U 风险 |
 | 风险池先验 | 实际进入某项损失的池内正类比例 | CVIR 的 `unlabeled_positive_prior` |
-| 拼接表先验 $`\pi_{train}`$ | P 与 U 拼接训练表内的正类比例 | 拼接训练表的构造审计 |
+| 拼接表先验 $`\pi_{train}`$ | P 与 U 拼接训练表内的正类比例 | 训练表矩约束、训练分数的先验分位阈值 |
 
 建议研究记录同时写明数值、目标、来源（known / estimated / sensitivity setting）、
-估计池、输入采样设计和换算依据。当前公共 `PriorInfo` 的字段见
-[API 参考](../reference/api.md)，目标字段与转换记录在 S3 中接入。
+估计池、输入采样设计和换算依据。公共 `PriorInfo` 保存原始输入、总体结果、
+换算及逐折训练消费，字段见 [API 参考](../reference/api.md)。
 
 ## 2. 同一 OS 总体中的质量恒等式
 
@@ -35,7 +35,9 @@ q=\pi_{population}\bar c,\qquad
 ```python
 q = 0.2
 pi_u = 0.25
-pi_population = q + (1 - q) * pi_u
+from pu_toolbox.prior import native_unlabeled_to_population
+
+pi_population = native_unlabeled_to_population(pi_u, q, input_sampling="os")
 assert abs(pi_population - 0.4) < 1e-12
 ```
 
@@ -66,19 +68,33 @@ $`r`$ 是 TS 拼接表中的 P 占比，$`q`$ 是 OS 总体中的标记比例。
 |---|---|---|
 | `KernelMeanPriorEstimator`，KM1/KM2 | 原生 U 为 mixture F，P 为 component H，返回 mixture proportion κ | 正例代表性与相应可辨识条件成立时才解释为 U 正类比例 |
 | `ClassPriorEstimator`（penL1） | 比较 P 与原生 U 的基函数均值，返回 mixture 目标 θ | 在相应密度/可辨识条件下解释为 U mixture proportion；总体换算由消费者解析 |
-| `ReCPEEstimator` | 将高分 U 重标成 P，base 估计经 `[0,1]` clip 后返回 | 输出对应重组估计池；S3 专项处理复制流程及原始 U 目标 |
+| `ReCPEEstimator` | 将高分 U 复制进 P，完整 U 保留为 mixture；默认 KM2 | 以重组 component 权重近似原生 U 正类先验；metadata 记录 `regrouping_approximation` |
 | `BBEMixtureEstimator` | 独立 TS 的 holdout U，输出 `alpha_U` | 要求显式 `input_sampling="ts"`，不接入普通 Pipeline 自动估计链 |
 
 实现定位与后续专项验收见[语义基线](../../dev/pu_research_semantics.md)。
-各公开 `.estimate()` 当前仍返回标量，未统一携带 target/pool 信息。
+各公开 `.estimate()` 返回标量；`estimate_target` 与 `estimation_pool` 类属性声明目标和估计池。
+上述三个普通估计器均声明 `native_unlabeled`。第三方 `BasePriorEstimator` 的默认目标为
+`population`，通过覆盖类属性声明原生 U 目标。
 
-## 5. 传入训练时的当前边界
+ReCPE 论文式(7)给出辅助权重
+$`\pi'=\pi_U+(1-\pi_U)P_N(A)`$。`copy_fraction` 控制样本复制数，
+$`P_N(A)`$ 表示负类条件分布在所选区域上的质量。报告保留辅助目标和近似身份。
 
-`PUPipeline` 当前优先使用调用时指定值，其次分类器构造值，最后自动估计。
-自动链将 `.estimate()` 的标量原样传入消费者。总体风险使用前，按估计目标和
-采样设计完成换算并记录计算依据。S3 将目标声明、换算与消费记录接入自动链。
-已按适用条件完成换算的数值可通过 `class_prior` 显式传入；
-优先级见 [Pipeline 指南](../howto/pipeline.md)。
+## 5. 从估计到报告再到训练
+
+`PUPipeline(input_sampling="os")` 优先使用调用时指定的总体 `class_prior`，其次读取
+分类器构造值，最后按需估计。构造值按分类器的 `class_prior_target` 解释。
+自动链将原生 U 估计按输入设计解析为总体值，报告的 `prior.value` 始终对应总体。
+OS 使用本页质量恒等式，独立 TS 中 U 目标与总体目标相同。
+
+每个训练折和最终 refit 再按默认风险视图的目标换算。uPU、nnPU、RobustPU、
+DistPU、WConPU 等消费原生 U 先验；LDCE/KLDCE 消费拼接训练表先验。
+PUSBKernel 的 `class_prior` 用于训练表分位阈值，独立 `risk_class_prior` 用于原生 U 风险。
+OS 的折内换算使用该折的 P 占比；所有实际传入值记入 `training_consumption`。
+第三方分类器的默认目标为 `population`。
+
+Pipeline 沿用分类器的默认风险视图；直接调用 estimator 时按其 `os_or_ts` 契约准备风险池先验。
+完整操作见 [Pipeline 指南](../howto/pipeline.md)与[示例 16](../../../examples/minimal/16_prior_targets.py)。
 
 方法间也存在契约差异：CVIR 使用所选风险池的 `unlabeled_positive_prior` 并拒绝
 `class_prior`；RobustPU 的 `class_prior` 用于 warm-up 的 U 风险；
@@ -95,6 +111,8 @@ known-prior、estimated-prior 和先验敏感性扫描回答不同问题，结�
   [Single-sample versus case-control](https://arxiv.org/abs/2312.02095v3)，OS/TS 中 U 分布。
 - Wang et al. (2026), §4、式(7)–(9)：
   [Accessible, Realistic, and Fair Evaluation](https://openreview.net/forum?id=5R11h5o44C)，内部标签漂移与风险适配。
+- Yao et al. (2022), Algorithm 1、式(7)：
+  [Rethinking Class-Prior Estimation](https://arxiv.org/html/2002.03673v2)，重组 component 与辅助权重。
 
 数学质量恒等式与具体估计器的统计保证分开使用；各估计方法的论文来源见
 [先验估计方法卡](../../research/method_cards/class_prior_estimation.md)。

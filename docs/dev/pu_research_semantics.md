@@ -3,7 +3,7 @@
 ## 1. 范围与证据
 
 调查日期为 2026-11-06，实施起点为合并后 `main` 的 `68555f9e`。
-本页记录 P0/P1 语义基线及 P2 采样工作包：当前行为、公共知识、来源和实施验证。
+本页记录 P0/P1 语义基线及 P2 采样与先验工作包：当前行为、公共知识、来源和实施验证。
 原始方案位于工作区临时材料，正式仓库以本页、[ADR-0021](../adr/0021-pu-research-semantics.md)
 和[进度清单](process_checklist.md)保留可维护的依据。
 
@@ -53,26 +53,25 @@ S1/S2 新入口由 preprocessing 门面导出；dispatcher 增加 `fixed_count`�
 
 | 对象 | 实际估计池/输出 | 所需审查与消费者 |
 |---|---|---|
-| KM1 / KM2 | `X[y_pu==0]` 为 F，`X[y_pu==1]` 为 H；返回 F 中 H 的 mixture proportion κ | 代表性与可辨识条件成立后才解释为 U 正类比例；Pipeline 原样传值 |
-| penL1（`ClassPriorEstimator`） | P、原生 U 的 RBF 均值，优化 `theta*mean(phi_P)-mean(phi_U)` | 输出是 mixture 目标 θ，当前没有总体回换；Pipeline 原样传值 |
-| `ReCPEEstimator` | ranker 从 U 取高分 `max(1,ceil(copy_fraction*n_U))` 行重标成 P；默认 KM2 消费重组 P / 剩余 U | base 值经 `[0,1]` clip 后返回，输出对应重组估计池；S3 专项修正复制流程与目标记录 |
+| KM1 / KM2 | `X[y_pu==0]` 为 F，`X[y_pu==1]` 为 H；返回 F 中 H 的 mixture proportion κ | 代表性与可辨识条件成立时解释为 U 正类比例；Pipeline 按输入设计解析为总体值 |
+| penL1（`ClassPriorEstimator`） | P、原生 U 的 RBF 均值，优化 `theta*mean(phi_P)-mean(phi_U)` | 输出 mixture 目标 θ；OS 经质量换算，TS 目标与总体相同 |
+| `ReCPEEstimator` | ranker 取高分 `max(1,ceil(copy_fraction*n_U))` 行复制进 P；默认 KM2 消费重组 P 与完整 U | base 值经 `[0,1]` clip 后作为原生 U 先验近似返回；元数据记录辅助目标与复制政策 |
 | 独立 `BBEMixtureEstimator` | 观测 P/U 分别切 train/holdout；holdout U 输出 `alpha_U` | 要求 `input_sampling="ts"`；有具名目标/来源，不走 Pipeline `.estimate()` 链 |
 
 实现：[kernel_mean.py](../../pu_toolbox/prior/kernel_mean.py)、
 [pen_l1.py](../../pu_toolbox/prior/pen_l1.py)、[recpe.py](../../pu_toolbox/prior/recpe.py)、
 [bbe.py](../../pu_toolbox/prior/bbe.py)。
-ReCPE 的现有 docstring 仍把默认 base 称为 classifier baseline，真实代码已为 KM2，
-随 S3 修正。mixture 估计按各方法的代表性/可辨识条件解释。
+mixture 估计按各方法的代表性/可辨识条件解释。
 
-`PUPipeline._resolve_prior` 当前执行 `fit(X,y_pu)`，取得 `.estimate()` 后原样传入各 CV
-及最终 fit；不传输入采样或风险视图描述，`os_or_ts` 沿用方法默认值。
-显式 class_prior > 分类器构造值 > 估计值的优先级已存在，必须保留。
-[PriorInfo](../../pu_toolbox/workflows/report.py) 当前只有 value、source、method_requires_prior、
-estimator、auto_selected、degraded；尚无 target、pool、conversion。
+`PUPipeline._resolve_prior` 在 `fit(X,y_pu)` 后读取 `estimate_target` 与 `estimation_pool`，
+按 `input_sampling` 将估计解析为总体值。显式总体 class_prior > 分类器构造值 > 估计值；
+构造值按分类器默认风险视图的 `class_prior_target` 解释。第三方先验估计器及分类器
+继承 `population` 默认目标。
 
-S3 先以有明确目标的 stub 验证传递，再验证可辨识混合数据。
-新增目标声明、第三方兼容、ReCPE 重组回换与 PriorInfo 序列化需一起确定；
-第三方标量通过其目标声明进入相应的解析分支。
+[PriorInfo](../../pu_toolbox/workflows/report.py) 保存原值/目标、估计池、输入设计、转换名、
+估计器细节和逐折消费。训练边界根据各折 P 占比换算原生 U 或拼接表目标，
+`os_or_ts` 沿用方法默认值。PUSBKernel 的 `risk_class_prior` 与分位阈值先验分别消费。
+总体评估池在 OS 为完整输入、在 TS 为原生 U，画像及诊断同步使用输入设计。
 
 ## 4. 历史 os_or_ts 的逐实现清单
 
@@ -122,7 +121,7 @@ registry 的现行能力由实际类声明给出。
 
 `requires_class_prior=False` 表示调用者可省略外部先验；
 LDCE/KLDCE、InfoMax 和 LBE 分别展示派生、内部估计及初始化三类消费。
-DGPU/WConPU 等方法的原生 U 对齐目标随 S3 审查逐项处理。
+DGPU/WConPU 等方法声明 `class_prior_target="native_unlabeled"`，Pipeline 按每个训练分区换算。
 当前没有注册 PN classifier；Survey 的私有 `PilotOracleMLP` 声明 pn，
 以真实标签优化监督 BCE，无 PU prior 或风险视图参数，入口为
 [survey_execution.py](../../pu_toolbox/experiment/survey_execution.py)。
@@ -176,7 +175,7 @@ assert prior == 0.3
 
 此处精确重建随机流用于确认旧生成器的类别来源；新混合 U 生成器单独验收。
 
-### S3：Pipeline 原样传递 U 估计值
+### S3：Pipeline 解析 U 估计值
 
 ```python
 import numpy as np
@@ -184,6 +183,9 @@ from pu_toolbox.core.base import BasePriorEstimator
 from pu_toolbox.workflows import PUPipeline
 
 class NativeUStub(BasePriorEstimator):
+    estimate_target = "native_unlabeled"
+    estimation_pool = "native_unlabeled"
+
     def fit(self, X, y_pu):
         return self
 
@@ -196,14 +198,14 @@ value, info = pipeline._resolve_prior(
     X=np.arange(20).reshape(10, 2), y_pu=y_pu,
     class_prior=None, classifier_instance=None, needs_prior=True,
 )
-assert value == 0.25 and info.source == "estimated"
-q = np.mean(y_pu == 1)
-assert abs(q + (1 - q) * value - 0.4) < 1e-12
-assert value != 0.4
+assert abs(value - 0.4) < 1e-12 and info.source == "estimated"
+assert info.input_value == 0.25 and info.input_target == "native_unlabeled"
+assert info.conversion == "os_native_unlabeled_to_population"
 ```
 
-该开发复现使用私有解析入口；stub 的 native-U 目标由本例声明，S3 将目标声明接入公共契约。
-S3 修复后的有目标回归应验证最终消费者取得 0.4，并保留用户显式值优先级。
+该开发复现使用私有解析入口，验证总体解析值为 0.4；
+[公共示例 16](../../examples/minimal/16_prior_targets.py)验证 uPU 默认风险消费原生 U 先验 0.25。
+S3 回归保留用户显式值优先级，并验证每个训练折的实际消费。
 
 ## 6. 分阶段退出条件
 
@@ -256,10 +258,10 @@ git diff --check
 目录生成器首次写入遭遇 PermissionError；按其生成差异补齐条目并标注后，
 `--update` 与 `--check` 均正常退出。uv 缓存受限的命令在获准的环境重跑后通过。
 
-## 8. S3 实现前审查
+## 8. S3 实施依据
 
-先验传递按“估计目标 → 总体记录 → 实际消费目标”组织。现有 Pipeline 的一个先验值
-同时进入 classifier、PU metrics、profile 和 diagnostics；S3 需要分别记录各消费点的目标。
+先验传递按“估计目标 → 总体记录 → 实际消费目标”组织。Pipeline 分别记录 classifier、
+PU metrics、profile 和 diagnostics 的目标。
 例如 RobustPU warm-up 使用 U 正类比例，总体指标使用总体先验。
 
 ReCPE 的[官方论文 v2](https://arxiv.org/html/2002.03673v2) Algorithm 1 第 3 步将所选 U
@@ -270,7 +272,7 @@ ReCPE 的[官方论文 v2](https://arxiv.org/html/2002.03673v2) Algorithm 1 第 
 论文 §3.3 式(7)给出 $`\pi'=\pi+(1-\pi)P_n(A)`$；其中 $`P_n(A)`$ 表示潜在负类在
 被选区域的概率质量。辅助分布身份和近似条件随估计结果记录。
 
-显式 TS 路径还要使用与其输入设计对应的画像和指标。当前画像通过 OS 的 `q/pi`
+显式 TS 路径使用与其输入设计对应的画像和指标。OS 画像通过 `q/pi`
 审计标记率；TS 的额外 P 占比由采样设计确定。专项用例采用 P 占拼接表 0.8、总体先验 0.4，
 验收该合法 TS 构造的画像与评分。
 
@@ -308,3 +310,37 @@ uv run python tmp/verify_pu_research_foundations.py
 9 段文档 Python 片段全部执行通过。文档链接、API 覆盖、Ruff 格式、测试质量、目录、
 层依赖、注释质量和 `git diff --check` 全部通过；静态命令沿用 §7，并新增
 `uv run python scripts/check_comment_quality.py`。
+
+## 10. P2-S3 验证记录
+
+先以失败回归固定 ReCPE 移走原生 U、Pipeline 混用估计目标与训练目标、
+OS/TS 指标使用不同总体池以及分类器采样配置冲突的行为，随后逐项修复。
+KM1/KM2、penL1 在可辨识的分离混合上分别核对 0.25、0.5、0.75 三档原生 U 先验。
+uPU、nnPU、RobustPU 的实际 fit 参数与每折标记比例一同验证，
+PUSBKernel 分别核对风险优化、内部 CV 和训练表分位阈值。
+
+验证命令与结果：
+
+```powershell
+uv run pytest tests/ -m 'not slow and not e2e' -o addopts='--tb=short' -q --maxfail=15 --junitxml=tmp/pu-research-s3-suite.xml
+uv run pytest tests/integration/test_nnpu_pipeline_cnn.py tests/integration/test_pipeline_deep.py tests/integration/test_pipeline_device.py tests/unit/estimators/test_pulda.py tests/unit/workflows/test_pipeline_prior_targets.py tests/unit/prior/test_prior_semantics.py -o addopts='--tb=short' -q --maxfail=6 --junitxml=tmp/pu-research-s3-corrected.xml
+uv run python examples/minimal/05_recpe_pipeline.py
+uv run python examples/minimal/16_prior_targets.py
+uv run python tmp/verify_pu_research_foundations.py
+```
+
+常规完整回归首轮为 5836 通过、5 失败、30 跳过、36 取消选择。
+5 个失败均来自旧 fixture 中总体先验低于 OS 已标记比例；调整为合法总体先验后，
+覆盖这 5 个用例及相关 CNN、设备、PULDA、目标传播和质量换算的 130 个用例全部通过。
+扩展专项为 342 通过；最终目标/指标/敏感性专项为 95 通过。
+实际数量由 JUnit 记录统计。
+
+示例 16 的 OS 路径报告总体 0.4、训练原生 U 先验 0.25；TS 路径二者均为 0.4。
+示例 05 记录 ReCPE 的原生 U 近似 0.446、换算总体 0.593，以及训练准确率 1.000。
+9 段文档 Python 片段全部执行通过。格式、文档链接、API 覆盖、测试质量、目录、
+层依赖、注释质量及 `git diff --check` 通过。
+
+迁移时，Pipeline 的显式 `class_prior` 使用总体值，分类器构造值按其消费目标解析；
+直接调用估计器继续返回其声明目标的标量。PU 零一风险函数默认保留原生 U 公式，
+PU 精度函数默认保留完整 OS 公式，研究调用通过 `input_sampling` 显式选择总体池。
+Survey 的风险配方与结果身份通过 P3 共享实现工作包继续衔接。

@@ -48,6 +48,19 @@ def test_basic_pusb_kernel_fit_exposes_selected_hyperparameters():
 
 
 @pytest.mark.unit
+def test_basic_risk_prior_and_prediction_prior_have_independent_consumers():
+    X, y = _data()
+    reference = _small_model().fit(X, y, class_prior=0.25)
+    model = _small_model().fit(X, y, class_prior=0.4, risk_class_prior=0.25)
+    assert_allclose(model.coef_, reference.coef_)
+    assert_allclose(model.cv_scores_, reference.cv_scores_)
+    _, expected_threshold = prior_quantile_predict(model.decision_function(X), 0.4)
+    assert model.threshold_ == pytest.approx(expected_threshold)
+    assert model.risk_class_prior_ == 0.25
+    assert model._class_prior == 0.4
+
+
+@pytest.mark.unit
 @pytest.mark.parametrize("class_prior", [None, 0.0, 1.0, -0.1])
 def test_param_pusb_kernel_rejects_invalid_class_prior(class_prior):
     X, y = _data()

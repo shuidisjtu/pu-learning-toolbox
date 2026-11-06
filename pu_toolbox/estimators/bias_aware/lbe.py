@@ -36,6 +36,7 @@ class LBEClassifier(BasePUClassifier):
 
     family = AlgorithmFamily.BIAS_AWARE
     label_semantics = "pu"
+    class_prior_target = "native_unlabeled"
     assumption = (Assumption.SAR,)
     scenario = (Scenario.SINGLE_TRAINING_SET, Scenario.SELECTION_BIASED)
     implementation_status = ImplementationStatus.NATIVE

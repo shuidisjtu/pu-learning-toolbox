@@ -65,6 +65,9 @@ class KernelMeanPriorEstimator(BasePriorEstimator):
     ``F = (1-kappa)G + kappa H``.
     """
 
+    estimate_target = "native_unlabeled"
+    estimation_pool = "native_unlabeled"
+
     def __init__(
         self,
         *,

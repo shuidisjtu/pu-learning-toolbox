@@ -262,7 +262,8 @@ ClassPriorEstimator(*, sigma=None, reg_lambda=0.01, theta_grid=None, n_centers=2
 | `n_centers` | `int \| None` | `200` | 子采样的中心数 |
 | `standardize` | `bool` | `True` | 训练前对 X 标准化 |
 
-- 实现 `fit(X)` + `estimate()`；旧别名 `pe` 已弃用（`FutureWarning`）。
+- 实现 `fit(X, y_pu)` + `estimate()`；`estimate_target=estimation_pool="native_unlabeled"`。
+  旧别名 `pe` 已弃用（`FutureWarning`）。
 - 文档：[class_prior_estimation 方法卡](../../research/method_cards/class_prior_estimation.md) · 示例：[05_recpe_pipeline.py](../../../examples/minimal/05_recpe_pipeline.py)（经 `PUPipeline` 使用）
 
 #### `ReCPEEstimator`（注册名 `recpe`，别名 `re_cpe`）
@@ -276,9 +277,13 @@ ReCPEEstimator(copy_fraction=0.1, base_estimator=None, classifier=None, classifi
 | 参数 | 类型 | 默认 | 说明 |
 |---|---|---|---|
 | `copy_fraction` | `float` | `0.1` | 拷贝进正样本的未标记样例比例 |
-| `base_estimator` | estimator \| None | `None` | 实现 `estimate()` 的 CPE 估计器；`None` 使用内置混合比例基线 |
+| `base_estimator` | estimator \| None | `None` | 实现 `estimate()` 的 CPE 估计器；`None` 使用 KM2 |
 | `classifier` | estimator \| None | `None` | 区分正例与未标记样本的二分类器；其正类概率用于排序未标记样本 |
 | `classifier_max_iter` | `int` | `1000` | 默认 logistic 分类器最大迭代数 |
+
+高分 U 行复制进 P，完整 U 仍为 mixture。`estimate_target=estimation_pool="native_unlabeled"`，
+标量输出为原生 U 先验的 regrouping 近似。`get_metadata()` 记录 `copy_policy`、
+`estimate_kind="regrouping_approximation"` 与 `auxiliary_target="regrouped_component_weight"`。
 
 - 文档：[ReCPE 方法卡](../../research/method_cards/ReCPE.md) · 示例：[05_recpe_pipeline.py](../../../examples/minimal/05_recpe_pipeline.py)
 
@@ -310,7 +315,16 @@ KernelMeanPriorEstimator(*, variant="km1", kernel_width=None, width_selection="r
 | `random_state` | `int \| None` | `None` | 随机种子 |
 
 - `PUPipeline` 的 `prior_estimator="km1"/"km2"` 映射到本估计器。
+- `estimate_target=estimation_pool="native_unlabeled"`；返回 U 的 mixture proportion。
 - 文档：[Kernel_Mean 方法卡](../../research/method_cards/Kernel_Mean_Class_Prior.md)
+
+#### 先验质量换算
+
+`from pu_toolbox.prior import native_unlabeled_to_population, population_to_native_unlabeled`。
+两函数接受 `(class_prior, labeled_fraction, *, input_sampling="os")` 并返回 `float`。
+OS 分别使用 `q+(1-q)*pi_U` 与 `(pi-q)/(1-q)`；TS 返回输入先验。
+先验有效域为 `[0,1]`，P 占比为 `[0,1)`，OS 总体先验至少为 P 占比。
+非实数、布尔值、非有限值和越界值分别抛出 `TypeError` 或 `ValueError`。
 
 ### 经典包装器
 
@@ -1145,6 +1159,7 @@ pipe = PUPipeline(
     backbone="cnn13",           # CNN 骨架：cnn13/cnn13_no_bn/resnet18/resnet50（仅 cnn 有效）
     device=None,                # 深度分类器 torch 设备：None/"auto" 自动检测（有 GPU 用 CUDA）
     max_epochs=None,            # 注入到构造签名接受 max_epochs 的深度方法（wconpu/self_pu/nnpu）的训练 epoch 上限
+    input_sampling="os",       # "os" 单一来源池 / "ts" 独立 P 与总体 U
 )
 report = pipe.fit_evaluate(
     X,
@@ -1171,6 +1186,7 @@ report = pipe.fit_evaluate(
 | `backbone` | `str` | `"cnn13"` | `cnn13`/`cnn13_no_bn`/`resnet18`/`resnet50` |
 | `device` | `str \| None` | `None`（auto） | torch 设备 |
 | `max_epochs` | `int \| None` | `None` | 深度方法训练 epoch 上限 |
+| `input_sampling` | `str` | `"os"` | 输入采样设计：`"os"` / `"ts"` |
 
 `refit=False` 只计算交叉验证指标，跳过全量模型重训与模型诊断；此时
 `report.final_model` 和 `report.diagnostic` 为 `None`。该模式主要供参数搜索使用。
@@ -1193,6 +1209,28 @@ report = pipe.fit_evaluate(
 | 2 | 分类器实例构造参数 `class_prior=...` | `constructor` |
 | 3 | `prior_estimator` 自动估计（默认 `"pen_l1"`） | `estimated` |
 | 4 | 方法不需要先验 | `none` |
+
+调用时的 `class_prior` 指总体先验，构造值按分类器的 `class_prior_target` 解释。
+先验估计器通过 `estimate_target` 与 `estimation_pool` 声明其标量；第三方默认目标为
+`population`。原生 U 估计按输入采样设计换算为总体值。
+训练时按分类器默认视图的目标逐折换算，目标可为 `population`、`native_unlabeled`
+或 `training_table`。PUSBKernel 另外接受 `fit(..., risk_class_prior=...)`，用于独立指定
+原生 U 风险的先验；`class_prior` 用于拼接训练表分位阈值。直接调用省略
+`risk_class_prior` 时，两个消费点沿用同一个值。
+
+`PriorInfo` 保留原有字段，并增加以下记录：
+
+本版 `PipelineReport` JSON 使用 `schema_version="1.1"`，标识带目标的先验解析与消费记录。
+
+| 字段 | 含义 |
+|---|---|
+| `target` / `value` | `population` 及解析后的总体值 |
+| `input_value` / `input_target` | 原始输入或估计值及其目标 |
+| `estimation_pool` / `estimation_details` | 估计池与估计器诊断；ReCPE 含近似身份 |
+| `input_sampling` / `conversion` | OS/TS 输入设计与转换名称 |
+| `training_consumption` | 各 CV 折与 refit 的 stage/fold、P 占比及各参数的 target/value |
+
+分类器构造器声明 `input_sampling` 时接收工作流的采样设计；实例携带的声明需与工作流一致。
 
 - `prior_estimator=None` 且方法需要先验且未提供 → 抛出 `PipelineError`。
 - 画像模块审计"先验 < 标注正样本比例"的不一致（`inconsistent_class_prior`）。
@@ -1753,7 +1791,7 @@ labeled-positive 和 unlabeled 组。返回 `PUSensitivityAnalysis`，每点含�
 | `is_consistent` | 是否满足概率边界和观测恒等式 |
 | `consistency_reason` | 不一致时的直接原因 |
 | `pu_estimated_precision` | `min(π·Recall̂_P/P̂(Ŷ=1), 1)` |
-| `pu_zero_one_risk` | `2π·FNR̂_P + FPR̂_U − π` |
+| `pu_zero_one_risk` | `2π·FNR̂_P + mean_all(score>0) − π`（OS） |
 
 `metric_ranges` 仅汇总 `is_consistent=True` 且指标可用的点。导出：
 `analysis.to_frame(axis=...)` / `analysis.save(path)`（JSON 严格模式，无 NaN/Infinity）。
@@ -1762,6 +1800,14 @@ labeled-positive 和 unlabeled 组。返回 `PUSensitivityAnalysis`，每点含�
 
 用法见 [howto/diagnostic_reports.md](../howto/diagnostic_reports.md)；示例：
 [08_diagnostic_report.py](../../../examples/minimal/08_diagnostic_report.py)。三种模式：
+
+`input_sampling="os"`（默认）使用完整输入表评估总体风险与精度；`"ts"` 使用原生 U，
+oracle 指标也在 U 行上评估。`profile_pu_data` 同样接受 `input_sampling`，TS 的
+`implied_label_frequency` 为 `None`。
+
+直接调用 `pu_zero_one_risk(..., input_sampling="ts")` 保留原生 U 公式默认值；
+`pu_estimated_precision(..., input_sampling="os")` 保留完整输入表默认值。
+工作流与诊断显式传入同一采样设计。
 
 ```python
 # 纯数据（只运行 profile_pu_data；预测类指标 basis=unavailable）

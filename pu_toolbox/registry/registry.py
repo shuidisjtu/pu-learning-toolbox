@@ -135,6 +135,8 @@ _SYNC_FIELDS = (
     "encoder_parameter",
     "trains_encoder",
     "label_semantics",
+    "class_prior_target",
+    "risk_class_prior_target",
 )
 
 

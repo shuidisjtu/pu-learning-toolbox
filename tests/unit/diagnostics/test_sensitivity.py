@@ -21,6 +21,14 @@ def sensitivity_data():
 
 @pytest.mark.unit
 class TestSensitivityMath:
+    def test_basic_os_sensitivity_uses_the_population_prediction_pool(self, sensitivity_data):
+        from pu_toolbox.metrics import pu_zero_one_risk
+
+        y_pu, y_pred = sensitivity_data
+        result = analyze_pu_sensitivity(y_pu, y_pred, class_priors=[0.5])
+        expected = pu_zero_one_risk(y_pu, y_pred, 0.5, input_sampling="os")
+        assert result.points[0].pu_zero_one_risk == pytest.approx(expected)
+
     @pytest.mark.math
     def test_basic_class_prior_golden_values(self, sensitivity_data):
         y_pu, y_pred = sensitivity_data
@@ -38,7 +46,7 @@ class TestSensitivityMath:
         assert second.label_propensity == pytest.approx(1.0)
         assert third.label_propensity == pytest.approx(0.5)
         assert third.pu_estimated_precision == pytest.approx(2.0 / 3.0)
-        assert third.pu_zero_one_risk == pytest.approx(1.0 / 3.0)
+        assert third.pu_zero_one_risk == pytest.approx(3.0 / 8.0)
 
     @pytest.mark.math
     def test_basic_label_propensity_golden_values(self, sensitivity_data):
@@ -88,7 +96,7 @@ class TestSensitivityMath:
 
         point = result.points[0]
         assert point.pu_estimated_precision == pytest.approx(2.0 / 3.0)
-        assert point.pu_zero_one_risk == pytest.approx(-1.0 / 3.0)
+        assert point.pu_zero_one_risk == pytest.approx(-1.0 / 8.0)
         assert result.provenance["score_source"] == "explicit_scores"
 
 

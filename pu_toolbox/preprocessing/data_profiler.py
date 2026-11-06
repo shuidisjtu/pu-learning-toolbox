@@ -12,7 +12,11 @@ from scipy import sparse
 from sklearn.utils.sparsefuncs import mean_variance_axis
 
 from pu_toolbox.core.labels import normalize_pu_labels
-from pu_toolbox.core.validation import check_scalar_in_range, validate_true_binary_labels
+from pu_toolbox.core.validation import (
+    check_scalar_in_range,
+    validate_input_sampling,
+    validate_true_binary_labels,
+)
 from pu_toolbox.preprocessing.profiling import pu_data_summary, scar_diagnostic
 from pu_toolbox.utils.serialization import json_safe
 
@@ -226,6 +230,7 @@ def profile_pu_data(
     *,
     y_true: np.ndarray | None = None,
     class_prior: float | None = None,
+    input_sampling: str = "os",
     min_labeled_positives: int = 30,
     max_unlabeled_to_positive: float = 100.0,
     low_variance_threshold: float = 1e-12,
@@ -249,6 +254,9 @@ def profile_pu_data(
         Assumed or independently estimated ``P(Y=1)``. It is used only for a
         labeling-frequency consistency check; it is never estimated from
         hidden truth.
+    input_sampling : {"os", "ts"}, default "os"
+        OS audits q/pi as a labeling frequency. Independent TS records the
+        extra-P table fraction and uses U as the population sample.
     min_labeled_positives : int, default=30
         Warning threshold for labeled-positive sample size.
     max_unlabeled_to_positive : float, default=100
@@ -276,6 +284,7 @@ def profile_pu_data(
     observed ``(X, S)`` alone. The returned observed-mixture AUC is therefore
     a screening signal, not a statistical proof of SAR.
     """
+    validate_input_sampling(input_sampling)
     _validate_thresholds(
         min_labeled_positives,
         max_unlabeled_to_positive,
@@ -292,8 +301,11 @@ def profile_pu_data(
 
     summary = pu_data_summary(X_array, y)
     summary["class_prior"] = prior
+    summary["input_sampling"] = input_sampling
     summary["implied_label_frequency"] = (
-        summary["positive_fraction"] / prior if prior is not None else None
+        summary["positive_fraction"] / prior
+        if prior is not None and input_sampling == "os"
+        else None
     )
     feature_statistics = _feature_statistics(X_array, low_variance_threshold)
     issues: list[ProfileIssue] = []
@@ -385,7 +397,7 @@ def profile_pu_data(
                 "Prefer regularized estimators and fit preprocessing inside each validation fold.",
             )
         )
-    if prior is not None and summary["implied_label_frequency"] > 1.0:
+    if summary["implied_label_frequency"] is not None and summary["implied_label_frequency"] > 1.0:
         issues.append(
             ProfileIssue(
                 "inconsistent_class_prior",
@@ -466,10 +478,15 @@ def profile_pu_data(
             "Methods that require a class prior need an independently justified "
             "estimate and sensitivity analysis."
         )
-    else:
+    elif input_sampling == "os":
         hints.append(
             "The supplied class prior implies a labeling frequency of "
             f"{summary['implied_label_frequency']:.3f}."
+        )
+    else:
+        hints.append(
+            "Independent TS sampling uses native U for the target population; "
+            f"extra positives occupy {summary['positive_fraction']:.3f} of the input table."
         )
 
     return PUDataProfile(
