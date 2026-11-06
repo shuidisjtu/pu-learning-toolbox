@@ -10,7 +10,7 @@ sqrt(6)，从 PyTorch 默认初始化方差改为 ReLU fan-in 方差，不增加
 runner 不传该参数，旧默认、协议、注册表与训练配方不变。初始化修正本身不保证稳定：
 ADNI 短测提示原 lr=1e-3 仍可能使 tanh 饱和，lr=1e-4 仅为待验证候选。
 
-编码器退化问题仍未解决；初始化和学习率的短程探针不能证明完整预算稳定性或批准新配方。
+编码器退化问题仍未解决，完整预算稳定性与新配方仍待验证。
 GradPU 的后续实验暂时搁置，历史诊断/恢复脚本已退出工具箱。
 
 执行策略边界：PR #162 的 split/chunk 默认模型为确定性的逐样本网络，
@@ -20,7 +20,6 @@ alpha>0 时，现明确拒绝非零 Dropout、随机 RReLU 和带 dropout 的 RN
 不关闭用户模型的随机层、不自动改配方，可显式取消分块。alpha=0、未分块或零 Dropout
 保持可用。验证覆盖拒绝路径与确定性 MLP 参数/轨迹回归；自定义随机操作、状态更新或
 跨样本耦合不能靠模块枚举完全检测，调用者仍须验证逐样本确定性。
-这不解决编码器塌缩，也不证明真实 CNN 的数值复现。
 
 ## 论文与适用范围
 
@@ -31,11 +30,11 @@ alpha>0 时，现明确拒绝非零 Dropout、随机 RReLU 和带 dropout 的 RN
 | Venue | AAAI 2023, 37(6), 7296–7303 |
 | DOI | [10.1609/aaai.v37i6.25889](https://doi.org/10.1609/aaai.v37i6.25889) |
 | 原文 | [AAAI 论文及 PDF](https://ojs.aaai.org/index.php/AAAI/article/view/25889) |
-| 官方代码 | 截至 2026-10-19，AAAI 正式论文页只列 PDF，按标题/作者检索未确认作者仓库；`source_status=not_found`。范围与不作绝对不存在推断的说明见来源核查记录 |
+| 官方代码 | 截至 2026-10-19，AAAI 正式论文页只列 PDF，按标题/作者检索未确认作者仓库；`source_status=not_found` |
 | 类先验 | 目标函数不使用；`fit(class_prior=...)` 仅为统一接口兼容 |
 | 数据 | 可靠正样本 P 与未标记样本 U；不需要负类真值 |
 
-论文的泛化界在 SCAR 条件下推导；另在正样本选择偏差情形做了实验。注册表中的 SAR / `selection_biased` 表示该实验情形，**不代表已有一般 SAR 理论保证**。
+论文的泛化界在 SCAR 条件下推导；另在正样本选择偏差情形做了实验。注册表中的 SAR / `selection_biased` 对应该实验情形。
 
 ## 核心目标
 
@@ -83,7 +82,7 @@ w_P(x;\beta)=1-\beta\log\frac{1+g_\theta(x)}{2},
 `encoder` 经 deepcopy 解冻训练，输出有限二维特征，后接默认 MLP 或用户原始分数头。
 四维图像缺 encoder 时拒绝；含 BatchNorm 时仍明确拒绝。
 显式骨干 `cnn13_no_bn` 是工具箱现有13卷积布局的独立无 BN 变体，**不改默认 cnn13**，
-不是作者完整网络复现。公开 pipeline 可选此名称，报告记录实际骨干。
+公开 pipeline 可选此名称，报告记录实际骨干。
 插值与输入梯度发生于原始 NCHW 图像，不在冻结特征上代算；create_graph 保留二阶反传。
 P/U 数据留 CPU、优化批次上卡；预测分批 eval 并恢复模式，完整空间 shape 与空输入校验。
 公式解析卷积例子、真实梯度图、参数更新、种子/clone/pickle/epoch 回放及 GPU 测试见
@@ -125,9 +124,8 @@ split/chunk 无关；修复前 ADNI/CIFAR 的 GradPU 数值只能作执行诊断
 经 `training_provenance_` 写入runner每候选manifest。补齐CNN/回放/fold证据；
 正式学习率、batch语义、候选池和阶段资格仍未决定，完整资源profile未执行。
 
-2026-10-07 补[阶段/预算规格](../../dev/experiment_layer.md)：
+阶段记录：
 pu 阶段快照保留局部位置和累计 optimizer 更新数；梯度插值/二阶梯度与 TS 风险逻辑不改。
-新引用不批准阶段或候选，不构成论文图像配方复现。
 
 P1-2 公开对照准备（`p3_public_comparison_20261005.md`，已归档于 tag `survey-docs-archive-20261025`）核 Table1 GradPU
 CIFAR n_P1000/3000 为90.1±0.2/91.9±0.1，不是相邻 Sup. 列90.5/92.9。
@@ -140,9 +138,9 @@ CIFAR n_P1000/3000 为90.1±0.2/91.9±0.1，不是相邻 Sup. 列90.5/92.9。
 
 五方法准入证据包（`p3_admission_evidence_20261005.md`，已归档于 tag `survey-docs-archive-20261025`）已登记当前完整构造默认值、
 max_epochs 推断快照和 optimizer_steps_ 成本，补 raw-score 梯度惩罚的标量/二阶反传对照。
-论文配方/验证标签与网格、阶段选模准入仍待审；不伪造作者源码 commit 或数值复现资格。
+论文配方/验证标签与网格、阶段选模准入仍待审。
 
-已有公式 golden test、参数/边界、随机性、接口/注册、训练轨迹及权重往返测试。方法台账已登记；`fit(os_or_ts="ts")` 的 U 风险及输入梯度插值中的边缘角色逐批取 `U∪P`，正例权重、超参数与训练先验口径不变；逐 run 实际视图以 manifest 为准。2026-09-28 全局 PyTorch 2.6.0+cu124 环境下的 A6000 原有 GPU 测试和 TS 特征路径单次 CUDA smoke 通过；不替代 frozen-lock、多 seed 或正式资源验收。正式 P3.2 仍需：冻结矩阵之外的候选规格、原生图像骨干与论文基准（若决定宣称复现）、多 seed 资源记录及合作者审阅。
+已有公式 golden test、参数/边界、随机性、接口/注册、训练轨迹及权重往返测试。方法台账已登记；`fit(os_or_ts="ts")` 的 U 风险及输入梯度插值中的边缘角色逐批取 `U∪P`，正例权重、超参数与训练先验口径不变；逐 run 实际视图以 manifest 为准。2026-09-28 全局 PyTorch 2.6.0+cu124 环境下的 A6000 原有 GPU 测试和 TS 特征路径单次 CUDA smoke 通过。正式 P3.2 仍需：冻结矩阵之外的候选规格、原生图像骨干与论文基准（若决定宣称复现）、多 seed 资源记录及合作者审阅。
 
 2026-10-18 复核：论文全文已核对（AAAI 2023，8 页，SHA-256
 `c9ec9499389007546c5e3020edd98a8e17f221511b380663fc65efedeeca9244`）；
@@ -151,16 +149,14 @@ raw-score 梯度惩罚、β 线性调度和阈值 0 与实现一致；本轮未�
 图像路径按方案 B 使用现有 `cnn13_no_bn`（method-private），不进入标准
 ResNet-18 主榜；BN fail-closed 保留，详见
 [#120](https://github.com/shuidisjtu/pu-learning-toolbox/issues/120)。
-2026-10-18 用户接受 paper-only 身份：不要求作者代码，不称源码复现或
-source-faithful。学习率调度、batch 语义、网络/epoch、TS/SAR 声明与证据补全
+2026-10-18 用户接受 paper-only 身份。学习率调度、batch 语义、网络/epoch、TS/SAR 声明与证据补全
 见 [#121](https://github.com/shuidisjtu/pu-learning-toolbox/issues/121)。
 有条件接受工程证据，但固定学习率与论文调度差异、阶段/预算/资源/公开数值
-仍未解决；不构成正式 Survey 准入。
+仍待解决。
 
 2026-10-29：独立 `run_candidate_image_experiment.py` 已补 `adni` 替代数据槽位，
 与 CIFAR/MNIST/Fashion-MNIST 共用 train-only 归一化和私有 no-BN CNN 路径。
 依据为 D1 的替代数据决定，不是原论文新增 ADNI 实验；不改损失、TS 校准或冻结预算。
 计划、manifest 的 split_ref 与结果摘要显式记录「不是临床 ADNI」、未知许可及
 未核实 subject 隔离；仓库来源收据不能替任意输入 NPZ 证明真实来源。
-CPU 合成灰度短测核对全部已付 epoch、PA/OA 选模及序列化回放，
-不代表真实数据全预算、多 seed GPU 或论文数值复现。
+CPU 合成灰度短测核对了全部已付 epoch、PA/OA 选模及序列化回放。

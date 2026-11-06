@@ -1,14 +1,12 @@
 # 标签语义契约：能力声明、检查点与实施计划
 
 > 定位：根治"PU 标签与真实标签数值同形、语义相反"导致的**静默错配训练**。
-> **阶段归属**：P1+P2 已于 2026-09-14 提前至 P2 pilot 阶段 A 实施（issue #41 阶段 A，P2.0b，
-> 见 [survey_execution_plan.md](../research/pu_survey/survey_execution_plan.md) §1）；P3+P4 保持
+> **阶段归属**：P1+P2 已于 2026-09-14 提前至 P2 pilot 阶段 A 实施（issue #41 阶段 A，P2.0b）；P3+P4 保持
 > P3 算法接入前置。
 > 上游依据：[pu_survey_protocol.md](../research/pu_survey/pu_survey_protocol.md) §2.4 第 10 条、
 > [experiment_layer.md](experiment_layer.md) §1 D4（既有视图与 trainer 声明守卫）、
 > 项目 CLAUDE.md「API 契约」条。
-> 状态日期：2026-10-16。阶段 A/B 工程与功能复核通过，已确认 RV2 完成并关闭 Issue #41，不再另要求人工签署，
-> 见[阶段 B 验收](experiment_layer.md)。历史设计与阶段记录保留。
+> 状态日期：2026-10-16。阶段 A/B 工程与功能复核通过，已确认 RV2 完成并关闭 Issue #41。历史设计与阶段记录保留。
 
 ## 1. 问题
 
@@ -72,7 +70,7 @@ PN oracle 的两轮修复解决的是**视图接线**（标签来源错、视图
 backbone 规格的 Survey 层执行矩阵同步落地，作为正式 pilot 跑批的门槛（P2.0b）；P3+P4 保持
 P3 接入前置不变（pipeline 层检查 + 文档收口，阶段 B）。
 
-## 2. 设计时现状（2026-09-14；工程落地见交付记录）
+## 2. 设计时现状（2026-09-14）
 
 | 项 | 现状 |
 |---|---|

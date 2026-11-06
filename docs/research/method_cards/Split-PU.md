@@ -7,7 +7,7 @@ splitter 早停会减少实际快照，跑前不能用未发生的早停低估�
 显式协议预算仍优先；不是正式 bytes/component 或训练恢复协议。
 step 插桩、早停快照/回放和失败不重试见 `test_multistage_candidate_accounting.py`。
 
-> 当前支持 MLP 或注入可训练 CNN 的技术预集成，不是论文 CIFAR 结果复现或 Survey P3.2 验收。
+> 当前支持 MLP 或注入可训练 CNN。
 
 | 字段 | 内容 |
 |---|---|
@@ -64,7 +64,7 @@ TS 均衡 batch 的并集比例**登记为 benchmark 近似**，本轮不按 π 
 - 官方使用 CIFAR CNN、图像弱/强增强和带 predictor 的高层 SimSiam 一致性；本版仍以 Gaussian 弱/强扰动和余弦一致性替代，不含官方 SimSiam 投影/predictor。默认 MLP 用隐层特征，注入 CNN 用真实中间/最终编码特征；低层选择和相同模板初始化各阶段均属**显式工程适配**，不可直接拿论文准确率作数值裁决。
 - 官方代码训练中反复读取测试标签报告准确率；本实现的 `fit` 无真实标签入口，不使用 test set 决定阶段或权重。PA/OA 由外部 runner 分开执行。
 - 锁定 `nnpu_utils.py:30-34` / `splitpu_utils.py:170-172` 返回末轮 state_dict；虽然声明 best_acc/best_weight，但未用于恢复。**测试监控不是 test-best 选模**，不由这些变量名字推断存在该选模。
-- 已配置公式、阶段、接口、确定性、checkpoint 和 CUDA smoke 测试。方法台账已登记；`fit(os_or_ts="ts")` 会在 **nnPU teacher 的未标记风险项**逐 mini-batch 使用 `U ∪ P`，正例项与先验保持不变。temporary 的一致率、easy/hard 划分及 student 的 U 分支仍只取原始 U，避免已知 P 被当伪负例。台账默认 `ts-compatible`，实际视图以 run manifest 为准。2026-09-28 全局 Python/PyTorch 环境下的 A6000 原有 GPU 测试和 TS 特征路径单次 CUDA smoke 均通过；不替代 frozen-lock、多 seed 或正式资源验收。公开论文数值对照、Survey 矩阵、合作者复核仍待完成；本技术预集成不进入冻结 pilot/主榜。
+- 已配置公式、阶段、接口、确定性、checkpoint 和 CUDA smoke 测试。方法台账已登记；`fit(os_or_ts="ts")` 会在 **nnPU teacher 的未标记风险项**逐 mini-batch 使用 `U ∪ P`，正例项与先验保持不变。temporary 的一致率、easy/hard 划分及 student 的 U 分支仍只取原始 U，避免已知 P 被当伪负例。台账默认 `ts-compatible`，实际视图以 run manifest 为准。2026-09-28 全局 Python/PyTorch 环境下的 A6000 原有 GPU 测试和 TS 特征路径单次 CUDA smoke 均通过。公开论文数值对照、Survey 矩阵、合作者复核仍待完成；本技术预集成不进入冻结 pilot/主榜。
 
 ## 准入证据补全（2026-10-05）
 

@@ -4,19 +4,17 @@
 论文先验加权 minimax/anti-GAN；`Du` 假样本按 `π/(1−π)` 混合、最终 PN 为同先验加权 softplus；
 identity 输出、两层 256/latent 100 稠密生成器、`Dp`/`Dn` 线性头、`Du`/PN 两层 256、四份独立
 seeded ResNet-18 stem；G 步冻结 D 参数与 BN/dropout 但保留输入梯度。三个 λ 取 1.0，
-先验加权在 `Du` 混合与 PN 风险里，不在这三个权重上。全量资源与数值 parity 不在冻结范围。
+先验加权在 `Du` 混合与 PN 风险里，不在这三个权重上。
 
 单候选执行适配器记录：
 固定目标/网络/阶段资格，显式预算，六网络成本对账，PA/OA 独立选模、选后回收与两模型回放。
-项目配方与论文数值复现分别表达；估计器默认行为独立于执行配置。
 
 图像路径：
 双稠密 generator 显式输出 NCHW；三判别器和新建最终 PN 使用四份独立可训练 CNN。
-原论文 Table 1 及作者 demo 均是稠密网络，本接口是工程图像适配，不是作者 CNN 重放。
+原论文 Table 1 及作者 demo 均使用稠密网络；本接口提供 CNN 图像适配。
 
 阶段记录：
-仅 synthetic_pn 分类器快照增加局部 epoch 与累计全部 GAN+PN optimizer 更新数，
-不把 GAN 阶段登记为空分类器候选，不改变 Du 校准范围或正式准入状态。
+synthetic_pn 分类器快照记录局部 epoch 与累计全部 GAN+PN optimizer 更新数。
 
 Hou et al., IJCAI 2018，DOI 10.24963/ijcai.2018/312；[原论文](https://www.ijcai.org/proceedings/2018/0312.pdf)
 式 (3)–(11)。两生成器、三判别器，之后训练合成 PN 分类器；负生成器与 Dn 的目标是同向分离，不能误写成标准 GAN。
@@ -34,9 +32,9 @@ Hou et al., IJCAI 2018，DOI 10.24963/ijcai.2018/312；[原论文](https://www.i
 | generator | 论文 minimax，Gn 的 Dn 项反号 | `pun_demo_main.py:271-297` 非饱和 BCE：Gp 对 Dp/Du target=1；Gn 对 Dn=0、Du=1 |
 | 最终 PN | 本组件采用目标总体先验加权 risk（工程选择） | `gpn_classifier.py:219-226` 等权 P/N BCE |
 
-因此登记 `official_related` + `benchmark-adapted`，不称代码逐行复现。
+因此登记 `official_related` + `benchmark-adapted`。
 2026-10-18 决定（shuidisjtu）：正式目标采用论文 Eq. (3)–(11) 的带先验权重
-minimax/anti-GAN；作者 demo 仅作差异对照，不作为正式目标或数值复现依据。
+minimax/anti-GAN；作者 demo 用于差异对照。
 作者归档未发现 LICENSE，登记为 `license=unknown`，不复制、执行或再分发归档。
 
 ## 当前组件与校准
@@ -46,7 +44,6 @@ minimax/anti-GAN；作者 demo 仅作差异对照，不作为正式目标或数�
 D 步生成流停止梯度，G 步冻结三个 D 参数/BN/dropout 但保留输入梯度，并在异常时恢复模式与参数标志。
 Dp/Dn/Du/最终 PN 各自 deepcopy 外部 encoder 模板，最终 PN 不借用已训练判别器权重；
 真实图像不展平成旧 MLP 输入，双稠密生成器输出同形 NCHW。最终 PN 只用新生成流，不读取真值标签。
-有限训练不会证明 Nash 平衡、生成质量或分类性能。
 
 总体先验必填且构造/fit 值不得冲突。`os_or_ts="ts"` 仅将 Du 的真实训练 risk 池换成 U∪P，
 Dp/Dn 的真实池始终是 P；默认 OS 明确不是论文原生边缘池。生成流与 PN 阶段不随此校准改标签。
@@ -69,4 +66,3 @@ Dp/Dn 的真实池始终是 P；默认 OS 明确不是论文原生边缘池。�
 
 `tests/unit/estimators/test_gen_pu.py`：概率公式 golden、anti-GAN 梯度方向、极端 logit 稳定性、
 训练池角色、固定种子、两阶段 optimizer 数、clone/pickle 与先验 fail-loud。
-具体实验效果以实际运行产物及对应配置为准；组件测试不构成全量/多 seed 数值验收。

@@ -12,7 +12,7 @@ Li, C., Li, X., Feng, L., & Ouyang, J. “Who Is Your Right Mixup Partner in Pos
 - P3Mix-E 在式 (8) 中加入 teacher 正则 `mean log(1 - <f(x;Theta), y_tilde>)`；teacher 对 mixup 后样本给目标，并在 Algorithm 1 的每个 epoch 末按 EMA 更新。实现把 agreement 截至 `1-1e-7`，避免完全一致时 `log(0)`。Algorithm 1 写明 Θ 与 eΘ 均随机初始化，但未说明二者是否独立；本实现复制 student 初始化 teacher，是待复核的工程选择。
 - P3Mix-C 在 mixup 前，将 `f(x;Theta) > gamma` 的 U 伪负标签改为正类。E 与 C 是论文定义的两个独立变体，不合并为一个方法。
 
-正文实验设置（§3.1，第 6 页）说明 Adam、alpha=1、k=100、beta ∈ {0.8, 0.9, 1.0}、gamma ∈ {0.85, 0.9, 0.95}；P3Mix-E 的 eta 在 {1,2,3,4,5} 中选。Fashion-MNIST 用 LeNet-5，CIFAR-10 与 STL-10 用 7-layer CNN；每个数据集 5 次独立运行，另报告 500 个验证样本，但未说明验证样本的抽样框、类别组成或选模用途。论文未给出完整学习率/epoch/batch 配置或 mean-teacher EMA 衰减；Algorithm 1 说 Θ/eΘ 均随机初始化，但未说明是否独立，本工具箱使用 student 副本并将其标为工程选择。论文也没有作者代码地址。结果表是公开文献锚点，不代表本项目复现结果；CIFAR-10 结构化读数、PDF 摘要和重复表格位置见[机器可读来源锚点](../pu_survey/data/p3mix_literature_anchors_20261019.json)，读数仍待负责人独立复核。这些文献数值不是本项目结果；未经任务定义、标签预算、划分、选模与训练配方的可比性核验，不能直接比较。
+正文实验设置（§3.1，第 6 页）说明 Adam、alpha=1、k=100、beta ∈ {0.8, 0.9, 1.0}、gamma ∈ {0.85, 0.9, 0.95}；P3Mix-E 的 eta 在 {1,2,3,4,5} 中选。Fashion-MNIST 用 LeNet-5，CIFAR-10 与 STL-10 用 7-layer CNN；每个数据集 5 次独立运行，另报告 500 个验证样本，但未说明验证样本的抽样框、类别组成或选模用途。论文未给出完整学习率/epoch/batch 配置或 mean-teacher EMA 衰减；Algorithm 1 说 Θ/eΘ 均随机初始化，但未说明是否独立，本工具箱使用 student 副本并将其标为工程选择。论文也没有作者代码地址。CIFAR-10 结构化读数、PDF 摘要和重复表格位置见[机器可读来源锚点](../pu_survey/data/p3mix_literature_anchors_20261019.json)，读数仍待负责人独立复核。与本项目结果比较前，须核对任务定义、标签预算、划分、选模与训练配方。
 
 ## Toolbox 实现
 
@@ -35,7 +35,7 @@ Li, C., Li, X., Feng, L., & Ouyang, J. “Who Is Your Right Mixup Partner in Pos
 保持按角色切批与循环补齐，`batch_size` 仍为每角色上限，避免改变旧调用。
 合并切批可能没有某一角色；论文没有定义空组均值，本实现令该组损失贡献为零，
 不丢弃或重采样该批。P3Mix-C 的损失角色仍按原始 P/U 标签区分，而非修正后的伪标签。
-这一空组约定是显式工程选择，不声称论文完整复现；两种路径均披露实际更新数、角色行次与复用量。
+这一空组约定是显式工程选择；两种路径均披露实际更新数、角色行次与复用量。
 单样本尾批的 BatchNorm 使用运行统计并恢复原训练模式，避免丢行/重复行；这也是工程约定，非论文事实。
 2026-10-31 后续已补独立共享 ResNet-18 图像构造与
 `scripts/run_candidate_image_experiment.py --method p3mix`：显式指定三变体、切批与全部训练预算，
@@ -43,15 +43,13 @@ SCAR 四角色、PA/OA 独立选模、student-only weights 快照、选后回收
 候选池限训练观测 P，逐轮校验更新/角色行次与独立冻结 teacher；选择先验不转发 fit。
 共享 ResNet-18 替代论文 LeNet-5/7-layer CNN，是统一候选图像接口的工程适配，augmentation=none；
 不改核心训练方程、默认切批或 OS 口径。CPU 逐值回归覆盖三变体、两切批与直接 fit/快照预测一致；
-teacher/池刷新前向数由已验证更新数推导，排除 probe/外部选择，不冒充完整 GPU 资源实测。
-只读规划不认证外部 checkpoint；论文数值对照与资源验收须依据相应实验的独立证据。
-三变体的 singleton/尾批、CNN CV/refit、确定性与序列化均有 CPU 回归；OS/先验/校准口径不变，
-这些接口回归不自动证明预算可比，也不据此解除正式准入阻断。
+teacher/池刷新前向数由已验证更新数推导，统计范围为训练过程。
+三变体的 singleton/尾批、CNN CV/refit、确定性与序列化均有 CPU 回归；OS/先验/校准口径不变。
 
 2026-10-20 再核 PDF 后补齐输入隔离：各次 student/teacher 前向使用私有当前 batch，encoder
 probe 使用独立行副本，避免自定义 in-place 网络污染式 (4) 输入或验证/测试评分数组。
 三变体均补充实际卷积的公开 `PUPipeline` 两折 CV+全量 refit、pickle、四角色 PA/OA
-checkpoint 与回收回归，详情见原文交叉表追加记录。
+checkpoint 与回收回归。
 这是技术接入验收，新增临时 batch 内存仍需在正式资源 profile 中实测。
 
 下面为显式短预算 CPU 接口示例，不是论文配方；`X_images` 为 NCHW，`s_observed` 为观测
@@ -71,4 +69,4 @@ pipeline = PUPipeline(
 # report = pipeline.fit_evaluate(X_images, s_observed, class_prior=pi_population)
 ```
 
-P3Mix 已注册为可训练的实验级分类器。工程可运行不代表论文数值复现或正式结果验收；论文映射和工程适配仍待方法负责人复核。正式结果须依据实际运行的协议、预算与资源证据验收，不能由接口回归或文献数值代替。
+P3Mix 已注册为可训练的实验级分类器。论文映射和工程适配仍待方法负责人复核。

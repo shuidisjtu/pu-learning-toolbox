@@ -1,13 +1,10 @@
 # Method Card: Holistic-PU
 
 阶段记录：
-warmup/pseudo_pn 快照保留阶段内 epoch 和累计更新数；不改变 fixed warmup、
-OS/TS 适用性或预算，也不由技术快照记录决定正式阶段资格。
+warmup/pseudo_pn 快照记录阶段内 epoch 和累计更新数。
 
 图像与可选变体：
-原生注入 CNN 已能两阶段端到端训练；后续已补
-显式后段重新初始化 和
-LZO 正例损失工程变体，不宣称完整论文/作者代码复现。
+注入 CNN 支持两阶段端到端训练、显式后段重新初始化和 LZO 正例损失工程变体。
 
 Wang et al., NeurIPS 2023；[原论文](https://proceedings.neurips.cc/paper_files/paper/2023/file/d5c0f9585592bad5251133813893a6c0-Paper-Conference.pdf)
 式 (1)、(4)/(5)、(8)、§2.4 的最终 CE。[作者仓库](https://github.com/wxr99/HolisticPU/tree/4d4ce7d6ba29722995d308293374c0f475d988d3)
@@ -16,9 +13,9 @@ Wang et al., NeurIPS 2023；[原论文](https://proceedings.neurips.cc/paper_fil
 正式结果保留论文 pairwise/variance 路径、默认 fixed warmup 与 continue 初始化，
 `author_adjacent`/`author_sse`、`lzo_positive_loss`、`reinitialize` 仅作显式变体。
 作者仓库未发现 LICENSE，登记 `license=unknown`；不复制、执行或再分发。
-fixed/LZO/finetune 与初始化变体需明确配置；选择隔离和存储语义不会因工程接口可用而消失。
+fixed/LZO/finetune 与初始化变体需明确配置，并遵守选模隔离与轨迹存储要求。
 
-会议摘要页所附 Supplemental ZIP 内的 `attachment.pdf` 是带行号匿名投稿稿，不能当正式主文版本；
+会议摘要页所附 Supplemental ZIP 内的 `attachment.pdf` 是带行号匿名投稿稿；
 其 SHA-256 为 `0e622fcad83edb94b169e48778a73205cb0ec71ad2dfe55a443f086cd4657fd6`。
 LZO 的来源为[原论文 v2](https://arxiv.org/pdf/2012.13309v2) Algorithm 1/2；
 辅助集大小、重抽方式、平局和随机流未被充分规定，本卡的正例损失选择规则属于工程配置。
@@ -57,12 +54,12 @@ classifier 只走论文目标，不在正式结果中静默换 variant。常数�
 sample_weight 非空拒绝。`epoch_callback` 在两个阶段每轮结束时调用，零起始 epoch 连续编号；
 `history_["phase"]` 明确区分 `warmup` / `pseudo_pn`，`checkpoint_epoch_count` 为两阶段轮数之和。
 `EpochCheckpointTrainer` 可保存各轮分类器权重及 CPU 回放；完整轨迹需另存可信 pickle。
-权重快照不是优化器/RNG/伪标签状态恢复，也不是训练断点续跑。候选阶段能否进入 PA/OA
-选择尚未预注册，工程 hook 不代表正式选模协议已通过；不改历史冻结结果。
+权重快照用于推理回放，不支持优化器/RNG/伪标签状态恢复或训练续跑。
+候选阶段的 PA/OA 选择范围尚待预注册。
 内存预算需计 n_U×warmup 概率数组（当前 float32；函数计算还有 float64 临时量），
 pairwise 时间代价 O(n_U×选中t²)；自然断点 O(n_U log n_U)，不构造全样本二次矩阵。
 LZO continue 还有一份最佳 CPU 网络/Adam、辅助计划及额外 forwards；完整 pickle 的全矩阵与前缀
-可能分别序列化，不把旧探针当新变体配额。不是完整官方图像实验复现。
+可能分别序列化，需按所选变体估算存储预算。
 
 `encoder` 必须输出二维 batch×features；4-D NCHW 不允许默默 flatten。每次 fit deepcopy
 模板并训练编码器；默认两个阶段继续同一副本，`reinitialize` 后段新建并随机重置 CNN 和 head、
@@ -75,7 +72,7 @@ eval 扫描不更新 BN，预测即使失败也恢复全部层的原模式；单
 初始模板/预训练 CNN，参数所有者必须支持 `reset_parameters`，legacy weight_norm 明确拒绝。
 `pseudo_pn_initialization_` / `pseudo_pn_optimizer_reset_` 记录实际路径，
 `stage_optimizer_steps_` 分阶段计数，`optimizer_steps_` / history 保持累计，不因后段重建清零。
-LZO、后段初始化变体选择和正式阶段 PA/OA 资格仍待预注册；该接口不批准任何 recipe。
+LZO、后段初始化变体选择和正式阶段 PA/OA 资格仍待预注册。
 
 `warmup_selection="fixed"`（默认）或 `"lzo_positive_loss"`；`lzo_alpha=0.5`，
 `lzo_validation_size=None` 表示 n_P。类内 mixup 只读训练 P，独立复制 NumPy 随机流，

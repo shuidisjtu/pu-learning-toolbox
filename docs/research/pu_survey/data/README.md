@@ -19,7 +19,7 @@ seed、划分索引和 train-only 预处理。仓库不存储原始数据或训�
 原始数据收集入口 `scripts/collect_survey_public_data.py` 使用已登记 URL/摘要；已存在文件
 不匹配时拒绝覆盖。MNIST/Fashion 的校验值来自 torchvision，20 Newsgroups 来自 scikit-learn；
 它们是依赖项目登记的校验值。UCI Connect-4 未登记发布方摘要，本地 SHA-256 只用于字节身份。
-许可字段的未知状态必须保留；下载成功或字节核验通过不等于再分发权限已确定。
+许可状态按来源记录保留，未知时标为 `unknown`。
 
 ## Alzheimer MRI 替代数据
 
@@ -31,8 +31,8 @@ seed、划分索引和 train-only 预处理。仓库不存储原始数据或训�
 - 共 6400 张图像；NonDemented 3200、VeryMildDemented 2240、ModerateDemented 64、MildDemented 896。
 - NonDemented 为正类，其余三类为负类，总体先验 0.5；这与 PU-Bench 的另一二值定义不同。
 - 原图为灰度 JPEG，加载器缩放到 128×128；归一化统计只从实际 train 计算。
-- 来源没有 subject IDs。样本索引不交叉不能证明 subject 级隔离，可能存在跨划分同受试者切片。
-  需要 subject/group 证据的路径应继续拒绝，不能凭工程接口可运行消除此限制。
+- 来源没有 subject IDs，当前按样本索引划分，subject 级隔离尚待核验，可能存在跨划分同受试者切片。
+  需要 subject/group 证据的路径在缺少该信息时拒绝运行。
 
 归档摘要、类别及身份事实见
 [`adni_substitute_receipt_20261012.json`](adni_substitute_receipt_20261012.json)。

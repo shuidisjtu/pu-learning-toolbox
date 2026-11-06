@@ -1,6 +1,6 @@
 # 进度清单
 
-> 总体策略：**framework-first**——先完成稳定框架与 API 契约，用 mock estimator 跑通链路，再逐个集成论文算法。当前全部注册方法均有 clean-room 核心实现（NATIVE）；另有一个隔离的联合漂移 research 求解器。实现可运行与论文数值复现、研究结果审核分别判断；Survey 的当前能力与限制见[状态索引](../research/pu_survey/survey_execution_plan.md)。
+> 总体策略：**framework-first**——先完成稳定框架与 API 契约，用 mock estimator 跑通链路，再逐个集成论文算法。当前全部注册方法均有 clean-room 核心实现（NATIVE）；另有一个隔离的联合漂移 research 求解器。实现可运行与论文数值复现、研究结果审核分别判断；Survey 的当前能力与实验状态见 [Survey README](../research/pu_survey/README.md)。
 > **Method Card 为可选文档**，新算法接入不要求必写。
 
 ## 阶段历史（已闭环）
@@ -20,7 +20,7 @@ Phase 0-9 已闭环（框架 → 核心风险估计 → 机制 → 推荐诊断 
 
 实验层保留公共四角色 API、独立 PA/OA 选模、当前 Survey 配方执行和结果报告生成能力。
 训练产物及结果审核由研究团队维护；历史试点协议、队列、交接和阶段审批记录退出工具箱。
-当前状态与结果边界见 [Survey 状态索引](../research/pu_survey/survey_execution_plan.md)，
+当前能力与实验状态见 [Survey README](../research/pu_survey/README.md)，
 设计与扩展方式见[实验层设计](experiment_layer.md)，操作链见
 [运行指南](../research/pu_survey/runbook.md)。
 
@@ -29,14 +29,14 @@ Phase 0-9 已闭环（框架 → 核心风险估计 → 机制 → 推荐诊断 
 - 公共 API 不读取 Survey 配置或项目历史文档；自定义策略仍可注入。
 - 数据角色隔离、视图/先验换算、独立 support 预算与 PA/OA 选模约束仍生效。
 - 结果读取拒绝损坏选择制品，并保留失败、缺 seed 和缺指标；均值/样本标准差及成本分账正确。
-- 工作簿、诊断卡与结论可由现行入口生成；文献事实与实验观测区分，论文复现不由工程通过代判。
+- 工作簿、诊断卡与结论可由现行入口生成；文献事实与实验观测分别记录。
 - 运行适用的测试和质量门禁；不把未执行的 GPU、外部数据或结果审核报告为完成。
 
 ### 未发布（随下一版本发布）
 
-- **PN oracle 接入**：`CleanLabelGenerator` + 视图/声明双向 fail-loud + `--oracle` 入口。见 [pn_oracle_integration](experiment_layer.md)。
+- **PN oracle 接入**：`CleanLabelGenerator` + 视图/声明双向 fail-loud + `--oracle` 入口。见[实验层设计 §2](experiment_layer.md#2-当前能力与边界)。
 - **双架构阶段 0-2**：Registry 4 能力字段、build_encoder 导出、nnpu encoder 试点、CNN 提示文案回归、契约路线 B 收口。见 [dual_architecture_plan §5](dual_architecture_plan.md)。
-- **Survey 语义统一（issue #42）**：PUSB 拆为 `pusb`/`pusb_kernel`，先验门禁改由 registry 驱动，台账↔registry 一致性契约。见 [survey_execution_plan](../research/pu_survey/survey_execution_plan.md)。
+- **Survey 语义统一（issue #42）**：PUSB 拆为 `pusb`/`pusb_kernel`，先验门禁改由 registry 驱动，台账↔registry 一致性契约。采样视图见[实验协议 §2.3](../research/pu_survey/pu_survey_protocol.md#23-pu-数据集生成)，先验语义见[实验协议 §3](../research/pu_survey/pu_survey_protocol.md#3-class-prior-以及相关参数设置)。
 - **Self-PU 声明收口（issue #38/#45）**：`input_ndims` 恢复 `{2,4}`，非原生 CNN 由 `native_architectures` 承载。
 - **训练视图分层**：`core/training_views.py` 承载中立角色构造，实验层负责视图路由、先验语义与 manifest；estimator 不依赖 experiment。核心视图拥有并冻结角色位置与来源索引，借用的特征和标签只读。依赖方向见[架构 §2.1](architecture.md)。
 - **SAR-OA 执行路径（issue #43）**：`--labeling-mechanism` 与 `--method` 正交，SAR 强制 OA-only。见[实验协议](../research/pu_survey/pu_survey_protocol.md)。

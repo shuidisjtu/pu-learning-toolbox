@@ -7,7 +7,6 @@ probe、自步权重扫描及推断均 eval，不更新 BatchNorm；预测恢复
 shuffle 重新编号。TS 风险池替换仍只在 nnPU 预训练，自步伪负例仍为原始 U。
 阶段计数/快照、BN 真实训练更新与模板未污染、种子/clone/pickle/权重回放、GPU 驻留见
 `test_robust_pu_cnn.py`；公共 pipeline、不同 CV 折有集成测试。
-图像微型 smoke 不替代作者增强/scheduler、正式预算、多 seed 资源或数值验收。
 
 资源接口补齐（2026-10-05）：`checkpoint_epoch_count=pretrain_epochs+episodes`，
 预训练每轮和每个完整 episode 各一份快照；`inner_epochs` 不额外产生快照，全部更新计入
@@ -15,7 +14,7 @@ shuffle 重新编号。TS 风险池替换仍只在 nnPU 预训练，自步伪负
 回收不是峰值优化，正式 bytes/component 和候选预算仍须实测/预注册。
 独立优化器 step 插桩、两阶段快照/回放和失败不重试见 `test_multistage_candidate_accounting.py`。
 
-> 本卡记录技术预集成，不表示 Survey P3.2 正式验收或论文数值复现。
+> 本卡记录二维特征与注入 CNN 的实现机制。
 
 ## 来源与适用范围
 
@@ -60,7 +59,7 @@ PA/OA 外置不能消除阶段初始化差异；正式选模/候选预算和未�
 
 ## 验证与剩余门禁
 
-本地单元测试覆盖权重公式、参数错误、接口、确定性、checkpoint、权重往返和 CPU 训练。方法台账已登记；`fit(os_or_ts="ts")` 会在 **nnPU 预训练的未标记风险项**逐 mini-batch 使用 `U ∪ P`，正例项与先验保持不变。后续自步伪负例仍只取原始 U；若跳过预训练（`pretrain_epochs=0`），请求 `ts` 会显式报错，避免 manifest 误记校准。台账默认 `ts-compatible`，每次实际视图以 run manifest 为准。2026-09-28 全局 Python/PyTorch 环境下的 A6000 原有 GPU 测试和 TS 特征路径单次 CUDA smoke 均通过；这不替代 frozen-lock、多 seed 或正式资源验收。正式 P3.2 仍需公开论文数值对照、Survey 矩阵接入及合作者复核；本技术预集成不得混入冻结 pilot 或主榜。
+本地单元测试覆盖权重公式、参数错误、接口、确定性、checkpoint、权重往返和 CPU 训练。方法台账已登记；`fit(os_or_ts="ts")` 会在 **nnPU 预训练的未标记风险项**逐 mini-batch 使用 `U ∪ P`，正例项与先验保持不变。后续自步伪负例仍只取原始 U；若跳过预训练（`pretrain_epochs=0`），请求 `ts` 会显式报错，避免 manifest 误记校准。台账默认 `ts-compatible`，每次实际视图以 run manifest 为准。2026-09-28 全局 Python/PyTorch 环境下的 A6000 原有 GPU 测试和 TS 特征路径单次 CUDA smoke 均通过。正式 P3.2 仍需公开论文数值对照、Survey 矩阵接入及合作者复核；本技术预集成不得混入冻结 pilot 或主榜。
 
 2026-10-18 复核：论文（KDD 2023，`arXiv:2308.00279`）与官方源码已获取；
 SPL 默认 Welsch 权重、logistic hardness、linear scheduler、加权 BCE 与官方默认
@@ -74,7 +73,7 @@ behavior tests、换行哈希）已按下节补交；正式准入仍未完成。
 
 ## 2026-10-18 来源与行为补交（不改训练）
 
-按 [P3.1 复核](../../dev/experiment_layer.md) 补齐
+已补齐
 `utils.py`、`models.py`、README 与原三文件的锁定摘要，新增
 [机器可读来源核查](../pu_survey/data/robustpu_source_review_20261018.json)。
 六文件同时留原始字节与 UTF-8 统一换行文本摘要；可选源码 checker 两者都验，

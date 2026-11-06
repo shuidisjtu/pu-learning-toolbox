@@ -44,7 +44,7 @@ snapshot 仅保存推理所需 C，非训练续跑；D 和优化器预算要计�
 非空外部 sample_weight 报错；sigmoid 为模型分数，不承诺统计校准。
 
 式 (7) probability/logit golden、minmax 梯度隔离、极端数值、训练/权重恢复及 OS-only 门禁见
-`tests/unit/estimators/test_pan.py`。合成 smoke 不是公开数值复现，不进 `survey-v1.2` 冻结矩阵。
+`tests/unit/estimators/test_pan.py`。
 来源/差异证据：作者 `main.py:351-423`、`helper/pu_learning_dataset.py` 的 `overlap=True`、
 PU-Bench `train/pan/core.py`、PUBench `core/algorithms.py:1694`；见
 [Issue #123](https://github.com/shuidisjtu/pu-learning-toolbox/issues/123)。
@@ -83,7 +83,6 @@ probe 与非活动网络使用 eval/no-grad，因此 C/D 的 BN 只由各自更�
 `tests/unit/estimators/test_pan_cnn.py` 验证 clone、固定 seed、输入/encoder 门禁、
 保存加载、权重恢复与 GPU；`tests/integration/test_pan_pipeline_cnn.py` 验证公开 pipeline
 的 native_cnn provenance，`test_cv_fold_isolation.py` 验证两个对抗 encoder 跨折均不泄漏。
-这是可训练 CNN 接口，不宣称论文完整结构、预处理/增强、训练预算或公开表格重现。
 
 2026-10-18 来源/推理状态补交：
 九文件原始摘要、实际交替梯度和采样测试已补；仅修复预测后逐层恢复 train/eval 模式，
@@ -98,7 +97,7 @@ CIFAR-10、MNIST、Fashion-MNIST 和 ADNI 替代槽位。`--parameters` 的 JSON
 
 - 来源仍为论文 Eq.(7)/Algorithm 1 与上述锁定九文件记录；不改 `pan.py`，也不导入或执行作者代码。
 - 本入口使用 train-only 统计、随机小图 ResNet-18 + 原 PAN 线性头；C/D 从同一模板独立复制，
-  BN 仅在活动网络更新，增强固定 none。目的是打通已有 encoder 接口，不是复现作者架构。
+  BN 仅在活动网络更新，增强固定 none。该路径复用已有 encoder 接口。
 - 保持原生 OS、`calibration_applied=false`，拒绝 TS；PA/OA 独立选全部已完成 epoch，预测只恢复 C。
   每 epoch 成本为 `2 * ceil(n_U / batch_size)` 次 Adam 更新，D 和 C 各一次；
   权重文件不含 D/优化器，不能用来恢复对抗训练，也不能据此忽略 D 的训练显存。

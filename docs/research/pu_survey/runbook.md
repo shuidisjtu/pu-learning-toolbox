@@ -77,7 +77,7 @@ uv run python scripts/export_survey_results.py --manifests results/example-grid 
 ```
 
 输入路径可有多个，重复路径只读取一次；不同文件却声明相同结果身份时拒绝，避免静默覆盖。
-默认预期 seed 为 0–4；小规模验证可显式 `--expected-seeds 0`，但这不构成五 seed 结论。
+默认预期 seed 为 0–4；单 seed 验证可显式 `--expected-seeds 0`，报告保留单次结果。
 待审核与排除路径分别用 `--pending <path...>`、`--exclude <path...>`，保留在 sources/coverage，不进入均值。
 只有 summary 时，无法重新分离其已聚合的来源；先核对原汇总的审核状态。
 

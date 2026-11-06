@@ -60,4 +60,4 @@ Northcutt, Wu, Chuang, UAI 2017：[原文](https://auai.org/uai2017/proceedings/
 2026-10-18 独立来源/实际交叉拟合补证：
 四文件双摘要、独立排序/计数、真实 clone/heldout/最终重权和失败路径已补，台账/扩展草稿同步；
 数学算法、默认值及先验/校准口径不变；仅补正例均值的浮点上界保护，避免常数0.1/0.2
-产生空 confident 集合和 NaN。不是源码 NaN-fold 行为逐位复现，正式准入仍待复核。
+产生空 confident 集合和 NaN。正式准入仍待复核。

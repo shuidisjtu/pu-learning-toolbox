@@ -1,8 +1,8 @@
 # 实验层（experiment）设计文档
 
 > 对应需求：PU 调研实验协议 [pu_survey_protocol.md](../research/pu_survey/pu_survey_protocol.md)
-> §2.4（四份数据角色与 PA/OA 双协议）；执行状态见
-> [survey_execution_plan.md](../research/pu_survey/survey_execution_plan.md) 当前状态与能力验收索引。
+> §2.4（四份数据角色与 PA/OA 双协议）；当前能力与实验状态见
+> [Survey README](../research/pu_survey/README.md)。
 
 实验层是面向研究者/实验用户的公共 API 层，补齐 `PUPipeline` 缺失的「数据角色声明 + 显式模型选择协议」。
 本文档只记本层**独有的设计机制**（D1–D5 各决策如何实现、为何这样设计、如何扩展使用）。
@@ -125,9 +125,8 @@ clean 视图（PN oracle）运行里，`pu_val_view` 携带的是真实标签，
 **后续方法阶段留痕（2026-10-07）**：声明 `checkpoint_stages` 的新方法使用推断引用
 schema `1.1`，额外记录 `training_context`（stage、1-based stage_epoch、可空的1-based
 round_index、累计 optimizer_steps）。选中引用、恢复的 predictor 与回收后的记录均保留
-上下文；它不改变上面的全局 position 或 PA/OA 选择范围，不证明阶段已经批准。
-未声明阶段的历史 pilot 仍输出 `1.0`，旧记录不回填。详见
-阶段/预算复核。
+上下文，全局 position 与 PA/OA 选择范围保持原定义。
+未声明阶段的历史 pilot 仍输出 `1.0`，旧记录不回填。
 
 ## 2. 当前能力与边界
 
@@ -146,7 +145,7 @@ PN oracle 使用 `CleanLabelGenerator`、显式真标签 trainer 和 OA，支持
 
 结果读取和统计在 `pu_toolbox.experiment.results` 中处理可读性、分组、五 seed 统计和成本，
 选择记录与所选文件的完整性独立校验。报告生成不依赖历史批次名、队列、交接包或审批正文。
-工程接口可运行、统计完整、数值有效和研究审核完成分别表达；后者不能由软件测试代替。
+报告分别记录工程运行状态、统计完整性、数值有效性和研究审核状态。
 
 **与通用层的边界（2026-10-04 复核）**：实验层的跨层依赖为——**模块级只有 Core**（`core/`、`utils/`）；
 **函数内另有** Core（`registry/`）、Evaluation（`metrics/`，`runner.py:751`）、**Algorithms**
