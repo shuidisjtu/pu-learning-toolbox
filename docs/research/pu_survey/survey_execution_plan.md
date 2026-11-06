@@ -392,7 +392,7 @@ CVIR SAR 144 项与 GradPU–ADNI 维持停派。另：VPU 的 ADNI/Fashion-MNIS
 剩余 36 项停派给我方执行（已有 4 项不重跑，SCAR 及其他数据集留本地）；交接细节见交接包，
 未完成项分工见 README §2。
 
-2026-11-06 结论分析层入库（D57）：`export_survey_results.py` 增写 `conclusions.md/json` 与工作簿
+2026-11-06 结论分析层入库（D57，PR #169）：`export_survey_results.py` 增写 `conclusions.md/json` 与工作簿
 `conclusions` 页，每条结论标注 §1.4.5 信号并区分「文献事实 / 本实验观测 / 推断」，无信号、
 无证据、推断无引用或文献事实无来源一律拒绝（`ConclusionError`）；`survey_diagnostics.py` 的
 `DIRECTIONS` 改为公开常量供复用。不改训练代码、协议 JSON、manifest 或注册表，历史 run 无需重跑；
