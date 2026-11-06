@@ -12,8 +12,10 @@
   SCAR–PA 主榜、SCAR–OA 对照、SAR–OA 压力测试（LBE-A / LBE-B 分开）、PN oracle。
 - 每格为 5 seed 的 Accuracy 均值±标准差；AUC / F1 / Precision / Recall 作附加指标；含单配置训练成本、
   完整调参成本、峰值显存。单 seed 读数不进结论表。
-- 结论分析（独立文档，或并入工作簿）：按 [执行计划](survey_execution_plan.md) §1.4.5 的信号表归因，
-  每条标明依据哪几类信号，并区分「文献事实 / 本实验观测 / 推断」。
+- 结论分析（`conclusions.md` / `conclusions.json`，并入工作簿 `conclusions` 页）：按
+  [执行计划](survey_execution_plan.md) §1.4.5 的信号表归因，每条结论列出依据的信号，并区分
+  「文献事实 / 本实验观测 / 推断」。观测由诊断卡生成、推断须引用对应观测；文献事实只从
+  `--literature` 登记的来源进入；报告读不到的五个信号逐条列出原因，不静默跳过（D57）。
 
 **B. 代码功能**
 
@@ -36,7 +38,7 @@ run 在 manifest 的 `batch` 块里引用它（D44 定口径、D52 定实现，�
 | GradPU 图像退化诊断、KLDCE 可行项恢复与已完成风险结果复核 | HENG958 / 合流 | 数值与完整预算 canary 验收后放行；保留失败/替代证据 |
 | D54 support 完整批次审计、修正替代关系与 PN-CNN 现有 5 seed 验收 | HENG958 / 合流 | 合规 manifest、批次与资源记录；只补缺失/无效项 |
 | v3.1/v3.2 复核与 formal blockers 清零 | HENG958 / 合流 | 所需 review accepted、formal blockers 数量为 0；新增映射未签署前仍 pending |
-| 在已有结果工作簿/说明上补有效增量、诊断信号、四组结论和成本记录 | 合流 | 交付物 A/B 验收；结果表继续本地交付，不入库 |
+| 在已有结果工作簿/说明上补有效增量、诊断信号、结论分析（D57）与四组结论、成本记录 | 合流 | 交付物 A/B 验收；结果表继续本地交付，不入库 |
 | 批次收口后完善分区续跑（issue #155），核查旧版本依赖并制定归档方案 | shuidisjtu / 合流 | 历史结果可解析、复现命令通过；不直接删仍被引用的协议 |
 
 GradPU/KLDCE 恢复命令见 [runbook](runbook.md) §5.4。
@@ -53,7 +55,7 @@ v3.2 图像扩展已完成训练，当前待验收，不能再把整批计划数
 | v3.1 缺口批 | `survey_protocol_v3_1.json` | `survey_comparison_v7.json` | `survey_comparison_profile_map_v4.json` | `survey_recipe_registry_v1_1.json`（23 locked） | 当前交接/扩展批次的有效绑定，不因 v3.2 出现而失效 |
 | v3.2 当前最终候选 | `survey_protocol_v3_2.json` | `survey_comparison_v8.json` | `survey_comparison_profile_map_v5.json` | `survey_recipe_registry_v1_2.json`（23 locked） | PUET/RP 图像扩展的候选绑定（待 HENG958 复核） |
 
-- [`survey_execution_plan.md`](survey_execution_plan.md)：能力矩阵、缺口、预算与资源口径、执行边界、**决策账本（D1–D56）**，也是当前进度与批次状态的唯一记录。
+- [`survey_execution_plan.md`](survey_execution_plan.md)：能力矩阵、缺口、预算与资源口径、执行边界、**决策账本（D1–D57）**，也是当前进度与批次状态的唯一记录。
 - `pu_toolbox/experiment/method_ledger.json`：方法台账；身份、来源、视图、校准、适配与待复核状态。
 - [`runbook.md`](runbook.md)：从 `data/raw` 到工作簿的命令序列，含 split / support 制品 / 批次 / 证据包 / §5.4 失败项恢复 / 汇总 / 复现，以及 v3.1/v3.2 队列与监控入口。
 - [`../method_cards/`](../method_cards/)：各方法的公式、复现状态与实现边界。

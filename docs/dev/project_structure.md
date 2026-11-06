@@ -11,10 +11,42 @@
 pu-learning-toolbox/
   pyproject.toml
   README.md
+  README.zh-CN.md
   CONTRIBUTING.md
   LICENSE
   .gitignore
+  uv.lock
 ```
+
+### 1.1 源码、实验资产与交付物分开存放
+
+| 类别 | 位置 | 管理方式 |
+|---|---|---|
+| 安装包源码 | `pu_toolbox/` | Git 管理；公共导入路径不因工作区整理而迁移 |
+| 自动化测试 / 示例 | `tests/`、`examples/` | Git 管理；不放真实数据和训练输出 |
+| 实验与维护入口 | `scripts/`、`benchmarks/` | Git 管理；脚本按本文 §6 导航，保留既有命令路径 |
+| 用户 / 开发 / 研究文档 | `docs/user/`、`docs/dev/`、`docs/research/` | Git 管理；研究文档和冻结证据不是临时缓存 |
+| 用户上传的原件 | `data/incoming/user-uploads/`（本地创建） | 按 `papers/`、`results/`、`datasets/`、`protocols/`、`tasks/`、`diagnostics/` 分类；保留原文件名与 SHA256 |
+| 接收中的外部交付 | `data/incoming/` | 下载完成、校验及对账前不混入已验收数据；`.part` 不是可删除旧文件的充分依据 |
+| 原始数据 / 标准切分 | `data/raw/`、`data/splits/` | 本地忽略；历史接收路径继续有效，不为统一命名改写 split manifest |
+| 运行与诊断证据 | `results/` | 本地忽略；保存 manifest、日志、选择产物和队列状态，保留历史协议身份 |
+| 对外发送的表格 / 文档 | `data/outgoing/` | 按交付日期建目录；交付快照不覆盖，不默认入 Git |
+| 旧构建包 / 开发草稿 | `data/archive/`（本地创建） | 分类归档；归档不是正式验收，也不自动授予删除权限 |
+| 一次性本地演示 | `data/local-demos/`（本地创建） | 与发布示例分开，用户文件不因不属于 PU 实验而删除 |
+| 临时计划 / 运行辅助文件 | `.tmp/`、`tmp/` | 本地忽略；可能包含后台控制器、交接清单或补跑依据，不能整目录清空 |
+| 可重建的开发缓存 | `.pytest_cache/`、`.ruff_cache/`、`__pycache__/` | 仅在核对无在用写入、无受版本控制或用户文件后清理 |
+
+以上本地目录不要求出现在干净 clone 中。服务器可生成 `LOCAL_WORKSPACE.html` 本地入口，
+列出分类后的上传文件、最新交付和整理收据；不提交机器绝对路径或私有下载地址。
+历史绝对路径可能嵌入脚本、manifest 和交付索引：迁移原件时校验前后 SHA256，并按需保留
+原位置的相对软链接；仅在本机 Git exclude 登记这些兼容入口，不用全局 `*.xlsx`、`*.json`
+规则掩盖本应跟踪的测试夹具或冻结证据。
+
+清理按证据而非文件日期判断：可再生成缓存可以删除；未交付且已被完整新版替代的渲染中间件
+需先验证来源一致、无独有结果，再删除并记录重建来源。已交付结果、用户上传、原始数据、
+切分、冻结协议/比较矩阵与 checkpoint 默认保留。checkpoint 只通过对应实验的回收机制处理，
+不得用目录批量删除替代其选择产物与恢复状态审计。虚拟环境、外部 Git worktree 和后台服务
+也不在例行清理范围内。执行前预览精确路径，执行后保存移动/删除清单、哈希和恢复边界。
 
 ## 2. Python 包（`pu_toolbox/`）
 
@@ -216,6 +248,7 @@ pu_toolbox/
     kernel_candidate.py                   KLDCE 先验策略、稠密内存/可行性预检与成本收据
     support_campaign.py                   # D53 独立纠正批次、完整预算 canary 与逐 fit 质量门禁
     survey_backlog.py                     # v3.1 项目配方训练、先验/阶段/资源核验
+    survey_conclusions.py                 # 结论分析: 按 §1.4.5 信号给结论归因，区分文献事实/本实验观测/推断；无信号、无证据或无来源的结论一律拒绝（纯函数）
   __init__.py
   run_config.py                           (已实现: RunConfiguration 可移植 JSON 运行配置, CLI/UI 共用, schema_version 校验)
   progress.py                             (CancellationToken/emit_progress: 协作取消与进度回调原语)
@@ -432,6 +465,7 @@ tests/
       test_kldce_recovery.py            # 逐项可行性预检、按标记率恢复与替代任务身份保护
       test_backlog_gpu_pool.py          # 动态 GPU 候选池、四卡上限与停派回归测试
       test_diagnose_gradpu_encoder.py   # 训练集诊断隔离、固定预算和退化信号回归
+      test_validate_gradpu_encoder.py   # 全量编码器验证、预算隔离与退化判定回归
     advisor/
       test_recommender.py               # 算法推荐器过滤、评分与输出
       test_scoring_rules.py             # 推荐评分规则与推荐器边界
@@ -567,7 +601,7 @@ tests/
       test_survey_workbook.py           # 工作簿版式: 行落哪一页、clean support 另列、LBE-A/B 分块、缺 seed 进 coverage、未知机制报错而非丢弃
       test_survey_diagnostics.py        # 诊断卡信号: 各信号何时标记与不标记、缺 seed 行不入信号、算不了的信号列明、渲染不称与论文一致
       test_survey_report_entry_protocol.py # 审计/汇总入口的协议默认: 不传 --protocol 即按 survey-v3.0 读，显式指定仍生效，未知文件报错而非静默回落
-      test_export_survey_results_cli.py # 导出入口端到端: 配置/summary.json 到工作簿与诊断卡、坏输入报错且不写半截文件
+      test_export_survey_results_cli.py # 导出入口端到端: 配置/summary.json 到工作簿、诊断卡与结论分析、坏输入报错且不写半截文件
       test_survey_provenance.py         # 报告身份块: 纯组装、无 git 分支的降级与警告、渲染不带时间戳、三入口接线
       test_p3_feature_adapter_smoke.py  # P3 预集成方法的共享冻结特征工程 smoke
       test_p3_pulda_puet_runner_smoke.py # PULDA/PUET 四角色、TS 与 PA/OA 技术 smoke
@@ -650,6 +684,7 @@ tests/
       test_gradpu_offload_execution.py  # 显式暂存策略、冻结配方与结果路径隔离
       test_gradpu_split_execution.py    # GradPU split/chunk 的 CLI 记录、输出隔离与策略校验
       test_survey_classical_image.py    # PUET/RP 图像表示、版本隔离与完整树/折预算
+      test_survey_conclusions.py        # 结论层: 信号归因、三类区分、文献事实须来源、推断须引用观测、无标记不出结论、同输入同输出
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组
@@ -954,6 +989,22 @@ docs/
 
 ## 6. 脚本（`scripts/`）
 
+下表按用途导航，不移动脚本文件。已有后台队列和文档使用其固定路径；“日期较早”或
+“有另一个 runner”不足以证明某个入口已废弃。具体调用方式见
+[Survey runbook](../research/pu_survey/runbook.md)。
+
+| 用途 | 常用入口（均位于 `scripts/`） |
+|---|---|
+| 数据收集与切分 | `collect_survey_public_data.py`、`prepare_survey_splits.py`、`survey_splits_archive.py`、`prepare_clean_support.py` |
+| 单任务 / pilot | `run_survey_experiment.py`、`run_survey_pilot.py`、`run_clean_support_experiment.py`、`run_genpu_recipe.py` |
+| 后台队列 / 看板 | `run_survey_parallel_queue.py`、`run_survey_backlog_campaign.py`、`run_survey_queue_fit.py`、`monitor_survey_queue.py`、`monitor_survey_campaign.py` |
+| 候选路径 / 资源规划 | `prepare_candidate_image_resource_plan.py`、`prepare_kldce_resource_plan.py`、`run_candidate_image_experiment.py`、`run_classical_candidate_experiment.py`、`run_candidate_readiness_campaign.py`、`run_candidate_five_seed_grid.py` |
+| 审计 / 汇总 / 交付 | `audit_survey_batches.py`、`audit_survey_queue.py`、`aggregate_survey_runs.py`、`summarize_survey_results.py`、`export_survey_results.py`、`export_survey_queue_handoff.py`、`compare_survey_results.py` |
+| 问题诊断 / 补跑准备 | `run_lbe_comparison.py`、`run_lbe_diagnostics.py`、`diagnose_gradpu_encoder.py`、`prepare_survey_support_repair.py`、`prepare_kldce_recovery.py`、`recover_survey_backlog_canary.py` |
+| 版本化协议与配方准备 | `prepare_survey_recipe_registry.py`、`prepare_survey_backlog_revision.py`、`prepare_survey_classical_image_revision.py`；不是整理目录时随意重生成冻结文件的入口 |
+| 质量门禁 / 结构生成 | `check_*.py`、`generate_structure.py`、`generate_layer_deps.py` |
+| 工作流薄包装 / 内部辅助 | `pu_workflow/`、`_source_provenance.py`、`_survey_host.py`、`_lbe_diagnostic_reference.py`；下划线辅助模块不作为通用训练入口 |
+
 ```text
 scripts/
   pu_workflow/                            (pu-workflow skill 环节脚本——兼容薄包装, 委托给 CLI 子命令)
@@ -977,7 +1028,7 @@ scripts/
   audit_survey_batches.py                 # P2.2 批次审计入口: 按白名单根逐批出审计, 判不了的记 not_run 而非 pass, 只写 --out-dir
   prepare_survey_support_repair.py        # 只读 support 轨迹审计、新目录重跑命令与 CPU dry-run 清单
   summarize_survey_results.py             # P2.2 数值汇总入口: 逐可比行一均值+样本标准差, 成本按 run 计避免 PA/OA 重复计费, 按状态分 formal/partial/diagnostic 三表
-  export_survey_results.py                # 交付物 A 导出入口: 批次配置或 summary.json → survey_results.xlsx + 诊断卡 md/json（不重算任何数）
+  export_survey_results.py                # 交付物 A 导出入口: 批次配置或 summary.json → survey_results.xlsx + 诊断卡 md/json + 结论分析 md/json（不重算任何数）
   compare_survey_results.py               # P2.2 文献对照附着: 行接入预注册矩阵, 仅对矩阵判 numeric 且本协议判 formal 的行出数值裁决, 其余列未决项
   check_survey_recipe_registry.py         # P4.1 recipe registry 门禁（未物化时声明跳过，落地即强制校验）
   check_comment_quality.py                (注释质量门禁：遗留标记/TBD 上下文/行尾注释，默认扫 pu_toolbox/)
@@ -1011,6 +1062,7 @@ scripts/
   monitor_survey_campaign.py              # 多批次只读看板、GPU 利用率与当前训练 ETA
   prepare_kldce_recovery.py               # 不改变配方的 KLDCE 失败批次预检与恢复计划
   diagnose_gradpu_encoder.py              # GradPU 编码器初始化与饱和的非正式训练集诊断
+  validate_gradpu_encoder.py              # GradPU 全量训练、独立验证诊断与失败隔离
 ```
 
 ## 7. CI/CD（`.github/`）
