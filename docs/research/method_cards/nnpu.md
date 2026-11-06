@@ -2,6 +2,12 @@
 
 > 参数契约（签名、参数表、返回结构）以 [API 参考](../../user/reference/api.md) 为权威；本文档只记论文研究内容、实现边界与复现状态。
 
+工具箱的输入采样、实际风险池和先验消费目标分别见
+[采样概念](../../user/concepts/pu_sampling.md)与
+[先验语义](../../user/concepts/class_prior_semantics.md)。
+研究运行以 `research_settings` 保存请求视图、原生 U/补回 P 后的风险池及训练参数来源；
+新组合示例见 [encoder 教程](../../user/howto/custom_encoders.md)。
+
 ## 1. 论文信息
 
 | 字段 | 内容 |

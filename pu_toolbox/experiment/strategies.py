@@ -61,7 +61,14 @@ def _fit_posterior(X: np.ndarray, y_true: np.ndarray, seed: int | None):
 
 
 def _common_generation_metadata(
-    generator, c: float, n_labeled: int, n_pos: int, seed, y_pu: np.ndarray
+    generator,
+    c: float,
+    n_labeled: int,
+    n_pos: int,
+    seed,
+    y_pu: np.ndarray,
+    *,
+    sampling_policy: str = "fixed_count_uniform_without_replacement",
 ) -> dict:
     """Audit fields shared by SCAR / LBE-A / LBE-B metadata (manifest).
 
@@ -78,6 +85,8 @@ def _common_generation_metadata(
     makes that auditable after the fact.
     """
     return {
+        "input_sampling": "os",
+        "sampling_policy": sampling_policy,
         "generator": type(generator).__name__,
         "c_requested": float(c),
         "c_realized": n_labeled / n_pos if n_pos else 0.0,
@@ -121,6 +130,8 @@ class CleanLabelGenerator(Generator):
         labels = np.asarray(y_true).astype(int)
         return labels, {
             "mechanism": "pn_oracle",
+            "input_sampling": "single_clean_pool",
+            "sampling_policy": "all_real_labels",
             "c_realized": 1.0,
             "n_labeled": int(np.sum(labels == 1)),
             "c_requested": c,
@@ -174,7 +185,15 @@ class SARLBEAGenerator(Generator):
             "posterior_fit_on": "real_labels",
             "posterior_version": "PU-Bench 2d95a19/lbfgs(max_iter=100)",
             "scores_file": None,
-            **_common_generation_metadata(self, c, n_labeled, n_pos, seed, y_pu),
+            **_common_generation_metadata(
+                self,
+                c,
+                n_labeled,
+                n_pos,
+                seed,
+                y_pu,
+                sampling_policy="fixed_count_weighted_without_replacement",
+            ),
         }
 
 
@@ -209,7 +228,15 @@ class SARLBEBGenerator(Generator):
             "posterior_fit_on": "real_labels",
             "posterior_version": "PU-Bench 2d95a19/lbfgs(max_iter=100)",
             "scores_file": None,
-            **_common_generation_metadata(self, c, n_labeled, n_pos, seed, y_pu),
+            **_common_generation_metadata(
+                self,
+                c,
+                n_labeled,
+                n_pos,
+                seed,
+                y_pu,
+                sampling_policy="fixed_count_weighted_without_replacement",
+            ),
         }
 
 

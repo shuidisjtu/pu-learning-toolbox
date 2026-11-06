@@ -397,3 +397,39 @@ uv run python tmp/verify_pu_research_p4_docs.py
 输出目录中的模型、冻结 encoder/分类器组合及设置文件实际生成。
 格式、测试质量、文档链接、API 覆盖和生成目录检查通过。
 概念、用户入口和文档总导航已连接到新增教程与示例。
+
+## 13. P5 运行设置与报告
+
+`experiment.research_settings` 将生成元数据、风险视图请求、先验参数输入、监督角色和
+表征身份组织为 `research_settings`（schema `1.0`）。生成与训练契约校验后建立设置，
+候选训练结束时补入实际训练留痕；成功及全部候选失败的运行均保存该记录。
+SCAR/LBE-A/LBE-B 额外声明 OS 和具名定额抽样政策，保留已有标签与随机轨迹。
+
+先验记录分为基础输入、逐候选有效输入、候选实际训练留痕及选模总体先验。
+CVIR 的实际风险池、先验来源和总体到风险池换算从现有训练留痕取得。
+自定义选模策略的验证角色按实际返回的协议名记录。
+表征设置使用运行记录中的路径、表示身份、输入维度及 adapter/image 元数据。
+
+结果读取按 seed 保存设置，在 JSON、CSV、Markdown、工作簿和诊断卡中展示摘要。
+历史记录的设置保留为 `null`，摘要为“历史记录：按原 manifest 设置读取”。
+旧、新及混合记录的身份、指标、成本和原文件字节回归通过。
+Survey 协议选择具体研究条件，并链接公共采样、标记、先验、选模与表征概念；
+runbook、API、nnPU/CVIR 方法卡与实验层设计同步说明字段及使用路径。
+
+报告与历史身份专项回归 109 项通过，见 `tmp/p5-report-regressions.xml`。
+实验层、三个组合示例与层间契约首次回归共 1922 项：1915 项通过、4 项跳过，
+3 项失败定位为自定义协议名读取及调整期间的子进程导入；相应修复使用定向回归验证。
+4 项跳过分别对应当前 NumPy 的 promotion 兼容测试钩子，以及 KLDCE 的 SCAR 配方范围。
+
+最终定向回归 80 项全部通过，覆盖上述三个失败点、候选先验覆盖、具名方法风险池、
+CVIR 两种适配器的实际消费留痕和 episodic 子进程执行。
+完整 DIY 示例实际生成 `basic.json`、`custom.json` 两份 manifest；其中保存新增设置。
+
+```powershell
+uv run pytest tests/unit/experiment tests/integration/test_diy_experiment_example.py tests/integration/test_sar_policy_example.py tests/integration/test_custom_encoder_example.py tests/contract/test_layer_boundaries.py -m 'not slow and not e2e' -o addopts='--tb=short' -q --maxfail=8 --junitxml=tmp/pu-research-p5-regressions.xml
+uv run pytest tests/unit/experiment/test_research_settings.py tests/unit/experiment/test_runner.py tests/unit/experiment/test_cvir_known_prior_adapter.py tests/unit/experiment/test_cvir_population_adapter.py tests/unit/experiment/test_survey_episodic_budget.py::test_basic_actual_split_pilot_resumes_after_native_early_stop -o addopts='--tb=short' -q --junitxml=tmp/pu-research-p5-final-focused.xml
+uv run python examples/minimal/14_diy_experiment.py --output-dir tmp/pu-research-p5-diy-output
+```
+
+格式、文档链接、API 覆盖、测试质量、生成目录和层依赖门禁通过。
+测试明细分别保存于上述 XML 与 `tmp/p5-report-regressions.xml`。

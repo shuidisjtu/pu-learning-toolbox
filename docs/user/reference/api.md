@@ -1974,6 +1974,11 @@ docstring。
 `n_positive`、`n_labeled_requested`（协议公式 `round(c·n₊)`，**未经夹紧**）、`n_labeled`
 （实际标记数）、`generation_seed` 与 `label_view_sha256`（标签视图摘要）。
 
+生成元数据还记录 `input_sampling="os"` 和 `sampling_policy`。SCAR 为
+`fixed_count_uniform_without_replacement`，LBE-A/B 为
+`fixed_count_weighted_without_replacement`。`CleanLabelGenerator` 记录
+`input_sampling="single_clean_pool"`、`sampling_policy="all_real_labels"`。
+
 其中请求值与实际值在小 `n₊` 或小 `c` 下**并不相等**——`_n_labeled` 有最小值 1 的夹紧
 （`round(c·n₊) == 0` 时仍标记一个正例），两个字段都记录才可审计该偏移。
 
@@ -2099,6 +2104,31 @@ export(report, "reports/current")
 | `results.build_summary(manifest_paths, *, expected_seeds, excluded_paths, pending_paths)` | 读取明确范围，校验运行和选择身份，按可比配置形成五 seed 汇总；显式待审核/排除输入保留为来源状态，不当观测 |
 | `reporting.write_summary(report, out_dir)` | 写 `summary.json/md/csv`、`coverage.csv`、`refusals.json` |
 | `reporting.export(report, out_dir, *, literature=(), native_view=None)` | 写含四组结果页的 `survey_results.xlsx`、诊断卡和 `conclusions.md/json`；需要 `report` extra；文献与方法事实是可选输入 |
+
+新运行在生成与训练契约校验后记录 `manifest['research_settings']`，schema 为 `1.0`。
+全部候选训练失败时，保存的 manifest 同样携带该设置。
+
+| 设置字段 | 记录内容 |
+|---|---|
+| `sampling` | 生成器声明的 `input_sampling` 与 `split_ref` |
+| `labeling` | train/pu_val 的完整生成元数据，包括请求/实际计数、机制参数和评分来源 |
+| `risk` | 请求的 `os_or_ts`、estimator 默认值和对应损失池；具体算法定义的池记作 `estimator_defined` |
+| `prior` | 基础先验输入与目标声明，逐候选有效输入及实际训练留痕，选择使用的总体先验 |
+| `supervision` | 训练标签视图、Trainer、各选择策略实际取得的验证角色和额外监督 |
+| `representation` | 输入维度、记录的训练路径与表征身份，以及 adapter/image 元数据 |
+| `summary` | 串联上述设置的可读字符串 |
+
+`prior.training.value` 优先采用 runner 提供的参数，其次读取 estimator 的 `class_prior`。
+`declared_target` 保留 estimator 的目标声明；声明为 `native_unlabeled` 且使用 `ts`
+风险视图时，`target` 为 `risk_pool`。候选参数覆盖保存在 `prior.candidate_parameters`，
+逐候选有效输入保存在 `prior.candidates`；`prior.candidate_training` 保存已有的实际训练留痕。
+专用 Trainer 的换算与 CVIR 风险池先验通过该留痕及摘要展示。
+自定义生成器通过返回元数据声明采样及抽样政策；缺省字段显示为 `unspecified`。
+
+汇总行以 `research_settings_by_seed` 保留每个 seed 的原设置，以
+`research_settings_summaries` 提供去重摘要。CSV、Markdown、工作簿与诊断卡展示该摘要。
+历史结果缺少此字段时显示“历史记录：按原 manifest 设置读取”，其设置值保留为 `null`。
+结果身份、协议版本、seed 统计及成本沿用原记录。
 
 分组保留 dataset、method/profile、训练路径、实际视图、mechanism、c、selector 和配方身份。
 PN oracle 为 c-independent；`PA+clean-support` 不并入纯 PU PA。相同实验的 PA/OA 共享一个

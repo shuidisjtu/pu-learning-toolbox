@@ -62,6 +62,11 @@ def test_basic_manifest_separates_alpha_from_population_pi(tmp_path):
     assert result.manifest["run_view"] == "os-compatible"
     assert not result.manifest["formal_eligible"]
     assert result.manifest["selection"]["PA"]["class_prior"]["population"] == 0.4
+    settings = result.manifest["research_settings"]
+    assert settings["prior"]["training"]["value"] == 0.4
+    assert settings["prior"]["candidate_training"][0]["training_provenance"] == provenance
+    assert "unlabeled_positive_prior=0.25" in settings["summary"]
+    assert "original_U" in settings["summary"]
     assert len(result.manifest["candidate_runs"][0]["epoch_checkpoints"]) == 3
 
 

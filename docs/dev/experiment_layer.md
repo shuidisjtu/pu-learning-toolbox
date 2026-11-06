@@ -11,6 +11,11 @@
 当前实现差异及后续兼容边界见[语义基线](pu_research_semantics.md)与
 [ADR-0021](../adr/0021-pu-research-semantics.md)；角色事实与 Survey 政策继续分层。
 
+新运行通过 `research_settings` 串联采样、标记、风险池、先验、监督与表征。
+设置在生成与训练契约校验后取得，随成功或全部候选失败的 manifest 保存。
+报告按 seed 留存原设置并生成可读摘要；历史结果按原记录读取。
+字段与导出结构见 [API 参考](../user/reference/api.md)。
+
 实验层是面向研究者/实验用户的公共 API 层，补齐 `PUPipeline` 缺失的「数据角色声明 + 显式模型选择协议」。
 本文档只记本层**独有的设计机制**（D1–D5 各决策如何实现、为何这样设计、如何扩展使用）。
 分层位置与数据流见 [architecture.md](architecture.md) §Experiment 与 §3.1；

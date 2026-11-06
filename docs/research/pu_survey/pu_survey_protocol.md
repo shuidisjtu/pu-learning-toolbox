@@ -26,6 +26,15 @@
 
 ## 1. 实验目标
 
+本协议选择具体的研究条件：OS 输入、SCAR 或具名 LBE-A/B 定额标记、按方法配置的
+原生 U 或 TS-compatible 风险池、split 记录的总体先验、独立 PA/OA 和指定表征。
+公式与适用条件见公共[采样概念](../../user/concepts/pu_sampling.md)、
+[标记机制](../../user/concepts/scar_sar.md)、
+[先验语义](../../user/concepts/class_prior_semantics.md)、
+[选模原理](../../user/concepts/pu_model_selection.md)与
+[表征概念](../../user/concepts/representations.md)。
+新运行通过 `research_settings` 留存这些维度；报告按 seed 保留原设置并展示可读摘要。
+
 ### 1.1 目标概述
 
 1. 不同类别的 PU 学习方法，各有什么优势？在什么特定情况下，哪些方法好？

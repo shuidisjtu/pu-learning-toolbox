@@ -26,6 +26,7 @@ from . import resources as resource_tools
 from .bundle import DatasetBundle, DatasetPart, validate_bundle
 from .manifest import write_manifest
 from .protocols import route_training_view
+from .research_settings import build_research_settings, finalize_research_settings
 from .strategies import DeepFitTrainer, ProtocolOA, ProtocolPA, SCARGenerator, SupervisedTrainer
 from .survey_staged_budget import FIELD as STAGED_BUDGET_FIELD
 from .survey_staged_budget import checkpoint_coverage, checkpoint_epochs, verify_trajectory
@@ -448,6 +449,27 @@ class ExperimentRunner:
             )
         generation_elapsed = time.perf_counter() - generation_t0
 
+        research_settings = _artifact_value(
+            build_research_settings(
+                model=model,
+                trainer=trainer,
+                config=self.config,
+                context={**protocol_context, **_extra_supervision_context(trainer)},
+                generation={"train": meta_train, "pu_val": meta_val},
+                input_ndim=train.X.ndim,
+                training_prior=self.class_prior,
+                selection_prior=selection_prior,
+                selection_prior_source=selection_prior_source,
+                selection_roles={
+                    getattr(proto, "name", type(proto).__name__): (
+                        "clean_val" if isinstance(proto, ProtocolOA) else "pu_val"
+                    )
+                    for proto in self.protocols
+                },
+                label_view=view,
+            )
+        )
+
         # 3. train the candidate pool. A failed attempt is retried once from
         #    a fresh clone; a twice-failed candidate is excluded from ranking.
         candidates = (
@@ -578,10 +600,12 @@ class ExperimentRunner:
         resources.update(_disk_resource_entry(disk_preflight))
 
         if not trajectories:
+            finalize_research_settings(research_settings, candidate_runs)
             elapsed = time.perf_counter() - t0
             resources["runner_elapsed_seconds"] = elapsed
             manifest = {
                 **protocol_context,
+                "research_settings": research_settings,
                 "estimator_parameters": _artifact_value(model.get_params(deep=False)),
                 **_extra_supervision_context(trainer),
                 "seed": self.seed,
@@ -610,6 +634,7 @@ class ExperimentRunner:
         protocol_context = _checkpoint_context(protocol_context, trajectories)
         selection_started_at = time.perf_counter()
         selections = {}
+        selection_roles = {}
         for proto in self.protocols:
             val_view = clean_val if isinstance(proto, ProtocolOA) else pu_val_view
             art = proto.select(
@@ -621,6 +646,9 @@ class ExperimentRunner:
             if art.protocol != getattr(proto, "name", art.protocol):
                 raise ValueError("selection artifact disagrees with its protocol")
             selections[art.protocol] = art
+            selection_roles[art.protocol] = (
+                "clean_val" if isinstance(proto, ProtocolOA) else "pu_val"
+            )
 
         selection_elapsed = time.perf_counter() - selection_started_at
         _add_checkpoint_resources(resources, candidate_runs, trajectories, selection_elapsed)
@@ -708,8 +736,15 @@ class ExperimentRunner:
 
         elapsed = time.perf_counter() - t0
         resources["runner_elapsed_seconds"] = elapsed
+        research_settings["supervision"]["selection_roles"] = selection_roles
+        research_settings["prior"]["selection"] = {
+            name: copy.deepcopy(payload["class_prior"])
+            for name, payload in selection_payload.items()
+        }
+        finalize_research_settings(research_settings, candidate_runs)
         manifest = {
             **protocol_context,
+            "research_settings": research_settings,
             "estimator_parameters": _artifact_value(model.get_params(deep=False)),
             **_extra_supervision_context(trainer),
             "seed": self.seed,

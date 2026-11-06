@@ -109,6 +109,12 @@ def test_basic_runner_binds_correct_prior_isolates_roles_and_preserves_default_c
     assert result.manifest["calibration_applied"] is (view == "ts")
     assert not result.manifest["formal_eligible"]
     assert result.manifest["selection"]["PA"]["class_prior"]["population"] == 0.4
+    settings = result.manifest["research_settings"]
+    recorded = settings["prior"]["candidate_training"][0]["training_provenance"]
+    assert recorded == provenance
+    assert recorded["population_prior_binding"]["risk_pool_positive_prior"] == pytest.approx(alpha)
+    assert "unlabeled_positive_prior=" in settings["summary"]
+    assert provenance["risk_pool"] in settings["summary"]
     assert set(result.selected_models) == {"PA", "OA"}
     assert len(candidate["epoch_checkpoints"]) == 3
     for checkpoint in candidate["epoch_checkpoints"]:

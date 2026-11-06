@@ -1,5 +1,11 @@
 # Method Card: CVIR
 
+研究运行的 `research_settings` 分别记录传给 Trainer 的基础先验输入、候选参数和
+实际训练留痕。CVIR 的留痕包含实际 `unlabeled_positive_prior`、`prior_source` 与
+`risk_pool`，总体先验适配器另保存 `population_prior_binding` 的换算值和公式。
+可组合设置的公共解释见[先验语义](../../user/concepts/class_prior_semantics.md)，
+字段契约见 [API 参考](../../user/reference/api.md)。
+
 2026-10-22 P3.2 补齐：新增显式 `fit(os_or_ts="ts")` 的训练风险池校准，
 以及 `CVIRPopulationPriorTrainer` 的总体 π → 实际风险池先验换算。
 默认 OS/独立 native-TS 与旧 `CVIRKnownPriorTrainer` 不变。

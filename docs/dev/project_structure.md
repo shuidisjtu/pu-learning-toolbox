@@ -245,6 +245,7 @@ pu_toolbox/
     survey_conclusions.py                 # 结论分析: 按 §1.4.5 信号给结论归因，区分文献事实/本实验观测/推断；无信号、无证据或无来源的结论一律拒绝（纯函数）
     reporting.py                          (summary 文本/JSON/CSV、四组工作簿、诊断卡与结论写出)
     results.py                            (v3 manifest 只读消费、身份与预算一致性、seed 聚合和来源披露)
+    research_settings.py                  # 实验采样、风险池、先验输入、监督与表征设置及可读摘要
   __init__.py
   run_config.py                           (已实现: RunConfiguration 可移植 JSON 运行配置, CLI/UI 共用, schema_version 校验)
   progress.py                             (CancellationToken/emit_progress: 协作取消与进度回调原语)
@@ -623,6 +624,8 @@ tests/
       test_result_oracle_identity.py    # PN 对照的逐 seed 划分、特征与预算可比证据回归
       test_result_paths.py              # Windows 长路径发现、读取与来源身份归一回归
       test_split_identity.py            # 从实际四路 indices 校验身份、隔离与批量续跑
+      test_research_settings.py         # 运行设置、先验来源、风险视图及标记政策回归
+      test_result_research_settings.py  # 新旧设置的逐 seed 留存、历史身份与报告导出回归
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组
