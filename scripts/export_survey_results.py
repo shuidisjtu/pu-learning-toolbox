@@ -3,13 +3,17 @@
 
 Reads the report ``summarize_survey_results.py`` builds -- either a finished
 ``summary.json`` or, in one step, the batch whitelist config it is built from --
-and writes three files into ``--out-dir``:
+and writes five files into ``--out-dir``:
 
 * ``survey_results.xlsx``: the four protocol §5.1 groups on their own sheets (mean
   ± std over the protocol seeds, additional metrics, cost), plus ``diagnostic``,
-  ``coverage`` and ``readme``.  Nothing is ranked.
+  ``coverage``, ``conclusions`` and ``readme``.  Nothing is ranked.
 * ``diagnostic_cards.md`` / ``diagnostic_cards.json``: one card per method, signals
   from the execution plan §1.4.5.
+* ``conclusions.md`` / ``conclusions.json``: every conclusion the cards support,
+  tagged 文献事实 / 本实验观测 / 推断 and carrying the signals it rests on.  The
+  literature kind appears only from ``--literature``; the five signals the cards
+  cannot read are listed with their reasons rather than guessed.
 
 This script re-derives no number: layout lives in ``survey_workbook`` and the
 signals in ``survey_diagnostics``, both pure functions of the report.
@@ -23,6 +27,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -41,6 +46,12 @@ from pu_toolbox.experiment.method_ledger import (  # noqa: E402
     native_sampling_assumption,
 )
 from pu_toolbox.experiment.survey_audit import AuditError  # noqa: E402
+from pu_toolbox.experiment.survey_conclusions import (  # noqa: E402
+    ConclusionError,
+    build_conclusions,
+    conclusion_rows,
+    render_conclusions,
+)
 from pu_toolbox.experiment.survey_diagnostics import build_cards, render_cards  # noqa: E402
 from pu_toolbox.experiment.survey_protocol import (  # noqa: E402
     load_protocol,
@@ -56,6 +67,8 @@ from pu_toolbox.experiment.survey_workbook import WorkbookError, write_workbook 
 WORKBOOK_NAME = "survey_results.xlsx"
 CARDS_MD_NAME = "diagnostic_cards.md"
 CARDS_JSON_NAME = "diagnostic_cards.json"
+CONCLUSIONS_MD_NAME = "conclusions.md"
+CONCLUSIONS_JSON_NAME = "conclusions.json"
 
 
 def native_views() -> dict[str, str]:
@@ -64,19 +77,37 @@ def native_views() -> dict[str, str]:
     return {name: native_sampling_assumption(entry) for name, entry in methods.items()}
 
 
-def export(report: dict[str, Any], out_dir: str | Path) -> list[Path]:
-    """Write the workbook and the cards for *report*; returns the paths written."""
+def export(
+    report: dict[str, Any],
+    out_dir: str | Path,
+    *,
+    literature: Sequence[Mapping[str, Any]] = (),
+) -> list[Path]:
+    """Write the workbook, the cards and the conclusions; returns the paths written."""
     target = Path(out_dir)
     target.mkdir(parents=True, exist_ok=True)
     cards = build_cards(report, native_view=native_views())
-    written = [write_workbook(report, target / WORKBOOK_NAME)]
+    conclusions = build_conclusions(report, cards, literature=literature)
+    written = [
+        write_workbook(
+            report,
+            target / WORKBOOK_NAME,
+            conclusions=conclusion_rows(conclusions),
+        )
+    ]
     md_path = target / CARDS_MD_NAME
     md_path.write_text(render_cards(cards), encoding="utf-8")
     json_path = target / CARDS_JSON_NAME
     json_path.write_text(
         json.dumps(cards, indent=2, sort_keys=True, ensure_ascii=False), encoding="utf-8"
     )
-    return [*written, md_path, json_path]
+    conclusions_md = target / CONCLUSIONS_MD_NAME
+    conclusions_md.write_text(render_conclusions(conclusions), encoding="utf-8")
+    conclusions_json = target / CONCLUSIONS_JSON_NAME
+    conclusions_json.write_text(
+        json.dumps(conclusions, indent=2, sort_keys=True, ensure_ascii=False), encoding="utf-8"
+    )
+    return [*written, md_path, json_path, conclusions_md, conclusions_json]
 
 
 def _report_from_config(config_path: str, protocol_name: str, out_dir: Path) -> dict[str, Any]:
@@ -102,17 +133,25 @@ def main(argv: list[str] | None = None) -> int:
         default="survey-v3.0",
         help="protocol the tree was run under, used with --config (shipped name or path)",
     )
+    parser.add_argument(
+        "--literature",
+        help="JSON {'facts': [...]} of registered literature facts; the only 文献事实 source",
+    )
     args = parser.parse_args(argv)
     out_dir = Path(args.out_dir)
     try:
+        literature: list[dict[str, Any]] = []
+        if args.literature:
+            literature = json.loads(Path(args.literature).read_text(encoding="utf-8"))["facts"]
         if args.config:
             report = _report_from_config(args.config, args.protocol, out_dir)
         else:
             report = json.loads(Path(args.summary).read_text(encoding="utf-8"))
-        for path in export(report, out_dir):
+        for path in export(report, out_dir, literature=literature):
             print(f"wrote {path}")
     except (
         AuditError,
+        ConclusionError,
         SummaryError,
         WorkbookError,
         audit.ConfigError,

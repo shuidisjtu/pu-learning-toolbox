@@ -17,7 +17,7 @@
 | 计划 | 核对单元、先验、磁盘与批次 | `run_survey_pilot.py --dry-run` | 计划输出、可选的 `plan.json` |
 | 跑批 | 按批训练并写 manifest / 证据包 | `run_survey_pilot.py` 或单元脚本 | `<results>/<dataset>/.../manifest.json` |
 | 审计 | 检查覆盖、证据包与正式准入 | `audit_survey_batches.py` / `audit_survey_queue.py` | `audit.json / audit.md` |
-| 汇总 | 生成五 seed 统计与工作簿 | `summarize_survey_results.py` / `export_survey_results.py` | `summary.json` / `survey_results.xlsx` |
+| 汇总 | 生成五 seed 统计、工作簿、诊断卡与结论分析 | `summarize_survey_results.py` / `export_survey_results.py` | `summary.json` / `survey_results.xlsx` / `diagnostic_cards.*` / `conclusions.*` |
 
 ## 2. 先确认版本与门禁
 
@@ -352,7 +352,24 @@ uv run python scripts/export_survey_results.py --config batches.json --out-dir <
 - `audit` 只读结果树，不写回任何结果目录；先跑它，再看 `audit.md`。
 - `summary` 按 comparability group / view / mechanism / method / 选模协议 / c 输出均值±标准差；
   缺 seed 只报告，不填补。
-- `export` 生成 `survey_results.xlsx` 与诊断卡；不重算数字。
+- `export` 生成 `survey_results.xlsx`、诊断卡 md/json 与 `conclusions.md/json`；不重算数字。
+  结论分析只从诊断卡取观测、只从 `--literature` 取文献事实，五类算不了的信号逐条列出原因。
+
+文献事实登记（可选；不给时结论分析不含「文献事实」，不是漏算）：
+
+```json
+{
+  "facts": [
+    {"fact_id": "wang-2026-table3", "method": "upu", "statement": "……",
+     "signals": ["c_sensitivity"], "source": "Wang et al. 2026, Table 3"}
+  ]
+}
+```
+
+```bash
+uv run python scripts/export_survey_results.py --config batches.json --out-dir <out>/delivery \\
+  --literature <out>/literature.json
+```
 
 v3.1/v3.2 的 `summary` / `export` 还要加 `--protocol survey-v3.2`（v3.1 用 `survey-v3.1`）；
 完整 D54 批次审计仍在执行计划 §1.2 待办。当前 `audit_survey_batches.py` 的

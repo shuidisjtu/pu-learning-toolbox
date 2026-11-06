@@ -6,7 +6,7 @@
 > `survey_protocol_v2.json` 是 645-run pilot 的历史绑定（绑 `survey_comparison_v4.json`），
 > `survey_protocol_v1.json`/`survey_comparison_v1..v3.json` 仅作历史留档。
 > 交付物定义、完成线与分工以 [README](README.md) 为准，本文不重复。
-> 状态核对日期：**2026-11-02**（v3.0 基线 3320/3320 fit 已完成，120 次修正补跑单列；v3.1 项目配方 1845 fit、v3.2 PUET/RP 图像 280 fit 缺口队列；PR #159/#160 已合并；KLDCE 120 项中 90 项 blocked_preflight、30 项可行；GradPU 恢复 canary 未完成；运行完成不等于正式准入）
+> 状态核对日期：**2026-11-06**（v3.0 基线 3320/3320 fit 已完成，120 次修正补跑单列；v3.1 项目配方 1845 fit、v3.2 PUET/RP 图像 280 fit 缺口队列；PR #159/#160/#164/#166 已合并；KLDCE 120 项中 90 项 blocked_preflight、30 项可行；GradPU 恢复 canary 未完成；结论分析层已入库（D57）、五类信号数据接入未做；扩展 SAR 144 组属交接执行，不进本文件的完成数；运行完成不等于正式准入）
 
 ## 1. 实验能力与缺口
 
@@ -18,7 +18,7 @@
 > **evidence**（v3.0 基线 3320/3320 fit 已完成，120 次修正补跑单列；v3.1/v3.2 队列已定义，完成数按批次 status。
 > 运行完成不等于正式准入；formal admission 仍为 0）。
 > 判定标准：命令可执行并产出合规 manifest 才算“可用”，只有代码存在或测试通过不算。
-> 状态核对日期：2026-11-02。
+> 状态核对日期：2026-11-06。
 
 ### 1.1 能力矩阵
 
@@ -29,7 +29,7 @@
 - **图像与候选执行**：原生 CNN、`cnn_feature_adapter`、GradPU 私有 `cnn13_no_bn` 及 PAN/VPU/P3MIX/CVIR/PUET/RP/KLDCE 的独立候选入口可用；v3.2 的 179 个单元全部 runnable。候选 CLI/readiness/five-seed 只记录工程执行，不改变正式准入。
 - **GradPU 显存执行策略**：`backward_mode` / `gp_chunk_size` 已接入 estimator、runner、CLI 与 campaign（commit `1f0c1135`），默认 `joint`；ADNI 200 epoch 峰值由 48.38/60.31 GiB 降到 21.48/29.88 GiB，joint/split 轨迹最大差 6.9e-7；图像编码器塌缩另案（D56），formal admission 仍 0。
 - **PA/OA 选模与 clean-support 双轨**：PA 只在 `pu_val`、OA 只在 `clean_val`；`PA+clean-support` 与纯 PU PA 同表另列；54 条 PA 映射已按 D41 全部裁定为 `no_direct_anchor`。
-- **分组汇总与导出**：`export_survey_results.py` 可生成四组工作簿与诊断卡；缺 seed 的行只进 coverage。诊断卡五类信号（类先验语义、跨数据集趋势、外部锚点偏差、原生适用/违背分组、排名颠倒）仍无法计算（D48）。
+- **分组汇总与导出**：`export_survey_results.py` 可生成四组工作簿、诊断卡与结论分析（`conclusions.md/json` + 工作簿 `conclusions` 页）；缺 seed 的行只进 coverage。结论按 §1.4.5 信号归因并区分「文献事实 / 本实验观测 / 推断」，无信号、无证据或文献事实无来源一律拒绝（D57）。诊断卡五类信号（类先验语义、跨数据集趋势、外部锚点偏差、原生适用/违背分组、排名颠倒）仍需报告之外的数据，逐条列出原因（D48）。
 - **版本绑定与 CI 门禁**：协议按版本解析到 comparison v6/v7/v8、profile map v3/v4/v5、registry v1.0/v1.1/v1.2；覆盖率与注册表门禁在 CI 真跑。
 - **队列、审计与交接**：`run_survey_parallel_queue.py`、`monitor_survey_queue.py`、`audit_survey_queue.py`、`export_survey_queue_handoff.py` 可用；真实后台调度仍要求 POSIX 文件锁，不支持时拒绝启动。
 - **失败项恢复与覆盖**：`prepare_kldce_recovery.py` 逐项预检 KLDCE 的 QP 可行域并按 c 分组替换；`recover_survey_backlog_canary.py --completed-recovery` 只在 GradPU full canary 验收后放行 held siblings。`blocked_preflight` 保留可见、不删除、不增加分母；恢复不等于正式准入。
@@ -55,7 +55,7 @@
 | GradPU 首次完整真实运行 | v3.1/v3.2 已 runnable，但尚无完整真实运行与资源记录 | 按已登记配方/预算跑完，保存 manifest 与峰值；不把 tiny smoke 当复现 | 合规 manifest + 实测表 |
 | PN-CNN 5 seed 验收 | cifar10 / mnist / fashion_mnist 原生 CNN 已有产物，尚未完成批次验收 | 验收现有 5 seed 产物，不重复训练；其他 oracle 行按队列继续 | 5 seed 合规 manifest + 峰值记录 |
 | v3.1/v3.2 复核与 formal blockers | 协议/矩阵仍 `pending_collaborator_review`，新比较映射无直接锚点；formal admission 0 | 复核新配方/映射与 formal blockers，逐项记录；不补签、不把 runnable 当准入 | review accepted、formal 0 |
-| 正式 5 seed 结果与结论 | 尚无完整四组工作簿、诊断卡与结论；诊断卡五类信号依赖未完成数据 | 用已验收 5 seed 数据生成交付物 A，按 §1.4.5 归因 | 交付物 A 通过 |
+| 正式 5 seed 结果与结论 | 工作簿、诊断卡与结论分析工具已就绪（D57），但尚无完整 5 seed 数据，五类信号仍缺数据接入 | 用已验收 5 seed 数据生成交付物 A，按 §1.4.5 归因 | 交付物 A 通过 |
 
 KLDCE 低 c 的 90 项 `blocked_preflight` 是冻结配方下的方法适用性边界，不作为缺口任务；
 30 项 c=0.5 可行恢复并入上表“v3.1/v3.2 批次执行与对账”，最终在结果覆盖说明中交代。
@@ -218,25 +218,29 @@ TS 探索适配器对版本化协议与 registry 一律拒绝，旧结果只读�
 - 异常标记只是提示，不自动判定"实现有错"；标记后要回看该方法的实现、选模与数据视图。
 - 每条结论都要按 §5 第 7 条区分**文献事实 / 本实验观测 / 推断**，三者不得混写。
 
-产物：方法 × 数据集主表（四组分开）+ 每方法的诊断卡（各信号值、异常标记、待查方向）。
+产物：方法 × 数据集主表（四组分开）+ 每方法的诊断卡（各信号值、异常标记、待查方向）+
+结论分析（每条结论标注依据信号与三类归属，见 D57）。
 
 ### 1.5 推进顺序与推进记录
 
-**当前实现状态（2026-11-03）**
+**当前实现状态（2026-11-06）**
 
 - v3.1/v3.2 已落地：171/179 runnable；registry v1.1/v1.2 各 23 locked；comparison v7/v8 与 map v4/v5 已绑。新增 59 个可运行格（24 个原 blocked 翻牌 + 35 个新单元），其中 v3.1 1845 fit、v3.2 280 fit；协议/矩阵仍 `pending_collaborator_review`，新映射 `pending_review`。
 - v3.0 基线 3320/3320 fit 已完成，120 次修正补跑单列；support 15 个单元中，v3.0 的 12 个已有 180 run 观测，v3.1 新增 3 个 CIFAR 单元并入 1845 批；D53 的 120 次修正已完成，D54 审计未完成。
 - 队列/监控/审计/交接、candidate readiness 与 five-seed 入口均已实现；这些是工程执行能力，不代表冻结配方、论文复现或正式准入。formal admission 仍为 0。
 - 2026-11-02：PR #160（文档整合）与 PR #159（KLDCE/GradPU 失败项恢复）已合并。KLDCE 120 项中 90 项 `blocked_preflight`、30 项 c=0.5 可行；GradPU 仍只有 `cpu_offload`，full 200 轮恢复未完成，14 项 held；两者都不改变 formal admission=0。详见下方 2026-11-02 记录。
 - 2026-11-03：GradPU split/chunk 执行策略落地（分支 `feature/gradpu-split-backward`，代码 commit `1f0c1135`）；ADNI 与 CIFAR-10 的 200 epoch joint/split 对照完成（轨迹差 6.9e-7 / 4.8e-7，指标相同）；首次完整图像运行发现 `cnn13_no_bn` 编码器塌缩，joint 与 split 同样，另案见 D56；formal admission 仍 0。
+- 2026-11-05：扩展 SAR 144 组（P3MIX 54 + VPU 36 + PAN 54，c=0.05/0.5，只报 OA）按交接执行完毕并交付云盘包，144/144、0 失败、0 重试。属交接执行，不计入本文件的完成数与缺口表；追溯以云盘包及其 `task_table.csv` 为准（两台 AutoDL 已关机，本地无副本）。
+- 2026-11-06：结论分析层落地（D57）：`pu_toolbox/experiment/survey_conclusions.py` 从汇总报告与诊断卡构建结论，每条必须声明 §1.4.5 信号并标为「文献事实 / 本实验观测 / 推断」，无信号、无证据或无来源一律拒绝；`export_survey_results.py` 增写 `conclusions.md/json` 与 `--literature`，工作簿增 `conclusions` 页。卡片读不到的五类信号在文档与 JSON 中逐条列原因；类先验字段、方法台账 SAR 适用性/架构例外、比较矩阵仍未接进结论层。
 
-**当前推进顺序**（2026-11-03，与 §1.2 的缺口一一对应；分工见 [README](README.md) §2）：
+**当前推进顺序**（2026-11-06，与 §1.2 的缺口一一对应；分工见 [README](README.md) §2）：
 
 1. **v3.1/v3.2 缺口批与失败项恢复**：原 24 个 blocked 单元已全部翻 runnable；剩余 1845 + 280 fit 的批次对账、KLDCE 30 项 c=0.5 恢复与审计、GradPU 完整 canary 验收、PN-CNN 5 seed 验收。
 2. **support 方法**：v3.0 的 12 个单元已有 180 fit 观测；v3.1 新增 3 个 CIFAR 单元并入 1845 批。
    D53 的 120 fit 已完成，等 D54 完整批次审计；PULNS 60 fit 不重复跑。
-3. **汇总工具**：xlsx 导出器与诊断卡工具已入库（D48），等 5 seed 批次出数后用
-   `scripts/export_survey_results.py` 一条命令生成交付物 A；诊断卡算不了的五项信号见 D48。
+3. **汇总工具**：xlsx 导出器、诊断卡（D48）与结论分析（D57）已入库，等 5 seed 批次出数后用
+   `scripts/export_survey_results.py` 一条命令生成交付物 A；结论分析只做归因与三类区分，
+   算不了的五项信号仍须先做数据接入（D48）。
 4. **正式 5 seed × c 网格跑批 → 汇总 → 写结论**：只运行满足协议/预算/配方/映射前置的单元；
    汇总按 §1.4.5 的诊断口径出"方法 × 数据集主表 + 诊断卡"，不以"与论文数值一致"作为验收标准。
    GPU 机时不设限，按 method / dataset / training-path / 机制分批（D28）。
@@ -388,6 +392,13 @@ CVIR SAR 144 项与 GradPU–ADNI 维持停派。另：VPU 的 ADNI/Fashion-MNIS
 剩余 36 项停派给我方执行（已有 4 项不重跑，SCAR 及其他数据集留本地）；交接细节见交接包，
 未完成项分工见 README §2。
 
+2026-11-06 结论分析层入库（D57，PR #169）：`export_survey_results.py` 增写 `conclusions.md/json` 与工作簿
+`conclusions` 页，每条结论标注 §1.4.5 信号并区分「文献事实 / 本实验观测 / 推断」，无信号、
+无证据、推断无引用或文献事实无来源一律拒绝（`ConclusionError`）；`survey_diagnostics.py` 的
+`DIRECTIONS` 改为公开常量供复用。不改训练代码、协议 JSON、manifest 或注册表，历史 run 无需重跑；
+五类信号的数据接入（汇总报告类先验字段、比较矩阵进结论层、台账 SAR 适用性/架构例外）仍待。
+扩展 SAR 144 组为交接执行，交付与追溯以云盘包为准，不进本文件进度口径。
+
 ## 2. 风险与留痕约定
 
 ### 2.1 风险
@@ -406,7 +417,7 @@ CVIR SAR 144 项与 GradPU–ADNI 维持停派。另：VPU 的 ADNI/Fashion-MNIS
 - 复核结论记录主责人、复核人、代码/制品身份、证据、日期和整改状态；`接受`、`有条件接受`、`退回`不得混写。
 - 新阶段进展更新 §1 能力矩阵与缺口任务；新增或修订决策追加附录 A，不重写历史提交或冻结协议。
 
-## 附录 A. 决策账本（D1–D56）
+## 附录 A. 决策账本（D1–D57）
 
 > 本附录只保留仍影响执行的决策摘要；当前任务与责任以 §1 为准，实验规则与比较矩阵以
 > `pu_survey_protocol.md` 和机器可读 JSON 为准。实现细节以对应交付文档、代码与提交历史为准。
@@ -417,6 +428,7 @@ CVIR SAR 144 项与 GradPU–ADNI 维持停派。另：VPU 的 ADNI/Fashion-MNIS
 | D54 | **合规子批次组成完整网格** | 用户 2026-10-28 确认相同环境和硬件下遵守协议的子批次可共同正式接收；不因续跑分片自动否决。审计须验证完整无重复网格、批次引用、同一代码/依赖/环境/硬件、参数预算、全 epoch 和其他准入条件，原始 manifest 不修改。新增包记录 CPU 与线程环境，旧包缺少关键字段不自动补证；当前重审仅覆盖既有 clean-support 重审范围。单 run 原始正式聚合仍不读取派生重裁定。 | 2026-10-28 |
 | D55 | **版本化例外与最终版本清理** | 用户 2026-11-02 确认：v3.0 冻结后，`survey-v3.1`/`v3.2` 以独立协议、比较矩阵与注册表落地，是 D42「原地扩充」的明确例外；不回退版本，也不改写 v3.0 的历史运行身份。实验完成后统一清理 v3.0/v3.1 旧协议、矩阵与注册表；旧版工程核对/重建前凭证已按维护要求清理。最终只保留正式版（当前候选 v3.2）供工具箱实验脚本从零复现。清理不得回填旧 manifest，也不得把未完成的 formal admission 自动放行。 | 2026-11-02 |
 | D56 | **GradPU split/chunk 仅作执行策略；图像编码器塌缩另案** | 2026-11-03 落地 GradPU 分量反传与 GP 分块：estimator/runner/CLI/campaign 可选，默认 joint；不改损失、batch、精度、epoch 与 RNG 顺序；ADNI 200 epoch 峰值 48.38/60.31→21.48/29.88 GiB，轨迹最大差 6.9e-7，CIFAR 4.41→2.09 GiB、差 4.8e-7；纯 split 耗时与 joint 基本持平，GP 分块 +5.1%（ADNI）/+11.8%（CIFAR）。同一轮首次完整 200 epoch 发现 cnn13_no_bn 编码器塌缩（joint/split 均输出常数 0.9842、末层特征 std=0，2D MLP 正常），判为编码器初始化/无 BN 堆叠问题，与 split 无关；修复前图像数值不作方法结论。正式 recovery 仍默认 cpu_offload，未接入 split/chunk；formal admission 不变。 | 2026-11-03 |
+| D57 | **结论分析层：每条结论标注信号并区分三类** | `survey_conclusions.py` 从汇总报告与诊断卡构建结论：每条必须声明 §1.4.5 信号（空信号、未知信号一律拒绝），并标为「文献事实 / 本实验观测 / 推断」。观测须带上下文与数值证据；推断须引用产生它的观测；文献事实须带来源且不得携带运行证据，唯一入口是 `export_survey_results.py --literature`（本次未登记，故文档明确写「不含文献事实」）。导出器因此多写 `conclusions.md/json`，工作簿多一页 `conclusions`；诊断卡的 `DIRECTIONS` 改为公开常量供复用。卡片算不了的五信号在文档与 JSON 里逐条列原因，不静默跳过。不改训练代码、协议 JSON、manifest 或注册表，历史 run 无需重跑；类先验字段、比较矩阵、台账 SAR 适用性与架构例外的数据接入仍待，属后续工作。 | 2026-11-06 |
 | D1 | **ADNI 数据获取** | ADNI 官方数据仅在获批持有人提供授权材料后纳入，未取得不记作官方 ADNI 获取完成。**2026-10-12 修订**：经与学长、导师讨论，为避免流程过于耗时，`adni` 槽位改用 Kaggle 4 类 Alzheimer MRI 的 GitHub 转存（论文 2 的 Table B.1 称其 Alzheimer MRI，附录称 ADNI），固定在转存仓库 commit 与逐文件摘要；它不是 ADNI 数据，所有登记、报告与快照须写明「替代数据」；Kaggle 页面许可为 Unknown（2026-10-12 核对），同一受试者切片是否跨集未核实，见[替代数据记录](data/adni_substitute_receipt_20261012.json)。 | 2026-09-08（修订 2026-10-12） |
 | D2 | 协议分工执行口径 | 研究团队准备四角色数据，工具箱 `fit` 消费已划分输入；工具箱不替代数据划分。 | 2026-09-08 |
 | D3 | 依赖锁与 CUDA 环境落地 | `uv.lock` 入库，PR 使用提交的锁，nightly 用 `--upgrade` 重新解析；正式 GPU 运行另核驱动与依赖身份，详见 [ADR-0012](../../adr/0012-dependency-release-policy.md)。 | 2026-10-05 |

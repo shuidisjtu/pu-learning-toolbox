@@ -72,7 +72,9 @@ ORACLE_GAP_SPREAD_POINTS = 15.0  # gap to the oracle varying this much across da
 
 _C_ORDER = ("0.1", "0.3", "0.5")
 
-_DIRECTIONS: Mapping[str, str] = {
+#: The direction the plan names for each computed signal; the conclusion
+#: layer reuses it so both artifacts point a reader the same way.
+DIRECTIONS: Mapping[str, str] = {
     "mechanism_scar_to_sar": "标注机制处理、权重/score 更新是否真的随机制变化",
     "view_os_ts": "校准实现、未标记风险项是否被真正替换",
     "backbone_path": "表征适配、私有网络的架构影响",
@@ -455,7 +457,7 @@ def render_cards(cards: Mapping[str, Mapping[str, Any]]) -> str:
                 mark = "⚠ " if item["flag"] else ""
                 lines.append(f"- 本实验观测：{mark}{_describe(signal, item)}")
             if flagged:
-                lines.append(f"- 推断（待查方向）：{_DIRECTIONS[signal]}")
+                lines.append(f"- 推断（待查方向）：{DIRECTIONS[signal]}")
             lines.append("")
         lines.append("### 未计算的信号")
         for item in card["not_computed"]:

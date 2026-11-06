@@ -12,8 +12,10 @@
   SCAR–PA 主榜、SCAR–OA 对照、SAR–OA 压力测试（LBE-A / LBE-B 分开）、PN oracle。
 - 每格为 5 seed 的 Accuracy 均值±标准差；AUC / F1 / Precision / Recall 作附加指标；含单配置训练成本、
   完整调参成本、峰值显存。单 seed 读数不进结论表。
-- 结论分析（独立文档，或并入工作簿）：按 [执行计划](survey_execution_plan.md) §1.4.5 的信号表归因，
-  每条标明依据哪几类信号，并区分「文献事实 / 本实验观测 / 推断」。
+- 结论分析（`conclusions.md` / `conclusions.json`，并入工作簿 `conclusions` 页）：按
+  [执行计划](survey_execution_plan.md) §1.4.5 的信号表归因，每条结论列出依据的信号，并区分
+  「文献事实 / 本实验观测 / 推断」。观测由诊断卡生成、推断须引用对应观测；文献事实只从
+  `--literature` 登记的来源进入；报告读不到的五个信号逐条列出原因，不静默跳过（D57）。
 
 **B. 代码功能**
 
@@ -50,7 +52,7 @@ GradPU/KLDCE 的失败项恢复见 [runbook](runbook.md) §5.4。KLDCE 低 c 的
 | v3.1 缺口批 | `survey_protocol_v3_1.json` | `survey_comparison_v7.json` | `survey_comparison_profile_map_v4.json` | `survey_recipe_registry_v1_1.json`（23 locked） | 历史缺口批；完成后清理 |
 | v3.2 当前最终候选 | `survey_protocol_v3_2.json` | `survey_comparison_v8.json` | `survey_comparison_profile_map_v5.json` | `survey_recipe_registry_v1_2.json`（23 locked） | 保留为最终复现版本（待 HENG958 复核） |
 
-- [`survey_execution_plan.md`](survey_execution_plan.md)：能力矩阵、缺口、预算与资源口径、执行边界、**决策账本（D1–D55）**，也是当前进度与批次状态的唯一记录。
+- [`survey_execution_plan.md`](survey_execution_plan.md)：能力矩阵、缺口、预算与资源口径、执行边界、**决策账本（D1–D57）**，也是当前进度与批次状态的唯一记录。
 - `pu_toolbox/experiment/method_ledger.json`：方法台账；身份、来源、视图、校准、适配与待复核状态。
 - [`runbook.md`](runbook.md)：从 `data/raw` 到工作簿的命令序列，含 split / support 制品 / 批次 / 证据包 / §5.4 失败项恢复 / 汇总 / 复现，以及 v3.1/v3.2 队列与监控入口。
 - [`../method_cards/`](../method_cards/)：各方法的公式、复现状态与实现边界。
