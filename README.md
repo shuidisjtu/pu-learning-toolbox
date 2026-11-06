@@ -108,6 +108,7 @@ Docs are split by audience; the full index is [`docs/README.md`](docs/README.md)
 | [`docs/user/howto/`](docs/user/howto/) | Task guides: simulation, profiling, pipeline, CLI, reports, sensitivity, distribution shift |
 | [`docs/user/reference/api.md`](docs/user/reference/api.md) | Precise API contract |
 | [`docs/dev/`](docs/dev/) | Contributor docs: architecture, structure, compatibility |
+| [`docs/dev/project_structure.md`](docs/dev/project_structure.md) | Source/data boundaries, local artifact retention, and scripts grouped by task |
 | [`docs/research/method_cards/`](docs/research/method_cards/) | Per-paper research cards |
 
 ### PU Survey experiments

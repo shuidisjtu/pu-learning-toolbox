@@ -106,6 +106,7 @@ pu-toolbox-ui
 | [`docs/user/howto/`](docs/user/howto/) | 任务指南：模拟、画像、流水线、CLI、报告、敏感性、分布漂移 |
 | [`docs/user/reference/api.md`](docs/user/reference/api.md) | 精确 API 契约 |
 | [`docs/dev/`](docs/dev/) | 贡献者文档：架构、结构、兼容性 |
+| [`docs/dev/project_structure.md`](docs/dev/project_structure.md) | 源码与本地实验资产分类、归档清理边界、脚本用途导航 |
 | [`docs/research/method_cards/`](docs/research/method_cards/) | 各论文方法卡 |
 
 ### PU Survey 实验
