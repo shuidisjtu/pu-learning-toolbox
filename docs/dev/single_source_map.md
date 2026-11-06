@@ -9,7 +9,7 @@
 
 研究整合的当前采样/先验消费事实及待收敛重复见[语义基线](pu_research_semantics.md)。
 公共定义由[概念入口](../user/concepts/pu_problem.md)导航；
-先验目标声明与 Pipeline 的质量换算已接入；固定数 SCAR 两入口及实验层同义计算在 P3 收敛。
+先验目标声明、Pipeline/CVIR 质量换算与固定数 SCAR 的共享计数/抽样已接入。
 职责边界见 [ADR-0021](../adr/0021-pu-research-semantics.md)。
 
 | 概念 | 权威真相源 | 消费者 | 兼容入口 | 判据 |
@@ -21,7 +21,8 @@
 | 哈希 | `pu_toolbox/utils/serialization.py`：`canonical_hash`（宽容，报告载荷）、`strict_canonical_hash`（严格，制品身份）、`array_hash`（数组 dtype/shape/字节）、`file_hash`（文件字节，流式）；不同语义不合并 | `canonical_hash`：`diagnostics/benchmark.py`、`experiment/{datasets,split_archive,strategies,image,training_views}.py`；`strict_canonical_hash`：`experiment/{feature_adapter,survey_protocol,results}.py`；`array_hash`：`experiment/{feature_adapter,image,survey_execution}.py`，并经 `survey_protocol.array_digest` 委托；`file_hash`：`experiment/{checkpoints,text}.py`，并经 `split_archive.file_sha256` 委托 | `survey_protocol.digest`、`survey_protocol.array_digest`、`split_archive.file_sha256` | 单一 |
 | RBF 权重 | `pu_toolbox/utils/basis.py:34` `build_rbf_basis`（`:62` `rbf_weights` 建于其上） | `prior/pen_l1.py`、`prior/kernel_mean.py`、`estimators/risk/kldce.py`、`estimators/risk/pnu.py`、`estimators/risk/upu.py`、`utils/basis.py:101` `resolve_basis_fn` | `pu_toolbox/utils/__init__.py` 重导出 | 重复（不可合并，理由：见说明） |
 | 类先验推导 | `pu_toolbox/estimators/risk/_class_prior.py:6` `solve_prior_from_positive_fraction` | `estimators/risk/kldce.py:935`、`estimators/risk/ldce.py:429` | 无 | 单一 |
-| 先验质量换算 | `pu_toolbox/prior/semantics.py`：`native_unlabeled_to_population` / `population_to_native_unlabeled` | `workflows/pipeline.py`，按输入设计及逐折消费目标调用 | 公开 `.estimate()` 保留标量，以类属性声明目标/池 | Pipeline 已复用；experiment 的同义计算在 P3 接入 |
+| 先验质量换算 | `pu_toolbox/prior/semantics.py`：`native_unlabeled_to_population` / `population_to_native_unlabeled` | `workflows/pipeline.py` 按输入设计及逐折消费目标调用；`experiment/cvir_adapter.py` 解析 OS 原生 U 风险先验 | 公开 `.estimate()` 保留标量，以类属性声明目标/池；CVIR 包装器维护严格域及视图政策 | 单一 |
+| 固定正例配额与均匀抽样 | `pu_toolbox/preprocessing/_sampling.py`：`fixed_positive_count` / `sample_positive_labels` | `preprocessing/pu_labeling.py` 的 SCAR/定额入口；`experiment/strategies.py` 的 SCAR 及 SAR 配额计算 | `experiment.strategies._n_labeled` 委托计数原语；各入口保留输入契约 | 单一；seed、全选后的随机流与标签哈希一致 |
 | 训练视图 | `pu_toolbox/core/training_views.py:120` `build_training_view`；角色词表 `:42` `ViewRole` + `:48` `ROLES`；视图词表 `:38` `RunView` + `:47` `RUN_VIEWS`（运行时元组由 `get_args` 派生） | `estimators/risk/{vpu,upu,nnpu,dist_pu}.py`、`estimators/bias_aware/pusb_kernel.py`、`estimators/deep/self_pu.py`、`experiment/` 各消费者、`scripts/{run_survey_experiment,run_survey_pilot,prepare_survey_splits}.py`；另有三项词表与两处子集未并（不同概念，见说明） | `experiment/training_views.py:42` `TSOSBatchView`（legacy 边界适配器） | 单一（角色名与 os/ts 视图；未并项见说明） |
 | 方法能力字段 | 估计器类属性（如 `estimators/risk/puet.py:85`-`:86`），经 `registry/registry.py:141` `_sync_class_metadata_to_registry` 同步；**类未声明的字段以条目字面量为源**（`class_prior_estimation` 的 8 个字段、`pusb`/`lbe` 的 `requires_class_prior` 即如此） | `registry/registry.py` `get_metadata`、`advisor/`、`cli/`、`workflows/pipeline.py`、`ui/` | 无 | 单一（逐字段判定；`api_only` 边界见说明） |
 

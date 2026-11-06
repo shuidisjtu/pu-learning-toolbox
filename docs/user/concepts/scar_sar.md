@@ -69,6 +69,8 @@
 最高的真正例；相同最大值按原始顺序取第一例。返回 propensity 描述 Bernoulli 阶段的概率，
 补标由 `ensure_labeled` 政策单独记录。研究纯 Bernoulli 机制时显式设为 `False`。
 固定数的最小一例和取整也会使实际标记率偏离请求值。
+`make_scar_labels` 与 `SCARGenerator` 在相同输入标签、标记率和 seed 下生成相同标签；
+全选时也保留相同的随机流推进，便于串联多次数据构造。
 
 当前 LBE 生成器在调用所在 clean 分区上用真实标签拟合辅助 LogisticRegression，
 再仅在真阳性中选择 P。训练与 pu_val 分区分别生成，辅助评分不跨角色拟合。

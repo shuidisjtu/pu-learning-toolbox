@@ -14,6 +14,7 @@ from pu_toolbox.experiment.bundle import DatasetPart
 from pu_toolbox.experiment.cvir_adapter import CVIRPopulationPriorTrainer, cvir_risk_prior
 from pu_toolbox.experiment.runner import ExperimentRunner
 from pu_toolbox.experiment.strategies import ProtocolOA, ProtocolPA
+from pu_toolbox.prior import population_to_native_unlabeled
 
 pytestmark = pytest.mark.unit
 
@@ -48,6 +49,9 @@ def trainer(**kwargs):
 def test_basic_prior_conversion_uses_actual_count_not_requested_c(n, p, pi):
     expected = (pi * n - p) / (n - p)
     assert cvir_risk_prior(pi, n_samples=n, n_labeled=p, os_or_ts="os") == pytest.approx(expected)
+    assert cvir_risk_prior(pi, n_samples=n, n_labeled=p, os_or_ts="os") == pytest.approx(
+        population_to_native_unlabeled(pi, p / n, input_sampling="os")
+    )
     assert cvir_risk_prior(pi, n_samples=n, n_labeled=p, os_or_ts="ts") == pi
     # Restoring the known labeled mass recovers the canonical prior exactly.
     assert (expected * (n - p) + p) / n == pytest.approx(pi)

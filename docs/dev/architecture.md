@@ -14,6 +14,8 @@
 [语义基线](pu_research_semantics.md)，整合决策见 [ADR-0021](../adr/0021-pu-research-semantics.md)。
 采样入口与先验目标契约按语义基线的实施记录更新。`prior/semantics.py` 提供 OS/TS 质量换算；
 Pipeline 将估计解析为总体值，再按 estimator 的默认视图目标逐折换算，实际消费进入 `PriorInfo`。
+实验层 CVIR 适配器复用同一质量换算，保留研究风险视图与参数绑定政策。
+`preprocessing/_sampling.py` 统一固定正例配额与均匀无放回抽样，通用标记入口和实验生成器复用。
 
 ## 2. 模块分层
 
@@ -91,7 +93,7 @@ Pipeline 将估计解析为总体值，再按 estimator 的默认视图目标逐
 | Algorithms（`estimators/`） | Core、Estimation |
 | Evaluation（`metrics/`、`model_selection/`、`diagnostics/`） | Core、Estimation（仅函数内）、Orchestration |
 | Orchestration（`workflows/`、`cli/`） | Core、Estimation、Algorithms、Evaluation |
-| Experiment（`experiment/`） | Core、Algorithms（仅函数内）、Evaluation（仅函数内） |
+| Experiment（`experiment/`） | Core、Estimation、Algorithms（仅函数内）、Evaluation（仅函数内） |
 | User Layer（`ui/`、`benchmarks/`） | Core、Estimation、Algorithms、Evaluation、Orchestration |
 <!-- END: layer-deps -->
 

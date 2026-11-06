@@ -25,6 +25,8 @@ from pu_toolbox.core.config import (
 from pu_toolbox.core.random import check_random_state
 from pu_toolbox.core.validation import validate_true_binary_labels
 
+from ._sampling import fixed_positive_count, sample_positive_labels
+
 __all__ = [
     "make_case_control_labels",
     "make_fixed_count_labels",
@@ -108,25 +110,9 @@ def make_scar_labels(
     if not (0.0 < c <= 1.0):
         raise ValueError(f"c must be in (0, 1]; got {c}.")
 
-    rng = check_random_state(random_state)
     y_true = np.asarray(y_true, dtype=int)
-    pos_mask = y_true == 1
-
-    if not np.any(pos_mask):
-        # No true positives — all unlabeled.
-        return np.zeros(len(y_true), dtype=int)
-
-    y_pu = np.zeros(len(y_true), dtype=int)
-    n_pos = int(np.sum(pos_mask))
-    n_labeled = max(1, int(np.round(n_pos * c)))
-    # Ensure n_labeled ≤ n_pos (can happen with c > 0 but very few positives).
-    n_labeled = min(n_labeled, n_pos)
-
-    pos_idx = np.where(pos_mask)[0]
-    labeled_idx = rng.choice(pos_idx, size=n_labeled, replace=False)
-    y_pu[labeled_idx] = POSITIVE_LABEL
-
-    return y_pu
+    n_labeled = fixed_positive_count(int(np.sum(y_true == POSITIVE_LABEL)), c)
+    return sample_positive_labels(y_true, n_labeled, random_state)
 
 
 # ═════════════════════════════════════════════════════════════════════
@@ -180,12 +166,7 @@ def make_fixed_count_labels(
             f"n_labeled ({n_labeled}) exceeds the number of true positives ({len(pos_idx)})."
         )
 
-    rng = check_random_state(random_state)
-    chosen = rng.choice(pos_idx, size=n_labeled, replace=False)
-
-    y_pu = np.zeros(len(y_true_arr), dtype=int)
-    y_pu[chosen] = POSITIVE_LABEL
-    return y_pu
+    return sample_positive_labels(y_true_arr, n_labeled, random_state)
 
 
 def make_case_control_labels(

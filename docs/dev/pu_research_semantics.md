@@ -26,7 +26,7 @@
 
 | 入口 | 当前行为 | 后续边界 |
 |---|---|---|
-| `make_scar_labels` / `SCARGenerator` | 同池、正类均匀无放回；`max(1, round(c*n_pos))`，不超过正类数；无正例返回全 U | P3 共享计算前锁定 seed/计数；R4 的 floor 配额另外登记 |
+| `make_scar_labels` / `SCARGenerator` | 同池、正类均匀无放回；`max(1, round(c*n_pos))`，不超过正类数；无正例返回全 U | 共享 `preprocessing/_sampling.py` 计数与抽样，seed/标签/后续随机流一致；R4 的 floor 配额另外登记 |
 | `make_fixed_count_labels` | 同池选定 n_labeled 个正例，其余原位 U，支持全部为正类的池 | S1 已实现；n_labeled 校验正整数及可用正例数 |
 | `make_case_control_labels` | 同池定额标记的旧名字，延续双类别输入校验与随机轨迹 | S1 已实现兼容包装、FutureWarning 与 2.0 移除计划 |
 | `make_pu_labels(case_control)` | 直接委托上项 | 与 S1 一并处理，不单独改采样身份 |
@@ -343,4 +343,27 @@ uv run python tmp/verify_pu_research_foundations.py
 迁移时，Pipeline 的显式 `class_prior` 使用总体值，分类器构造值按其消费目标解析；
 直接调用估计器继续返回其声明目标的标量。PU 零一风险函数默认保留原生 U 公式，
 PU 精度函数默认保留完整 OS 公式，研究调用通过 `input_sampling` 显式选择总体池。
-Survey 的风险配方与结果身份通过 P3 共享实现工作包继续衔接。
+Survey 的风险配方和结果身份由实验适配器维护，共享计算的接入见下一节。
+
+## 11. P3 共享原语验证记录
+
+固定正例计数与均匀无放回标记在 `preprocessing/_sampling.py` 单源维护。
+`make_scar_labels`、`make_fixed_count_labels` 与 `SCARGenerator` 复用抽样；
+LBE-A/B 的配额通过 `_n_labeled` 委托计数，各自保留权重与加权抽样政策。
+重构前的 59 个基线用例全部通过，锁定标签、计数、标签哈希和后续随机流。
+全选同样执行随机抽样；seed=19 的后续五个随机整数保持为
+`[834, 3973, 266, 2279, 4048]`。
+
+`cvir_risk_prior` 的 OS 原生 U 分支委托 `population_to_native_unlabeled`，
+完整 OS 风险池校准分支使用总体值。包装器保留严格域、计数、视图和异常契约；
+实际参数绑定、选模总体先验和来源记录继续由实验层维护。
+
+```powershell
+uv run pytest tests/unit/preprocessing/ tests/unit/experiment/test_shared_sampling.py tests/unit/experiment/test_strategies_labeling.py tests/unit/prior/test_prior_semantics.py tests/unit/experiment/test_cvir_population_adapter.py tests/unit/experiment/test_cvir_image_candidate.py tests/unit/experiment/test_cvir_bn_cardinality.py tests/unit/scripts/test_cvir_image_execution.py tests/contract/test_layer_boundaries.py tests/contract/test_ledger_registry_consistency.py -o addopts='--tb=short' -q --maxfail=6 --junitxml=tmp/pu-research-p3-shared.xml
+uv run pytest tests/unit/core/test_random.py tests/unit/experiment/test_runner.py tests/unit/experiment/test_survey_script.py tests/unit/experiment/test_survey_script_sar.py tests/unit/workflows/test_pipeline_prior_targets.py -o addopts='--tb=short' -q --maxfail=4 --junitxml=tmp/pu-research-p3-consumers.xml
+uv run python examples/minimal/15_pu_sampling.py --seed 7
+```
+
+共享实现专项 281 个用例全部通过；调用方专项 78 个用例全部通过，覆盖随机源、Runner、Survey SCAR/SAR
+脚本和 Pipeline 的训练消费。采样示例的计数、经验先验和来源身份与 S1/S2 记录一致。
+格式、测试质量、文档链接、生成目录、层依赖、注释质量及 `git diff --check` 通过。

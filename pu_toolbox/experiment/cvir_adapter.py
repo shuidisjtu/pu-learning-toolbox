@@ -10,6 +10,8 @@ from pathlib import Path
 import numpy as np
 from sklearn.base import clone
 
+from pu_toolbox.prior.semantics import population_to_native_unlabeled
+
 from .checkpoints import EpochCheckpointTrainer
 from .protocols import Trainer
 
@@ -60,10 +62,11 @@ class CVIRKnownPriorTrainer(Trainer):
 
 
 def cvir_risk_prior(population_prior, *, n_samples, n_labeled, os_or_ts):
-    """Protocol §3 known-prior conversion, using observed counts, never hidden Y.
+    """Bind a known population prior to the risk pool using observed PU counts.
 
-    This is not a prior estimator or proof of finite-sample class proportions.
-    An impossible or boundary OS conversion is rejected, not clipped.
+    OS uses the native-U prior. The calibrated ``ts`` view restores the
+    complete OS pool and uses the population prior. Both require a risk
+    prior strictly between zero and one.
     """
     if (
         isinstance(population_prior, bool | np.bool_)
@@ -76,11 +79,17 @@ def cvir_risk_prior(population_prior, *, n_samples, n_labeled, os_or_ts):
         raise ValueError("CVIR prior conversion requires positive P and U counts")
     if os_or_ts not in ("os", "ts"):
         raise ValueError("os_or_ts must be os or ts")
-    alpha = (
-        float(population_prior)
-        if os_or_ts == "ts"
-        else (population_prior * n_samples - n_labeled) / (n_samples - n_labeled)
-    )
+    if os_or_ts == "ts":
+        alpha = float(population_prior)
+    else:
+        try:
+            alpha = population_to_native_unlabeled(
+                population_prior, n_labeled / n_samples, input_sampling="os"
+            )
+        except ValueError as exc:
+            raise ValueError(
+                "converted CVIR risk prior must be in (0, 1); refusing to clip"
+            ) from exc
     if not math.isfinite(alpha) or not 0 < alpha < 1:
         raise ValueError("converted CVIR risk prior must be in (0, 1); refusing to clip")
     return float(alpha)

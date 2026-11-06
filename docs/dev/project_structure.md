@@ -66,6 +66,7 @@ pu_toolbox/
     fit_state.py                          # opt-in 失败拟合状态失效保护
   preprocessing/
     __init__.py                           (公共导出聚合)
+    _sampling.py                          # 固定正例配额与均匀无放回标记共享原语
     pu_labeling.py                        (make_scar_labels/make_pu_labels 等造 PU/PNU 标签及高斯合成数据)
     selection_bias.py                     (make_sar_propensity/make_sar_labels SAR 倾向与合成数据)
     profiling.py                          (pu_data_summary 等轻量摘要与 scar_diagnostic SCAR 诊断)
@@ -495,6 +496,7 @@ tests/
       _survey_script_helpers.py         # 脚本测试共享夹具: 动态加载与基础/SAR 两套四路 split
       test_survey_script_sar.py         # SAR 机制 CLI: OA-only/c token 门禁/审计字段/确定性
       test_strategies_labeling.py       # SCAR/SAR-LBE 生成(固定计数/posterior 正例池/seed 确定性)
+      test_shared_sampling.py           # 通用/实验采样一致性、标签哈希与后续随机流
       test_strategies_selection.py      # 阈值选择与 PA/OA 选模(真实标签/non-PU 视图拒绝/空轨迹)
       test_tracking.py                  # 轨迹/选择制品/结果数据类字段
       test_trainers.py                  # Fit/DeepFit/Supervised 训练策略
