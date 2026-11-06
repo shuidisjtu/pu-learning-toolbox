@@ -115,6 +115,12 @@ class AlgorithmMetadata:
     label_semantics: str = "pu"
     """Meaning of the main ``fit(X, y)`` labels: ``pu``, ``pn`` or ``pnu``."""
 
+    class_prior_target: str = "population"
+    """Distribution targeted by class_prior in the default fit risk view."""
+
+    risk_class_prior_target: str | None = None
+    """Target of an optional independent risk_class_prior fit parameter."""
+
     @property
     def trainable(self) -> bool:
         """``True`` when the algorithm has a working implementation.
@@ -158,6 +164,10 @@ def _validate_metadata(meta: AlgorithmMetadata) -> None:
         raise ValueError("AlgorithmMetadata.label_semantics must be 'pu', 'pn', or 'pnu'")
     if not isinstance(meta.requires_clean_support, bool):
         raise ValueError("AlgorithmMetadata.requires_clean_support must be a boolean")
+    if meta.class_prior_target not in {"population", "native_unlabeled", "training_table"}:
+        raise ValueError("Invalid AlgorithmMetadata.class_prior_target")
+    if meta.risk_class_prior_target not in {None, "population", "native_unlabeled"}:
+        raise ValueError("Invalid AlgorithmMetadata.risk_class_prior_target")
     unknown_deprecated = set(meta.deprecated_aliases) - set(meta.aliases)
     if unknown_deprecated:
         raise ValueError(

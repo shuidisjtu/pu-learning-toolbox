@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import replace
+import json
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 
 import numpy as np
@@ -21,7 +22,7 @@ from pu_toolbox.experiment import (
     SCARGenerator,
 )
 from pu_toolbox.experiment.protocols import Generator, SelectionProtocol, Trainer
-from pu_toolbox.experiment.tracking import RunResult
+from pu_toolbox.experiment.tracking import EpochRecord, RunResult, RunTrajectory
 
 
 class AuditedSCARGenerator(Generator):
@@ -59,6 +60,58 @@ class FixedThresholdPA(SelectionProtocol):
             trajectories, val_part, np.array([0.5]), class_prior=class_prior
         )
         return replace(artifact, protocol=self.name)
+
+
+@dataclass(frozen=True)
+class FixedScoreCandidate:
+    """A fixed score column for a hand-checkable single-point selection example."""
+
+    column: int
+
+    def decision_function(self, features):
+        return features[:, self.column]
+
+
+def run_fixed_selection_case(test_labels: np.ndarray | None = None) -> dict:
+    """Choose independently from the same two fixed single-point candidates."""
+    trajectories = [
+        RunTrajectory(epochs=[EpochRecord(epoch=1, metrics={})], model=FixedScoreCandidate(column))
+        for column in (0, 1)
+    ]
+    pu_val = DatasetPart(
+        X=np.array([[1.0, 0.0], [0.0, 1.0]]),
+        labels=np.array([1, 0]),
+        view="pu",
+        indices=np.array([0, 1]),
+    )
+    clean_val = DatasetPart(
+        X=np.array([[0.0, 1.0], [1.0, 0.0]]),
+        labels=np.array([1, 0]),
+        view="clean",
+        indices=np.array([2, 3]),
+    )
+    test = DatasetPart(
+        X=np.array([[0.0, 1.0], [1.0, 0.0]]),
+        labels=np.array([1, 0]) if test_labels is None else test_labels,
+        view="clean",
+        indices=np.array([4, 5]),
+        for_selection=False,
+    )
+    records = {}
+    for protocol, validation in ((ProtocolPA(), pu_val), (ProtocolOA(), clean_val)):
+        selection = protocol.select(
+            trajectories, validation, np.array([0.0, 0.5, 1.0]), class_prior=0.5
+        )
+        scores = trajectories[selection.run_index].model.decision_function(test.X)
+        scale = selection.metrics["val_score_scale"]
+        if scale:
+            scores = (scores - selection.metrics["val_score_min"]) / scale
+        predictions = (scores >= selection.threshold).astype(int)
+        records[protocol.name] = {
+            **asdict(selection),
+            "test_accuracy": float(np.mean(predictions == test.labels)),
+        }
+    return records
 
 
 def make_bundle(seed: int = 7) -> DatasetBundle:
@@ -99,6 +152,7 @@ def run_experiment(
         manifest_path=manifest_path,
         config={
             "c": 0.4,
+            "os_or_ts": "ts",
             "trainer": ScaledFitTrainer() if custom else FitTrainer(),
             "candidates": [{"reg_lambda": value} for value in (0.001, 0.01, 0.1)],
             "split_ref": {"dataset": "synthetic_diy", "split_seed": seed},
@@ -131,7 +185,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--output-dir", type=Path)
+    parser.add_argument("--fixed-selection", action="store_true")
     args = parser.parse_args()
+    if args.fixed_selection:
+        print(json.dumps(run_fixed_selection_case(), indent=2, allow_nan=False))
+        return
     if args.output_dir:
         args.output_dir.mkdir(parents=True)
     bundle = make_bundle(args.seed)

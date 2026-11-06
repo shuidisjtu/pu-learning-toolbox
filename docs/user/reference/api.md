@@ -262,7 +262,8 @@ ClassPriorEstimator(*, sigma=None, reg_lambda=0.01, theta_grid=None, n_centers=2
 | `n_centers` | `int \| None` | `200` | 子采样的中心数 |
 | `standardize` | `bool` | `True` | 训练前对 X 标准化 |
 
-- 实现 `fit(X)` + `estimate()`；旧别名 `pe` 已弃用（`FutureWarning`）。
+- 实现 `fit(X, y_pu)` + `estimate()`；`estimate_target=estimation_pool="native_unlabeled"`。
+  旧别名 `pe` 已弃用（`FutureWarning`）。
 - 文档：[class_prior_estimation 方法卡](../../research/method_cards/class_prior_estimation.md) · 示例：[05_recpe_pipeline.py](../../../examples/minimal/05_recpe_pipeline.py)（经 `PUPipeline` 使用）
 
 #### `ReCPEEstimator`（注册名 `recpe`，别名 `re_cpe`）
@@ -276,9 +277,13 @@ ReCPEEstimator(copy_fraction=0.1, base_estimator=None, classifier=None, classifi
 | 参数 | 类型 | 默认 | 说明 |
 |---|---|---|---|
 | `copy_fraction` | `float` | `0.1` | 拷贝进正样本的未标记样例比例 |
-| `base_estimator` | estimator \| None | `None` | 实现 `estimate()` 的 CPE 估计器；`None` 使用内置混合比例基线 |
+| `base_estimator` | estimator \| None | `None` | 实现 `estimate()` 的 CPE 估计器；`None` 使用 KM2 |
 | `classifier` | estimator \| None | `None` | 区分正例与未标记样本的二分类器；其正类概率用于排序未标记样本 |
 | `classifier_max_iter` | `int` | `1000` | 默认 logistic 分类器最大迭代数 |
+
+高分 U 行复制进 P，完整 U 仍为 mixture。`estimate_target=estimation_pool="native_unlabeled"`，
+标量输出为原生 U 先验的 regrouping 近似。`get_metadata()` 记录 `copy_policy`、
+`estimate_kind="regrouping_approximation"` 与 `auxiliary_target="regrouped_component_weight"`。
 
 - 文档：[ReCPE 方法卡](../../research/method_cards/ReCPE.md) · 示例：[05_recpe_pipeline.py](../../../examples/minimal/05_recpe_pipeline.py)
 
@@ -310,7 +315,16 @@ KernelMeanPriorEstimator(*, variant="km1", kernel_width=None, width_selection="r
 | `random_state` | `int \| None` | `None` | 随机种子 |
 
 - `PUPipeline` 的 `prior_estimator="km1"/"km2"` 映射到本估计器。
+- `estimate_target=estimation_pool="native_unlabeled"`；返回 U 的 mixture proportion。
 - 文档：[Kernel_Mean 方法卡](../../research/method_cards/Kernel_Mean_Class_Prior.md)
+
+#### 先验质量换算
+
+`from pu_toolbox.prior import native_unlabeled_to_population, population_to_native_unlabeled`。
+两函数接受 `(class_prior, labeled_fraction, *, input_sampling="os")` 并返回 `float`。
+OS 分别使用 `q+(1-q)*pi_U` 与 `(pi-q)/(1-q)`；TS 返回输入先验。
+先验有效域为 `[0,1]`，P 占比为 `[0,1)`，OS 总体先验至少为 P 占比。
+非实数、布尔值、非有限值和越界值分别抛出 `TypeError` 或 `ValueError`。
 
 ### 经典包装器
 
@@ -1145,6 +1159,7 @@ pipe = PUPipeline(
     backbone="cnn13",           # CNN 骨架：cnn13/cnn13_no_bn/resnet18/resnet50（仅 cnn 有效）
     device=None,                # 深度分类器 torch 设备：None/"auto" 自动检测（有 GPU 用 CUDA）
     max_epochs=None,            # 注入到构造签名接受 max_epochs 的深度方法（wconpu/self_pu/nnpu）的训练 epoch 上限
+    input_sampling="os",       # "os" 单一来源池 / "ts" 独立 P 与总体 U
 )
 report = pipe.fit_evaluate(
     X,
@@ -1171,6 +1186,7 @@ report = pipe.fit_evaluate(
 | `backbone` | `str` | `"cnn13"` | `cnn13`/`cnn13_no_bn`/`resnet18`/`resnet50` |
 | `device` | `str \| None` | `None`（auto） | torch 设备 |
 | `max_epochs` | `int \| None` | `None` | 深度方法训练 epoch 上限 |
+| `input_sampling` | `str` | `"os"` | 输入采样设计：`"os"` / `"ts"` |
 
 `refit=False` 只计算交叉验证指标，跳过全量模型重训与模型诊断；此时
 `report.final_model` 和 `report.diagnostic` 为 `None`。该模式主要供参数搜索使用。
@@ -1193,6 +1209,28 @@ report = pipe.fit_evaluate(
 | 2 | 分类器实例构造参数 `class_prior=...` | `constructor` |
 | 3 | `prior_estimator` 自动估计（默认 `"pen_l1"`） | `estimated` |
 | 4 | 方法不需要先验 | `none` |
+
+调用时的 `class_prior` 指总体先验，构造值按分类器的 `class_prior_target` 解释。
+先验估计器通过 `estimate_target` 与 `estimation_pool` 声明其标量；第三方默认目标为
+`population`。原生 U 估计按输入采样设计换算为总体值。
+训练时按分类器默认视图的目标逐折换算，目标可为 `population`、`native_unlabeled`
+或 `training_table`。PUSBKernel 另外接受 `fit(..., risk_class_prior=...)`，用于独立指定
+原生 U 风险的先验；`class_prior` 用于拼接训练表分位阈值。直接调用省略
+`risk_class_prior` 时，两个消费点沿用同一个值。
+
+`PriorInfo` 保留原有字段，并增加以下记录：
+
+本版 `PipelineReport` JSON 使用 `schema_version="1.1"`，标识带目标的先验解析与消费记录。
+
+| 字段 | 含义 |
+|---|---|
+| `target` / `value` | `population` 及解析后的总体值 |
+| `input_value` / `input_target` | 原始输入或估计值及其目标 |
+| `estimation_pool` / `estimation_details` | 估计池与估计器诊断；ReCPE 含近似身份 |
+| `input_sampling` / `conversion` | OS/TS 输入设计与转换名称 |
+| `training_consumption` | 各 CV 折与 refit 的 stage/fold、P 占比及各参数的 target/value |
+
+分类器构造器声明 `input_sampling` 时接收工作流的采样设计；实例携带的声明需与工作流一致。
 
 - `prior_estimator=None` 且方法需要先验且未提供 → 抛出 `PipelineError`。
 - 画像模块审计"先验 < 标注正样本比例"的不一致（`inconsistent_class_prior`）。
@@ -1686,23 +1724,46 @@ result = recommend_from_profile(
 
 ## 数据生成
 
-用法见 [howto/sar_simulation.md](../howto/sar_simulation.md)；示例：
-[06_sar_simulation.py](../../../examples/minimal/06_sar_simulation.py)。
+从 `pu_toolbox.preprocessing` 导入下列入口。用法见
+[SCAR/SAR 模拟](../howto/sar_simulation.md)和 [OS/TS 采样](../howto/pu_sampling.md)；
+示例：[06](../../../examples/minimal/06_sar_simulation.py)、
+[15](../../../examples/minimal/15_pu_sampling.py)。
 
 | 函数 | 签名与返回 |
 |---|---|
-| `make_sar_propensity` | `(X, y_true, mechanism="linear", label_frequency=0.4, strength=1.5) -> propensity`：逐样本标记倾向 `P(S=1|Y,X)`，真实负类位置固定为 0 |
-| `make_sar_labels` | `(X, y_true, mechanism=..., label_frequency=..., random_state=..., return_propensity=False, ensure_labeled=True) -> (y_pu[, propensity])` |
-| `make_sar_dataset` | `(n_samples, n_features, class_prior, separation, mechanism, label_frequency, strength, random_state) -> (X, y_pu, y_true, propensity)` |
-| `make_scar_dataset` | `(n, c, n_features=5, separation=1.0, random_state=None) -> (X, y_pu, class_prior)`：SCAR 机制，CLI `make-demo-data` 内部使用 |
+| `make_sar_propensity` | `(X, y_true, *, mechanism="linear", label_frequency=0.5, strength=1.0, feature_weights=None) -> propensity`：逐样本标记倾向 `P(S=1|Y,X)`，真实负类位置固定为 0 |
+| `make_sar_labels` | `(X, y_true, *, mechanism="linear", label_frequency=0.5, strength=1.0, feature_weights=None, ensure_labeled=True, random_state=None, return_propensity=False) -> y_pu`；`return_propensity=True` 时返回 `(y_pu, propensity)` |
+| `make_sar_dataset` | `(n_samples=1000, *, n_features=5, class_prior=0.3, separation=2.0, mechanism=None, label_frequency=0.5, strength=1.0, feature_weights=None, ensure_labeled=True, random_state=None) -> (X, y_pu, y_true, propensity)` |
+| `make_scar_labels` | `(y_true, c=0.5, random_state=None) -> y_pu`：同池正类定额均匀无放回，`max(1, round(c*n_pos))`；无正类时返回全 U |
+| `make_fixed_count_labels` | `(y_true, n_labeled, random_state=None) -> y_pu`：同池正类均匀无放回，保留全部输入行序 |
+| `make_pu_labels` | `(y_true, mechanism="scar", c=None, n_labeled=None, random_state=None) -> y_pu`：scar 用 c，fixed_count 用 n_labeled |
+| `make_case_control_labels` | `(y_true, n_labeled, random_state=None) -> y_pu`：定额标记兼容名字，发出 FutureWarning，计划 2.0 移除 |
+| `make_scar_dataset` | `(n=100, c=0.5, n_features=5, separation=4.0, random_state=None) -> (X, y_pu, y_true)`：每类 n 个样本，CLI `make-demo-data` 使用 |
+| `make_gaussian_case_control_data` | `(n_p=50, n_u=100, *, class_prior=0.5, n_features=5, separation=2.0, random_state=None) -> (X, y_pu, y_true, metadata)`：独立 TS 的高斯 P 与总体混合 U |
+| `make_gaussian_pu_data` | `(n_p=50, n_u=100, n_features=5, separation=2.0, random_state=None) -> (X, y_pu, class_prior)`：全部生成正类可见，U 来自负类；第三项为拼接表真实正类比例 |
+
+`make_fixed_count_labels` 接受一维真实二元标签；`n_labeled` 是 `[1,n_positive]` 内整数，
+接受 `numpy.integer`，拒绝 bool 和浮点数。全部为正类的输入也可定额标记。
+旧别名延续双类别输入校验；分派器中的 `mechanism="case_control"` 使用同一兼容入口。
+
+`make_gaussian_case_control_data` 中 `n_p/n_u/n_features` 为正整数，bool 除外；
+`class_prior` 是 `[0,1]` 内有限实数，`separation` 是非负有限实数，二者拒绝 bool 和字符串。
+每个 U 样本先独立抽取真实类别，再从对应高斯条件分布抽取特征。
+输出行序为 P 后 U；`y_true` 用于合成审计与评测。
+`metadata` 字段为 `input_sampling="ts"`、`sampling_policy="independent_generative"`、
+`population_class_prior`、`unlabeled_class_prior`、`training_class_prior`、
+`n_positive`、`n_unlabeled`、`source_distribution`、`sample_ids`、`random_state`。
+`source_distribution` 记录 family、positive_mean、negative_mean、identity covariance 与 n_features；
+`sample_ids` 为当前输出唯一的 `positive:i` / `population:i` 抽样事件身份。
+`random_state` 接受整数、RandomState 或 None；元数据仅在整数 seed 时记录该数值。
 
 - `mechanism`：`"scar"` / `"linear"` / `"nonlinear"`（定义见 [concepts/scar_sar.md](../concepts/scar_sar.md)）；
   不传默认 `"linear"`（SAR，标记依赖特征）并发 `UserWarning`；类先验估计器假设 SCAR，
   SCAR 场景需显式 `mechanism="scar"`。
-- `label_frequency`：正类 propensity 的目标均值（校准），不是抽样后的精确比例。
+- `label_frequency`：正类 propensity 的目标均值（校准）；实际标记率由抽样结果计算。
 - `make_sar_labels` 默认 `ensure_labeled=True`：小样本抽样未选中任何正类时选
   propensity 最高的真实正类，保证下游可训练。
-- `make_scar_dataset` 默认分离度（1.0）避免强分离下类先验估计系统性低估。
+- CLI `make-demo-data` 的默认分离度为 1.0；直接调用 `make_scar_dataset` 的默认值为 4.0。
 
 ## analyze_pu_sensitivity
 
@@ -1730,7 +1791,7 @@ labeled-positive 和 unlabeled 组。返回 `PUSensitivityAnalysis`，每点含�
 | `is_consistent` | 是否满足概率边界和观测恒等式 |
 | `consistency_reason` | 不一致时的直接原因 |
 | `pu_estimated_precision` | `min(π·Recall̂_P/P̂(Ŷ=1), 1)` |
-| `pu_zero_one_risk` | `2π·FNR̂_P + FPR̂_U − π` |
+| `pu_zero_one_risk` | `2π·FNR̂_P + mean_all(score>0) − π`（OS） |
 
 `metric_ranges` 仅汇总 `is_consistent=True` 且指标可用的点。导出：
 `analysis.to_frame(axis=...)` / `analysis.save(path)`（JSON 严格模式，无 NaN/Infinity）。
@@ -1739,6 +1800,14 @@ labeled-positive 和 unlabeled 组。返回 `PUSensitivityAnalysis`，每点含�
 
 用法见 [howto/diagnostic_reports.md](../howto/diagnostic_reports.md)；示例：
 [08_diagnostic_report.py](../../../examples/minimal/08_diagnostic_report.py)。三种模式：
+
+`input_sampling="os"`（默认）使用完整输入表评估总体风险与精度；`"ts"` 使用原生 U，
+oracle 指标也在 U 行上评估。`profile_pu_data` 同样接受 `input_sampling`，TS 的
+`implied_label_frequency` 为 `None`。
+
+直接调用 `pu_zero_one_risk(..., input_sampling="ts")` 保留原生 U 公式默认值；
+`pu_estimated_precision(..., input_sampling="os")` 保留完整输入表默认值。
+工作流与诊断显式传入同一采样设计。
 
 ```python
 # 纯数据（只运行 profile_pu_data；预测类指标 basis=unavailable）
@@ -1905,6 +1974,11 @@ docstring。
 `n_positive`、`n_labeled_requested`（协议公式 `round(c·n₊)`，**未经夹紧**）、`n_labeled`
 （实际标记数）、`generation_seed` 与 `label_view_sha256`（标签视图摘要）。
 
+生成元数据还记录 `input_sampling="os"` 和 `sampling_policy`。SCAR 为
+`fixed_count_uniform_without_replacement`，LBE-A/B 为
+`fixed_count_weighted_without_replacement`。`CleanLabelGenerator` 记录
+`input_sampling="single_clean_pool"`、`sampling_policy="all_real_labels"`。
+
 其中请求值与实际值在小 `n₊` 或小 `c` 下**并不相等**——`_n_labeled` 有最小值 1 的夹紧
 （`round(c·n₊) == 0` 时仍标记一个正例），两个字段都记录才可审计该偏移。
 
@@ -2030,6 +2104,31 @@ export(report, "reports/current")
 | `results.build_summary(manifest_paths, *, expected_seeds, excluded_paths, pending_paths)` | 读取明确范围，校验运行和选择身份，按可比配置形成五 seed 汇总；显式待审核/排除输入保留为来源状态，不当观测 |
 | `reporting.write_summary(report, out_dir)` | 写 `summary.json/md/csv`、`coverage.csv`、`refusals.json` |
 | `reporting.export(report, out_dir, *, literature=(), native_view=None)` | 写含四组结果页的 `survey_results.xlsx`、诊断卡和 `conclusions.md/json`；需要 `report` extra；文献与方法事实是可选输入 |
+
+新运行在生成与训练契约校验后记录 `manifest['research_settings']`，schema 为 `1.0`。
+全部候选训练失败时，保存的 manifest 同样携带该设置。
+
+| 设置字段 | 记录内容 |
+|---|---|
+| `sampling` | 生成器声明的 `input_sampling` 与 `split_ref` |
+| `labeling` | train/pu_val 的完整生成元数据，包括请求/实际计数、机制参数和评分来源 |
+| `risk` | 请求的 `os_or_ts`、estimator 默认值和对应损失池；具体算法定义的池记作 `estimator_defined` |
+| `prior` | 基础先验输入与目标声明，逐候选有效输入及实际训练留痕，选择使用的总体先验 |
+| `supervision` | 训练标签视图、Trainer、各选择策略实际取得的验证角色和额外监督 |
+| `representation` | 输入维度、记录的训练路径与表征身份，以及 adapter/image 元数据 |
+| `summary` | 串联上述设置的可读字符串 |
+
+`prior.training.value` 优先采用 runner 提供的参数，其次读取 estimator 的 `class_prior`。
+`declared_target` 保留 estimator 的目标声明；声明为 `native_unlabeled` 且使用 `ts`
+风险视图时，`target` 为 `risk_pool`。候选参数覆盖保存在 `prior.candidate_parameters`，
+逐候选有效输入保存在 `prior.candidates`；`prior.candidate_training` 保存已有的实际训练留痕。
+专用 Trainer 的换算与 CVIR 风险池先验通过该留痕及摘要展示。
+自定义生成器通过返回元数据声明采样及抽样政策；缺省字段显示为 `unspecified`。
+
+汇总行以 `research_settings_by_seed` 保留每个 seed 的原设置，以
+`research_settings_summaries` 提供去重摘要。CSV、Markdown、工作簿与诊断卡展示该摘要。
+历史结果缺少此字段时显示“历史记录：按原 manifest 设置读取”，其设置值保留为 `null`。
+结果身份、协议版本、seed 统计及成本沿用原记录。
 
 分组保留 dataset、method/profile、训练路径、实际视图、mechanism、c、selector 和配方身份。
 PN oracle 为 c-independent；`PA+clean-support` 不并入纯 PU PA。相同实验的 PA/OA 共享一个

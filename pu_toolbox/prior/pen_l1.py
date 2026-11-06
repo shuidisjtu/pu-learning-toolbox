@@ -31,12 +31,15 @@ def _median_pairwise_distance(X: np.ndarray, max_rows: int = 1000) -> float:
 
 
 class ClassPriorEstimator(BasePriorEstimator):
-    """Estimate ``pi=P(y=1)`` with the paper's penalized-L1 objective.
+    """Estimate the native-U positive fraction with the penalized-L1 objective.
 
     ``sigma=None`` (the default) selects a data-adaptive scale: the median
     pairwise euclidean distance of the (standardized) data.  An explicit
     ``sigma`` keeps the historical fixed-scale behaviour.
     """
+
+    estimate_target = "native_unlabeled"
+    estimation_pool = "native_unlabeled"
 
     def __init__(
         self,

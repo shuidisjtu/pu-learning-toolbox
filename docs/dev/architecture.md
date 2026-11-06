@@ -8,6 +8,15 @@
 依赖方向、数据流、算法推荐与注册约定）；文件清单与目录结构以 [`project_structure.md`](project_structure.md) 为权威来源。
 **API 契约**：类的精确签名与方法语义以 [`user/reference/api.md`](../user/reference/api.md) 为权威来源，本文档不重复。
 
+**研究设置语义**：输入采样、标记/抽样政策、风险角色、先验目标、验证监督与表征分别表达。
+沿用 core 的角色事实、estimator/registry 的能力声明与 experiment 的研究政策边界；
+公共理论入口见[PU 问题设定](../user/concepts/pu_problem.md)，当前逐实现事实见
+[语义基线](pu_research_semantics.md)，整合决策见 [ADR-0021](../adr/0021-pu-research-semantics.md)。
+采样入口与先验目标契约按语义基线的实施记录更新。`prior/semantics.py` 提供 OS/TS 质量换算；
+Pipeline 将估计解析为总体值，再按 estimator 的默认视图目标逐折换算，实际消费进入 `PriorInfo`。
+实验层 CVIR 适配器复用同一质量换算，保留研究风险视图与参数绑定政策。
+`preprocessing/_sampling.py` 统一固定正例配额与均匀无放回抽样，通用标记入口和实验生成器复用。
+
 ## 2. 模块分层
 
 > 分层为概念归类；"模块"列给出对应 `pu_toolbox/` 子包；职责为模块级边界。
@@ -83,8 +92,8 @@
 | Estimation（`prior/`、`losses/`） | Core |
 | Algorithms（`estimators/`） | Core、Estimation |
 | Evaluation（`metrics/`、`model_selection/`、`diagnostics/`） | Core、Estimation（仅函数内）、Orchestration |
-| Orchestration（`workflows/`、`cli/`） | Core、Estimation（仅函数内）、Algorithms、Evaluation |
-| Experiment（`experiment/`） | Core、Algorithms（仅函数内）、Evaluation（仅函数内） |
+| Orchestration（`workflows/`、`cli/`） | Core、Estimation、Algorithms、Evaluation |
+| Experiment（`experiment/`） | Core、Estimation、Algorithms（仅函数内）、Evaluation（仅函数内） |
 | User Layer（`ui/`、`benchmarks/`） | Core、Estimation、Algorithms、Evaluation、Orchestration |
 <!-- END: layer-deps -->
 

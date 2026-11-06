@@ -6,6 +6,16 @@
 
 使用接口和编写自定义策略，见面向使用者的 [DIY 实验教程](../user/howto/custom_experiments.md)。
 
+公共统计概念见[采样与风险视图](../user/concepts/pu_sampling.md)、
+[先验语义](../user/concepts/class_prior_semantics.md)和[PA/OA](../user/concepts/pu_model_selection.md)。
+当前实现差异及后续兼容边界见[语义基线](pu_research_semantics.md)与
+[ADR-0021](../adr/0021-pu-research-semantics.md)；角色事实与 Survey 政策继续分层。
+
+新运行通过 `research_settings` 串联采样、标记、风险池、先验、监督与表征。
+设置在生成与训练契约校验后取得，随成功或全部候选失败的 manifest 保存。
+报告按 seed 留存原设置并生成可读摘要；历史结果按原记录读取。
+字段与导出结构见 [API 参考](../user/reference/api.md)。
+
 实验层是面向研究者/实验用户的公共 API 层，补齐 `PUPipeline` 缺失的「数据角色声明 + 显式模型选择协议」。
 本文档只记本层**独有的设计机制**（D1–D5 各决策如何实现、为何这样设计、如何扩展使用）。
 分层位置与数据流见 [architecture.md](architecture.md) §Experiment 与 §3.1；
@@ -149,10 +159,15 @@ PN oracle 使用 `CleanLabelGenerator`、显式真标签 trainer 和 OA，支持
 选择记录与所选文件的完整性独立校验。报告生成不依赖历史批次名、队列、交接包或审批正文。
 报告分别记录工程运行状态、统计完整性、数值有效性和研究审核状态。
 
-**与通用层的边界（2026-10-04 复核）**：实验层的跨层依赖为——**模块级只有 Core**（`core/`、`utils/`）；
-**函数内另有** Core（`registry/`）、Evaluation（`metrics/`，`runner.py:751`）、**Algorithms**
-（`estimators/`，`experiment/image.py:223`、`:243`）。这与 `architecture.md:87` 的生成行一致：
-`Experiment` 层的依赖为 **Core、Algorithms（仅函数内）、Evaluation（仅函数内）**（该行在生成块内、勿手改）。
+**与通用层的边界（2026-11-06 复核）**：实验层在模块级依赖 Core
+（`core/`、`utils/`、`preprocessing/`）与 Estimation（`prior/`）；函数内还使用
+Core（`registry/`）、Evaluation（`metrics/`）与 Algorithms（`estimators/`）。
+依赖集合由 [architecture.md §2.1](architecture.md#21-模块依赖关系) 的生成表核对。
+`SCARGenerator` 与通用标签入口共享固定正例配额与均匀无放回抽样；LBE-A/B 共享配额计算，
+各自保留权重公式、平滑、加权无放回和全选随机流政策。
+CVIR 的总体→原生 U 换算委托 `prior.semantics`，其包装器继续校验严格 `(0,1)` 域、
+P/U 计数和风险视图。这里 `os_or_ts="ts"` 对应 OS 完整池校准，使用总体先验；
+原生 U 视图按实际标记数换算。共享计算与研究政策由此分别落在下层原语和实验适配器。
 数据画像、advisor 推荐、PU 感知 CV 与 `PUPipeline` 编排都**没有**被复制（与下文第 ③ 项不冲突：`_stratified_split` 切的是干净标签、且实验层对本仓库的 `pu_toolbox/model_selection` 零 import——`datasets.py:11` 用的是第三方 `sklearn.model_selection`，与本仓库同名包无关）。
 三处「看似重复」的实现及判定：① `survey_execution.py` 的 `PilotOracleMLP` 手写训练循环——
 **不算泄漏**（oracle 基线不是已注册算法，进 `estimators/` 会污染算法谱系）；② 报告组装

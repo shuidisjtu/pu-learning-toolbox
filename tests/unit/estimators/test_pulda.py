@@ -232,7 +232,7 @@ def test_basic_pipeline_resolves_pulda_with_prior():
         prior_estimator=None,
         cv=2,
         random_state=5,
-    ).fit_evaluate(X, y, class_prior=0.35)
+    ).fit_evaluate(X, y, class_prior=0.5)
     assert isinstance(report.final_model, PULDAClassifier)
     assert report.final_model.predict(X).shape == (len(X),)
 

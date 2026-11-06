@@ -130,7 +130,7 @@ class TestPipelineDeepInstantiation:
         monkeypatch.setattr(WeightedContrastivePUClassifier, "__init__", fast_init)
         X, y_pu = _image_data()
         pipe = PUPipeline(classifier="wconpu", architecture="cnn", cv=2)
-        report = pipe.fit_evaluate(X, y_pu, class_prior=0.3)
+        report = pipe.fit_evaluate(X, y_pu, class_prior=0.5)
         assert report.final_model.predict(X).shape == (len(X),)
         assert report.diagnostic is not None
 
@@ -235,7 +235,7 @@ class TestPipelineDeepSeedReproducibility:
             captured.clear()
             pipe = PUPipeline(classifier="wconpu", architecture="cnn", cv=2, random_state=seed)
             monkeypatch.setattr(pipe, "_fresh_estimator", stub_fresh)
-            pipe.fit_evaluate(X, y_pu, class_prior=0.3)
+            pipe.fit_evaluate(X, y_pu, class_prior=0.5)
             return captured["params"]
 
         first_42 = run_pipe(42)

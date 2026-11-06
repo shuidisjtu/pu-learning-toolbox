@@ -14,6 +14,7 @@ from pu_toolbox.experiment.bundle import DatasetPart
 from pu_toolbox.experiment.cvir_adapter import CVIRPopulationPriorTrainer, cvir_risk_prior
 from pu_toolbox.experiment.runner import ExperimentRunner
 from pu_toolbox.experiment.strategies import ProtocolOA, ProtocolPA
+from pu_toolbox.prior import population_to_native_unlabeled
 
 pytestmark = pytest.mark.unit
 
@@ -48,6 +49,9 @@ def trainer(**kwargs):
 def test_basic_prior_conversion_uses_actual_count_not_requested_c(n, p, pi):
     expected = (pi * n - p) / (n - p)
     assert cvir_risk_prior(pi, n_samples=n, n_labeled=p, os_or_ts="os") == pytest.approx(expected)
+    assert cvir_risk_prior(pi, n_samples=n, n_labeled=p, os_or_ts="os") == pytest.approx(
+        population_to_native_unlabeled(pi, p / n, input_sampling="os")
+    )
     assert cvir_risk_prior(pi, n_samples=n, n_labeled=p, os_or_ts="ts") == pi
     # Restoring the known labeled mass recovers the canonical prior exactly.
     assert (expected * (n - p) + p) / n == pytest.approx(pi)
@@ -105,6 +109,12 @@ def test_basic_runner_binds_correct_prior_isolates_roles_and_preserves_default_c
     assert result.manifest["calibration_applied"] is (view == "ts")
     assert not result.manifest["formal_eligible"]
     assert result.manifest["selection"]["PA"]["class_prior"]["population"] == 0.4
+    settings = result.manifest["research_settings"]
+    recorded = settings["prior"]["candidate_training"][0]["training_provenance"]
+    assert recorded == provenance
+    assert recorded["population_prior_binding"]["risk_pool_positive_prior"] == pytest.approx(alpha)
+    assert "unlabeled_positive_prior=" in settings["summary"]
+    assert provenance["risk_pool"] in settings["summary"]
     assert set(result.selected_models) == {"PA", "OA"}
     assert len(candidate["epoch_checkpoints"]) == 3
     for checkpoint in candidate["epoch_checkpoints"]:

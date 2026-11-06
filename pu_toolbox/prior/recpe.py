@@ -42,6 +42,9 @@ class _DensityRatioCPE(BasePriorEstimator):
     positive samples is a practical estimate of the mixture proportion.
     """
 
+    estimate_target = "native_unlabeled"
+    estimation_pool = "native_unlabeled"
+
     def __init__(self, quantile: float = 0.25, max_iter: int = 1000) -> None:
         self.quantile = quantile
         self.max_iter = max_iter
@@ -71,7 +74,7 @@ class _DensityRatioCPE(BasePriorEstimator):
 
 
 class ReCPEEstimator(BasePriorEstimator):
-    """Regrouping CPE estimator from Liu et al.
+    """Regrouping CPE estimator from Yao et al.
 
     Parameters
     ----------
@@ -79,12 +82,21 @@ class ReCPEEstimator(BasePriorEstimator):
         Fraction of unlabeled examples copied into the positive sample.
     base_estimator : estimator or None, default=None
         A fitted-by-``fit`` CPE estimator implementing ``estimate``.  ``None``
-        uses the built-in classifier-based mixture-proportion baseline.
+        uses the built-in kernel-mean KM2 mixture-proportion estimator.
     classifier : estimator or None, default=None
         Binary classifier distinguishing positive samples from unlabeled ones.
         Its positive-class probability is used to rank unlabeled examples.
     classifier_max_iter : int, default=1000
         Maximum iterations for the default logistic classifier.
+
+    Notes
+    -----
+    Selected U rows are copied into the positive component; the complete U
+    remains the mixture. The base estimator returns the regrouped-component
+    weight, used as an approximation to the original native-U positive prior.
+    For region A its population analogue is
+    ``pi_regrouped = pi_U + (1-pi_U) * P_negative(A)`` (paper Eq. 7).
+    Metadata records this approximation and the copy policy.
     """
 
     family: AlgorithmFamily = AlgorithmFamily.CLASS_PRIOR_ESTIMATION
@@ -95,6 +107,8 @@ class ReCPEEstimator(BasePriorEstimator):
     source_status: SourceStatus = SourceStatus.OFFICIAL_EXACT
     backend: Backend = Backend.NUMPY
     maturity: Maturity = Maturity.STABLE
+    estimate_target = "native_unlabeled"
+    estimation_pool = "native_unlabeled"
 
     def __init__(
         self,
@@ -134,9 +148,9 @@ class ReCPEEstimator(BasePriorEstimator):
         n_copy = max(1, int(np.ceil(self.copy_fraction * len(u))))
         selected = np.argsort(positive_probability)[-n_copy:]
 
-        regrouped_X = np.vstack([p, u])
-        regrouped_y = np.r_[np.ones(len(p), dtype=int), np.zeros(len(u), dtype=int)]
-        regrouped_y[len(p) + selected] = 1
+        component = np.vstack([p, u[selected]])
+        regrouped_X = np.vstack([component, u])
+        regrouped_y = np.r_[np.ones(len(component), dtype=int), np.zeros(len(u), dtype=int)]
 
         if self.base_estimator is None:
             base = KernelMeanPriorEstimator(variant="km2")
@@ -173,4 +187,9 @@ class ReCPEEstimator(BasePriorEstimator):
             "copy_count": self.copy_count_,
             "class_prior": self.class_prior_,
             "base_estimator": self.base_estimator_.__class__.__name__,
+            "estimate_target": self.estimate_target,
+            "estimation_pool": self.estimation_pool,
+            "copy_policy": "append_to_positive_keep_unlabeled",
+            "estimate_kind": "regrouping_approximation",
+            "auxiliary_target": "regrouped_component_weight",
         }

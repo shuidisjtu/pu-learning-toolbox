@@ -3,6 +3,11 @@
 `PUPipeline` 允许按注册名配置分类器参数；`PUTuner` 在相同的 PU 分层验证、类先验和
 指标语义上比较参数组合。参数与最终选择都会进入结果记录，便于复查。
 
+`class_prior` 表示目标总体先验。默认 OS 路径将先验估计器声明的原生 U 估计换算为总体值；
+`input_sampling="ts"` 使用独立总体 U。`PUTuner` 与 `PUModelComparator` 将此参数
+传入各 trial 的 Pipeline。报告的 `prior.value` 保存总体值，`training_consumption`
+保存各折与最终 fit 的实际目标和数值。
+
 ## 固定模型参数
 
 ```python
@@ -84,7 +89,7 @@ best_model = result.best_report.final_model
 
 ## 比较多个模型
 
-`PUModelComparator` 用完全相同的先验、PU 分层 CV 和指标比较多个注册模型，并只对最佳
+`PUModelComparator` 共享同一目标总体先验、输入采样设计、PU 分层 CV 和指标比较多个注册模型，并对最佳
 模型执行最终全量重训：
 
 **示例 A：全部成功比较（标签语义兼容）**

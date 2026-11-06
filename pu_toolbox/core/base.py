@@ -64,6 +64,10 @@ class BasePUClassifier(BaseEstimator, ClassifierMixin, ABC):
     assumption: tuple[Assumption, ...] = (Assumption.UNKNOWN,)
     scenario: tuple[Scenario, ...] = (Scenario.UNKNOWN,)
     requires_class_prior: bool = False
+    # Target of class_prior for fit's default risk view. Direct calls retain
+    # this contract; workflows convert their population prior at fit time.
+    class_prior_target: str = "population"
+    risk_class_prior_target: str | None = None
     implementation_status: ImplementationStatus = ImplementationStatus.API_ONLY
     source_status: SourceStatus = SourceStatus.UNKNOWN
     backend: Backend = Backend.NUMPY
@@ -120,8 +124,9 @@ class BasePUClassifier(BaseEstimator, ClassifierMixin, ABC):
             PU labels.  Accepted conventions: ``{+1, 0}``, ``{+1, -1}``,
             ``{1, 0}``, ``{1, -1}``.
         class_prior : float, optional
-            Known class prior π = P(y=1).  Required for risk-estimation
-            methods; optional for SCAR-based calibration methods.
+            Positive prior in the distribution declared by class_prior_target
+            for the default risk view. Concrete methods document additional
+            risk-view options and their corresponding prior targets.
         sample_weight : array-like of shape (n_samples,), optional
             Per-sample weights. Concrete classifiers declare one of the
             three behaviors in ``sample_weight_support``: use, ignore, or
@@ -222,6 +227,8 @@ class BasePUClassifier(BaseEstimator, ClassifierMixin, ABC):
             "assumption": [a.value for a in self.assumption],
             "scenario": [s.value for s in self.scenario],
             "requires_class_prior": self.requires_class_prior,
+            "class_prior_target": self.class_prior_target,
+            "risk_class_prior_target": self.risk_class_prior_target,
             "class_prior": self._class_prior,
             "implementation_status": self.implementation_status.value,
             "source_status": self.source_status.value,
@@ -252,7 +259,7 @@ class BasePUClassifier(BaseEstimator, ClassifierMixin, ABC):
 
 
 class BasePriorEstimator(BaseEstimator, ABC):
-    """Abstract base class for class-prior estimators π = P(y=1).
+    """Abstract base class for positive class-prior estimators.
 
     Subclasses **must** implement:
 
@@ -261,9 +268,16 @@ class BasePriorEstimator(BaseEstimator, ABC):
 
     ``confidence_interval()`` is optional; return ``None`` if
     the estimator does not provide uncertainty quantification.
+
+    ``estimate_target`` identifies the distribution returned by ``estimate``:
+    ``"population"`` preserves the scalar contract for third-party estimators;
+    ``"native_unlabeled"`` describes a mixture estimate from input U.
+    ``estimation_pool`` records the data used to estimate that target.
     """
 
     implementation_status: ImplementationStatus = ImplementationStatus.API_ONLY
+    estimate_target: str = "population"
+    estimation_pool: str = "input"
 
     @abstractmethod
     def fit(self, X: np.ndarray | sparse.spmatrix, y_pu: np.ndarray) -> BasePriorEstimator:

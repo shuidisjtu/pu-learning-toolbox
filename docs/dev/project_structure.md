@@ -66,6 +66,7 @@ pu_toolbox/
     fit_state.py                          # opt-in 失败拟合状态失效保护
   preprocessing/
     __init__.py                           (公共导出聚合)
+    _sampling.py                          # 固定正例配额与均匀无放回标记共享原语
     pu_labeling.py                        (make_scar_labels/make_pu_labels 等造 PU/PNU 标签及高斯合成数据)
     selection_bias.py                     (make_sar_propensity/make_sar_labels SAR 倾向与合成数据)
     profiling.py                          (pu_data_summary 等轻量摘要与 scar_diagnostic SCAR 诊断)
@@ -76,6 +77,7 @@ pu_toolbox/
     pen_l1.py                             (native: ClassPriorEstimator 罚 L1 闭式先验，theta 网格搜索)
     kernel_mean.py                        (native: KernelMeanPriorEstimator KM1/KM2 核均值混合比例估计)
     bbe.py                                (standalone: BBE α_U 统计量与隔离留出 PvU 评分，不注册为总体先验)
+    semantics.py                          (OS/独立 TS 的原生 U 与总体先验质量换算)
   utils/
     __init__.py                           (公共导出聚合)
     basis.py                              (shared: build_linear_basis/build_rbf_basis 基函数构造与中心子采样)
@@ -243,6 +245,7 @@ pu_toolbox/
     survey_conclusions.py                 # 结论分析: 按 §1.4.5 信号给结论归因，区分文献事实/本实验观测/推断；无信号、无证据或无来源的结论一律拒绝（纯函数）
     reporting.py                          (summary 文本/JSON/CSV、四组工作簿、诊断卡与结论写出)
     results.py                            (v3 manifest 只读消费、身份与预算一致性、seed 聚合和来源披露)
+    research_settings.py                  # 实验采样、风险池、先验输入、监督与表征设置及可读摘要
   __init__.py
   run_config.py                           (已实现: RunConfiguration 可移植 JSON 运行配置, CLI/UI 共用, schema_version 校验)
   progress.py                             (CancellationToken/emit_progress: 协作取消与进度回调原语)
@@ -393,12 +396,14 @@ tests/
       test_pen_l1.py                    # penL1 特有逻辑(自动 σ=中位数带宽、先验分离带/低先验带、估计有界)
       test_kernel_mean.py               # KM1/KM2 kernel-mean 类先验估计
       test_bbe.py                       # BBE 独立尾部公式、置信准则、重复分数与训练/留出隔离
+      test_prior_semantics.py           # 先验目标、质量恒等式、非法域与可辨识混合分布
     preprocessing/
       test_pu_labeling.py               # PU/PNU 标签生成(6 公共函数、统一分发器、参数校验与确定性)
       test_selection_bias.py            # SCAR/SAR propensity、标记率校准与合成数据
       test_profiling.py                 # 数据画像统计(pu_data_summary/pnu_data_summary 计数与比率、NaN/Inf 标记、稀疏输入与标签规范化)
       test_data_profiler.py             # 结构化报告、质量规则与审计诊断
       __init__.py
+      test_sampling_semantics.py        # 同池定额、独立 TS、来源与旧入口兼容回归
     scripts/
       test_check_api_docs.py            # api.md 公共符号覆盖门禁(防漂移)脚本测试
       test_check_baseline_configs.py    # 基线配置一致性门禁脚本测试
@@ -471,6 +476,7 @@ tests/
       test_report_provenance.py         # 报告 provenance 架构能力 4 字段(mlp 裸配/native_cnn 全配)
       test_label_semantics_entrypoints.py # CLI/UI/调参/推荐的标签语义入口门禁
       test_pipeline_label_semantics.py  # pipeline 构造/运行/clone/auto 的语义错配拒绝
+      test_pipeline_prior_targets.py    # OS/TS 的估计目标、逐折消费、真实分类器与总体评估
     experiment/
       test_cvir_known_prior_adapter.py  # CVIR alpha_U/总体 pi、候选角色、manifest 与路径拒收
       test_pulns_support_adapter.py     # PULNS 全角色隔离、额外标签预算与 OA-only 拒收
@@ -491,6 +497,7 @@ tests/
       _survey_script_helpers.py         # 脚本测试共享夹具: 动态加载与基础/SAR 两套四路 split
       test_survey_script_sar.py         # SAR 机制 CLI: OA-only/c token 门禁/审计字段/确定性
       test_strategies_labeling.py       # SCAR/SAR-LBE 生成(固定计数/posterior 正例池/seed 确定性)
+      test_shared_sampling.py           # 通用/实验采样一致性、标签哈希与后续随机流
       test_strategies_selection.py      # 阈值选择与 PA/OA 选模(真实标签/non-PU 视图拒绝/空轨迹)
       test_tracking.py                  # 轨迹/选择制品/结果数据类字段
       test_trainers.py                  # Fit/DeepFit/Supervised 训练策略
@@ -617,6 +624,8 @@ tests/
       test_result_oracle_identity.py    # PN 对照的逐 seed 划分、特征与预算可比证据回归
       test_result_paths.py              # Windows 长路径发现、读取与来源身份归一回归
       test_split_identity.py            # 从实际四路 indices 校验身份、隔离与批量续跑
+      test_research_settings.py         # 运行设置、先验来源、风险视图及标记政策回归
+      test_result_research_settings.py  # 新旧设置的逐 seed 留存、历史身份与报告导出回归
     utils/
       test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
       test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组
@@ -651,6 +660,8 @@ tests/
     test_survey_recipe_binding_v3.py    # v3 单元经 CLI 绑定冻结注册表：字段齐备、聚合可验、篡改被拒
     test_classical_candidate_runner.py  # PUET/RP 四角色 PA/OA 与无伪 epoch 成本导出
     test_diy_experiment_example.py      # DIY 示例的预测、预处理与测试标签隔离
+    test_custom_encoder_example.py      # CNN/冻结特征示例、初始化隔离与保存加载
+    test_sar_policy_example.py          # SAR 示例的 Bernoulli/定额政策、计数与来源
   e2e/                                  # 真实子进程端到端用户旅程（CI nightly 运行）
     test_profile_script.py              # pu-workflow profile 步骤脚本（子进程）
     test_recommend_script.py            # pu-workflow recommend 步骤脚本（子进程,含 profile→recommend 链）
@@ -722,6 +733,10 @@ examples/
     12_shift_decision_tools.py (配对决策、窗口监控、双域假设与主动复核)
     13_dynamic_joint_shift.py (论文式动态联合漂移 research 求解器)
     14_diy_experiment.py      (四角色实验与三类策略扩展示例)
+    15_pu_sampling.py         (同一目标总体的 OS/独立 TS 配对构造与先验计数)
+    16_prior_targets.py       (known/estimated 先验在 OS/TS 报告与训练中的目标换算)
+    17_sar_policies.py        (同池 Bernoulli 与 LBE-A/B 定额策略及评分来源)
+    18_custom_encoders.py     (nnPU encoder 注入、冻结特征 uPU 与保存加载)
 ```
 
 ## 4.1 Benchmark（`benchmarks/`）
@@ -837,6 +852,10 @@ docs/
       pu_problem.md                       # PU 问题设定、符号表与 π 的角色
       scar_sar.md                         # SCAR/SAR 机制与识别边界
       method_selection.md                 # 选型决策原理（推荐器 + 决策表）
+      class_prior_semantics.md            # 总体/U/风险池先验、换算条件与实现边界
+      pu_model_selection.md               # PA/OA 原理、监督角色与独立选择
+      pu_sampling.md                      # OS/TS、有限池来源与训练风险视图
+      representations.md                  # encoder、原生 CNN 与冻结特征的比较条件
     howto/
       pipeline.md                         # PUPipeline 端到端工作流
       cli.md                              # 命令行接口
@@ -848,8 +867,10 @@ docs/
       distribution_shift.md               # 分布漂移审计与协变量加权适配
       model_tuning.md                     # 模型参数与 PU-aware 网格搜索
       custom_experiments.md               # 四角色实验 API 与策略扩展教程
+      custom_encoders.md                  # encoder 注入、共享骨干与冻结特征教程
       ui.md                               # 图形界面安装与使用
       using_skill.md                      # 启用与使用 pu-workflow Skill
+      pu_sampling.md                      # 同池定额与独立 TS 构造、元数据及入口迁移
     reference/
       api.md                              # 核心 API 精确契约
       index.md                            # API 索引：按模块分组的符号导航
@@ -871,6 +892,7 @@ docs/
     distribution_shift_aware_pu_checklist.md # 漂移感知实现检查清单
     process_checklist.md                  # 进度清单与发布状态（权威来源）
     release_process.md                    # 发布流程：版本策略、预检清单、上传、回滚与维护
+    pu_research_semantics.md              # 研究整合的采样/先验/方法消费基线与阶段退出条件
   research/
     method_cards/
       class_prior_estimation.md

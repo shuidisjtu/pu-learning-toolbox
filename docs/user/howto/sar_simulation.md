@@ -3,7 +3,8 @@
 > 前置条件：先完成 [快速开始](../quickstart.md)。
 > 概念：SCAR/SAR 的数学定义与三种生成机制见 [concepts/scar_sar.md](../concepts/scar_sar.md)。
 
-本模块用于构造可控的 PU benchmark。真实标签和 propensity 在现实 PU 训练中通常不可见，模拟器保留它们只是为了评估算法。
+本模块用于构造可控的 PU benchmark。真实标签用于模拟标记机制和分类评估，
+propensity 用于标记机制恢复评估，训练接口接收生成后的 PU 视图。
 
 ## 1. 公共接口
 
@@ -60,8 +61,8 @@ X, y_pu, y_true, propensity = make_sar_dataset(
 )
 ```
 
-训练模型时只能传入 `X, y_pu`。`y_true` 用于分类评估，`propensity` 用于标记机制恢复
-评估；将二者用于模型训练或超参数选择会造成真值泄漏。
+训练模型传入 `X, y_pu`。`y_true` 用于分类评估，`propensity` 用于标记机制恢复评估；
+额外 clean support、OA 选模等监督使用按[数据角色](custom_experiments.md#2-准备四路数据)分别记录。
 
 > **默认机制是 SAR**：`make_sar_dataset` 不传 `mechanism` 时解析为 `"linear"`（标记依赖特征）
 > 并发出 `UserWarning`。类先验估计器与多数 PU 分类器假设 SCAR；SCAR 场景请显式传
@@ -69,13 +70,15 @@ X, y_pu, y_true, propensity = make_sar_dataset(
 
 ## 2. 标记率语义
 
-`label_frequency` 是正类 propensity 的目标均值，不是每次随机抽样后必须精确达到的比例：
+`label_frequency` 是正类 propensity 的目标均值：
 
 ```math
-\frac{1}{n_{+}}\sum_{i\,:\,Y_{i}=1} c(x_{i}) = q,
+\frac{1}{n_{+}}\sum_{i\,:\,Y_{i}=1} e(x_{i}) = \bar c.
 ```
 
-其中 $`q`$ 即传入的 `label_frequency`（记号 $`c(x)`$ 与 [符号约定](../concepts/scar_sar.md#1-两种标记机制) 一致）。
+其中 $`\bar c`$ 即传入的 `label_frequency`，$`e(x)`$ 为正类标记倾向。
+OS 总体的已标记比例满足 $`q=\pi_{population}\bar c`$，符号见
+[SCAR/SAR 概念](../concepts/scar_sar.md#1-两种标记机制)。
 
 实际标记比例由 Bernoulli 抽样产生，会围绕目标波动。正式报告应同时保存：
 
@@ -84,7 +87,33 @@ X, y_pu, y_true, propensity = make_sar_dataset(
 - 正类 propensity 标准差；
 - 数据 seed 和机制强度。
 
-仅比较实际标记数明显不同的实验，可能把样本量收益误判为 SAR 方法收益。
+比较实验时同时核对实际标记数与机制，分析标记数量及选择偏好的作用。
+
+### 2.1 对照 Bernoulli 与具名定额策略
+
+```powershell
+uv run python examples/minimal/17_sar_policies.py --seed 7 --label-frequency 0.4
+```
+
+[示例 17](../../../examples/minimal/17_sar_policies.py)对同一个 OS clean 池运行四种政策，
+每种输出标签哈希、目标/实际标记率、计数、seed 和评分来源。
+
+| 策略 | 机制参数与评分来源 | 抽样政策 | seed=7 的实际标记数 |
+|---|---|---|---:|
+| linear | 正类内标准化投影，`strength=1.5`，等权特征方向 | 独立 Bernoulli，`ensure_labeled=False` | 63 |
+| nonlinear | 同一投影加入中心化二次项，`strength=1.5` | 独立 Bernoulli，`ensure_labeled=False` | 61 |
+| LBE-A | 本 clean 池真实标签拟合 LogisticRegression，`k=10`，90% 权重加 10% 均匀平滑 | 定额加权无放回 | 64 |
+| LBE-B | 同一拟合范围，`k=10, shrink_coef=1` | 定额加权无放回 | 64 |
+
+池中有 160 个真正例，请求标记率为 0.4。Bernoulli 的期望计数为 64；
+LBE 配额为 `min(n_pos, max(1, round(c*n_pos)))`，使用半数取偶并保证至少一例。
+LBE 权重按正例内的相对偏好解释，公式和来源见
+[具名机制对照](../concepts/scar_sar.md#6-论文定义与具名实现)。
+
+在四角色实验中，Generator 分别在 train 和 pu_val 生成视图，辅助评分在各自允许的
+clean 分区拟合。可将 `SARLBEAGenerator()` 或 `SARLBEBGenerator()` 传给
+`ExperimentRunner(generator=...)`，并通过 `protocols=[ProtocolOA()]` 使用 clean 验证选模。
+组件替换步骤见[实验教程](custom_experiments.md#4-扩展标签生成器)。
 
 ## 3. SCAR/SAR 对比 benchmark
 
@@ -104,12 +133,12 @@ python -m benchmarks.assigned_methods.run \
 - `propensity_spearman_positive`。
 
 SCAR 的真实 propensity 是常数，因此 propensity rank correlation 在数学上未定义，
-结果中记录为空值，而不是伪造为零。
+结果中记录为空值。
 
 ## 4. 常见错误
 
 - **负类出现 `y_pu=1`**：违反 PU 单边标记机制，应视为数据生成错误。
-- **用全数据真实标签调参**：只允许在合成诊断中使用，不能冒充 PU-only 模型选择。
+- **监督角色混用**：按 train、pu_val、clean_val、test 分别记录训练、PU 选模、OA 和最终评测所用的标签。
 - **混淆 propensity 均值和实际标记率**：前者已校准，后者有抽样波动。
 - **忽略特征尺度**：模拟器在真实正类内标准化后构造 propensity，外部自定义机制也应
   明确尺度处理。

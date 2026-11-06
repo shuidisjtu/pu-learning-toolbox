@@ -106,13 +106,13 @@ def test_param_auto_has_gpu_follows_cuda_availability(monkeypatch):
     monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
     pipe = PUPipeline(classifier="auto", cv=2)
     monkeypatch.setattr(pipe, "_fresh_estimator", stub_fresh)
-    pipe.fit_evaluate(X, y_pu, class_prior=0.3)
+    pipe.fit_evaluate(X, y_pu, class_prior=0.6)
     assert captured["has_gpu"] is False
 
     monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
     pipe = PUPipeline(classifier="auto", cv=2)
     monkeypatch.setattr(pipe, "_fresh_estimator", stub_fresh)
-    pipe.fit_evaluate(X, y_pu, class_prior=0.3)
+    pipe.fit_evaluate(X, y_pu, class_prior=0.6)
     assert captured["has_gpu"] is True
 
 

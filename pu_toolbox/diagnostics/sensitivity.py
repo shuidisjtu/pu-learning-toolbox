@@ -209,8 +209,8 @@ def _metrics_for_prior(
     except ValueError:
         return None, None
     return (
-        pu_estimated_precision(y_pu, y_pred, class_prior),
-        pu_zero_one_risk(y_pu, risk_scores, class_prior),
+        pu_estimated_precision(y_pu, y_pred, class_prior, input_sampling="os"),
+        pu_zero_one_risk(y_pu, risk_scores, class_prior, input_sampling="os"),
     )
 
 
@@ -244,9 +244,9 @@ def analyze_pu_sensitivity(
 ) -> PUSensitivityAnalysis:
     """Audit fixed model outputs over class-prior and propensity assumptions.
 
-    The analysis uses ``P(S=1) = pi * c_bar``, where ``c_bar`` is the mean
-    positive-labeling propensity. It does not identify ``pi`` or ``c_bar``
-    separately and does not refit the model.
+    The OS analysis uses ``P(S=1) = pi * c_bar``, where ``c_bar`` is the mean
+    positive-labeling propensity, and evaluates risk over the full input pool.
+    Model outputs stay fixed while the supplied assumptions vary.
     """
     priors = _validate_grid(class_priors, name="class_priors", include_one=False)
     propensities = _validate_grid(
@@ -324,6 +324,7 @@ def analyze_pu_sensitivity(
 
     frozen_points = tuple(points)
     provenance = {
+        "input_sampling": "os",
         "n_samples": len(canonical_y),
         "n_labeled_positive": int(np.sum(canonical_y == 1)),
         "n_unlabeled": int(np.sum(canonical_y == 0)),

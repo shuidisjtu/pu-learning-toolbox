@@ -36,6 +36,18 @@ report.save("results/pipeline.json")
 
 ## 类先验解析
 
+先确认数值对应的分布，见[先验语义](../concepts/class_prior_semantics.md)。
+`input_sampling="os"`（默认）表示同一来源池中的单边标记，`"ts"` 表示独立取得的
+正例与总体 U。调用时的 `class_prior` 指总体先验；KM/penL1/ReCPE 的原生 U 估计
+按采样设计解析为总体值，并在训练边界按分类器目标换算。
+例如 OS 的 P 占比为 0.2、估计 U 先验为 0.25 时，`report.prior.value` 为 0.4，
+默认 uPU 风险使用的先验为 0.25。
+
+`report.prior` 保存 `input_value/input_target`、`estimation_pool`、`input_sampling`、
+`conversion` 和 `training_consumption`。每个训练折使用自身的 P 占比换算，
+最终 refit 的值也单独记录。[示例 16](../../../examples/minimal/16_prior_targets.py)
+展示 known-prior 与 estimated-prior 的 OS/TS 路径。
+
 先验按「显式传入 → 构造参数 → 自动估计 → 不需要」四级解析（完整优先级表见
 [API 参考](../reference/api.md)）。要点：
 
@@ -44,8 +56,8 @@ report.save("results/pipeline.json")
 - 显式指定 classifier 时，`prior_estimator=None` 且方法需要先验且未提供 →
   抛出 `PipelineError`（消息给出三条出路，并注明 `y_true` 从不用于先验估计）；
   auto 模式下同样输入降级为无先验推荐（见下）。
-- 画像模块会审计"先验 < 标注正样本比例"的不一致并给出警告
-  （`inconsistent_class_prior`）。
+- OS 画像审计总体先验与标记正例占比；原生 U 换算要求总体先验至少等于该训练折的标记占比。
+  TS 画像记录额外 P 的拼接占比。
 
 ## 分类器选择
 
@@ -53,7 +65,7 @@ report.save("results/pipeline.json")
 |---|---|
 | `"auto"`（默认） | 先估先验 → `recommend_from_profile` 推荐 → 按 rank 扫描选中第一个**可自动实例化**的候选 |
 | `"nnpu"` / `"upu"` 等注册名 | 直接使用（大小写不敏感，支持别名），通过 `classifier_params` 配置模型，构造时自动注入 `class_prior` 与 `random_state` |
-| `UPUClassifier(...)` 实例 | 原样使用（`clone` 到每折），不注入任何参数 |
+| `UPUClassifier(...)` 实例 | 每折 `clone`，按其 `class_prior_target` 解析构造值，并写入该折换算后的先验 |
 
 构造器有额外必填参数的方法可通过 `classifier_params` 补齐，例如
 `PUPipeline(classifier="ldce", classifier_params={"flip_probability": 0.2})`。
@@ -97,6 +109,10 @@ DGPU generator）建议传入已配置实例。
 `expected_calibration_error`。各指标的依赖与证据级别（`pu_observed` /
 `class_prior_dependent` / `supervised_oracle` / `probability_calibration`）见
 [API 参考](../reference/api.md)。
+
+总体风险和精度按 `input_sampling` 选池：OS 使用完整验证表，TS 使用原生 U。
+TS 的 oracle 指标同样在代表总体的 U 行上计算。`pu_recall` 与 `pu_negative_rate`
+分别描述观测 P 与 U 的预测行为。
 
 缺失输入（无 `y_true`、无连续分数、无 `predict_proba`、无先验）时对应指标**跳过**并记录
 （`CVMetric.available=False`；仅当全部折都被跳过时才由 `reason` 说明原因），

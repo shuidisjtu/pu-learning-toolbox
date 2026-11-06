@@ -66,6 +66,11 @@ Python 接口的四路数据构造、参数调整和策略扩展示例见 [DIY �
 
 ## 汇总结果与导出
 
+新运行的 manifest 在 `research_settings` 中记录采样、标记政策、风险池、训练与选择先验、
+验证监督和表征。`summary.json` 保留各 seed 的完整设置，`summary.md/csv`、工作簿和
+诊断卡展示摘要。历史结果显示“历史记录：按原 manifest 设置读取”，继续使用原协议身份。
+字段契约见 [API 参考](../../user/reference/api.md)。
+
 直接从 manifest 文件或目录汇总，输出到独立目录：
 
 ```powershell

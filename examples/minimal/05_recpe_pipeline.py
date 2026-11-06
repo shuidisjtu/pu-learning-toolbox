@@ -5,7 +5,7 @@ import numpy as np
 from sklearn.metrics import accuracy_score
 
 from pu_toolbox.estimators.risk import UPUClassifier
-from pu_toolbox.prior import ReCPEEstimator
+from pu_toolbox.prior import ReCPEEstimator, native_unlabeled_to_population
 
 # -- Generate SCAR PU data --
 rng = np.random.RandomState(42)
@@ -24,7 +24,9 @@ y_pu[:n][labeled_mask] = 1
 recpe = ReCPEEstimator(copy_fraction=0.1)
 recpe.fit(X, y_pu)
 pi_hat = recpe.estimate()
-print(f"ReCPE estimated prior: {pi_hat:.3f}  (true: {true_prior})")
+population_hat = native_unlabeled_to_population(pi_hat, float(np.mean(y_pu == 1)))
+print(f"ReCPE native-U prior approximation: {pi_hat:.3f}")
+print(f"Converted population prior: {population_hat:.3f}  (generating prior: {true_prior})")
 
 # -- Step 2: Train UPU with estimated prior --
 clf = UPUClassifier(class_prior=pi_hat, loss="squared", fit_intercept=False, random_state=42)

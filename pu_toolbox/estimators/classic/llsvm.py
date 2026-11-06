@@ -109,6 +109,7 @@ class LLSVMClassifier(BasePUClassifier):
     assumption = (Assumption.SCAR, Assumption.SAR)
     scenario = (Scenario.CASE_CONTROL,)
     requires_class_prior = True
+    class_prior_target = "native_unlabeled"
     implementation_status = ImplementationStatus.NATIVE
     source_status = SourceStatus.OFFICIAL_EXACT
     backend = Backend.NUMPY

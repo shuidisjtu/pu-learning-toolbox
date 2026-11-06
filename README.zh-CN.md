@@ -15,6 +15,7 @@
 - **SCAR & SAR** -- 常数与实例相关两种标记机制，附数据模拟器
 - **数据画像 + 算法推荐** -- 自动质量检查、SCAR/SAR 证据，以及七维评分推荐器为你的数据选方法
 - **可审计流水线** -- 一次调用的 `PUPipeline`（画像 → 先验 → 训练 → PU 分层 CV → 评估），加结构化诊断报告与先验/标记倾向敏感性分析
+- **可组合 PU 研究** -- OS 与独立 TS 采样、显式先验目标、可注入实验策略、自定义 encoder 与研究设置留痕（[教程](docs/user/howto/custom_experiments.md)）
 - **分布漂移护栏** -- OOF 源/目标漂移审计、有界协变量权重、覆盖诊断与受保护的 `ShiftAwarePUPipeline`
 - **部署监控** -- 可恢复的窗口告警、coverage/拒绝预测控制，以及 CLI/UI 主动复核导出
 - **CLI** -- `pu-toolbox` 把整条流水线变成终端命令
@@ -49,23 +50,26 @@ pip install "pu-toolbox[ui]"          # + Streamlit 图形界面
 ### Hello World
 
 ```python
-import numpy as np
 from pu_toolbox.preprocessing import make_scar_dataset
 from pu_toolbox import PUPipeline
 
-# 合成 SCAR 数据（标记与特征无关——所有类先验估计器的前提）：
-# 部分正例被标记（1），其余为无标记（0）。SAR 数据用
-# make_sar_dataset(mechanism="linear")。
+# Synthetic OS data with SCAR labeling: each positive has the same labeling
+# probability. Observed labels are 1 (labeled positive) and 0 (unlabeled).
 X, y_pu, y_true = make_scar_dataset(
     n=500, c=0.5, n_features=8, separation=1.0, random_state=42,
 )
 
-# 一次调用：画像 → 先验 → 训练 → PU 分层 CV → 评估
+# One call: profile -> class prior -> train -> PU-stratified CV -> evaluate
 report = PUPipeline().fit_evaluate(X, y_pu, y_true=y_true)
 print(report.summary())
 ```
 
 完整文档（中文）：[docs/README.md](docs/README.md)。更多可运行示例：[`examples/minimal/`](examples/minimal/)。
+
+`PUPipeline` 默认采用 OS 输入采样；独立取得的 P 与总体 U 使用 `input_sampling="ts"`。
+显式传入的 `class_prior` 指总体先验，报告记录其来源、换算及每个训练折的实际消费值。
+详见[先验语义](docs/user/concepts/class_prior_semantics.md)与
+[流水线指南](docs/user/howto/pipeline.md)。
 
 ## 命令行
 
@@ -102,22 +106,45 @@ pu-toolbox-ui
 | 入口 | 内容 |
 |------|------|
 | [`docs/user/quickstart.md`](docs/user/quickstart.md) | 5 分钟快速开始（CLI + Python） |
-| [`docs/user/concepts/`](docs/user/concepts/) | PU 问题设定、SCAR/SAR、方法选择 |
-| [`docs/user/howto/`](docs/user/howto/) | 任务指南：模拟、画像、流水线、CLI、报告、敏感性、分布漂移 |
+| [`docs/user/concepts/`](docs/user/concepts/) | 采样、SCAR/SAR、先验目标、PA/OA 选模、表征与方法选择 |
+| [`docs/user/howto/`](docs/user/howto/) | 模拟、流水线、DIY 实验、encoder、CLI、报告、敏感性与分布漂移 |
 | [`docs/user/reference/api.md`](docs/user/reference/api.md) | 精确 API 契约 |
 | [`docs/dev/`](docs/dev/) | 贡献者文档：架构、结构、兼容性 |
 | [`docs/dev/project_structure.md`](docs/dev/project_structure.md) | 源码与本地实验资产分类、归档清理边界、脚本用途导航 |
 | [`docs/research/method_cards/`](docs/research/method_cards/) | 各论文方法卡 |
 
+### 可组合 PU 研究
+
+在仓库检出目录中，可以通过以下 CPU 示例逐步组合研究流程：
+
+| 任务 | 指南 | 可运行示例 |
+|---|---|---|
+| 构造 OS 与独立 TS 数据 | [采样操作](docs/user/howto/pu_sampling.md) | [15_pu_sampling.py](examples/minimal/15_pu_sampling.py) |
+| 跟踪已知与估计先验进入训练 | [先验目标](docs/user/concepts/class_prior_semantics.md) | [16_prior_targets.py](examples/minimal/16_prior_targets.py) |
+| 比较 Bernoulli 与固定数 SAR 政策 | [SAR 模拟](docs/user/howto/sar_simulation.md) | [17_sar_policies.py](examples/minimal/17_sar_policies.py) |
+| 训练自定义 encoder 或使用冻结特征 | [自定义 encoder](docs/user/howto/custom_encoders.md) | [18_custom_encoders.py](examples/minimal/18_custom_encoders.py) |
+| 注入实验策略并通过 PA/OA 独立选模 | [DIY 实验](docs/user/howto/custom_experiments.md) | [14_diy_experiment.py](examples/minimal/14_diy_experiment.py) |
+
+实验 manifest 记录采样、标记、风险池、先验输入与实际消费、监督和表征。
+汇总文件、工作簿及诊断卡展示可读设置，历史结果沿用原记录身份。
+操作流程见[运行与报告指南](docs/research/pu_survey/runbook.md)。
+
 ### PU Survey 实验
 
-仓库内的研究实验使用专用脚本，而不是通用的 `PUPipeline` 流程。可通过以下命令
-准备可复现的四路数据切分，并查看 Survey runner 的参数：
+Survey 脚本通过 `ExperimentRunner` 执行仓库选定的研究设置，使用四路数据角色、
+独立 PA/OA 选模和最终 test 评测。可通过以下命令准备可复现的数据切分并查看参数。
+
+LBE 诊断使用 `scripts/_lbe_diagnostic_reference.py` 中单独的 SCAR 约束参考实现。
 
 ```bash
 uv run python scripts/prepare_survey_splits.py --help
 uv run python scripts/run_survey_experiment.py --help
 uv run python scripts/run_lbe_comparison.py --help
+uv run python scripts/run_lbe_diagnostics.py --help
+uv run python scripts/prepare_clean_support.py --help
+uv run python scripts/run_clean_support_experiment.py --help
+uv run python scripts/run_genpu_recipe.py --help
+uv run python scripts/run_candidate_image_experiment.py --help
 
 # SCAR 实验行（PA + OA 选模）
 uv run python scripts/run_survey_experiment.py path/to/splits \
@@ -128,27 +155,29 @@ uv run python scripts/run_survey_experiment.py path/to/splits \
     --method lbe --labeling-mechanism sar_lbe_a --c 0.05,0.5
 ```
 
-需要总体类先验的方法，既要通过 `--class-prior` 满足入口门禁，也要通过
-`--model-params` 传入构造参数（uPU 示例见 `--help` 和脚本 docstring）。
+registry 声明需要先验的方法在运行入口使用 `--class-prior`，构造参数通过
+`--model-params` 提供。各参数结合[先验目标](docs/user/concepts/class_prior_semantics.md)
+与记录的训练视图解释，可运行配置见[runbook](docs/research/pu_survey/runbook.md)。
 `--labeling-mechanism` 选择 PU 标签视图的生成方式（SCAR 或 SAR LBE 变体），
-它与 `--method` 相互独立：标记机制是实验自变量，因此 SAR 实验行可运行任意
-Survey 方法，并且只报告 OA。
+它与 `--method` 相互独立：标记机制是实验自变量。支持所选标记机制的方法在 SAR
+实验行中报告 OA。
 
-在全部协议门禁满足前，结果必须标记为 `pilot / partial benchmark`。协议、执行状态和
-报告边界见 [`docs/research/pu_survey/`](docs/research/pu_survey/)。
+结果记录执行模式与资格状态。协议、执行状态和报告流程见
+[`docs/research/pu_survey/`](docs/research/pu_survey/)。
 
 配套脚本（范围与限制见各脚本 docstring 和 Survey 文档）：
 
 | 阶段 | 脚本 |
 |---|---|
 | 数据与切分 | `collect_survey_public_data.py`（获取缺失的公开原始数据，不含受控访问的 ADNI）、`survey_splits_archive.py`（split 传输） |
-| 运行 | `run_survey_pilot.py`（整批 pilot）、`aggregate_survey_runs.py` |
-| 审计与报告 | `audit_survey_batches.py`、`summarize_survey_results.py`、`compare_survey_results.py`（预注册文献对照）、`_source_provenance.py`（内部辅助工具，区分脚本检出身份与实际加载实现；不是独立 CLI） |
+| 运行 | `run_survey_pilot.py`（范围规划、执行与续跑） |
+| 报告 | `summarize_survey_results.py`、`export_survey_results.py`（工作簿、诊断与结论；需要 `report` extra）、`_source_provenance.py`（内部代码与环境身份辅助工具） |
 | 配方 | `prepare_survey_recipe_registry.py`、`check_survey_recipe_registry.py`（校验注册表；CI 检查冻结的锁） |
-| 资源估算 | `prepare_candidate_image_resource_plan.py` 按候选默认值只读估算，不是实测资源 profile |
+| 独立图像实验 | `run_candidate_image_experiment.py`（PULDA/GradPU 四角色 PA/OA smoke、实测快照与重放） |
+| 独立传统方法实验 | `run_classical_candidate_experiment.py`（PUET/RP/KLDCE 四角色训练、显式参数与实际成本留痕） |
+| 独立 support 实验 | `run_clean_support_experiment.py`（Self-PU/LaGAM/PULNS 额外标签审计与显式 Self-PU TS meta-checkpoint） |
 
-这些脚本是技术检查与测量，均不批准候选、预算、正式 split 或数值裁决；审计与汇总脚本
-只写自己的 `--out-dir`，不写结果树。
+这些脚本记录技术检查与实测结果。报告读取已有结果，将产物写入选定的 `--out-dir`。
 
 ## AI 工作流 Skill
 

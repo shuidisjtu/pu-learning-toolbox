@@ -53,17 +53,35 @@ class PriorInfo:
     estimator: str | None = None
     auto_selected: bool = False
     degraded: str | None = None
+    target: str = "population"
+    input_value: float | None = None
+    input_target: str | None = None
+    estimation_pool: str | None = None
+    input_sampling: str = "os"
+    conversion: str = "identity"
+    training_consumption: tuple[dict[str, Any], ...] = ()
+    estimation_details: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Return a strict JSON-compatible representation."""
-        return {
-            "value": self.value,
-            "source": self.source,
-            "method_requires_prior": self.method_requires_prior,
-            "estimator": self.estimator,
-            "auto_selected": self.auto_selected,
-            "degraded": self.degraded,
-        }
+        return json_safe(
+            {
+                "value": self.value,
+                "source": self.source,
+                "method_requires_prior": self.method_requires_prior,
+                "estimator": self.estimator,
+                "auto_selected": self.auto_selected,
+                "degraded": self.degraded,
+                "target": self.target,
+                "input_value": self.input_value,
+                "input_target": self.input_target,
+                "estimation_pool": self.estimation_pool,
+                "input_sampling": self.input_sampling,
+                "conversion": self.conversion,
+                "training_consumption": [dict(record) for record in self.training_consumption],
+                "estimation_details": self.estimation_details,
+            }
+        )
 
 
 @dataclass(frozen=True)
@@ -182,6 +200,7 @@ class PipelineReport:
             "",
             f"Classifier: {self.provenance.get('classifier', 'unknown')}",
             f"Class prior: {format_value(prior.value)} (source: {prior_src}{context})",
+            f"Prior target: {prior.target} | Input sampling: {prior.input_sampling}",
             f"CV folds: {self.cv_provenance.get('n_splits', 'unknown')}",
             "",
             "## CV Metrics (mean +/- std)",
@@ -230,7 +249,7 @@ class PipelineReport:
             except Exception:  # noqa: BLE001 - metadata is best-effort
                 model_info["metadata"] = None
         payload = {
-            "schema_version": "1.0",
+            "schema_version": "1.1",
             "classifier": self.provenance.get("classifier"),
             "profile": self.profile.to_dict(),
             "recommendation": (
@@ -258,6 +277,19 @@ class PipelineReport:
             f"- Class prior: {format_value(self.prior.value)} (source: `{self.prior.source}`)"
         )
         lines.append(f"- Prior estimator: `{self.prior.estimator or 'not used'}`")
+        lines.append(f"- Input sampling: `{self.prior.input_sampling}`")
+        lines.append(
+            f"- Prior input: {format_value(self.prior.input_value)} "
+            f"(target: `{self.prior.input_target or 'not supplied'}`, "
+            f"conversion: `{self.prior.conversion}`)"
+        )
+        if self.prior.training_consumption:
+            last = self.prior.training_consumption[-1]
+            for name, record in last["parameters"].items():
+                lines.append(
+                    f"- Latest training `{name}`: {format_value(record['value'])} "
+                    f"(target: `{record['target']}`, stage: `{last['stage']}`)"
+                )
         lines.append(f"- CV folds: {self.cv_provenance.get('n_splits')}")
         lines.extend(
             [

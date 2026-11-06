@@ -23,6 +23,12 @@ from .exceptions import ValidationError
 from .labels import _check_y_1d, normalize_pnu_labels, normalize_pu_labels
 
 
+def validate_input_sampling(input_sampling: str) -> None:
+    """Validate the OS single-source or TS independent P/U input design."""
+    if not isinstance(input_sampling, str) or input_sampling not in {"os", "ts"}:
+        raise ValueError("input_sampling must be 'os' or 'ts'.")
+
+
 def validate_label_semantics(estimator: object, expected: str) -> None:
     """Reject a fit-label meaning mismatch before training.
 

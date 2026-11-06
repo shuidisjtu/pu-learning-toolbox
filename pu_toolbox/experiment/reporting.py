@@ -69,6 +69,7 @@ def write_summary(report: Mapping[str, Any], out_dir: str | Path) -> list[Path]:
         "status",
         "reasons",
         "cost_id",
+        "research_settings",
     )
     records = []
     lines = [
@@ -90,6 +91,7 @@ def write_summary(report: Mapping[str, Any], out_dir: str | Path) -> list[Path]:
             "status": row["status"],
             "reasons": row.get("reasons", []),
             "cost_id": row.get("cost_id"),
+            "research_settings": "\n".join(row.get("research_settings_summaries", [])),
         }
         records.append(record)
         mean, std = metric.get("mean"), metric.get("std")
@@ -98,6 +100,24 @@ def write_summary(report: Mapping[str, Any], out_dir: str | Path) -> list[Path]:
             value += f" ± {std * 100:.2f}"
         cells = [str(record.get(key, "")) for key in columns[:7]]
         lines.append("| " + " | ".join([*cells, value, row["status"]]) + " |")
+    settings_rows = [row for row in rows if row.get("research_settings_summaries")]
+    if settings_rows:
+        lines.extend(["", "Research settings:", ""])
+        for row in settings_rows:
+            key = row["row_key"]
+            context = " / ".join(
+                str(value)
+                for value in (
+                    row["result_identity"]["dataset"],
+                    key["method"],
+                    key["run_view"],
+                    key["selection_protocol"],
+                    key["c_token"],
+                )
+            )
+            summary = "；".join(row["research_settings_summaries"])
+            text = f"{context}: {summary}".replace("|", "\\|").replace("\r\n", "\n")
+            lines.append("- " + text.replace("\r", "\n").replace("\n", "<br>"))
     lines.extend(["", "Costs are recorded once per fit in summary.json/run_costs.", ""])
     for source in report.get("sources", []):
         if source.get("state") != "available":

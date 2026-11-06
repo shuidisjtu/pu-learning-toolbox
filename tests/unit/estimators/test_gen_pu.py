@@ -156,10 +156,12 @@ def test_edge_callback_failure_does_not_repeat_gan_training_or_mark_successful()
     assert not fitted._is_fitted
 
 
-def test_prior_weights_and_invalid_view_fail_loud():
+@pytest.mark.parametrize("invalid_prior", [None, 0.0, 1.0, np.nan])
+def test_prior_weights_and_invalid_view_fail_loud(invalid_prior):
     X, y = data()
-    with pytest.raises(ValueError, match="requires population"):
-        model(class_prior=None).fit(X, y)
+    assert GenPUClassifier.class_prior_target == "native_unlabeled"
+    with pytest.raises(ValueError, match="risk-U class_prior"):
+        model(class_prior=invalid_prior).fit(X, y)
     with pytest.raises(ValueError, match="differs"):
         model().fit(X, y, class_prior=0.5)
     with pytest.raises(NotImplementedError, match="sample_weight"):

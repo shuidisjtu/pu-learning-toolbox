@@ -12,14 +12,20 @@
 | 入口 | [user/README.md](user/README.md) | 用户旅程图（从哪篇开始、按什么顺序读） |
 | 快速开始 | [user/quickstart.md](user/quickstart.md) | 安装 + CLI 三命令 + Python 最小片段 |
 | 概念 | [user/concepts/pu_problem.md](user/concepts/pu_problem.md) | PU 问题设定、符号表、π 的角色 |
+| 概念 | [user/concepts/pu_sampling.md](user/concepts/pu_sampling.md) | OS/TS、有限池来源与训练风险角色 |
 | 概念 | [user/concepts/scar_sar.md](user/concepts/scar_sar.md) | SCAR/SAR 机制与识别边界 |
+| 概念 | [user/concepts/class_prior_semantics.md](user/concepts/class_prior_semantics.md) | 总体/U/风险池/拼接表先验、换算条件与当前限制 |
+| 概念 | [user/concepts/pu_model_selection.md](user/concepts/pu_model_selection.md) | PA/OA、监督预算与独立选择 |
+| 概念 | [user/concepts/representations.md](user/concepts/representations.md) | encoder、端到端 CNN、冻结特征及比较条件 |
 | 概念 | [user/concepts/method_selection.md](user/concepts/method_selection.md) | 选型决策原理（推荐器 + 决策表） |
 | 操作 | [user/howto/pipeline.md](user/howto/pipeline.md) | PUPipeline 端到端训练评估 |
 | 操作 | [user/howto/cli.md](user/howto/cli.md) | 命令行接口 |
 | 操作 | [user/howto/model_tuning.md](user/howto/model_tuning.md) | 模型参数与 PU-aware 网格搜索 |
 | 操作 | [user/howto/custom_experiments.md](user/howto/custom_experiments.md) | 四角色实验 API、参数调整与策略扩展示例 |
+| 操作 | [user/howto/custom_encoders.md](user/howto/custom_encoders.md) | encoder 注入、共享骨干、冻结特征与保存加载 |
 | 操作 | [user/howto/ui.md](user/howto/ui.md) | 图形界面安装与使用 |
 | 操作 | [user/howto/data_profiling.md](user/howto/data_profiling.md) | 数据画像与假设提示 |
+| 操作 | [user/howto/pu_sampling.md](user/howto/pu_sampling.md) | 同池定额标记、独立 TS、元数据与旧入口迁移 |
 | 操作 | [user/howto/diagnostic_reports.md](user/howto/diagnostic_reports.md) | 生成诊断报告 |
 | 操作 | [user/howto/sensitivity_analysis.md](user/howto/sensitivity_analysis.md) | 类先验与标记倾向敏感性分析 |
 | 操作 | [user/howto/distribution_shift.md](user/howto/distribution_shift.md) | 分布漂移审计与协变量加权适配 |
@@ -54,6 +60,7 @@
 | [research/pu_survey/](research/pu_survey/) | PU 调研实验：能力与当前状态、科学协议、运行与报告指南、数据来源说明；入口见 [pu_survey/README.md](research/pu_survey/README.md) |
 | [dev/experiment_layer.md](dev/experiment_layer.md) | 实验层（`pu_toolbox/experiment/`）关键设计机制：可注入策略接口、视图/轨迹语义、P0 已知局限 |
 | [dev/single_source_map.md](dev/single_source_map.md) | 单源地图：九个概念的权威真相源、消费者与重复判定（审计快照） |
+| [dev/pu_research_semantics.md](dev/pu_research_semantics.md) | 研究整合语义基线：采样/先验/逐方法风险消费、复现与后续退出条件 |
 
 ## 架构决策(docs/adr/)
 

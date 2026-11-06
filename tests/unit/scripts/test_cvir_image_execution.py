@@ -71,7 +71,9 @@ def test_basic_determ_dual_selection_and_bound_actual_prior(tmp_path, view, warm
     planned = plan(directory, view=view, parameters=requested)
     assert planned == plan(directory, view=view, parameters=requested)
     expected_prior = 0.4 if view == "ts" else (0.4 * 12 - 3) / 9
-    assert planned["cvir_prior_binding"]["risk_pool_positive_prior"] == expected_prior
+    assert planned["cvir_prior_binding"]["risk_pool_positive_prior"] == pytest.approx(
+        expected_prior
+    )
     assert not planned["cvir_prior_binding"]["uses_hidden_training_labels"]
     summary = script.execute(planned, tmp_path / "output")
     assert summary["accepted_engineering_run"] and summary["selected_models_replayed"]
@@ -81,7 +83,9 @@ def test_basic_determ_dual_selection_and_bound_actual_prior(tmp_path, view, warm
     facts = summary["training_provenance"]
     assert len(facts["epoch_cost_history"]) == warm + 2
     assert not facts["population_prior_forwarded_to_fit"]
-    assert facts["population_prior_binding"]["risk_pool_positive_prior"] == expected_prior
+    assert facts["population_prior_binding"]["risk_pool_positive_prior"] == pytest.approx(
+        expected_prior
+    )
     assert facts["bound_fit_receipt"]["calibration_applied"] is (view == "ts")
     assert summary["source_default_snapshot_projection"]["epochs"] == 21
     assert not summary["formal_admission"] and not summary["paper_numerical_reproduction"]

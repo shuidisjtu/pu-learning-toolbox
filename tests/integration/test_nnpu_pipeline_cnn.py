@@ -48,7 +48,7 @@ def test_nnpu_cnn_pipeline_reports_native_cnn_provenance():
         max_epochs=1,
         random_state=42,
         device="cpu",
-    ).fit_evaluate(X, y_pu, class_prior=0.3, refit=False)
+    ).fit_evaluate(X, y_pu, class_prior=0.5, refit=False)
     p = report.provenance
     assert p["architecture"] == "native_cnn"
     assert p["backbone"] == "cnn13"

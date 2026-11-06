@@ -22,6 +22,7 @@ import numpy as np
 from sklearn.linear_model import LogisticRegression
 
 from pu_toolbox.core.random import check_random_state
+from pu_toolbox.preprocessing._sampling import fixed_positive_count, sample_positive_labels
 from pu_toolbox.utils.serialization import canonical_hash
 
 from .bundle import DatasetPart, LabelView
@@ -31,10 +32,7 @@ from .tracking import EpochRecord, RunTrajectory, SelectionArtifact
 
 
 def _n_labeled(y_true: np.ndarray, c: float) -> int:
-    n_pos = int(np.sum(y_true == 1))
-    if n_pos == 0:
-        return 0
-    return min(n_pos, max(1, int(np.round(n_pos * c))))
+    return fixed_positive_count(int(np.sum(y_true == 1)), c)
 
 
 def scar_realized_rate(y_true: np.ndarray, c: float) -> float:
@@ -63,7 +61,14 @@ def _fit_posterior(X: np.ndarray, y_true: np.ndarray, seed: int | None):
 
 
 def _common_generation_metadata(
-    generator, c: float, n_labeled: int, n_pos: int, seed, y_pu: np.ndarray
+    generator,
+    c: float,
+    n_labeled: int,
+    n_pos: int,
+    seed,
+    y_pu: np.ndarray,
+    *,
+    sampling_policy: str = "fixed_count_uniform_without_replacement",
 ) -> dict:
     """Audit fields shared by SCAR / LBE-A / LBE-B metadata (manifest).
 
@@ -80,6 +85,8 @@ def _common_generation_metadata(
     makes that auditable after the fact.
     """
     return {
+        "input_sampling": "os",
+        "sampling_policy": sampling_policy,
         "generator": type(generator).__name__,
         "c_requested": float(c),
         "c_realized": n_labeled / n_pos if n_pos else 0.0,
@@ -97,11 +104,8 @@ class SCARGenerator(Generator):
     def generate(self, X, y_true, c, seed=None):
         rng = check_random_state(seed)
         n_labeled = _n_labeled(y_true, c)
-        pos = np.where(y_true == 1)[0]
-        y_pu = np.zeros(len(y_true), dtype=int)
-        if n_labeled > 0:
-            y_pu[rng.choice(pos, size=n_labeled, replace=False)] = 1
-        n_pos = int(len(pos))
+        y_pu = sample_positive_labels(y_true, n_labeled, rng)
+        n_pos = int(np.sum(y_true == 1))
         return y_pu, {
             "mechanism": "scar",
             **_common_generation_metadata(self, c, n_labeled, n_pos, seed, y_pu),
@@ -126,6 +130,8 @@ class CleanLabelGenerator(Generator):
         labels = np.asarray(y_true).astype(int)
         return labels, {
             "mechanism": "pn_oracle",
+            "input_sampling": "single_clean_pool",
+            "sampling_policy": "all_real_labels",
             "c_realized": 1.0,
             "n_labeled": int(np.sum(labels == 1)),
             "c_requested": c,
@@ -179,7 +185,15 @@ class SARLBEAGenerator(Generator):
             "posterior_fit_on": "real_labels",
             "posterior_version": "PU-Bench 2d95a19/lbfgs(max_iter=100)",
             "scores_file": None,
-            **_common_generation_metadata(self, c, n_labeled, n_pos, seed, y_pu),
+            **_common_generation_metadata(
+                self,
+                c,
+                n_labeled,
+                n_pos,
+                seed,
+                y_pu,
+                sampling_policy="fixed_count_weighted_without_replacement",
+            ),
         }
 
 
@@ -214,7 +228,15 @@ class SARLBEBGenerator(Generator):
             "posterior_fit_on": "real_labels",
             "posterior_version": "PU-Bench 2d95a19/lbfgs(max_iter=100)",
             "scores_file": None,
-            **_common_generation_metadata(self, c, n_labeled, n_pos, seed, y_pu),
+            **_common_generation_metadata(
+                self,
+                c,
+                n_labeled,
+                n_pos,
+                seed,
+                y_pu,
+                sampling_policy="fixed_count_weighted_without_replacement",
+            ),
         }
 
 

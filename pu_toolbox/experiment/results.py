@@ -438,6 +438,17 @@ def _row(key: tuple, entries: list, seeds: Sequence[int], cost_id: str) -> dict[
         "comparison_by_seed": {
             str(item["payload"]["seed"]): _comparison_evidence(item["payload"]) for item in usable
         },
+        "research_settings_by_seed": {
+            str(item["payload"]["seed"]): copy.deepcopy(item["payload"].get("research_settings"))
+            for item in entries
+        },
+        "research_settings_summaries": sorted(
+            {
+                (item["payload"].get("research_settings") or {}).get("summary")
+                or "历史记录：按原 manifest 设置读取"
+                for item in entries
+            }
+        ),
     }
     if uses_clean_support(payload):
         result["pure_pu_comparison_eligible"] = False
@@ -565,6 +576,7 @@ def build_summary(
             "numerical_risk": risk,
             "selection": copy.deepcopy(payload.get("selection", {})),
             "budget": copy.deepcopy(payload["budget"]),
+            "research_settings": copy.deepcopy(payload.get("research_settings")),
             "reproducibility": _reproducibility(path, payload),
         }
         mechanism = payload["generation"]["train"]["mechanism"]

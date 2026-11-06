@@ -97,6 +97,7 @@ class GenPUClassifier(BasePUClassifier):
     assumption = (Assumption.SCAR,)
     scenario = (Scenario.CASE_CONTROL,)
     requires_class_prior = True
+    class_prior_target = "native_unlabeled"
     implementation_status = ImplementationStatus.NATIVE
     source_status = SourceStatus.OFFICIAL_RELATED
     backend = Backend.TORCH
@@ -165,7 +166,7 @@ class GenPUClassifier(BasePUClassifier):
             raise NotImplementedError("GenPU does not implement sample_weight")
         prior = self.class_prior if class_prior is None else class_prior
         if prior is None or not np.isfinite(prior) or not 0 < prior < 1:
-            raise ValueError("GenPU requires population class_prior in (0, 1)")
+            raise ValueError("GenPU requires a risk-U class_prior in (0, 1)")
         if (
             self.class_prior is not None
             and class_prior is not None

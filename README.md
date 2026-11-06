@@ -15,6 +15,7 @@
 - **SCAR & SAR** -- constant and instance-dependent labeling mechanisms, with a data simulator
 - **Data profiling + recommender** -- automatic quality checks, SCAR/SAR evidence, and a 7-dimension scoring recommender that picks the method for your data
 - **Auditable pipeline** -- one-call `PUPipeline` (profile -> prior -> train -> PU-stratified CV -> evaluate) plus structured diagnostic reports and prior/propensity sensitivity analysis
+- **Composable PU research** -- OS and independent TS sampling, explicit prior targets, injectable experiment strategies, custom encoders, and recorded research settings ([guide](docs/user/howto/custom_experiments.md))
 - **Distribution-shift guardrails** -- OOF source/target drift audit, bounded covariate weights, overlap diagnostics, and a guarded `ShiftAwarePUPipeline`
 - **Deployment monitoring** -- resumable window alerts, coverage/rejection controls, and active-review exports in CLI and UI
 - **CLI** -- `pu-toolbox` turns the whole pipeline into terminal commands
@@ -51,13 +52,11 @@ Notes per environment:
 ### Hello World
 
 ```python
-import numpy as np
 from pu_toolbox.preprocessing import make_scar_dataset
 from pu_toolbox import PUPipeline
 
-# Synthetic SCAR data (labeling independent of features — the premise of
-# every class-prior estimator): some positives are labeled (1), the rest
-# are unlabeled (0). For SAR data use make_sar_dataset(mechanism="linear").
+# Synthetic OS data with SCAR labeling: each positive has the same labeling
+# probability. Observed labels are 1 (labeled positive) and 0 (unlabeled).
 X, y_pu, y_true = make_scar_dataset(
     n=500, c=0.5, n_features=8, separation=1.0, random_state=42,
 )
@@ -68,6 +67,12 @@ print(report.summary())
 ```
 
 Full docs (Chinese): [docs/README.md](docs/README.md). More runnable examples: [`examples/minimal/`](examples/minimal/).
+
+`PUPipeline` uses OS input sampling by default; independent P and population U
+use `input_sampling="ts"`. A supplied `class_prior` targets the population;
+the report records its source, conversions, and the value consumed by each
+training fold. See [prior semantics](docs/user/concepts/class_prior_semantics.md)
+and the [pipeline guide](docs/user/howto/pipeline.md).
 
 ## Command Line
 
@@ -104,21 +109,38 @@ Docs are split by audience; the full index is [`docs/README.md`](docs/README.md)
 | Entry | Content |
 |----------|---------|
 | [`docs/user/quickstart.md`](docs/user/quickstart.md) | 5-minute start (CLI + Python) |
-| [`docs/user/concepts/`](docs/user/concepts/) | PU problem, SCAR/SAR, method selection |
-| [`docs/user/howto/`](docs/user/howto/) | Task guides: simulation, profiling, pipeline, CLI, reports, sensitivity, distribution shift |
+| [`docs/user/concepts/`](docs/user/concepts/) | Sampling, SCAR/SAR, prior targets, PA/OA selection, representations, method choice |
+| [`docs/user/howto/`](docs/user/howto/) | Simulation, pipeline, DIY experiments, encoders, CLI, reports, sensitivity, distribution shift |
 | [`docs/user/reference/api.md`](docs/user/reference/api.md) | Precise API contract |
 | [`docs/dev/`](docs/dev/) | Contributor docs: architecture, structure, compatibility |
 | [`docs/dev/project_structure.md`](docs/dev/project_structure.md) | Source/data boundaries, local artifact retention, and scripts grouped by task |
 | [`docs/research/method_cards/`](docs/research/method_cards/) | Per-paper research cards |
 
+### Composable PU research
+
+From a repository checkout, explore the research workflow through these CPU examples:
+
+| Task | Guide | Runnable example |
+|---|---|---|
+| Construct OS and independent TS data | [Sampling](docs/user/howto/pu_sampling.md) | [15_pu_sampling.py](examples/minimal/15_pu_sampling.py) |
+| Trace known and estimated priors into training | [Prior targets](docs/user/concepts/class_prior_semantics.md) | [16_prior_targets.py](examples/minimal/16_prior_targets.py) |
+| Compare Bernoulli and fixed-count SAR policies | [SAR simulation](docs/user/howto/sar_simulation.md) | [17_sar_policies.py](examples/minimal/17_sar_policies.py) |
+| Train a custom encoder or use frozen features | [Custom encoders](docs/user/howto/custom_encoders.md) | [18_custom_encoders.py](examples/minimal/18_custom_encoders.py) |
+| Inject experiment strategies and select independently with PA/OA | [DIY experiments](docs/user/howto/custom_experiments.md) | [14_diy_experiment.py](examples/minimal/14_diy_experiment.py) |
+
+Experiment manifests describe sampling, labeling, risk pools, prior inputs and
+training consumption, supervision, and representations. Summary files, workbooks,
+and diagnostic cards carry readable settings; historical results retain their
+recorded identities. See the [reporting workflow](docs/research/pu_survey/runbook.md).
+
 ### PU Survey experiments
 
-Repository research experiments use dedicated scripts rather than the general
-`PUPipeline` workflow. Prepare reproducible four-way splits and inspect the
-Survey runner.
+Survey scripts run the repository's selected research settings through
+`ExperimentRunner`, with four data roles, independent PA/OA selection, and final
+test evaluation. Prepare reproducible four-way splits and inspect the runner.
 
-The separate LBE diagnostic uses `scripts/_lbe_diagnostic_reference.py` as an
-unregistered SCAR-constrained reference, not a replacement for source LBE.
+The LBE diagnostic uses `scripts/_lbe_diagnostic_reference.py` as a separate
+SCAR-constrained reference implementation.
 Inspect the commands with:
 
 ```bash
@@ -140,16 +162,18 @@ uv run python scripts/run_survey_experiment.py path/to/splits \
     --method lbe --labeling-mechanism sar_lbe_a --c 0.05,0.5
 ```
 
-Methods that require the population class prior take `--class-prior` for the
-gate plus their constructor arguments via `--model-params` (see `--help` and
-the script docstring for a uPU example). `--labeling-mechanism` selects how the
+Methods whose registry entry requires a prior take `--class-prior` at the run
+boundary and constructor arguments via `--model-params`. Interpret each parameter
+using its [prior target](docs/user/concepts/class_prior_semantics.md) and recorded
+training view; runnable configurations are in the
+[runbook](docs/research/pu_survey/runbook.md). `--labeling-mechanism` selects how the
 PU label view is generated (SCAR or the SAR LBE variants) and is orthogonal to
-`--method`: the mechanism is the experiment's independent variable, so SAR rows
-run any survey method and report OA only.
+`--method`: the mechanism is the experiment's independent variable. SAR rows
+report OA for methods supporting the selected mechanism.
 
-Until all protocol gates are satisfied, results must be identified as a
-`pilot / partial benchmark`. The protocol, execution status and reporting
-boundaries are in [`docs/research/pu_survey/`](docs/research/pu_survey/).
+Results carry their execution mode and eligibility status. The protocol,
+execution status, and reporting workflow are in
+[`docs/research/pu_survey/`](docs/research/pu_survey/).
 
 Supporting scripts (see each script's docstring and the Survey docs for scope and limits):
 
@@ -159,13 +183,12 @@ Supporting scripts (see each script's docstring and the Survey docs for scope an
 | Runs | `run_survey_pilot.py` (scope planning, execution and resume) |
 | Reporting | `summarize_survey_results.py`, `export_survey_results.py` (workbook, diagnostics and conclusions; needs the `report` extra), `_source_provenance.py` (internal code and environment identity helper) |
 | Recipes | `prepare_survey_recipe_registry.py`, `check_survey_recipe_registry.py` (validate a registry; CI checks the frozen lock) |
-| Independent image runs | `run_candidate_image_experiment.py` (PULDA/GradPU four-role PA/OA smoke, measured snapshots and replay; not formal Survey admission) |
+| Independent image runs | `run_candidate_image_experiment.py` (PULDA/GradPU four-role PA/OA smoke, measured snapshots and replay) |
 | Independent classical runs | `run_classical_candidate_experiment.py` (PUET/RP/KLDCE four-role training with explicit parameters and actual-cost receipts) |
-| Independent support runs | `run_clean_support_experiment.py` (Self-PU/LaGAM/PULNS extra-label audit; explicit Self-PU TS meta-checkpoints, not a formal recipe) |
+| Independent support runs | `run_clean_support_experiment.py` (Self-PU/LaGAM/PULNS extra-label audit and explicit Self-PU TS meta-checkpoints) |
 
-These scripts are technical checks and measurements. None of them approves
-candidates, budgets, formal splits or numeric verdicts, and the audit and summary scripts only write to their own `--out-dir`,
-never to a result tree.
+These scripts record technical checks and measurements. Reporting reads recorded
+results and writes artifacts to the selected `--out-dir`.
 
 ## AI workflow skill
 

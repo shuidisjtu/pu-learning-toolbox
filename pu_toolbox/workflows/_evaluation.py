@@ -10,6 +10,7 @@ from typing import Any
 import numpy as np
 
 from ..core.base import BasePUClassifier
+from ..core.validation import validate_input_sampling
 from ..metrics.classification import (
     average_precision,
     balanced_accuracy,
@@ -170,7 +171,10 @@ def compute_metric(
     y_true_fold: np.ndarray | None,
     prior: float | None,
     proba: np.ndarray | None = None,
+    *,
+    input_sampling: str = "os",
 ) -> tuple[float | None, str | None]:
+    validate_input_sampling(input_sampling)
     needs_scores, needs_prior, needs_y_true, needs_proba, _ = _METRIC_SPECS[name]
     if needs_scores and scores is None:
         return None, "score-based metric requires a decision function"
@@ -180,16 +184,25 @@ def compute_metric(
         return None, "supervised-oracle metric requires y_true"
     if needs_proba and proba is None:
         return None, "probabilistic metric requires predict_proba"
+    if needs_y_true and input_sampling == "ts":
+        mask = y_pu_fold == 0
+        pred = pred[mask]
+        y_true_fold = y_true_fold[mask]
+        scores = scores[mask] if scores is not None else None
+        proba = proba[mask] if proba is not None else None
     try:
         if name == "pu_zero_one_risk":
             # Zero-one risk evaluates the classifier's actual binary decision.
             # Raw decision scores are not guaranteed to use zero as their
             # prediction threshold (Elkan-Noto returns probability-scale scores).
-            return pu_zero_one_risk(y_pu_fold, pred, prior), None
+            return pu_zero_one_risk(y_pu_fold, pred, prior, input_sampling=input_sampling), None
         if name == "pu_recall":
             return pu_recall(y_pu_fold, pred), None
         if name == "pu_estimated_precision":
-            return pu_estimated_precision(y_pu_fold, pred, prior), None
+            return (
+                pu_estimated_precision(y_pu_fold, pred, prior, input_sampling=input_sampling),
+                None,
+            )
         if name == "pu_auc_roc":
             return pu_auc_roc(y_true_fold, scores), None
         if name == "pu_accuracy":

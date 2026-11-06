@@ -459,6 +459,14 @@ def build_cards(
             "native_view": native_view.get(method),
             "rows_used": len(rows),
             "excluded_rows": excluded.get(method, 0),
+            "research_settings_summaries": sorted(
+                {
+                    summary
+                    for row in everything
+                    if row["row_key"]["method"] == method
+                    for summary in row.get("research_settings_summaries", [])
+                }
+            ),
             "signals": {
                 "mechanism_scar_to_sar": _mechanism(rows),
                 "view_os_ts": _views(rows, native_view.get(method)),
@@ -513,6 +521,11 @@ def render_cards(cards: Mapping[str, Mapping[str, Any]]) -> str:
             f"已用行 {card['rows_used']}，已排除行 {card['excluded_rows']}。",
             "",
         ]
+        for summary in card.get("research_settings_summaries", []):
+            text = summary.replace("|", "\\|").replace("\r\n", "\n")
+            lines.append("- 研究设置：" + text.replace("\r", "\n").replace("\n", "<br>"))
+        if card.get("research_settings_summaries"):
+            lines.append("")
         for signal in SIGNALS:
             items = card["signals"][signal]
             flagged = [item for item in items if item["flag"]]

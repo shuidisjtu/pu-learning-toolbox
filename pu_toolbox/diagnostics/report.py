@@ -14,6 +14,7 @@ from scipy import sparse
 from sklearn.exceptions import NotFittedError
 
 from pu_toolbox.core.labels import normalize_pu_labels
+from pu_toolbox.core.validation import validate_input_sampling
 from pu_toolbox.metrics import (
     pu_accuracy,
     pu_auc_roc,
@@ -294,6 +295,7 @@ def _build_metrics(
     scores: np.ndarray | None,
     y_true: np.ndarray | None,
     class_prior: float | None,
+    input_sampling: str,
 ) -> dict[str, DiagnosticMetric]:
     no_predictions = "Predictions were not supplied."
     no_truth = "Audited true labels were not supplied."
@@ -326,16 +328,22 @@ def _build_metrics(
         precision = risk = _unavailable(reason)
     else:
         precision = _metric(
-            pu_estimated_precision(y_pu, predictions, class_prior),
+            pu_estimated_precision(y_pu, predictions, class_prior, input_sampling=input_sampling),
             "class_prior_dependent",
         )
         signed_predictions = np.where(predictions == 1, 1.0, -1.0)
         risk = _metric(
-            pu_zero_one_risk(y_pu, signed_predictions, class_prior),
+            pu_zero_one_risk(y_pu, signed_predictions, class_prior, input_sampling=input_sampling),
             "class_prior_dependent",
         )
 
-    if y_true is None:
+    if y_true is not None and input_sampling == "ts":
+        population_mask = y_pu == 0
+        y_true = y_true[population_mask]
+        predictions = predictions[population_mask] if predictions is not None else None
+        scores = scores[population_mask] if scores is not None else None
+        finite_scores = scores is not None and np.isfinite(scores).all()
+    if y_true is None or len(y_true) == 0:
         accuracy = f1 = auc = _unavailable(no_truth)
     else:
         accuracy = (
@@ -379,6 +387,7 @@ def build_diagnostic_report(
     scores: np.ndarray | None = None,
     y_true: np.ndarray | None = None,
     class_prior: float | None = None,
+    input_sampling: str = "os",
     random_state: int | None = 42,
     profile: PUDataProfile | None = None,
     **profile_kwargs: Any,
@@ -393,7 +402,10 @@ def build_diagnostic_report(
     Higher-order tensor inputs (``X.ndim > 2``, e.g. 4-D NCHW images) are
     profiled on a flattened ``(n_samples, -1)`` view; estimator scoring
     still receives the raw ``X`` so deep vision encoders keep NCHW tensors.
+    ``input_sampling`` selects the population evaluation pool: all rows for
+    OS, native U for independent TS. ``class_prior`` targets that population.
     """
+    validate_input_sampling(input_sampling)
     if estimator is not None and (y_pred is not None or scores is not None):
         raise ValueError("estimator cannot be combined with explicit y_pred or scores.")
     if sparse.issparse(X):
@@ -410,6 +422,7 @@ def build_diagnostic_report(
             y_pu,
             y_true=y_true,
             class_prior=class_prior,
+            input_sampling=input_sampling,
             random_state=random_state,
             **profile_kwargs,
         )
@@ -499,6 +512,7 @@ def build_diagnostic_report(
         score_values,
         audited_truth,
         class_prior,
+        input_sampling,
     )
     model = {
         "input_mode": input_mode,

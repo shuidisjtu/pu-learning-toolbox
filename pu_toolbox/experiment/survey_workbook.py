@@ -69,6 +69,7 @@ _RESULT_COLUMNS: tuple[str, ...] = (
     "峰值显存(GiB)",
     "状态",
     "reasons",
+    "研究设置",
 )
 
 _COVERAGE_COLUMNS: tuple[str, ...] = (
@@ -85,6 +86,7 @@ _COVERAGE_COLUMNS: tuple[str, ...] = (
     "应有 seed 数",
     "缺失 seed",
     "reasons",
+    "研究设置",
 )
 
 _CONCLUSION_COLUMNS: tuple[str, ...] = (
@@ -227,6 +229,7 @@ def _result_cells(row: Mapping[str, Any], costs: Mapping[str, Any]) -> list[Any]
         None if peak is None else peak / 1024**3,
         _PARTIAL_STATUS if row["status"] == "partial" else row["status"],
         ", ".join(row["reasons"]),
+        "\n".join(row.get("research_settings_summaries", [])),
     ]
 
 
@@ -246,6 +249,7 @@ def _coverage_cells(row: Mapping[str, Any]) -> list[Any]:
         metric["n_expected"],
         ", ".join(str(seed) for seed in metric["missing_seeds"]),
         ", ".join(row["reasons"]),
+        "\n".join(row.get("research_settings_summaries", [])),
     ]
 
 

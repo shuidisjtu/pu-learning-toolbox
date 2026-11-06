@@ -51,6 +51,7 @@
 → [api.md §数据生成](api.md#数据生成)
 
 - `make_sar_propensity`、`make_sar_labels`、`make_sar_dataset`、`make_scar_dataset`
+- `make_fixed_count_labels`、`make_pu_labels`、`make_gaussian_case_control_data`：同池定额与独立 TS
 
 ## 错误与异常
 

@@ -33,6 +33,12 @@ from pu_toolbox.preprocessing.pu_labeling import (
     make_case_control_labels as make_case_control_labels,
 )
 from pu_toolbox.preprocessing.pu_labeling import (
+    make_fixed_count_labels as make_fixed_count_labels,
+)
+from pu_toolbox.preprocessing.pu_labeling import (
+    make_gaussian_case_control_data as make_gaussian_case_control_data,
+)
+from pu_toolbox.preprocessing.pu_labeling import (
     make_gaussian_pu_data as make_gaussian_pu_data,
 )
 from pu_toolbox.preprocessing.pu_labeling import (
@@ -70,6 +76,8 @@ __all__ = [
     "SAR_MECHANISMS",
     "SARMechanism",
     "make_case_control_labels",
+    "make_fixed_count_labels",
+    "make_gaussian_case_control_data",
     "make_gaussian_pu_data",
     "make_pnu_labels",
     "make_pu_labels",

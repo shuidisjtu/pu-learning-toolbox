@@ -65,7 +65,7 @@ class NonNegativePUClassifier(BasePUClassifier):
         on the encoder; otherwise a default ``nn.Linear(rep_dim, 1)``
         head is created.  ``encoder=None`` keeps the original behaviour.
     class_prior : float or None, default None
-        Class prior π = P(y=1).  Must be in (0, 1).  Can also be
+        Positive prior in native U for the default risk view, in (0, 1). Can also be
         supplied (or overridden) via :meth:`fit`.
     loss : {"sigmoid"}, default "sigmoid"
         Surrogate loss.  MVP only supports sigmoid.
@@ -115,6 +115,7 @@ class NonNegativePUClassifier(BasePUClassifier):
     assumption: tuple[Assumption, ...] = (Assumption.SCAR,)
     scenario: tuple[Scenario, ...] = (Scenario.CASE_CONTROL,)
     requires_class_prior: bool = True
+    class_prior_target = "native_unlabeled"
     implementation_status: ImplementationStatus = ImplementationStatus.NATIVE
     source_status: SourceStatus = SourceStatus.OFFICIAL_EXACT
     backend: Backend = Backend.TORCH

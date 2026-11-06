@@ -49,7 +49,7 @@ class TestPipelineBasic:
 
         # Strict JSON serialization: parseable, no NaN literals.
         payload = json.loads(report.to_json())
-        assert payload["schema_version"] == "1.0"
+        assert payload["schema_version"] == "1.1"
         assert set(payload["cv_metrics"]) == set(DEFAULT_METRICS)
         assert payload["prior"]["source"] == "estimated"
         assert payload["cv_metrics"]["pu_recall"]["n_computed"] == 5
@@ -88,7 +88,9 @@ class TestPipelineBasic:
         pipe = PUPipeline(classifier=UPUClassifier(class_prior=0.4))
         report = pipe.fit_evaluate(X, y_pu)
         assert report.prior.source == "constructor"
-        assert report.prior.value == pytest.approx(0.4)
+        q = np.mean(y_pu == 1)
+        assert report.prior.value == pytest.approx(q + (1 - q) * 0.4)
+        assert report.final_model._class_prior == pytest.approx(0.4)
         assert report.provenance["classifier_mode"] == "instance"
 
 
@@ -251,7 +253,7 @@ class TestPipelineProvenanceE2E:
             max_epochs=1,
             random_state=42,
             device="cpu",
-        ).fit_evaluate(X, y_pu, class_prior=0.3, refit=False)
+        ).fit_evaluate(X, y_pu, class_prior=0.5, refit=False)
         p = report.provenance
         assert p["architecture"] == "native_cnn"
         assert p["backbone"] == "cnn13"

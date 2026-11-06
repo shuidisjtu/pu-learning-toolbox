@@ -19,7 +19,7 @@ from sklearn.metrics import (
 
 from pu_toolbox.core.config import POSITIVE_LABEL, UNLABELED_LABEL
 from pu_toolbox.core.labels import normalize_pu_labels
-from pu_toolbox.core.validation import check_scalar_in_range
+from pu_toolbox.core.validation import check_scalar_in_range, validate_input_sampling
 
 __all__ = [
     "pu_zero_one_risk",
@@ -41,13 +41,16 @@ def pu_zero_one_risk(
     y_pu: np.ndarray,
     scores: np.ndarray,
     class_prior: float,
+    *,
+    input_sampling: str = "ts",
 ) -> float:
     """PU zero-one validation risk (du Plessis et al., 2015, Eq. 2).
 
     R = 2π · FNR_P + FPR_U − π
 
     where FNR_P = fraction of positives with score ≤ 0,
-    FPR_U = fraction of unlabeled with score > 0.
+    FPR_U = positive prediction rate in the population pool: all input
+    rows for OS, native U for independent TS.
 
     Parameters
     ----------
@@ -60,12 +63,15 @@ def pu_zero_one_risk(
         ``predict`` output rather than its raw decision values.
     class_prior : float
         True class prior π = P(y=1), in (0, 1).
+    input_sampling : {"os", "ts"}, default "ts"
+        Input design. The default retains the historical native-U formula.
 
     Returns
     -------
     float
         The estimated zero-one risk. Can be negative in finite samples.
     """
+    validate_input_sampling(input_sampling)
     y_pu = normalize_pu_labels(np.asarray(y_pu))
     scores = np.asarray(scores, dtype=float)
     if len(y_pu) != len(scores):
@@ -83,7 +89,8 @@ def pu_zero_one_risk(
         return np.inf
 
     fnr_p = float(np.mean(scores_p <= 0.0))
-    fpr_u = float(np.mean(scores_u > 0.0))
+    population_scores = scores if input_sampling == "os" else scores_u
+    fpr_u = float(np.mean(population_scores > 0.0))
     return 2.0 * class_prior * fnr_p + fpr_u - class_prior
 
 
@@ -124,6 +131,8 @@ def pu_estimated_precision(
     y_pu: np.ndarray,
     y_pred: np.ndarray,
     class_prior: float,
+    *,
+    input_sampling: str = "os",
 ) -> float:
     """Estimate precision using the class prior.
 
@@ -139,6 +148,9 @@ def pu_estimated_precision(
         Predicted binary labels (positive vs. non-positive).
     class_prior : float
         True class prior π = P(y=1), in (0, 1).
+    input_sampling : {"os", "ts"}, default "os"
+        OS uses all input rows for the positive prediction rate; independent
+        TS uses native U. The default retains the historical OS formula.
 
     Returns
     -------
@@ -146,6 +158,7 @@ def pu_estimated_precision(
         Estimated precision, in [0, 1].  Returns 0.0 when no sample is
         predicted positive.
     """
+    validate_input_sampling(input_sampling)
     y_pu = normalize_pu_labels(np.asarray(y_pu))
     y_pred = np.asarray(y_pred)
     if len(y_pu) != len(y_pred):
@@ -155,7 +168,10 @@ def pu_estimated_precision(
     check_scalar_in_range(class_prior, 0.0, 1.0, "class_prior", inclusive=False)
 
     recall = pu_recall(y_pu, y_pred)
-    predicted_positive_rate = float(np.mean(y_pred == POSITIVE_LABEL))
+    population_predictions = y_pred if input_sampling == "os" else y_pred[y_pu == UNLABELED_LABEL]
+    if len(population_predictions) == 0:
+        return 0.0
+    predicted_positive_rate = float(np.mean(population_predictions == POSITIVE_LABEL))
     if predicted_positive_rate == 0.0:
         return 0.0
 

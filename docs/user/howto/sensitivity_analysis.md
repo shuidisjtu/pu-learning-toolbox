@@ -3,9 +3,8 @@
 > 前置条件：先完成 [快速开始](../quickstart.md) 与 [PUPipeline 端到端训练评估](pipeline.md)。
 > 概念：观测恒等式 $`q=\pi\bar c`$ 与不可识别性见 [concepts/pu_problem.md](../concepts/pu_problem.md)。
 
-`analyze_pu_sensitivity` 用于回答一个有限但重要的问题：当同一组模型输出面对不同的
-类先验或平均标记倾向假设时，依赖这些假设的 PU 指标会如何变化，以及这些假设是否与
-观测标记率相容。它不会训练模型，也不会声称从 PU 数据中同时识别类先验和 propensity。
+`analyze_pu_sensitivity` 固定模型输出，扫描 OS 总体先验和平均标记倾向，计算 PU 指标
+及其与观测标记率的相容性。
 
 ## 1. 基本使用
 
@@ -36,6 +35,9 @@ print(analysis.metric_ranges)
 
 ## 2. 保存与实验记录
 
+本接口使用 OS 完整输入池估计总体风险项；`class_priors` 对应总体先验。
+零一风险为 `2*pi*mean_P(score<=0) + mean_all(score>0) - pi`。
+
 ```python
 analysis.save("artifacts/sensitivity.json")
 analysis.save("artifacts/sensitivity.md")
@@ -47,18 +49,14 @@ region、指标区间与 provenance；Markdown 适合附在实验报告中。
 
 ## 3. 正确解读
 
-该接口是 **fixed-output assumption sensitivity**：模型预测保持不变，只审计评价指标和
-`q=\pi\bar c` 的代数一致性。它适合训练后报告、类先验估计器对比和配置排错，但不能
-支持“训练算法对先验误设稳健”的结论。
-
-若要做后者，必须固定 split 和 seed 集合，在每个 $`\pi`$ 或 propensity 假设下重新拟合
-模型，保存逐 seed 结果并报告均值、标准差和失败率。那属于 paper-like benchmark，不能
-与本接口生成的固定输出曲线混写。
+固定输出曲线展示指标对假设的敏感性，适合训练后报告、先验设置对比和配置排错。
+训练稳健性研究则固定 split/seed，在每个先验设置下重新拟合，并报告多 seed 均值、
+标准差与失败率。
 
 完整可运行示例：
 
 ```bash
-python examples/minimal/09_sensitivity_analysis.py
+uv run python examples/minimal/09_sensitivity_analysis.py
 ```
 
 ## 下一步
