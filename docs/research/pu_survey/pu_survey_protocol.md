@@ -152,6 +152,11 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
    > - SAR 下 PA 仅可作为诊断日志，正式模型选择及结论只使用 OA；
    > - 所有算法可在通过输入/训练门禁后参加 SAR OA 测试，但须按其原生假设是否匹配 SAR
    >   标为"原生适用"或"假设违背鲁棒性"。
+   > - **本轮实现口径**：上述许可是原则性的；当前 v3.2 以
+   >   `method_profiles[*].labeling_mechanisms` 实际绑定机制，未声明该字段的方法才展开 SAR
+   >   轴。`kldce`、`lagam`、`pulns`、`self_pu_full_meta` 钉在 `["scar"]`，本轮未进入
+   >   SAR；实际参加 SAR--OA 的是其余 18 个方法（`pn_oracle` 为 oracle 基线，不占机制轴，
+   >   原生标注为 SAR 的是 `lbe`、`pusb_kernel` 与 `gradpu`）。
 
 ### 2.4 训练集、验证集、测试集划分
 
