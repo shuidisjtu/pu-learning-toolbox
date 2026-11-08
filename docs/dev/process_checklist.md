@@ -48,6 +48,13 @@ S1/S2 已按失败回归驱动完成实现；旧同池入口保留输出与随�
 设计与扩展方式见[实验层设计](experiment_layer.md)，操作链见
 [运行指南](../research/pu_survey/runbook.md)。
 
+- **clean-support 覆盖扩展（2026-11-08）**：`survey-v3.2` revision
+  `2026-11-08-clean-support-coverage` 将 PULNS/LaGAM/Self-PU full-meta 的 support 覆盖扩到
+  IMDB、20News、ADNI（共 8 个数据集），文本从冻结 split 的 SBERT 特征 carve，ADNI 记录
+  `group_policy="unverifiable"` 与 owner approval；配方注册表升至
+  `survey-recipes-v1.3`。代码与定向测试已完成；正式按 seed × c 训练待外部 GPU 主机执行，
+  不作为已完成实验证据。
+
 发布前检查：
 
 - 公共 API 不读取 Survey 配置或项目历史文档；自定义策略仍可注入。

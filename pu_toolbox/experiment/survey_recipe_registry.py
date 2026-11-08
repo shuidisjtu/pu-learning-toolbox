@@ -397,7 +397,11 @@ _LEGACY_UNBOUND_QUESTION = (
 )
 
 
-def build_locked_registry(protocol: Mapping[str, Any]) -> dict[str, Any]:
+def build_locked_registry(
+    protocol: Mapping[str, Any],
+    *,
+    recipe_registry_version: str = "survey-recipes-v1.2",
+) -> dict[str, Any]:
     """Freeze the draft: runnable profiles lock, every other profile stays excluded.
 
     This is the scope the owner set on 2026-10-25 (plan D35's neighbour in the
@@ -411,7 +415,7 @@ def build_locked_registry(protocol: Mapping[str, Any]) -> dict[str, Any]:
     signatures, so the record of who approved the scope lives in the freeze
     document rather than being implied by an empty ``reviewers`` list.
     """
-    registry = build_draft_registry(protocol, recipe_registry_version="survey-recipes-v1.2")
+    registry = build_draft_registry(protocol, recipe_registry_version=recipe_registry_version)
     registry["recipe_lifecycle"] = "locked"
     for profile in registry["profiles"].values():
         if profile["recipe_lifecycle"] == "excluded":

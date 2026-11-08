@@ -56,10 +56,12 @@ class _IndependentSupportTrainer(Trainer):
     """Shared extra-label audit; subclasses provide the actual training path.
 
     ``support`` is a clean DatasetPart with stable global sample IDs. Groups
-    must be supplied for every role when subject/duplicate groups exist. For
-    ADNI, unknown subject identity blocks this adapter, not just the report.
-    ``prior_estimation_indices=[]`` explicitly declares no data-based prior
-    estimation; otherwise its independent sample IDs are audited as a role.
+    must be supplied for every role when subject/duplicate groups exist. ADNI
+    has no subject IDs in the reviewed substitute source, so the only admitted
+    policies are ``grouped`` (when IDs exist) and ``unverifiable`` (record the
+    uncheckable subject isolation and the owner approval; never claim it was
+    verified). ``prior_estimation_indices=[]`` explicitly declares no data-based
+    prior estimation; otherwise its independent sample IDs are audited as a role.
     """
 
     method_name = "pulns"
@@ -87,6 +89,10 @@ class _IndependentSupportTrainer(Trainer):
         original_role_counts=None,
         support_source_verified=False,
         support_source_receipt=None,
+        group_policy_reason=None,
+        subject_isolation=None,
+        known_risks=None,
+        owner_approval=None,
     ):
         self.support = support
         self.dataset = dataset
@@ -102,6 +108,10 @@ class _IndependentSupportTrainer(Trainer):
         self.original_role_counts = original_role_counts
         self.support_source_verified = support_source_verified
         self.support_source_receipt = support_source_receipt
+        self.group_policy_reason = group_policy_reason
+        self.subject_isolation = subject_isolation
+        self.known_risks = known_risks
+        self.owner_approval = owner_approval
 
     def validate_experiment(self, model, bundle, config, protocols):
         """Validate actual runner role identities before spending any budget."""
@@ -154,12 +164,48 @@ class _IndependentSupportTrainer(Trainer):
         if len(roles["support"]) != len(X):
             raise ValueError("support IDs must match feature rows")
         _disjoint(roles)
-        if self.group_policy not in ("not_applicable", "grouped"):
-            raise ValueError("group_policy must explicitly declare not_applicable or grouped")
-        if self.dataset == "adni" and self.group_policy != "grouped":
+        if self.group_policy not in ("not_applicable", "grouped", "unverifiable"):
             raise ValueError(
-                "ADNI requires subject/group isolation; unknown groups block execution"
+                "group_policy must explicitly declare not_applicable, grouped or unverifiable"
             )
+        if self.dataset == "adni":
+            if self.group_policy == "not_applicable":
+                raise ValueError(
+                    "ADNI requires group_policy='unverifiable' or 'grouped'; "
+                    "the substitute source has no subject IDs"
+                )
+            if self.group_policy == "unverifiable":
+                if self.group_policy_reason != "source_has_no_subject_ids":
+                    raise ValueError(
+                        "ADNI unverifiable support requires group_policy_reason="
+                        "'source_has_no_subject_ids'"
+                    )
+                if self.subject_isolation != "not_checkable":
+                    raise ValueError(
+                        "ADNI unverifiable support requires subject_isolation='not_checkable'"
+                    )
+                if not isinstance(self.known_risks, list | tuple) or not self.known_risks:
+                    raise ValueError("ADNI unverifiable support requires its known risks")
+                if any(not isinstance(risk, str) or not risk.strip() for risk in self.known_risks):
+                    raise ValueError("ADNI known risks must be non-empty strings")
+                if not isinstance(self.owner_approval, str) or not self.owner_approval.strip():
+                    raise ValueError("ADNI unverifiable support requires the owner approval id")
+                if self.role_groups is not None:
+                    raise ValueError("unverifiable group policy cannot carry group IDs")
+        elif self.group_policy == "unverifiable":
+            raise ValueError("unverifiable group policy is reserved for the ADNI subject gap")
+        if self.group_policy_reason is not None and (
+            not isinstance(self.group_policy_reason, str) or not self.group_policy_reason.strip()
+        ):
+            raise ValueError("group_policy_reason must be a non-empty string or None")
+        if self.subject_isolation is not None and (
+            not isinstance(self.subject_isolation, str) or not self.subject_isolation.strip()
+        ):
+            raise ValueError("subject_isolation must be a non-empty string or None")
+        if self.owner_approval is not None and (
+            not isinstance(self.owner_approval, str) or not self.owner_approval.strip()
+        ):
+            raise ValueError("owner_approval must be a non-empty string or None")
         group_digest = None
         if self.group_policy == "grouped":
             if not isinstance(self.role_groups, dict) or set(self.role_groups) != set(roles):
@@ -170,7 +216,7 @@ class _IndependentSupportTrainer(Trainer):
             _disjoint(groups)
             group_digest = canonical_hash(groups)
         elif self.role_groups is not None:
-            raise ValueError("group IDs cannot be ignored under not_applicable")
+            raise ValueError("group IDs cannot be carried by this group policy")
         if type(self.support_removed_from_train) is not bool:
             raise ValueError("support_removed_from_train must be an explicit bool")
         pool_roles = (*ROLES, "prior_estimation")
@@ -272,9 +318,26 @@ class _IndependentSupportTrainer(Trainer):
             "per_role_ids_sha256": {name: canonical_hash(ids) for name, ids in roles.items()},
             "support_sha256": self._support_digest,
             "group_policy": self.group_policy,
+            "group_policy_reason": self.group_policy_reason,
+            "subject_isolation": (
+                self.subject_isolation
+                if self.subject_isolation is not None
+                else {
+                    "grouped": "group_disjointness_verified",
+                    "unverifiable": "not_checkable",
+                }.get(self.group_policy, "not_applicable")
+            ),
+            "subject_isolation_verified": self.group_policy == "grouped",
+            "known_risks": list(self.known_risks or ()),
+            "owner_approval": self.owner_approval,
             "group_ids_sha256": group_digest,
-            "isolation_status": "all_role_ids_disjoint",
-            "all_role_isolation_verified": True,
+            "isolation_status": (
+                "all_role_ids_disjoint"
+                if self.group_policy != "unverifiable"
+                else "sample_ids_disjoint_subject_isolation_unverifiable"
+            ),
+            "sample_identity_isolation_verified": True,
+            "all_role_isolation_verified": self.group_policy != "unverifiable",
             "identity_scope": (
                 "caller-provided stable IDs; alias IDs for duplicates require group audit"
             ),

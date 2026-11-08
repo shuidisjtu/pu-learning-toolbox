@@ -435,6 +435,14 @@ def _row(key: tuple, entries: list, seeds: Sequence[int], cost_id: str) -> dict[
         "source_protocol_versions": sorted(
             {item["payload"]["protocol_version"] for item in entries}
         ),
+        "protocol_revision": payload.get("protocol_revision"),
+        "source_protocol_revisions": sorted(
+            {
+                item["payload"]["protocol_revision"]
+                for item in entries
+                if item["payload"].get("protocol_revision")
+            }
+        ),
         "comparison_by_seed": {
             str(item["payload"]["seed"]): _comparison_evidence(item["payload"]) for item in usable
         },
@@ -634,12 +642,23 @@ def build_summary(
             }
         )
     versions = sorted({item["protocol_version"] for item in sources if "protocol_version" in item})
+    revisions = sorted(
+        {
+            item["protocol_revision"]
+            for item in sources
+            if isinstance(item.get("protocol_revision"), str) and item["protocol_revision"]
+        }
+    )
     return {
         "schema_version": "survey-summary-1",
         "generated_at": None,
         "protocol_version": versions[0] if len(versions) == 1 else "mixed-v3-results",
+        "protocol_revision": (
+            revisions[0] if len(revisions) == 1 else ("mixed-v3-revisions" if revisions else None)
+        ),
         "protocol_sha256": None,
         "source_protocol_versions": versions,
+        "source_protocol_revisions": revisions,
         "metric_unit": "fraction",
         "report_mode": "read_only_results",
         "admission_status": "partial",

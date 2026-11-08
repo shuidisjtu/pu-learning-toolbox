@@ -47,7 +47,7 @@ def test_basic_classical_image_scope_covers_all_dataset_seed_and_mechanism_cells
 def test_determ_current_registry_preserves_classical_image_budgets_and_pending_review():
     protocol_path = resolve_protocol_path("survey-v3.2")
     p = load_protocol(protocol_path)
-    registry = load_registry(protocol_path.with_name("survey_recipe_registry_v1_2.json"))
+    registry = load_registry(protocol_path.with_name("survey_recipe_registry_v1_3.json"))
     assert not validate_registry(registry, p)
     assert p["review_status"] == "pending_collaborator_review" and p["formal_blockers"]
     for method in ("puet", "rp"):
@@ -81,7 +81,7 @@ def test_basic_real_resnet_classical_cli_and_exact_budget(
         json.dumps({"dataset": dataset, "seed": 0, "class_prior": {"population": 0.5}})
     )
     output = tmp_path / "out"
-    registry = resolve_protocol_path("survey-v3.2").with_name("survey_recipe_registry_v1_2.json")
+    registry = resolve_protocol_path("survey-v3.2").with_name("survey_recipe_registry_v1_3.json")
     args = [
         str(data),
         "--method",
@@ -112,7 +112,7 @@ def test_basic_real_resnet_classical_cli_and_exact_budget(
     assert code == 0, captured.err + captured.out
     m = json.loads(next(output.rglob("manifest.json")).read_text())
     assert m["protocol_version"] == "survey-v3.2"
-    assert m["recipe_registry_version"] == "survey-recipes-v1.2"
+    assert m["recipe_registry_version"] == "survey-recipes-v1.3"
     assert set(m["test_results"]) == ({"PA", "OA"} if mechanism == "scar" else {"OA"})
     assert not m["failures"] and not m["formal_eligible"]
     assert m["run_view"] == ("ts-compatible" if method == "puet" else "os-compatible")

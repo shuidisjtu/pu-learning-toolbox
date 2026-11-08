@@ -9,7 +9,8 @@
 uv sync --python 3.11 --extra dev --extra torch --extra report
 ```
 
-新运行使用 `survey-v3.2`；旧 v3 产物按其原始记录只读汇总，不重新解释为新运行。
+新运行使用 `survey-v3.2`（revision `2026-11-08-clean-support-coverage`）和
+`survey-recipes-v1.3`；旧 v3 产物按其原始记录只读汇总，不重新解释为新运行。
 
 ## 准备四路数据
 
@@ -25,13 +26,24 @@ uv run python scripts/prepare_survey_splits.py --datasets spambase --seeds 0,1,2
 NPZ 含真实标签和互斥的全局 indices；PU 标签由生成器在训练时生成。
 先验来自 split 的 `class_prior.population`，不从测试集反推。
 
-PULNS、LaGAM、Self-PU full-meta 使用独立 clean support。例如：
+PULNS、LaGAM、Self-PU full-meta 使用独立 clean support。Tabular/图像数据集从
+reviewed raw reader 重建；IMDB、20News、ADNI 从冻结 split 直接 carve：
 
 ```powershell
-uv run python scripts/prepare_clean_support.py --dataset spambase --seed 0 --support-size 100 --support-seed 0 --group-policy not_applicable --raw-dir data/raw --out-dir data/clean-support/spambase/split_0 --write
+# 原有五个数据集：raw reader
+uv run python scripts/prepare_clean_support.py --dataset spambase --seed 0 --support-size 100 --group-policy not_applicable --raw-dir data/raw --out-dir data/clean-support/spambase/split_0 --write
+
+# 文本：冻结 split 的 SBERT 特征
+uv run python scripts/prepare_clean_support.py --dataset imdb --split-dir data/splits/imdb/split_0 --seed 0 --support-size 500 --group-policy not_applicable --out-dir data/clean-support/imdb/split_0 --write
+
+# ADNI：冻结 split 的原始图像，必须显式记录 subject 隔离缺口
+uv run python scripts/prepare_clean_support.py --dataset adni --split-dir data/splits/adni/split_0 --seed 0 --support-size 500 --group-policy unverifiable --owner-approval approved_by_protocol_owner_20261108 --out-dir data/clean-support/adni/split_0 --write
 ```
 
-support 与其他四角色互斥。Spambase 使用 100 个，Connect-4/MNIST/F-MNIST/CIFAR-10 使用 500 个；输出目录须尚不存在。去掉 `--write` 可预览。
+support 与其他四角色互斥。Spambase 使用 100 个，其余数据集使用 500 个。
+`support_seed` 必须等于 `--seed`，省略时为 `--seed`；显式传入不一致的值会被拒绝。
+输出目录须尚不存在；去掉 `--write` 可预览。ADNI 的 `unverifiable` 只表示 subject
+隔离不可核验，不是已验证隔离。
 
 ## 执行官方示例
 
@@ -44,7 +56,7 @@ uv run python scripts/check_survey_recipe_registry.py --require-present --requir
 执行一个已有 split 的单元：
 
 ```powershell
-uv run python scripts/run_survey_experiment.py data/splits/spambase/split_0 --protocol survey-v3.2 --recipe-registry pu_toolbox/experiment/survey_recipe_registry_v1_2.json --dataset spambase --method upu --training-path native_2d --labeling-mechanism scar --seeds 0 --c 0.1 --class-prior 0.3940447729 --device cpu --out-dir results/example
+uv run python scripts/run_survey_experiment.py data/splits/spambase/split_0 --protocol survey-v3.2 --recipe-registry pu_toolbox/experiment/survey_recipe_registry_v1_3.json --dataset spambase --method upu --training-path native_2d --labeling-mechanism scar --seeds 0 --c 0.1 --class-prior 0.3940447729 --device cpu --out-dir results/example
 ```
 
 上述先验仅示例当前 Spambase；执行时使用自己 split 中的 `class_prior.population`。
@@ -55,7 +67,7 @@ PN oracle 使用 `--oracle` 替代 `--method upu` 并去掉 `--class-prior`，�
 确定性网格运行与续跑沿用现有批量入口：
 
 ```powershell
-uv run python scripts/run_survey_pilot.py --protocol survey-v3.2 --recipe-registry pu_toolbox/experiment/survey_recipe_registry_v1_2.json --splits data/splits --results results/example-grid --datasets spambase --methods upu --device cpu --dry-run
+uv run python scripts/run_survey_pilot.py --protocol survey-v3.2 --recipe-registry pu_toolbox/experiment/survey_recipe_registry_v1_3.json --splits data/splits --results results/example-grid --datasets spambase --methods upu --device cpu --dry-run
 ```
 
 核对输出后去掉 `--dry-run`。可通过 `--datasets`、`--methods`、`--training-paths` 收窄范围，`--plan-json` 保存计划。重新执行同一请求会按实际完成的 manifest 跳过；`--keep-going` 允许记录失败后继续。需要 support 的方法须提供 `--support-root`。

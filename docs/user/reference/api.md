@@ -1920,10 +1920,13 @@ SCAR OS，要求 runner 配置正整数 `checkpoint_bytes_per_component`；选�
 完成 episode 的 classifier（不含 reward probe），记录 `captured_episodes`；
 同一 CLI 的 `--method pulns --selection-scope meta_checkpoints` 显式启用。
 
-`pu_toolbox.experiment.support_data.prepare_support_dataset` 从原始数组按显式预算准备
-独立支持集，重新拟合剩余 train 的预处理；`save_support_dataset` 仅写新目录，
-`load_support_dataset` 核对五角色、抽样、文件和收据。支持五个非文本/非分组数据集；
-原始来源真实性须由调用方保证。
+`pu_toolbox.experiment.support_data.prepare_support_dataset` 从 reviewed 原始数组按显式预算
+准备独立支持集，重新拟合剩余 train 的预处理；`prepare_support_from_split` 从冻结四路 split
+直接 carve，供文本与 ADNI 使用（文本保留 pinned SBERT 特征，图像保留原始 uint8）。
+`save_support_dataset` 仅写新目录，`load_support_dataset` 核对五角色、抽样、文件和收据。
+支持全部八个数据集；`support_seed` 必须等于 split seed（`support_seed_policy` 显式记录）。
+ADNI 只接受 `group_policy="unverifiable"`，记录 `subject_isolation="not_checkable"`、
+已知风险和 owner approval；它不是已验证的 subject 隔离。原始来源真实性须由调用方保证。
 
 制品另有 support_origin/完整原角色计数/未核验来源声明；实验入口按构造签名完整转发
 新审核分支的四个来源参数。旧 main 的制品层审计不冒充原生 adapter 审计，部分新契约拒绝。

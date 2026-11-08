@@ -202,7 +202,7 @@ pu_toolbox/
     deployment.py                         (部署监控与主动复核: analyze_deployment_window 无 UI 依赖 + render_deployment_tools 面板)
   experiment/                             # 公共实验层：四角色、PA/OA、独立测试、只读结果汇总与报告
     cvir_adapter.py                       # 显式 alpha_U OS 与总体 pi/视图先验换算的独立 CVIR 接线
-    pulns_adapter.py                      # 额外 clean support 的全角色/分组隔离、预算与终点 OA 门禁
+    pulns_adapter.py                      # 额外 clean support 的全角色/分组隔离、预算与终点 OA 门禁（ADNI 记 unverifiable）
     __init__.py                           (公共导出: ExperimentRunner/DatasetBundle/策略类/资源汇总/select_threshold)
     bundle.py                             (四路数据合约: DatasetPart/DatasetBundle/validate_bundle)
     datasets.py                           (survey 八数据集映射、官方/派生 test 策略与确定性四路切分)
@@ -232,7 +232,7 @@ pu_toolbox/
     survey_diagnostics.py                 # 方法诊断卡: 汇总报告按执行计划 §1.4.5 信号逐方法出观测与异常标记，列出算不了的信号，标记只是提示（纯函数）
     survey_recipe_binding.py              # 候选池制品 v2、逐候选身份与 PA/OA trajectory 对账
     clean_support_adapters.py             # Self-PU 完整 meta / LaGAM 独立支持集审计与终点 OA 接线
-    support_data.py                       # 独立 clean support 的原始数据重建、剩余 train 统计与五角色制品校验
+    support_data.py                       # 独立 clean support：raw 重建或冻结 split carve、seed 策略、五角色制品校验
     support_checkpoints.py                # 独立 support 的 meta 快照与 PA+clean-support/OA 双轨选择
     genpu_recipe.py                       # GEN-PU 单候选工程配方、六网络成本与 PN 阶段 checkpoint 守卫
     candidate_image_runner.py             # PULDA/GradPU 图像轨迹、实际阶段成本与快照字节守卫
@@ -581,7 +581,7 @@ tests/
       test_survey_recipe_pool_runtime.py # 多候选排除/重试与 runner、CLI、pilot、续跑接线
       test_neural_lbe_runner.py         # 神经 LBE 的双 CNN、分轮推理快照、四角色及 test 隔离
       test_clean_support_adapters.py    # 实际元更新、角色隔离、监督预算与模型回放
-      test_support_data.py              # 五数据集支持集抽样、train-only 预处理和制品损坏/身份回归
+      test_support_data.py              # 八数据集支持集抽样、split carve/seed 策略、train-only 预处理和制品回归
       test_p3mix_literature_anchors.py  # P3Mix 论文锚点哈希与文献值和 pilot 数据分离，PDF/OpenReview 身份被钉住
       _support_checkpoint_helpers.py    # support 双轨选择的合成 CPU 角色/方法 fixture
       test_support_checkpoint_guards.py # support 角色、纯 PA 拒绝和快照容量边界

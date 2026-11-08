@@ -48,7 +48,7 @@ def _bound(survey_script, tmp_path):
 
 def test_basic_matrix_covers_declared_profiles_and_oracle():
     protocol = load_protocol()
-    assert len(protocol["execution_units"]) == 179
+    assert len(protocol["execution_units"]) == 188
     assert len(protocol["method_profiles"]) == 23
     assert "pusb_kernel" in protocol["method_profiles"]
     assert "pusb" not in protocol["method_profiles"]
@@ -118,6 +118,7 @@ def test_basic_runner_consumes_matrix_and_records_blockers(survey_script, tmp_pa
     result = ExperimentRunner(class_prior=0.3, config=config).fit(model, *parts)
     manifest = result.manifest
     assert manifest["protocol_version"] == "survey-v3.2"
+    assert manifest["protocol_revision"] == "2026-11-08-clean-support-coverage"
     assert manifest["protocol_pending_review_items"] == []
     assert manifest["budget"]["unit"] == "one_closed_form_fit"
     assert manifest["formal_eligible"] is False
