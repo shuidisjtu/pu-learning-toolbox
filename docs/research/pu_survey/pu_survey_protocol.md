@@ -13,8 +13,16 @@
 > clean support 统一按 `PA+clean-support` 同表另列；明确架构例外判定标准与配方登记。
 > 见 §1.2、§2.3、§2.4、§2.5、§3、§4、§5。
 >
-> 新运行仅使用 `survey-v3.2` 和 `survey-recipes-v1.2`。既有 v3 结果按原始记录只读消费，
-> 历史协议与过程材料从清理前提交 `7d11f2c4` 查阅；不将历史结果改标为新版本。
+> **修订记录 2026-11-08**：clean-support 覆盖扩展到全部 8 个数据集；IMDB/20News 从冻结
+> split 的 SBERT 特征 carve，ADNI 从冻结 split 的原始图像 carve；ADNI 只允许
+> `group_policy="unverifiable"`，记录不可核验的 subject 隔离与 owner approval
+> `approved_by_protocol_owner_20261108`；support_seed 明确等于 split seed 且在查看标签前
+> 预先声明。执行矩阵仍为 `survey-v3.2`，revision 为
+> `2026-11-08-clean-support-coverage`；配方注册表升至 `survey-recipes-v1.3`。
+>
+> 新运行使用 `survey-v3.2`（含上述 revision）和 `survey-recipes-v1.3`。既有 v3 结果按
+> 原始记录只读消费，历史协议与过程材料从清理前提交 `7d11f2c4` 查阅；不将历史结果改标为
+> 新版本。
 
 ## 0. 参考文献
 
@@ -144,6 +152,11 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
    > - SAR 下 PA 仅可作为诊断日志，正式模型选择及结论只使用 OA；
    > - 所有算法可在通过输入/训练门禁后参加 SAR OA 测试，但须按其原生假设是否匹配 SAR
    >   标为"原生适用"或"假设违背鲁棒性"。
+   > - **本轮实现口径**：上述许可是原则性的；当前 v3.2 以
+   >   `method_profiles[*].labeling_mechanisms` 实际绑定机制，未声明该字段的方法才展开 SAR
+   >   轴。`kldce`、`lagam`、`pulns`、`self_pu_full_meta` 钉在 `["scar"]`，本轮未进入
+   >   SAR；实际参加 SAR--OA 的是其余 18 个方法（`pn_oracle` 为 oracle 基线，不占机制轴，
+   >   原生标注为 SAR 的是 `lbe`、`pusb_kernel` 与 `gradpu`）。
 
 ### 2.4 训练集、验证集、测试集划分
 
@@ -161,8 +174,14 @@ Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2
    test 的角色成员互斥；本轮从四路 split 后的 train 中均匀抽取并从 train 移除，
    登记为 benchmark-adapted 而非原文复现；规模为 Spambase 100、其余 500；
    support 正负标签均计入训练期真实标签预算
-   （`budget_approval=approved_by_protocol_owner_20261021`）。本轮仅覆盖 Spambase、
-   Connect-4、MNIST、F-MNIST、CIFAR-10；IMDB、20News、ADNI 排除。`PA+clean-support`
+   （`budget_approval=approved_by_protocol_owner_20261021`）。覆盖全部 8 个数据集：
+   IMDB、20News 从冻结 split 的 SBERT 特征 carve，ADNI 从冻结 split 的原始图像 carve；
+   support_seed 必须等于 split seed，并在查看标签前预先声明
+   （`support_seed_policy="support_seed equals split_seed, predeclared before label inspection"`）。
+   ADNI 替代数据没有 subject ID，因此只允许 `group_policy="unverifiable"`，记录
+   `subject_isolation="not_checkable"`、已知风险与 owner approval
+   `approved_by_protocol_owner_20261108`；该豁免不构成 subject 隔离已验证，ADNI 结果
+   仍按 benchmark-adapted 报告。`PA+clean-support`
    的执行路径必须分别记录选模结果，不把 OA 冒充 PA。PA 运行下
    不得复用 `clean_val`/`test` 作为 clean support。
 
@@ -320,7 +339,8 @@ $`\pi_U`$ 还是无需先验；`calibration_applied=false` 的原生 TS 方法�
    （LBE-A、LBE-B 分开）和 PN oracle。每组按数据集、训练路径（表格 `native_2d`／端到端 CNN／
    feature-adapter）和原生假设分层；跨数据集只比较趋势，不生成总排名。
    `PA+clean-support` 与纯 PU 的 PA 同表另列并显式标注，不参与纯 PU 的 PA 优势比较；
-   其 support 来源、规模与标签预算按 §2.4 第 2 条登记。
+   其 support 来源、规模与标签预算按 §2.4 第 2 条登记。ADNI 的 support 行还须标注
+   `subject isolation: not checkable` 与替代数据身份，不得读作已验证的 subject 隔离。
 2. "具有优势"仅在同一数据集、$`c`$、协议和训练路径内，以独立 `test` Accuracy 五次重复均值
    比较；同步报告标准差、单配置训练成本、完整调参成本和峰值显存。暂不预设显著性检验门槛；
 3. 所有方法在同一数据集、$`c`$ 和协议下使用相同候选池、epoch 上限与早停规则；候选池按论文/

@@ -147,16 +147,18 @@ def test_basic_the_shipped_v3_protocol_specifies_every_image_dataset(
 
 @pytest.mark.parametrize(
     ("dataset", "support_rows"),
-    [("mnist", True), ("fashion_mnist", True), ("adni", False)],
+    [("mnist", True), ("fashion_mnist", True), ("adni", True)],
 )
 def test_basic_each_image_dataset_carries_every_runnable_cifar10_row(dataset, support_rows):
-    """D46's template rule, plus the clean-support rows D49 gave the two that admit them.
+    """D46's template rule, plus the clean-support rows the protocol admits per dataset.
 
     The support rows are deliberately not part of the template: cifar10's LaGAM and
     PULNS rows are blocked on a budget and it has no ``self_pu_full_meta`` row, so a
     whole-set comparison would force the template to grow. The exclusion is asserted
-    rather than assumed, so a support row appearing on adni -- which the protocol
-    excludes from PA+clean-support -- still fails here.
+    rather than assumed: an image dataset carries exactly three support rows when it
+    admits clean support. The 2026-11-08 clean-support revision admits them on adni
+    under the reviewed ``group_policy="unverifiable"`` decision (subject isolation
+    not checkable), and a fourth row there would still fail here.
     """
     rows = load_protocol(resolve_protocol_path("survey-v3.2"))["execution_units"]
     support = {"lagam", "pulns", "self_pu_full_meta"}

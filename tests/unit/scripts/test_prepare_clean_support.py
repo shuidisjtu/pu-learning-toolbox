@@ -35,7 +35,7 @@ def arguments(root):
         "--support-size",
         "40",
         "--support-seed",
-        "7",
+        "0",
         "--group-policy",
         "not_applicable",
     ]
@@ -81,10 +81,86 @@ def test_determ_same_input_plan_has_same_receipt(tmp_path, capsys):
     assert load_support_dataset(outputs[0])[2] == load_support_dataset(outputs[1])[2]
 
 
-@pytest.mark.parametrize("flag", ["--support-size", "--support-seed", "--group-policy"])
+@pytest.mark.parametrize("flag", ["--support-size", "--group-policy"])
 def test_param_budget_and_policy_are_never_implicit_defaults(tmp_path, flag):
     args = arguments(raw(tmp_path))
     index = args.index(flag)
     del args[index : index + 2]
     with pytest.raises(SystemExit):
         main(args)
+
+
+def split_dir(root, dataset="imdb"):
+    from pu_toolbox.experiment.datasets import prepare_survey_dataset
+
+    root.mkdir(parents=True)
+    rng = np.random.RandomState(0)
+    x_source = rng.normal(size=(160, 384)).astype("float32")
+    x_test = rng.normal(size=(40, 384)).astype("float32")
+    y_source = np.tile([0, 1], 80)
+    y_test = np.tile([0, 1], 20)
+    bundle, manifest = prepare_survey_dataset(
+        x_source, y_source, dataset=dataset, seed=0, X_test=x_test, y_test=y_test
+    )
+    manifest["preprocessing"] = {
+        "kind": "sbert",
+        "embedding_dimension": 384,
+        "model_name": "sentence-transformers/all-MiniLM-L6-v2",
+    }
+    for role in ("train", "pu_val", "clean_val", "test"):
+        part = getattr(bundle, role)
+        np.savez_compressed(root / f"{role}.npz", X=part.X, y=part.labels, indices=part.indices)
+    (root / "split_manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    return root
+
+
+def arguments_split(root):
+    return [
+        "--dataset",
+        "imdb",
+        "--split-dir",
+        str(root),
+        "--seed",
+        "0",
+        "--support-size",
+        "20",
+        "--group-policy",
+        "not_applicable",
+    ]
+
+
+def test_basic_split_mode_materializes_text_product(tmp_path, capsys):
+    source = split_dir(tmp_path / "splits")
+    assert main(arguments_split(source)) == 0
+    preview = json.loads(capsys.readouterr().out)
+    assert preview["support_seed"] == 0 and preview["source_mode"] == "frozen_split"
+    output = tmp_path / "product"
+    assert main(arguments_split(source) + ["--out-dir", str(output), "--write"]) == 0
+    _, support, receipt = load_support_dataset(output)
+    assert len(support.X) == 20
+    assert receipt["support_seed_policy"].startswith("support_seed equals split_seed")
+    assert receipt["preprocessing"]["kind"] == "sbert"
+
+
+def test_edge_split_mode_rejects_mismatched_support_seed(tmp_path, capsys):
+    source = split_dir(tmp_path / "splits")
+    args = arguments_split(source) + ["--support-seed", "1"]
+    assert main(args) == 1
+    assert "support_seed equals split_seed" in capsys.readouterr().err
+
+
+def test_edge_adni_requires_owner_approval_before_reading_data(tmp_path, capsys):
+    args = [
+        "--dataset",
+        "adni",
+        "--split-dir",
+        str(tmp_path / "absent"),
+        "--seed",
+        "0",
+        "--support-size",
+        "20",
+        "--group-policy",
+        "unverifiable",
+    ]
+    assert main(args) == 1
+    assert "owner-approval" in capsys.readouterr().err

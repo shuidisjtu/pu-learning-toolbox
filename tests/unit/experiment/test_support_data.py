@@ -10,6 +10,7 @@ from pu_toolbox.experiment.datasets import prepare_survey_dataset
 from pu_toolbox.experiment.support_data import (
     load_support_dataset,
     prepare_support_dataset,
+    prepare_support_from_split,
     save_support_dataset,
 )
 from pu_toolbox.utils.serialization import strict_canonical_hash
@@ -71,6 +72,103 @@ def test_basic_five_datasets_roundtrip_without_frozen_split_impersonation(datase
     assert set(bundle.train.indices) | set(support.indices) == set(
         actual["lineage"]["original_train_indices"]
     )
+
+
+def write_split(tmp_path, dataset):
+    from pu_toolbox.experiment.datasets import prepare_survey_dataset
+
+    root = tmp_path / f"splits-{dataset}"
+    root.mkdir(parents=True)
+    rng = np.random.RandomState(0)
+    if dataset in ("imdb", "twenty_newsgroups"):
+        source = rng.normal(size=(160, 384)).astype("float32")
+        test = rng.normal(size=(40, 384)).astype("float32")
+        positive, negative = (0, 1) if dataset == "imdb" else (0, 4)
+        bundle, manifest = prepare_survey_dataset(
+            source,
+            np.tile([positive, negative], 80),
+            dataset=dataset,
+            seed=0,
+            X_test=test,
+            y_test=np.tile([positive, negative], 20),
+        )
+        manifest["preprocessing"] = {
+            "kind": "sbert",
+            "embedding_dimension": 384,
+            "model_name": "sentence-transformers/all-MiniLM-L6-v2",
+        }
+    else:
+        source = rng.randint(0, 256, size=(160, 1, 128, 128), dtype=np.uint8)
+        bundle, manifest = prepare_survey_dataset(
+            source, np.tile([0, 1], 80), dataset=dataset, seed=0
+        )
+    for role in ("train", "pu_val", "clean_val", "test"):
+        part = getattr(bundle, role)
+        np.savez_compressed(root / f"{role}.npz", X=part.X, y=part.labels, indices=part.indices)
+    (root / "split_manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    return root, bundle
+
+
+def prepare_split(tmp_path, dataset="imdb", **overrides):
+    root, original = write_split(tmp_path, dataset)
+    options = dict(
+        dataset=dataset,
+        support_size=20,
+        support_seed=0,
+        seed=0,
+        source="independent offline frozen split",
+        group_policy="not_applicable",
+    )
+    if dataset == "adni":
+        options["group_policy"] = "unverifiable"
+        options["owner_approval"] = "approved_by_protocol_owner_20261108"
+    options.update(overrides)
+    return prepare_support_from_split(root, **options), original
+
+
+@pytest.mark.parametrize("dataset", ["imdb", "twenty_newsgroups"])
+def test_basic_split_text_product_reuses_frozen_roles_and_seed_policy(dataset, tmp_path):
+    (bundle, support, receipt), original = prepare_split(tmp_path, dataset)
+    assert support.X.shape == (20, 384)
+    assert support.X.dtype == np.float32
+    assert receipt["source_mode"] == "frozen_split"
+    assert receipt["support_seed_policy"].startswith("support_seed equals split_seed")
+    assert receipt["support_seed"] == receipt["seed"] == 0
+    assert set(support.indices) <= set(original.train.indices)
+    assert set(bundle.train.indices) | set(support.indices) == set(original.train.indices)
+    for name in ("pu_val", "clean_val", "test"):
+        np.testing.assert_array_equal(
+            getattr(bundle, name).indices, getattr(original, name).indices
+        )
+    assert receipt["preprocessing"]["kind"] == "sbert"
+
+
+def test_basic_split_adni_product_records_unverifiable_subject_gap(tmp_path):
+    (bundle, support, receipt), original = prepare_split(tmp_path, "adni")
+    assert support.X.ndim == 4 and support.X.dtype == np.uint8
+    options = receipt["support_adapter_options"]
+    assert options["group_policy"] == "unverifiable"
+    assert options["group_policy_reason"] == "source_has_no_subject_ids"
+    assert options["subject_isolation"] == "not_checkable"
+    assert options["known_risks"]
+    assert options["owner_approval"] == "approved_by_protocol_owner_20261108"
+    assert receipt["role_sizes"]["support"] == 20
+    assert set(bundle.train.indices) | set(support.indices) == set(original.train.indices)
+
+
+@pytest.mark.parametrize(
+    ("dataset", "overrides", "message"),
+    [
+        ("imdb", {"support_seed": 1}, "support_seed equals split_seed"),
+        ("adni", {"group_policy": "not_applicable"}, "group_policy='unverifiable'"),
+        ("adni", {"owner_approval": ""}, "owner approval id"),
+    ],
+)
+def test_param_split_product_refuses_seed_and_adni_group_gaps(
+    dataset, overrides, message, tmp_path
+):
+    with pytest.raises(ValueError, match=message):
+        prepare_split(tmp_path, dataset, **overrides)
 
 
 def test_basic_label_blind_sampling_and_remaining_train_only_statistics():

@@ -23,23 +23,23 @@ def protocol():
 
 def test_basic_current_configuration_covers_all_project_recipe_cells():
     new = protocol()
-    assert len(new["execution_units"]) == 179 and all(r["runnable"] for r in new["execution_units"])
+    assert len(new["execution_units"]) == 188 and all(r["runnable"] for r in new["execution_units"])
     assert new["seeds"] == [0, 1, 2, 3, 4]
     for method in (*DEEP_METHODS, "kldce"):
         assert len({r["dataset"] for r in new["execution_units"] if r["method"] == method}) == 8
     for method in ("puet", "rp"):
         assert len({r["dataset"] for r in new["execution_units"] if r["method"] == method}) == 8
     for method in ("lagam", "pulns", "self_pu_full_meta"):
-        assert len({r["dataset"] for r in new["execution_units"] if r["method"] == method}) == 5
+        assert len({r["dataset"] for r in new["execution_units"] if r["method"] == method}) == 8
         assert new["method_profiles"][method]["labeling_mechanisms"] == ["scar"]
     assert new["method_profiles"]["kldce"]["labeling_mechanisms"] == ["scar"]
     assert new["formal_blockers"] and new["review_status"] == "pending_collaborator_review"
-    registry = build_locked_registry(new)
+    registry = build_locked_registry(new, recipe_registry_version="survey-recipes-v1.3")
     assert all(p["recipe_lifecycle"] == "locked" for p in registry["profiles"].values())
     assert not validate_registry(registry, new)
     stored = json.loads(
         resolve_protocol_path("survey-v3.2")
-        .with_name("survey_recipe_registry_v1_2.json")
+        .with_name("survey_recipe_registry_v1_3.json")
         .read_text()
     )
     assert registry == stored

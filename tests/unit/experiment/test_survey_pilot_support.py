@@ -244,7 +244,7 @@ def test_basic_a_scar_only_profile_plans_no_sar_cell(v3):
         "scar",
         "sar_lbe_a",
     }
-    assert len(planned) == 5445
+    assert len(planned) == 5580
 
 
 def test_determ_each_kind_of_run_is_held_to_its_own_product(v3, tmp_path):

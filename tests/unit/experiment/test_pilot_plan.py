@@ -128,7 +128,7 @@ def test_basic_planned_runs_expand_only_the_runnable_units():
     assert {run.c_token for run in runs if run.is_oracle} == {None}
 
     shipped = planned_runs(load_protocol())
-    assert len(shipped) == 5445
+    assert len(shipped) == 5580
     assert len([run for run in shipped if run.is_oracle]) == 60
 
 

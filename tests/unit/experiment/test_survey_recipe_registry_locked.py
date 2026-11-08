@@ -19,7 +19,7 @@ from pu_toolbox.experiment.survey_recipe_registry import (
 pytestmark = pytest.mark.unit
 
 ROOT = Path(__file__).resolve().parents[3]
-ARTIFACT = ROOT / "pu_toolbox/experiment/survey_recipe_registry_v1_2.json"
+ARTIFACT = ROOT / "pu_toolbox/experiment/survey_recipe_registry_v1_3.json"
 
 
 def protocol():
@@ -42,7 +42,7 @@ def methods_with_lifecycle(registry, state):
 
 def test_basic_committed_registry_locks_exactly_the_runnable_profiles():
     registry = committed()
-    assert registry["recipe_registry_version"] == "survey-recipes-v1.2"
+    assert registry["recipe_registry_version"] == "survey-recipes-v1.3"
     assert registry["recipe_lifecycle"] == "locked"
     locked = methods_with_lifecycle(registry, "locked")
     excluded = methods_with_lifecycle(registry, "excluded")
@@ -69,7 +69,7 @@ def test_param_excluded_profiles_state_why_and_carry_no_pool():
 
 
 def test_determ_generated_registry_matches_the_committed_artifact():
-    generated = build_locked_registry(protocol())
+    generated = build_locked_registry(protocol(), recipe_registry_version="survey-recipes-v1.3")
     recorded = committed()
     assert generated == recorded
     assert canonical_digest(generated) == canonical_digest(recorded)
@@ -102,7 +102,7 @@ def test_param_draft_registry_cannot_bind_at_runtime():
 @pytest.mark.parametrize(
     ("version", "artifact"),
     [
-        ("survey-v3.2", "survey_recipe_registry_v1_2.json"),
+        ("survey-v3.2", "survey_recipe_registry_v1_3.json"),
     ],
 )
 def test_param_each_supported_registry_binds_its_own_protocol(version, artifact):

@@ -1,9 +1,21 @@
 # ruff: noqa: N803
 """Independent clean-support products; never overwrite frozen four-way splits.
 
-The array API expects original, unprocessed source features. The repository
-CLI uses the reviewed raw readers rather than accepting processed split NPZs.
-Subject/group-sensitive and text inputs are deliberately not admitted here.
+Two source modes exist for the same five-role product contract:
+
+* the raw-reader path, which rebuilds the four-way split from reviewed source
+  arrays (tabular and image datasets);
+* the frozen-split path, which carves support directly out of an existing
+  four-way split.  Text datasets must use it because their split products hold
+  the pinned SBERT representation; ADNI uses it so the substitute images are
+  not re-read and re-scaled by a second path.
+
+The support draw is always label-blind, uniform without replacement, and
+predeclared: ``support_seed`` equals the split seed and is fixed before any
+label is inspected.  ADNI has no subject IDs in the reviewed substitute source,
+so its only admitted group policy is ``unverifiable``: the support manifest
+records that subject isolation cannot be checked, plus the owner approval for
+that known risk.  It is never reported as verified isolation.
 """
 
 from __future__ import annotations
@@ -15,11 +27,32 @@ import numpy as np
 
 from ..core.training_views import ROLES
 from ..utils.serialization import array_hash, file_hash, strict_canonical_hash
-from .bundle import DatasetBundle, DatasetPart, validate_bundle
+from .bundle import DatasetBundle, DatasetPart, split_indices_digest, validate_bundle
 from .datasets import prepare_survey_dataset
 from .image import fit_survey_image_preprocessing
+from .text import SBERT_EMBEDDING_DIMENSION
 
-SUPPORT_DATASETS = ("spambase", "connect_4", "mnist", "fashion_mnist", "cifar10")
+#: Every dataset the five-role support contract covers, and its input modality.
+SUPPORT_MODALITY = {
+    "spambase": "tabular",
+    "connect_4": "tabular",
+    "mnist": "image",
+    "fashion_mnist": "image",
+    "cifar10": "image",
+    "adni": "image",
+    "imdb": "text",
+    "twenty_newsgroups": "text",
+}
+SUPPORT_DATASETS = tuple(SUPPORT_MODALITY)
+#: Datasets whose reviewed raw readers may rebuild the split from source arrays.
+RAW_SUPPORT_DATASETS = ("spambase", "connect_4", "mnist", "fashion_mnist", "cifar10")
+#: Datasets whose support must be carved from an existing frozen four-way split.
+SPLIT_SUPPORT_DATASETS = ("imdb", "twenty_newsgroups", "adni")
+SUPPORT_SEED_POLICY = "support_seed equals split_seed, predeclared before label inspection"
+_EXPLICIT_SEED_POLICY = "explicit support_seed differs from split_seed"
+_ADNI_GROUP_POLICY = "unverifiable"
+_ADNI_GROUP_REASON = "source_has_no_subject_ids"
+_ADNI_KNOWN_RISKS = ("same-subject slices may cross roles",)
 _PARTS = (*ROLES, "support")
 _SCHEMA = "independent-clean-support-v1"
 _RULE = "uniform_without_replacement_from_base_train_no_label_screening_no_retry"
@@ -57,12 +90,17 @@ def prepare_support_dataset(
     validation/test membership is retained; preprocessing is refitted only on
     the remaining train. Population pi remains the original generation prior.
 
-    Returns ``(bundle, support, manifest)``. Only the five listed independent-
-    sample datasets are supported, with explicit ``group_policy='not_applicable'``.
-    ADNI requires separate subject/group evidence and is rejected.
+    Returns ``(bundle, support, manifest)``. Only the reviewed raw-reader
+    datasets are admitted here, with explicit ``group_policy='not_applicable'``.
+    Text datasets must use :func:`prepare_support_from_split`; ADNI must use it
+    too, because its only admitted policy is the explicit ``unverifiable``
+    subject-isolation gap.
     """
-    if dataset not in SUPPORT_DATASETS:
-        raise ValueError("dataset needs an independently reviewed support/group/text policy")
+    if dataset not in RAW_SUPPORT_DATASETS:
+        raise ValueError(
+            "dataset needs an independently reviewed support/group/text policy; "
+            "text and ADNI products must be carved from a frozen split"
+        )
     if group_policy != "not_applicable":
         raise ValueError("this preparer supports explicit not_applicable group policy only")
     if not isinstance(source, str) or not source.strip():
@@ -73,7 +111,7 @@ def prepare_support_dataset(
     if type(support_size) is not int or support_size < 2:
         raise ValueError("support_size must be an explicit integer of at least two")
     features = np.asarray(features)
-    image = dataset not in ("spambase", "connect_4")
+    image = SUPPORT_MODALITY[dataset] == "image"
     for values in (features, X_test):
         if values is None:
             continue
@@ -147,6 +185,12 @@ def prepare_support_dataset(
         budget_approval="not_granted_by_preparer",
         split_policy="base_four_way_then_uniform_support_from_train",
         source=source,
+        source_mode="raw_arrays",
+        modality=SUPPORT_MODALITY[dataset],
+        support_seed=support_seed,
+        support_seed_policy=(
+            SUPPORT_SEED_POLICY if support_seed == seed else _EXPLICIT_SEED_POLICY
+        ),
         preprocessing=preprocessing,
         parts={name: _part_identity(part) for name, part in parts.items()},
         indices={name: part.indices.tolist() for name, part in parts.items()},
@@ -181,6 +225,243 @@ def prepare_support_dataset(
     )
     manifest["indices_sha256"] = strict_canonical_hash(manifest["indices"])
     manifest["class_prior"]["train"] = float(bundle.train.labels.mean())
+    _validate_product(bundle, support, manifest)
+    return bundle, support, manifest
+
+
+def prepare_support_from_split(
+    split_dir,
+    *,
+    dataset,
+    support_size,
+    support_seed=None,
+    seed=None,
+    source,
+    group_policy="not_applicable",
+    owner_approval=None,
+):
+    """Carve a five-role product directly out of a frozen four-way split.
+
+    Text datasets use this path because their four-way products already hold the
+    pinned SBERT representation; re-encoding the raw reviews would be a second
+    representation and could move the support rows away from the rows they train
+    beside.  ADNI uses it so the substitute images are not re-read and re-scaled
+    through a second code path.
+
+    The sampling rule is the protocol rule: positions are drawn uniformly
+    without replacement from the split's train role, the seed is fixed before
+    any label is inspected, and both classes must survive in support and in the
+    remaining train.  A single-class draw is refused, never retried.
+
+    support_seed is part of the product identity: it must equal the split seed
+    ('support_seed equals split_seed, predeclared before label inspection').
+    ADNI has no subject IDs in the reviewed substitute source, so its only
+    admitted group_policy is 'unverifiable'; the returned manifest records that
+    subject isolation cannot be checked and the owner approval for that known
+    risk.  It never reports verified subject isolation.
+    """
+    if dataset not in SPLIT_SUPPORT_DATASETS:
+        raise ValueError(
+            "split-derived support is defined for text and ADNI datasets only; "
+            "use the reviewed raw-reader path for tabular/image datasets"
+        )
+    if not isinstance(source, str) or not source.strip():
+        raise ValueError("split source identity must be recorded")
+    if type(support_size) is not int or support_size < 2:
+        raise ValueError("support_size must be an explicit integer of at least two")
+
+    directory = Path(split_dir)
+    manifest_path = directory / "split_manifest.json"
+    try:
+        split_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise ValueError(f"cannot read frozen split manifest {manifest_path}: {exc}") from exc
+    if not isinstance(split_manifest, dict):
+        raise ValueError("frozen split manifest must be a JSON object")
+    if split_manifest.get("dataset") != dataset:
+        raise ValueError(
+            f"frozen split declares dataset {split_manifest.get('dataset')!r}, not {dataset!r}"
+        )
+    split_seed = split_manifest.get("seed")
+    if type(split_seed) is not int or not 0 <= split_seed < 2**32:
+        raise ValueError("frozen split manifest seed must be an unsigned 32-bit integer")
+    if seed is not None and seed != split_seed:
+        raise ValueError("requested seed disagrees with the frozen split manifest")
+    if support_seed is None:
+        support_seed = split_seed
+    if type(support_seed) is not int or not 0 <= support_seed < 2**32:
+        raise ValueError("support_seed must be an unsigned 32-bit integer")
+    if support_seed != split_seed:
+        raise ValueError(
+            f"{SUPPORT_SEED_POLICY}; got split seed {split_seed} and support_seed {support_seed}"
+        )
+
+    modality = SUPPORT_MODALITY[dataset]
+    if split_manifest.get("modality") != modality:
+        raise ValueError(
+            f"frozen split modality {split_manifest.get('modality')!r} disagrees with "
+            f"{dataset!r} ({modality!r})"
+        )
+    declared_digest = split_manifest.get("indices_sha256")
+    if not isinstance(declared_digest, str) or not declared_digest:
+        raise ValueError("frozen split manifest must record indices_sha256")
+    split_indices_digest(directory, declared=declared_digest)
+
+    parts = {}
+    for name in ROLES:
+        path = directory / f"{name}.npz"
+        try:
+            with np.load(path, allow_pickle=False) as archive:
+                if set(archive.files) != {"X", "y", "indices"}:
+                    raise ValueError(f"{name}.npz must contain exactly X/y/indices")
+                arrays = {key: archive[key].copy() for key in ("X", "y", "indices")}
+        except (OSError, ValueError) as exc:
+            raise ValueError(f"cannot read frozen split {path}: {exc}") from exc
+        parts[name] = DatasetPart(
+            arrays["X"], arrays["y"], "clean", arrays["indices"], name != "test"
+        )
+    bundle = DatasetBundle(*(parts[name] for name in ROLES))
+    validate_bundle(bundle)
+
+    for name, part in parts.items():
+        if part.X.ndim not in (2, 4) or part.X.dtype.kind not in "fiu":
+            raise ValueError(f"{name} must hold a real numeric feature array")
+        if not np.isfinite(part.X).all():
+            raise ValueError(f"{name} features must be finite")
+        if part.labels.shape != (len(part.X),) or part.indices.shape != (len(part.X),):
+            raise ValueError(f"{name} labels/indices must align with features")
+    if modality == "text":
+        preprocessing = split_manifest.get("preprocessing")
+        if not isinstance(preprocessing, dict) or preprocessing.get("kind") != "sbert":
+            raise ValueError("text split must record its pinned SBERT preprocessing")
+        if preprocessing.get("embedding_dimension") != SBERT_EMBEDDING_DIMENSION:
+            raise ValueError("text split SBERT dimension disagrees with the pinned representation")
+        for name, part in parts.items():
+            if part.X.ndim != 2 or part.X.shape[1] != SBERT_EMBEDDING_DIMENSION:
+                raise ValueError(
+                    f"{name} must hold the frozen {SBERT_EMBEDDING_DIMENSION}-d SBERT features"
+                )
+    elif modality == "image":
+        for name, part in parts.items():
+            if part.X.ndim != 4 or part.X.dtype != np.uint8:
+                raise ValueError(f"{name} must hold original uint8 NCHW images")
+    else:  # pragma: no cover - the guard above already limits this path
+        raise ValueError("split-derived support covers text and image datasets only")
+
+    train = bundle.train
+    if support_size > len(train.X) - 2:
+        raise ValueError("support_size must leave at least two training rows")
+    positions = np.sort(
+        np.random.RandomState(support_seed).choice(len(train.X), support_size, replace=False)
+    )
+    keep = np.ones(len(train.X), dtype=bool)
+    keep[positions] = False
+    if any(set(np.unique(train.labels[mask])) != {0, 1} for mask in (positions, keep)):
+        raise ValueError("single-class support or remaining train draw; no label-based retry")
+
+    original_counts = {name: len(part.X) for name, part in parts.items()}
+    original_counts["prior_estimation"] = 0
+    remaining = DatasetPart(train.X[keep], train.labels[keep], "clean", train.indices[keep])
+    support = DatasetPart(
+        train.X[positions], train.labels[positions], "clean", train.indices[positions], False
+    )
+    bundle = DatasetBundle(remaining, bundle.pu_val, bundle.clean_val, bundle.test)
+
+    if modality == "image":
+        _, spec = fit_survey_image_preprocessing(
+            remaining.X, dataset=dataset, train_augmentation="none"
+        )
+        preprocessing = spec.to_manifest()
+        preprocessing["stored_features"] = "raw_uint8_normalization_not_applied"
+        preprocessing["source"] = "refit_on_remaining_train"
+    else:
+        preprocessing = dict(preprocessing)
+        preprocessing["stored_features"] = "sbert_embeddings_l2_normalized"
+        preprocessing["source"] = "frozen_split"
+
+    class_prior = split_manifest.get("class_prior")
+    if not isinstance(class_prior, dict):
+        raise ValueError("frozen split manifest must record class_prior")
+    population = class_prior.get("population")
+    if isinstance(population, bool) or not isinstance(population, int | float):
+        raise ValueError("frozen split population prior must be a real scalar")
+    if not 0 < float(population) < 1:
+        raise ValueError("frozen split population prior must be in (0, 1)")
+
+    options = {
+        "dataset": dataset,
+        "source": source,
+        "prior_estimation_indices": [],
+        "original_train_count": len(train.X),
+        "support_removed_from_train": True,
+        "group_policy": group_policy,
+        "preparation_seed": support_seed,
+        "sampling_rule": _RULE,
+    }
+    if dataset == "adni":
+        if group_policy != _ADNI_GROUP_POLICY:
+            raise ValueError(
+                "ADNI requires group_policy='unverifiable': the reviewed substitute source "
+                "has no subject IDs, so subject isolation cannot be checked"
+            )
+        if not isinstance(owner_approval, str) or not owner_approval.strip():
+            raise ValueError("ADNI unverifiable support requires the owner approval id")
+        options.update(
+            group_policy_reason=_ADNI_GROUP_REASON,
+            subject_isolation="not_checkable",
+            known_risks=list(_ADNI_KNOWN_RISKS),
+            owner_approval=owner_approval,
+        )
+    else:
+        if group_policy != "not_applicable":
+            raise ValueError("text split support requires group_policy='not_applicable'")
+        if owner_approval is not None:
+            raise ValueError("owner approval is only recorded for the ADNI subject gap")
+
+    parts = {name: getattr(bundle, name) for name in ROLES} | {"support": support}
+    manifest = {
+        "schema_version": _SCHEMA,
+        "formal_admission": False,
+        "comparison_group": "extra_clean_support",
+        "budget_approval": "not_granted_by_preparer",
+        "split_policy": "frozen_four_way_then_uniform_support_from_train",
+        "dataset": dataset,
+        "seed": split_seed,
+        "modality": modality,
+        "support_seed": support_seed,
+        "support_seed_policy": SUPPORT_SEED_POLICY,
+        "source": source,
+        "source_mode": "frozen_split",
+        "preprocessing": preprocessing,
+        "parts": {name: _part_identity(part) for name, part in parts.items()},
+        "indices": {name: part.indices.tolist() for name, part in parts.items()},
+        "role_sizes": {name: len(part.X) for name, part in parts.items()},
+        "role_positive_rates": {name: float(part.labels.mean()) for name, part in parts.items()},
+        "class_prior": {
+            **class_prior,
+            "train": float(bundle.train.labels.mean()),
+        },
+        "lineage": {
+            "base_split_manifest_path": str(manifest_path.resolve()),
+            "base_split_manifest_sha256": file_hash(manifest_path),
+            "base_split_manifest_content_sha256": strict_canonical_hash(split_manifest),
+            "original_train_indices": train.indices.tolist(),
+            "original_train_count": len(train.X),
+            "source_mode": "frozen_split",
+            "split_role_indices_sha256": declared_digest,
+            "split_role_X_sha256": {
+                name: array_hash(part.X) for name, part in parts.items() if name != "support"
+            },
+        },
+        "support_source_audit": {
+            "support_origin": "carved_from_original_pool",
+            "original_role_counts": original_counts,
+            "support_source_verified": False,
+            "support_source_receipt": source,
+        },
+        "support_adapter_options": options,
+    }
+    manifest["indices_sha256"] = strict_canonical_hash(manifest["indices"])
     _validate_product(bundle, support, manifest)
     return bundle, support, manifest
 
@@ -228,14 +509,53 @@ def _validate_product(bundle, support, manifest):
     if set(original) != set(bundle.train.indices) | set(support.indices):
         raise ValueError("remaining train and support do not partition the original train")
     options = manifest["support_adapter_options"]
+    dataset = manifest["dataset"]
+    if manifest.get("modality") not in (None, SUPPORT_MODALITY[dataset]):
+        raise ValueError("support product modality disagrees with its dataset")
+    seed = manifest.get("seed")
+    if type(seed) is not int or not 0 <= seed < 2**32:
+        raise ValueError("support product must record its split seed")
+    support_seed = manifest.get("support_seed", options.get("preparation_seed"))
+    if type(support_seed) is not int or not 0 <= support_seed < 2**32:
+        raise ValueError("support product must record its support seed")
+    policy = manifest.get("support_seed_policy")
+    if policy is not None and (
+        not isinstance(policy, str) or policy not in (SUPPORT_SEED_POLICY, _EXPLICIT_SEED_POLICY)
+    ):
+        raise ValueError("support seed policy must be one of the declared policies")
+    if policy == SUPPORT_SEED_POLICY and support_seed != seed:
+        raise ValueError("support_seed policy requires support_seed to equal the split seed")
+    source_mode = manifest.get("source_mode", options.get("source_mode", "raw_arrays"))
+    if source_mode not in ("raw_arrays", "frozen_split"):
+        raise ValueError("support source mode must be raw_arrays or frozen_split")
+    group_policy = options.get("group_policy")
+    if dataset == "adni":
+        if group_policy != _ADNI_GROUP_POLICY:
+            raise ValueError("ADNI support requires group_policy='unverifiable'")
+        if options.get("group_policy_reason") != _ADNI_GROUP_REASON:
+            raise ValueError("ADNI unverifiable support requires its source reason")
+        if options.get("subject_isolation") != "not_checkable":
+            raise ValueError("ADNI support must record subject isolation as not_checkable")
+        risks = options.get("known_risks")
+        if (
+            not isinstance(risks, list)
+            or not risks
+            or any(not isinstance(risk, str) or not risk.strip() for risk in risks)
+        ):
+            raise ValueError("ADNI unverifiable support must record its known risks")
+        approval = options.get("owner_approval")
+        if not isinstance(approval, str) or not approval.strip():
+            raise ValueError("ADNI unverifiable support requires the owner approval id")
+    elif group_policy != "not_applicable":
+        raise ValueError("non-ADNI support requires group_policy='not_applicable'")
     if (
-        options["dataset"] != manifest["dataset"]
+        options["dataset"] != dataset
         or options["source"] != manifest["source"]
         or options["support_removed_from_train"] is not True
-        or options["group_policy"] != "not_applicable"
         or options["prior_estimation_indices"] != []
         or options["original_train_count"] != len(original)
         or options["sampling_rule"] != _RULE
+        or options["preparation_seed"] != support_seed
         or manifest["lineage"]["original_train_count"] != len(original)
         or len(set(original)) != len(original)
         or manifest["indices_sha256"] != strict_canonical_hash(manifest["indices"])

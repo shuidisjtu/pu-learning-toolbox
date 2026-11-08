@@ -1,6 +1,7 @@
 {
   "schema_version": "1.0",
   "protocol_version": "survey-v3.2",
+  "protocol_revision": "2026-11-08-clean-support-coverage",
   "review_status": "pending_collaborator_review",
   "review_items": [
     {
@@ -102,6 +103,18 @@
       "origin": "decision",
       "status": "accepted",
       "note": "decision record only; no execution-unit change"
+    },
+    {
+      "item_id": "v3_p1_clean_support_coverage_extension",
+      "title": "Clean-support coverage extended to IMDB, 20News and ADNI",
+      "sections": [
+        "2.4",
+        "5"
+      ],
+      "origin": "protocol_owner",
+      "status": "accepted",
+      "confirmed_on": "2026-11-08",
+      "note": "The five-role draw is unchanged. Text and ADNI support is carved from the frozen four-way split; ADNI records unverifiable subject isolation and the owner approval for that known risk."
     }
   ],
   "result_scope": "pilot / partial benchmark",
@@ -3285,6 +3298,114 @@
       "oracle_alignment": "no_matched_neural_backbone_oracle",
       "method": "rp",
       "comparability_status": "project_recipe_not_paper_reproduction"
+    },
+    {
+      "dataset": "imdb",
+      "method": "lagam",
+      "training_path": "native_2d",
+      "budget": "lagam",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "sbert384",
+      "comparability_group": "imdb/native_2d/clean_support_lagam",
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "runnable": true
+    },
+    {
+      "dataset": "imdb",
+      "method": "pulns",
+      "training_path": "native_2d",
+      "budget": "pulns",
+      "model_family": "mlp32",
+      "backbone": "mlp32",
+      "representation": "sbert384",
+      "comparability_group": "imdb/native_2d/clean_support_pulns",
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "runnable": true
+    },
+    {
+      "dataset": "imdb",
+      "method": "self_pu_full_meta",
+      "training_path": "native_2d",
+      "budget": "clean_support_two_student",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "sbert384",
+      "comparability_group": "imdb/native_2d/clean_support_self_pu_full_meta",
+      "oracle_alignment": "no_matched_two_student_sampling_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "twenty_newsgroups",
+      "method": "lagam",
+      "training_path": "native_2d",
+      "budget": "lagam",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "sbert384",
+      "comparability_group": "twenty_newsgroups/native_2d/clean_support_lagam",
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "runnable": true
+    },
+    {
+      "dataset": "twenty_newsgroups",
+      "method": "pulns",
+      "training_path": "native_2d",
+      "budget": "pulns",
+      "model_family": "mlp32",
+      "backbone": "mlp32",
+      "representation": "sbert384",
+      "comparability_group": "twenty_newsgroups/native_2d/clean_support_pulns",
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "runnable": true
+    },
+    {
+      "dataset": "twenty_newsgroups",
+      "method": "self_pu_full_meta",
+      "training_path": "native_2d",
+      "budget": "clean_support_two_student",
+      "model_family": "mlp128",
+      "backbone": "mlp128",
+      "representation": "sbert384",
+      "comparability_group": "twenty_newsgroups/native_2d/clean_support_self_pu_full_meta",
+      "oracle_alignment": "no_matched_two_student_sampling_oracle",
+      "runnable": true
+    },
+    {
+      "dataset": "adni",
+      "method": "lagam",
+      "training_path": "native_cnn",
+      "budget": "lagam",
+      "model_family": "native_cnn_mlp128",
+      "backbone": "resnet18_end_to_end",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "adni/native_cnn/clean_support_lagam",
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "runnable": true
+    },
+    {
+      "dataset": "adni",
+      "method": "pulns",
+      "training_path": "native_cnn",
+      "budget": "pulns",
+      "model_family": "native_cnn_mlp32",
+      "backbone": "resnet18_end_to_end",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "adni/native_cnn/clean_support_pulns",
+      "oracle_alignment": "no_owner_reviewed_shared_oracle_binding",
+      "runnable": true
+    },
+    {
+      "dataset": "adni",
+      "method": "self_pu_full_meta",
+      "training_path": "cnn_feature_adapter",
+      "budget": "clean_support_two_student",
+      "model_family": "mlp128",
+      "backbone": "resnet18_random_frozen",
+      "representation": "resnet18_random_initialization",
+      "comparability_group": "adni/cnn_feature_adapter/clean_support_self_pu_full_meta",
+      "oracle_alignment": "no_matched_two_student_sampling_oracle",
+      "runnable": true
     }
   ],
   "formal_blockers": [
@@ -3310,8 +3431,8 @@
     "The main table defaults to PA selection; OA configurations are recorded for reference (Q2).",
     "Architecture-exception methods remain single-listed; a shared-architecture comparison run SHOULD be provided when feasible, and its absence is noted in the result table/method card (Q1).",
     "PA+clean-support results are listed in the same SCAR-PA table with an explicit annotation and are excluded from pure-PU PA advantage comparisons (Q3).",
-    "Training-time clean support is required by PULNS, LaGAM, and the full Self-PU branch; the no-clean Self-PU path is an explicit ablation. Support is disjoint from the remaining train, pu_val, clean_val, and test; this round carves it from train and removes it, sized 100 for Spambase and 500 otherwise, and its positive and negative labels count toward the training-time label budget (approved 2026-10-21).",
-    "This round covers Spambase, Connect-4, MNIST, F-MNIST, and CIFAR-10 only; IMDB, 20News, and ADNI are excluded from PA+clean-support.",
+    "Training-time clean support is required by PULNS, LaGAM, and the full Self-PU branch; the no-clean Self-PU path is an explicit ablation. Support is disjoint from the remaining train, pu_val, clean_val, and test; it is carved uniformly from train and removed, sized 100 for Spambase and 500 otherwise, and its positive and negative labels count toward the training-time label budget (approved 2026-10-21). support_seed equals the split seed and is predeclared before label inspection.",
+    "This round covers all eight datasets. IMDB and 20News carry the frozen SBERT representation into support; ADNI uses the reviewed substitute images and records group_policy='unverifiable' because the source has no subject IDs. The ADNI subject-isolation gap is accepted by the protocol owner (approved_by_protocol_owner_20261108) and remains benchmark-adapted, never a claim of verified subject isolation.",
     "The formal PA+clean-support runner landed with the 2026-10-24 v3 freeze; support-dependent rows report PA+clean-support alongside OA, annotated and excluded from pure-PU PA advantage comparisons. Existing self_pu execution units retain the no-meta ablation profile.",
     "method_profiles.self_pu remains the explicit no-meta ablation profile used by the frozen pilot; the full clean-meta variant uses the separate self_pu_full_meta profile and its own support unit.",
     "Clean-support units on the two image datasets take the shared ResNet-18 end to end for LaGAM and PULNS; Self-PU full-meta takes the frozen feature adapter because its estimator has no native CNN (D5), matching its existing mnist/fashion_mnist rows. The support part is carried through the same image preprocessing, so it is no longer handed to the estimator as raw uint8 pixels or as 4-D images on a 2-D path.",
@@ -3321,14 +3442,15 @@
     "Split-PU retains the locked source JSD direction, normalization denominator and weight 0.7. The paper Eq. (6) direction remains a source difference; the TS balanced-batch union ratio remains a benchmark approximation.",
     "GEN-PU retains the paper prior-weighted minimax/anti-GAN objective: Du fake samples use pi/(1-pi), final PN risk is prior-weighted softplus, and the G step freezes discriminator parameters, BN and dropout while retaining input gradients. The three lambda weights remain 1.0; they do not replace prior weighting.",
     "VPU uses the adopted project recipe rather than the author recipe: 100 vs 50 epochs, batch 128 vs 500 and learning rate 3e-4 vs 3e-5. Its source validation diagnostic is not an allowed PA/OA selector.",
-    "P3MIX base, E and C are distinct variants; this protocol adopts base. PUET tree count and RP out-of-fold/refit costs retain their separate non-epoch budgets."
+    "P3MIX base, E and C are distinct variants; this protocol adopts base. PUET tree count and RP out-of-fold/refit costs retain their separate non-epoch budgets.",
+    "Text and ADNI clean-support products are carved from the frozen four-way split so the support rows and the rows they train beside share one representation; the raw reader remains the path for the five tabular/image datasets."
   ],
   "draft_scope": {
     "status": "owner_confirmed_project_recipes_pending_execution_audit",
     "limitations": [
       "PUET/RP images use the existing seeded random frozen ResNet-18 feature adapter; no pretrained weights, encoder fitting, new labels or native CNN claim. Retain source-space SCAR/SAR label generation and independent PA/OA selection.",
       "KLDCE keeps SCAR only and rejects over-cap dense kernels rather than subsampling.",
-      "Support profiles remain limited to the approved five datasets and SCAR.",
+      "Support profiles cover all eight datasets and remain SCAR-only. ADNI support is benchmark-adapted and records unverifiable subject isolation from the substitute source; it is not a claim that subject-disjoint roles were verified.",
       "Earlier candidate results are not rebound to this version or counted as its completed runs."
     ]
   },

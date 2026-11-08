@@ -370,6 +370,9 @@ def load_protocol(path: str | Path = PROTOCOL_PATH) -> dict[str, Any]:
             f"unsupported survey protocol version {payload['protocol_version']!r}; "
             f"supported versions: {', '.join(PROTOCOL_PATHS)}"
         )
+    revision = payload.get("protocol_revision")
+    if revision is not None and (not isinstance(revision, str) or not revision.strip()):
+        raise ValueError("survey protocol protocol_revision must be a non-empty string")
     for key in ("budgets", "method_profiles", "backbone_specs", "c_tokens", "selection_spec"):
         if not isinstance(payload[key], dict) or not payload[key]:
             raise ValueError(f"survey protocol {key} must be a non-empty object")
@@ -776,6 +779,7 @@ def runner_protocol_context(model, bundle, config: dict, seed: int, generator, p
     context = {
         "execution_mode": "versioned_pilot",
         "protocol_version": protocol["protocol_version"],
+        "protocol_revision": protocol.get("protocol_revision"),
         "protocol_sha256": digest(protocol),
         "execution_unit": row,
         "runtime_binding_inputs": binding_inputs,

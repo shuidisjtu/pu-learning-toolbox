@@ -24,6 +24,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--protocol", default="survey-v3.2")
     parser.add_argument(
+        "--registry-version",
+        default="survey-recipes-v1.3",
+        help="recipe_registry_version stamped into the generated payload",
+    )
+    parser.add_argument(
         "--lifecycle",
         choices=("draft", "locked"),
         default="draft",
@@ -32,7 +37,8 @@ def main() -> int:
     args = parser.parse_args()
     build = build_locked_registry if args.lifecycle == "locked" else build_draft_registry
     try:
-        registry = build(load_protocol(resolve_protocol_path(args.protocol)))
+        protocol = load_protocol(resolve_protocol_path(args.protocol))
+        registry = build(protocol, recipe_registry_version=args.registry_version)
     except (OSError, ValueError, KeyError) as error:
         parser.exit(1, f"error: {error}\n")
     print(json.dumps(registry, ensure_ascii=False, indent=2, allow_nan=False))

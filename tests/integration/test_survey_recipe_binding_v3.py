@@ -26,7 +26,7 @@ from tests.unit.experiment._survey_script_helpers import (  # noqa: F401
 pytestmark = pytest.mark.integration
 
 ROOT = Path(__file__).resolve().parents[2]
-REGISTRY = ROOT / "pu_toolbox/experiment/survey_recipe_registry_v1_2.json"
+REGISTRY = ROOT / "pu_toolbox/experiment/survey_recipe_registry_v1_3.json"
 
 #: Every place a bound manifest repeats the identity it consumed.
 CARRIED = (

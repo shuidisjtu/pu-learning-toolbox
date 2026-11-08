@@ -24,8 +24,10 @@
 
 ## 配置与结果读取
 
-新运行只维护 `survey-v3.2`（[执行配置](../../../pu_toolbox/experiment/survey_protocol_v3_2.json)）和 `survey-recipes-v1.2`（[配方](../../../pu_toolbox/experiment/survey_recipe_registry_v1_2.json)）。
-配方锁定与可运行标识表示工程执行能力。
+新运行只维护 `survey-v3.2`（revision `2026-11-08-clean-support-coverage`，[执行配置](../../../pu_toolbox/experiment/survey_protocol_v3_2.json)）和 `survey-recipes-v1.3`（[配方](../../../pu_toolbox/experiment/survey_recipe_registry_v1_3.json)）。
+配方锁定与可运行标识表示工程执行能力。clean-support 覆盖全部 8 个数据集；IMDB/20News 用冻结
+split 的 SBERT 特征，ADNI 用冻结 split 原始图像并以 `group_policy="unverifiable"` 记录
+subject 隔离不可核验。
 
 已有 v3.0/v3.1/v3.2 manifest 通过只读结果链使用，保留原版本、blockers、失败和选模身份。已有 summary 可直接导出，无需旧运行配置、比较矩阵或审批文档。
 
@@ -33,6 +35,8 @@
 
 ## 当前实验状态
 
-训练任务已经结束，训练产物与已有结果另行保存。GradPU/KLDCE 暂时搁置，相关数值风险按已有记录保留。
+已有训练任务结束，训练产物与已有结果另行保存。2026-11-08 新增的 IMDB/20News/ADNI
+clean-support 单元的代码与制品路径已就绪，正式 seed × c 训练待外部 GPU 主机执行；
+在完成前不把它们计为已完成结果。GradPU/KLDCE 暂时搁置，相关数值风险按已有记录保留。
 
 工具箱不再保存队列、服务器排程、交接、修复任务单和全过程审批流水。历史可从清理前提交 `7d11f2c4` 查阅，已保存 manifest 不改标为新版本。数据来源、许可与 ADNI 替代数据事实继续保留，见[数据说明](data/README.md)。

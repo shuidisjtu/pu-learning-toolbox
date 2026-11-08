@@ -132,6 +132,35 @@ def test_edge_group_isolation_and_unknown_adni_subjects():
     roles, support = inputs()
     with pytest.raises(ValueError, match="ADNI requires"):
         run(adapter(support, dataset="adni"), roles)
+    unverifiable = adapter(
+        support,
+        dataset="adni",
+        group_policy="unverifiable",
+        group_policy_reason="source_has_no_subject_ids",
+        subject_isolation="not_checkable",
+        known_risks=["same-subject slices may cross roles"],
+        owner_approval="approved_by_protocol_owner_20261108",
+    )
+    audit = run(unverifiable, roles).manifest["extra_supervision"]
+    assert audit["group_policy"] == "unverifiable"
+    assert audit["subject_isolation"] == "not_checkable"
+    assert audit["subject_isolation_verified"] is False
+    assert audit["sample_identity_isolation_verified"] is True
+    assert audit["all_role_isolation_verified"] is False
+    assert "subject_isolation_unverifiable" in audit["isolation_status"]
+    assert audit["owner_approval"] == "approved_by_protocol_owner_20261108"
+    with pytest.raises(ValueError, match="owner approval"):
+        run(
+            adapter(
+                support,
+                dataset="adni",
+                group_policy="unverifiable",
+                group_policy_reason="source_has_no_subject_ids",
+                subject_isolation="not_checkable",
+                known_risks=["same-subject slices may cross roles"],
+            ),
+            roles,
+        )
     names = ["train", "pu_val", "clean_val", "test"]
     groups = {name: part.indices + 1000 for name, part in zip(names, roles, strict=True)}
     groups.update(support=support.indices + 1000, prior_estimation=[])
