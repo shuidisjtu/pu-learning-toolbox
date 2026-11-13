@@ -1,31 +1,14 @@
 #!/usr/bin/env python3
 """Skill-sync consistency gate (5th quality gate).
 
-Checks that the two pu-workflow SKILL.md copies (Claude Code / Cursor
-vs. other tools) are byte-consistent (line-level, CRLF-tolerant) and
-that the frontmatter uses only portable open-standard fields:
+Checks both pu-workflow resource trees, local Markdown links, and
+portable frontmatter. Text resources compare by line (CRLF-tolerant);
+binary resources compare by byte. Portable frontmatter fields are:
 
     name | description | license | compatibility | metadata
 
-Claude Code extension fields (``argument-hint``, ``user-invocable``,
-``disable-model-invocation``, ``hooks``, ...) are silently ignored by
-other tools, so adding them would quietly break portability.
-
-``DEFAULT_PATHS`` is a hand-maintained pair, because the check needs a
-pair to compare and an enumeration rule would silently lose exactly the
-failure it exists to catch.  Pair the two trees by the skill names they
-share, then delete one copy of the pair: the name now appears on one side
-only, so the intersection is empty, the rule has no key left to attach a
-failure to, and it reports no drift — while ``check_sync`` reports the
-missing copy.  The alternative (treat every name on either side as
-expected) needs a prior record of which names *should* be paired, i.e.
-the hand-maintained list again.  Adding a skill that is mirrored means
-adding its pair here by hand.
-
-The two trees are not symmetric in this working tree either:
-``.claude/skills/`` also holds ``dev-workflow``, a skill that is untracked
-and gitignored (``.gitignore:55``), so a CI checkout contains one skill
-per side.  Only the tracked pair is compared here.
+``DEFAULT_PATHS`` declares the expected entrypoint pair. Each entrypoint's
+directory is a complete installable skill, including its references.
 
 Usage::
 
@@ -39,6 +22,7 @@ from __future__ import annotations
 import re
 import sys
 from pathlib import Path
+from urllib.parse import unquote, urlsplit
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -51,6 +35,11 @@ DEFAULT_PATHS = (
     PROJECT_ROOT / ".agents" / "skills" / "pu-workflow" / "SKILL.md",
 )
 
+_TEXT_SUFFIXES = frozenset(
+    {".md", ".txt", ".rst", ".py", ".yaml", ".yml", ".json", ".toml", ".sh", ".ps1"}
+)
+_MARKDOWN_LINK = re.compile(r"\[[^\]]*\]\((<[^>]+>|[^\s)]+)(?:\s+[^)]*)?\)")
+
 
 def _frontmatter_keys(text: str) -> dict[str, str]:
     """Return top-level ``key: value`` pairs of the YAML frontmatter block."""
@@ -61,35 +50,77 @@ def _frontmatter_keys(text: str) -> dict[str, str]:
     return dict(re.findall(r"^([a-z-]+):[^\S\n]*(.*)$", block, flags=re.M))
 
 
-def check_sync(a: Path, b: Path) -> list[str]:
-    """Return problem messages; empty list means the pair is in sync."""
+def _check_frontmatter(path: Path) -> list[str]:
+    """Validate the portable entrypoint metadata."""
     issues: list[str] = []
-    for path in (a, b):
-        if not path.exists():
-            issues.append(f"missing SKILL.md: {path}")
-    if issues:
-        return issues
-
-    if a.read_text(encoding="utf-8").splitlines() != b.read_text(encoding="utf-8").splitlines():
-        issues.append(
-            "content mismatch: .claude/skills/pu-workflow/SKILL.md and "
-            ".agents/skills/pu-workflow/SKILL.md differ (line-level)"
-        )
-
-    fm = _frontmatter_keys(a.read_text(encoding="utf-8"))
+    fm = _frontmatter_keys(path.read_text(encoding="utf-8"))
     unknown = sorted(set(fm) - PORTABLE_FRONTMATTER_FIELDS)
     if unknown:
         issues.append(
             f"non-portable frontmatter fields: {', '.join(unknown)} "
             f"(open standard allows: {', '.join(sorted(PORTABLE_FRONTMATTER_FIELDS))})"
         )
-    if fm.get("name") != a.parent.name:
+    if fm.get("name") != path.parent.name:
         issues.append(
-            f"frontmatter name {fm.get('name')!r} must match the directory name {a.parent.name!r}"
+            f"frontmatter name {fm.get('name')!r} must match "
+            f"the directory name {path.parent.name!r}"
         )
     if not fm.get("description", "").strip():
         issues.append("frontmatter description is required and must be non-empty")
 
+    return issues
+
+
+def _check_local_links(path: Path, root: Path) -> list[str]:
+    """Check that local Markdown links resolve inside the installed skill."""
+    issues: list[str] = []
+    for match in _MARKDOWN_LINK.finditer(path.read_text(encoding="utf-8")):
+        target = match.group(1).strip("<>")
+        parsed = urlsplit(target)
+        if parsed.scheme or parsed.netloc or not parsed.path:
+            continue
+        resolved = (path.parent / unquote(parsed.path)).resolve()
+        if not resolved.is_relative_to(root.resolve()) or not resolved.is_file():
+            issues.append(f"invalid local link in {path}: {target}")
+    return issues
+
+
+def check_sync(a: Path, b: Path) -> list[str]:
+    """Return resource, reference, and metadata problems for the skill pair."""
+    issues: list[str] = []
+    for path in (a, b):
+        if not path.is_file():
+            issues.append(f"missing SKILL.md: {path}")
+    if issues:
+        return issues
+
+    trees = [
+        {path.relative_to(entry.parent): path for path in entry.parent.rglob("*") if path.is_file()}
+        for entry in (a, b)
+    ]
+    for relative in sorted(trees[0].keys() | trees[1].keys()):
+        first, second = (tree.get(relative) for tree in trees)
+        if first is None or second is None:
+            root = a.parent if first is None else b.parent
+            issues.append(f"missing resource: {relative.as_posix()} in {root}")
+            continue
+        if relative.suffix.lower() in _TEXT_SUFFIXES:
+            same = (
+                first.read_text(encoding="utf-8").splitlines()
+                == second.read_text(encoding="utf-8").splitlines()
+            )
+        else:
+            same = first.read_bytes() == second.read_bytes()
+        if not same:
+            issues.append(
+                f"content mismatch: {relative.as_posix()} differs between {a.parent} and {b.parent}"
+            )
+
+    for entry, tree in zip((a, b), trees, strict=True):
+        issues.extend(_check_frontmatter(entry))
+        for path in tree.values():
+            if path.suffix.lower() == ".md":
+                issues.extend(_check_local_links(path, entry.parent))
     return issues
 
 
@@ -99,7 +130,10 @@ def main(argv: list[str] | None = None) -> int:
     a, b = DEFAULT_PATHS
     issues = check_sync(a, b)
     if not issues:
-        print("Skill sync check passed: SKILL.md copies identical, frontmatter portable.")
+        print(
+            "Skill sync check passed: resource trees identical, "
+            "local links valid, frontmatter portable."
+        )
         return 0
     print(f"{len(issues)} skill sync issue(s):")
     for issue in issues:

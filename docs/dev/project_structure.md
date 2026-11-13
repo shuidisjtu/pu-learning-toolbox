@@ -972,7 +972,7 @@ scripts/
   check_doc_links.py                      (文档一致性检查：5 条规则)
   check_project_metadata.py               (Python/CI/extras/Hatchling 跨文件一致性)
   check_math_rendering.py                 (方法卡 MathJax 渲染检查：缺上下标参数/括号配对/$ 配对)
-  check_skill_sync.py                     (Skill 同步检查：skills/ 定义与脚本枚举一致，第 5 道门禁)
+  check_skill_sync.py                     (Skill 同步检查：完整资源树、内部链接与可移植元数据，第 5 道门禁)
   check_baseline_configs.py               (基线配置一致性：锁定配置 vs 源码构造器默认参数，第 7 道门禁)
   check_format.py                         (格式门禁：ruff check + format --check 全目录，第 6 道门禁)
   check_api_docs.py                       (api.md 公共符号覆盖防漂移：静态提取 __all__ + 注册名校验，第 8 道门禁)

@@ -2,14 +2,14 @@
 
 ## 用户文档（docs/user/）
 
-**受众**：库使用者——包括使用本工具箱 API 的第三方仓库开发者（不是模块内部
-实现者）；按**任务类型**分层：concepts 解释原理、howto 按任务走教程、reference
-查契约。仓库维护/贡献内容见 [开发者文档](#开发者文档docsdev)。
-从 [快速开始](user/quickstart.md) 开始，5 分钟跑通首个实验。
+**受众**：库使用者——包括使用本工具箱 API 的第三方仓库开发者；
+按**任务类型**分层：concepts 解释原理、howto 按任务走教程、reference查契约。
+仓库维护/贡献内容见 [开发者文档](#开发者文档docsdev)。
+从 [快速开始](user/quickstart.md) 开始，快速跑通首个实验。
 
 | 类别 | 文档 | 用途 |
 |---|---|---|
-| 入口 | [user/README.md](user/README.md) | 用户旅程图（从哪篇开始、按什么顺序读） |
+| 入口 | [user/README.md](user/README.md) | 基本阅读和检索导引（从哪篇开始、按什么顺序读） |
 | 快速开始 | [user/quickstart.md](user/quickstart.md) | 安装 + CLI 三命令 + Python 最小片段 |
 | 概念 | [user/concepts/pu_problem.md](user/concepts/pu_problem.md) | PU 问题设定、符号表、π 的角色 |
 | 概念 | [user/concepts/pu_sampling.md](user/concepts/pu_sampling.md) | OS/TS、有限池来源与训练风险角色 |
@@ -31,7 +31,7 @@
 | 操作 | [user/howto/distribution_shift.md](user/howto/distribution_shift.md) | 分布漂移审计与协变量加权适配 |
 | 操作 | [user/howto/sar_simulation.md](user/howto/sar_simulation.md) | 生成 SCAR/SAR 数据 |
 | 操作 | [user/howto/self_pu.md](user/howto/self_pu.md) | 训练 Self-PU 分类器 |
-| 操作 | [user/howto/using_skill.md](user/howto/using_skill.md) | 启用与使用 pu-workflow Skill |
+| 操作 | [user/howto/using_skill.md](user/howto/using_skill.md) | AI 任务路由、先验解析、研究实验、表征与 skill 安装 |
 | 参考 | [user/reference/index.md](user/reference/index.md) | **API 索引**：按模块分组的符号快速导航（跳转到 api.md 契约） |
 | 参考 | [user/reference/api.md](user/reference/api.md) | **API 权威契约**：签名、参数表、返回结构与最小示例（`check_api_docs` 门禁防漂移） |
 

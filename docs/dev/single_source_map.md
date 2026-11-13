@@ -28,6 +28,14 @@
 
 ## 说明
 
+### AI workflow skill 资源
+
+`.claude/skills/pu-workflow/` 为维护与 wheel 打包源，`.agents/skills/pu-workflow/`
+保存完整镜像。两者各含主入口和六份任务参考文件，引用在各自目录内解析。
+`scripts/check_skill_sync.py` 校验完整资源树、文本/二进制内容、内部 Markdown 链接与
+可移植元数据；`pu_toolbox/cli/skill.py` 将打包资源安装到两套客户端目标。
+安装测试覆盖参考文件内容、默认保留和显式覆盖；构建验证检查 wheel 内容及外部目录执行。
+
 ### 随机源
 
 **判定：重复（不可合并）。** 两个实现不是同一概念的两个副本，而是**两类消费者各持一个契约**：
