@@ -448,3 +448,24 @@ GenPU 的校验测试同步为风险 U 先验，覆盖缺失值、0、1 与非�
 ```powershell
 uv run pytest tests/integration/test_run.py tests/unit/estimators/test_gen_pu.py tests/unit/workflows/test_pipeline_prior_targets.py tests/unit/prior/test_prior_semantics.py tests/e2e/test_e2e_quickstart.py -m 'not gpu' -o addopts='--tb=short' -q --maxfail=5 --junitxml=tmp/pr172-ci-corrected.xml
 ```
+
+## 15. PA 在 OS 采样设计下的参考实现差异
+
+本节记录 PA 选模分数的实现对照。工具箱的
+[`proxy_accuracy`](../../pu_toolbox/experiment/strategies.py) 采用 Wang et al. (2026)
+在 OS 采样设计下的 PA 定义，第二项为完整验证分区 $`L\cup U`$ 上的预测负类比例。
+定义和使用条件见[PU 选模](../user/concepts/pu_model_selection.md#2-pa-的条件和公式)。
+
+[PUBench 的固定版本实现](https://github.com/wu-dd/PUBench/blob/a9a62b05b0f222c72aff4df8992307376c78d682/lib/misc.py)
+与 [PU-Bench 的固定版本实现](https://github.com/XiXiphus/PU-Bench/blob/2d95a19eefd72e66ff30128ec2f65e1d1d4cc077/train/utils/metrics.py)
+在这一项使用观测 PU 标签准确率。令 $`q=n_L/(n_L+n_U)`$，
+$`a=\widehat P_L(\hat Y=1)`$，$`d=\widehat P_U(\hat Y=0)`$，则两种第二项分别为：
+
+```math
+\text{预测负类比例}=q(1-a)+(1-q)d,\qquad
+\text{观测 PU 标签准确率}=qa+(1-q)d.
+```
+
+因此，使用观测 PU 标签准确率的 PA 分数比论文定义多出 $`q(2a-1)`$。
+该差值随候选模型与阈值变化，可能改变选模排序。复现实验记录所采用的 PA 定义、
+参考仓库版本和阈值选择方式。

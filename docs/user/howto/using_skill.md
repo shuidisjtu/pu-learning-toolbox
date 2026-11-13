@@ -1,88 +1,111 @@
 # 启用与使用 pu-workflow Skill
 
-> 前置条件：已安装 `pu-toolbox`（>= 1.2，含技能资源）与 `uv`；使用 Claude Code /
-> Cursor / Codex / Gemini CLI / Windsurf 等支持 [Agent Skills](https://agentskills.io) 的
-> 客户端。
+> 前置条件：Python 3.10+、`pu-toolbox` 及支持 [Agent Skills](https://agentskills.io)
+> 的客户端。项目环境优先使用 `uv`；图像与 encoder 路线安装 torch extra。
 
-`pu-workflow` 是一个 Agent Skills 标准技能文件（`SKILL.md`），让 AI 客户端以自然
-语言驱动完整 PU 分析流程：数据画像与 SCAR/SAR 假设诊断 → 算法推荐与类先验估计 →
-训练评估 → 结果解读。
+`pu-workflow` 根据自然语言任务选择工具箱的 CLI 或 Python API，覆盖日常 PU 分析、
+数据构造、先验解析、调参比较、四角色研究、PA/OA 选模和图像表征，以及漂移、监控、
+人工复核和基准审计。主入口按任务读取六份参考文件，结果解释使用实际保存的产物。
 
-技能文件随发布包分发：自 v1.2 起 wheel 内置技能资源，`pu-toolbox skill install`
-一键安装；技能内所有命令均为包自带 CLI 子命令（`profile` / `recommend` /
-`sensitivity` / `run`），因此**安装包 + 一条命令即可启用完整工作流**，无需源码仓库。
+本轮 skill 修订版本为 1.11.0，验证环境为当前源码构建的 `pu-toolbox 1.11.0` wheel。
+客户端按已安装包的命令帮助、Python 签名和能力声明选择执行路线。
 
-## 1. 启用技能
+## 1. 安装与启用
+
+使用发布包的用户在自己的环境执行：
 
 ```bash
-uv pip install "pu-toolbox>=1.2"   # 或 pip install pu-toolbox
+uv pip install "pu-toolbox>=1.11.0"
 pu-toolbox skill install
 ```
 
-命令把技能安装到用户级两个位置：
-
-- `~/.claude/skills/pu-workflow/` — Claude Code / Cursor
-- `~/.agents/skills/pu-workflow/` — Codex / Gemini CLI / Windsurf
-
-任何目录下的客户端会话都能触发。常用变体：
-
-- `pu-toolbox skill install --dest <目录>`：自定义安装根目录
-- `pu-toolbox skill install --force`：覆盖已有安装（默认跳过，重复执行安全）
-
-克隆仓库的开发者无需安装 —— 仓库内 `.claude/skills/pu-workflow/` 与
-`.agents/skills/pu-workflow/` 已原生可用（双份由 `check_skill_sync` 门禁保证一致）。
-
-## 2. 使用
-
-在客户端会话中直接用自然语言描述 PU 分析任务，例如：
-
-> 分析这份 PU 数据 `X.csv` / `y_pu.csv`，给我完整的分析报告
-
-客户端匹配技能后自动执行四步,每步之间**强制检查点**会停下等你确认：
-
-| 步骤 | 做什么 | 产出 |
-|---|---|---|
-| 1. 画像与诊断 | 数据质量 + SCAR/SAR 假设证据 | `profile.json` |
-| 2. 推荐与先验 | 算法排序 + 类先验估计 | `recommendation.json` |
-| 3. 训练与评估 | 分层交叉验证下的完整 PU 流水线 | `report.json` + `report.md` |
-| 4. 解读与建议 | 面向结论的中文解读与下一步行动 | 对话摘要 |
-
-手动执行这些步骤也可以直接用 CLI（等价）：
+源码工作区使用当前检出内容：
 
 ```bash
-uv run pu-toolbox profile --data X.csv --labels y_pu.csv --out-dir work/
-uv run pu-toolbox recommend --profile work/profile.json --out-dir work/
-uv run pu-toolbox run --data X.csv --labels y_pu.csv --out-dir work/run
-uv run pu-toolbox sensitivity --data X.csv --labels y_pu.csv --out-dir work/
+uv sync --python 3.11 --extra dev --extra torch
+uv run pu-toolbox skill install --dest work/agent-home
 ```
 
-### 可选扩展场景
+安装器将完整主入口和参考文件复制到两个目标：
 
-四步主线之外，技能在用户需求命中时提供三个可选扩展（需 `pu-toolbox >= 1.10.0`）：
+- `~/.claude/skills/pu-workflow/`：Claude Code / Cursor。
+- `~/.agents/skills/pu-workflow/`：Codex / Gemini CLI / Windsurf。
 
-| 场景 | 触发条件 | 命令 |
-|---|---|---|
-| 分布漂移迁移 | 提到 target domain / covariate shift / 跨域迁移 | `shift-audit` → `shift-run`（无权重 vs 加权模型对比） |
-| 部署监控 | 部署后监控 / 生产漂移 / 人工复核队列 | `shift-monitor` → `review --model <model.pkl>` |
-| 基准审计 | 校验基准结果目录 | `audit-benchmark --result-dir <dir>` |
+`--dest` 指定上述两个目录的共同安装根目录。已有安装默认保留；用户选择更新已有安装时，
+使用 `pu-toolbox skill install --force`。仓库内的两套 skill 也可由客户端直接发现。
 
-扩展场景沿用主线纪律：命令 → 读 JSON 输出 → 强制检查点（漂移显著、监控告警、
-审计问题时停下等待用户确认）。详见 `distribution_shift.md` 与 `cli.md`。
+## 2. 按任务使用
 
-## 3. 已知边界
+向客户端说明数据路径、目标、已有先验和预算，例如：
 
-- 技能的 Step 4 解读模板（`references/interpret.zh-CN.md`）与部分参考文档
-  （`docs/user/...`）按仓库相对路径引用，非仓库环境（`skill install` 安装）下客户端
-  找不到时会跳过模板、直接用对话补全，不影响四步主流程。
-- 技能前提中 "Working directory: repository root" 主要针对仓库开发者；安装用户按
-  自己的数据目录操作，命令中的相对路径指向自己的数据文件。
+> 分析 `X.csv` 和 `y_pu.csv`。数据来自同一总体池，已知总体先验 0.4，
+> 使用 CPU、3 折 CV、seed 42，报告写到 `work/analysis`。
 
-## 4. 故障排查
+> 我有全标注数据，先按来源切分，再按固定数 SCAR 与特征相关 SAR 构造 PU 数据，
+> 比较两种标记设置，保存来源索引与采样记录。
 
-| 症状 | 处理 |
+> 为四路数据运行 PA 和 OA，分别选择 checkpoint 和阈值，再评测 test。
+
+| 任务 | 入口与产物 |
 |---|---|
-| 客户端不触发技能 | 确认安装目录存在（`~/.claude/skills/pu-workflow/SKILL.md`）、客户端支持 Agent Skills、任务描述与技能触发词匹配 |
-| `skill install` 提示 `skill assets not found` | 包版本过旧（< 1.2 无内置资源），`uv pip install --upgrade pu-toolbox` 后重试 |
-| `skill install` 提示 already installed | 已存在安装，默认跳过；需要覆盖加 `--force` |
-| 命令 exit 1 | 输入/用法错误，读 stderr 的 `error:` 消息；`pu-toolbox <子命令> --help` 查参数 |
-| 技能要求版本不符 | 技能要求 CLI `pu-toolbox >= 1.10.0`；`pip show pu-toolbox` 确认后升级 |
+| 日常 OS 表格分析 | CLI/Pipeline；画像、推荐、先验和训练报告 |
+| 独立 TS 与显式先验目标 | Python `input_sampling="ts"`；目标换算与逐折消费记录 |
+| OS/TS、SCAR/SAR 构造 | preprocessing API；PU 标签、采样政策、来源与先验元数据 |
+| 调参或多方法比较 | `PUTuner` / `PUModelComparator` 或 CLI 配置；候选及选择结果 |
+| 四角色研究与 PA/OA | `ExperimentRunner`；各协议选择、checkpoint、阈值和 test |
+| 图像、encoder、冻结特征 | 注册能力匹配的模型与表征路径；模型和表示身份 |
+| 漂移、监控、复核、审计 | 对应 CLI；结构化诊断与执行产物 |
+
+skill 复用用户已有选择和授权，按任务推进。诊断结果进入方法选择和报告；涉及缺失的研究设计、
+数据来源或额外预算时，客户端提出具体问题。日常完整分析可自动选择适用的先验估计器并记录来源。
+
+## 3. 采样、先验与图像设置
+
+当前 `profile`、`recommend`、`run` CLI 使用 OS 输入语义。独立 TS 通过 Python API
+显式指定采样设计，见[Pipeline 指南](pipeline.md)和[采样教程](pu_sampling.md)。
+Pipeline 调用级 `class_prior` 和报告的 `prior.value` 使用总体目标；报告保存原始估计目标、
+总体换算及每折实际训练消费。独立推荐使用目标明确的总体先验，自动估计分析通过 Pipeline
+统一解析先验链。详细定义见[先验语义](../concepts/class_prior_semantics.md)。
+
+原始图像使用有限值 NCHW 数组，并选择显式 CNN 分类器，例如：
+
+```bash
+pu-toolbox run --data X.npy --labels y_pu.csv --classifier nnpu --architecture cnn --class-prior 0.4 --device cpu --max-epochs 2 --cv 2 --out-dir work/images
+```
+
+自定义 encoder 和冻结特征的生命周期见[表征原理](../concepts/representations.md)及
+[encoder 教程](custom_encoders.md)。四角色和选择记录见[自定义实验](custom_experiments.md)。
+
+## 4. 安装后的参考文件
+
+每个安装目标都包含相同的七份资源：
+
+| 资源 | 内容 |
+|---|---|
+| `SKILL.md` | 任务识别、能力发现、路由与交付条件 |
+| `references/analysis.md` | 日常分析、调参比较、敏感性计算 |
+| `references/sampling-and-priors.md` | 采样、标记、先验目标和消费链 |
+| `references/research-experiments.md` | 四角色、PA/OA、checkpoint、自定义策略 |
+| `references/representations.md` | CNN、encoder 注入和冻结特征 |
+| `references/extensions.md` | 漂移、监控、复核、审计 |
+| `references/interpret.zh-CN.md` | 中文字段解释和结论书写 |
+
+内部引用相对于 skill 所在目录解析。安装用户可在自己的数据目录工作，参考文件自带最小示例；
+源码用户可进一步运行[示例 14–18](../../../examples/minimal/)。
+
+## 5. 结果与故障处理
+
+客户端读取实际 JSON，报告数据设置、方法、先验来源与消费、可用指标和后续动作。
+Pipeline schema 1.1 保存 `prior.training_consumption` 与指标有效折数；研究 manifest
+分别保存 PA/OA 的选择和最终测试。文档和总结直接陈述证据支持的结论及其适用条件。
+
+| 情况 | 动作 |
+|---|---|
+| 客户端未触发 | 核对安装目录、客户端发现设置与任务描述；显式调用 `$pu-workflow` |
+| 已有安装 | 保留当前目录，或在选择更新后使用 `--force` |
+| 命令或 Python 符号与路线要求不同 | 查看安装版本、命令帮助和签名，安装包含所需能力的构建 |
+| 输入报错 | 按实际错误修正文件格式、维数、标签或参数，然后重跑 |
+| 诊断提示或指标待补充 | 读取具体字段与建议，按已授权路线推进并报告相应数据动作 |
+
+维护者使用 `uv run python scripts/check_skill_sync.py` 核对完整资源树、内部引用和
+可移植 frontmatter。安装、wheel 内容与外部目录执行共同验证分发体验。

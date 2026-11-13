@@ -79,7 +79,7 @@ Pipeline 将估计解析为总体值，再按 estimator 的默认视图目标逐
 | `ui/` | 图形界面（可选 ext，核心安装不导入 streamlit） | [`../../pu_toolbox/ui/__init__.py`](../../pu_toolbox/ui/__init__.py)、[`图形界面指南`](../user/howto/ui.md) |
 | `benchmarks/` | 论文复现基准（runner / 官方数据 / 产物管理；仓库根，官方数据由执行方提供） | [`../../benchmarks/`](../../benchmarks/) |
 | `scripts/pu_workflow/` | 兼容包装（委托 CLI 子命令） | [`../../scripts/pu_workflow/`](../../scripts/pu_workflow/) |
-| pu-workflow skill | agent 端到端流程（触发词驱动，内部走 CLI） | [`../../.claude/skills/pu-workflow/SKILL.md`](../../.claude/skills/pu-workflow/SKILL.md) |
+| pu-workflow skill | agent 按任务路由到 CLI / Python 公共 API，按需读取分析、采样先验、研究、表征与扩展参考 | [`../../.claude/skills/pu-workflow/SKILL.md`](../../.claude/skills/pu-workflow/SKILL.md) |
 
 ### 2.1 模块依赖关系
 

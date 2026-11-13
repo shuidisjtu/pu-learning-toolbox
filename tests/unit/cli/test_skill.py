@@ -78,3 +78,48 @@ def test_determ_repeat_install_stable(tmp_path):
     _install(tmp_path, "--force")
     second = (tmp_path / ".claude/skills/pu-workflow/SKILL.md").read_bytes()
     assert first == second
+
+
+@pytest.mark.unit
+def test_basic_installs_complete_reference_tree(tmp_path, monkeypatch):
+    from pu_toolbox.cli import skill as skill_cli
+
+    source = tmp_path / "source"
+    references = source / "references"
+    references.mkdir(parents=True)
+    (source / "SKILL.md").write_text("[Guide](references/analysis.md)\n", encoding="utf-8")
+    (references / "analysis.md").write_text("[Details](nested/guide.md)\n", encoding="utf-8")
+    nested = references / "nested"
+    nested.mkdir()
+    (nested / "guide.md").write_text("Analysis details\n", encoding="utf-8")
+    monkeypatch.setattr(skill_cli, "_skill_source", lambda: source)
+    destination = tmp_path / "installed"
+    _install(destination)
+    for target in _TARGETS:
+        installed = destination / target
+        for original in source.rglob("*"):
+            if original.is_file():
+                assert (
+                    installed / original.relative_to(source)
+                ).read_bytes() == original.read_bytes()
+
+
+@pytest.mark.unit
+def test_edge_existing_reference_preserved_then_force_updated(tmp_path, monkeypatch):
+    from pu_toolbox.cli import skill as skill_cli
+
+    source = tmp_path / "source"
+    (source / "references").mkdir(parents=True)
+    (source / "SKILL.md").write_text("Skill\n", encoding="utf-8")
+    guide = source / "references/analysis.md"
+    guide.write_text("Initial guide\n", encoding="utf-8")
+    monkeypatch.setattr(skill_cli, "_skill_source", lambda: source)
+    destination = tmp_path / "installed"
+    _install(destination)
+    guide.write_text("Updated guide\n", encoding="utf-8")
+    _install(destination)
+    for target in _TARGETS:
+        assert (destination / target / "references/analysis.md").read_text() == "Initial guide\n"
+    _install(destination, "--force")
+    for target in _TARGETS:
+        assert (destination / target / "references/analysis.md").read_text() == "Updated guide\n"

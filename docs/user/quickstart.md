@@ -39,6 +39,7 @@ report.save("results/pipeline.json")
 
 ## 接下来呢？
 
+- 用自然语言描述分析或研究任务：[启用 pu-workflow Skill](howto/using_skill.md)
 - 不想使用命令行：安装后运行 `pu-toolbox-ui`，见 [howto/ui.md](howto/ui.md)
 - 调整模型或搜索参数：[howto/model_tuning.md](howto/model_tuning.md)
 - 完整实验的每一步怎么调：见 [howto/pipeline.md](howto/pipeline.md)

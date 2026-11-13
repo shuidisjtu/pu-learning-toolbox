@@ -192,13 +192,20 @@ results and writes artifacts to the selected `--out-dir`.
 
 ## AI workflow skill
 
-`pu-workflow` (Agent Skills open standard) drives the full PU analysis
-workflow — profiling, assumption diagnosis, method recommendation,
-training, and result interpretation — from natural language. Loaded
-natively by Claude Code / Cursor (`.claude/skills/`) and Codex / Gemini
-CLI / Windsurf (`.agents/skills/`). The skill ships inside the PyPI
-wheel: `pip install "pu-toolbox>=1.2" && pu-toolbox skill install` —
-see [How to enable and use the skill](docs/user/howto/using_skill.md).
+`pu-workflow` (Agent Skills open standard) routes natural-language tasks
+to CLI or Python APIs: PU analysis, OS/TS and SCAR/SAR construction,
+prior resolution, tuning/comparison, four-role PA/OA experiments,
+CNN/encoder workflows, drift, monitoring, review, and benchmark audits.
+It carries the user's settings and budget through execution and reads
+the saved artifacts to explain the results.
+
+The wheel bundles the entrypoint and six task references. Install with
+`pu-toolbox skill install` into Claude Code / Cursor (`.claude/skills/`)
+and Codex / Gemini CLI / Windsurf (`.agents/skills/`); use `--dest` for a
+custom root and `--force` when choosing to update an existing install.
+The revised skill is validated with the current source-built 1.11.0 wheel;
+routes use the installed package's discovered capabilities. See
+[How to enable and use the skill](docs/user/howto/using_skill.md).
 
 ## Development
 

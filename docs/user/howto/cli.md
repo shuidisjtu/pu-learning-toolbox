@@ -87,9 +87,10 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 - `review --model trusted_model.pkl --data current.csv [--labels current_labels.csv]
   --query-budget 20 --query-strategy uncertainty --out-dir review/`：生成拒绝预测和主动人工
   复核队列。pickle 仅可加载自己生成或可信来源的模型，不能加载未知文件。
-- `skill install [--force] [--dest 目录]`：安装内置 `pu-workflow` 技能到用户级
-  `~/.claude/skills/` 与 `~/.agents/skills/`（默认跳过已存在安装，`--force` 覆盖；
-  详见 [启用与使用 pu-workflow Skill](using_skill.md)）。
+- `skill install [--force] [--dest 目录]`：将 `pu-workflow` 主入口和六份任务参考文件安装到
+  `~/.claude/skills/` 与 `~/.agents/skills/`。`--dest` 指定共同根目录；已有安装默认保留，
+  选择更新时使用 `--force`。技能按任务选择 CLI 或 Python API，详见
+  [启用与使用 pu-workflow Skill](using_skill.md)。
 
 ## 深度算法与图像数据
 

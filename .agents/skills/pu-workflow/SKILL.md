@@ -1,300 +1,103 @@
 ---
 name: pu-workflow
 description: >-
-  End-to-end PU learning workflow for the pu-learning-toolbox project:
-  profile data and diagnose SCAR/SAR assumptions, recommend PU
-  algorithms and estimate the class prior, train and evaluate with the
-  CLI, and interpret results with actionable advice. Optional
-  extensions cover distribution-shift migration, deployment
-  monitoring, and benchmark audits. Use when the user asks to analyze
-  positive-unlabeled data, run a PU analysis, check labeling bias or
-  SCAR assumptions, choose a PU method, estimate a class prior, audit
-  distribution shift, monitor a deployed PU model, or audit benchmark
-  results.
+  Run positive-unlabeled learning tasks with pu-learning-toolbox:
+  analyze PU data, construct OS/TS and SCAR/SAR studies, estimate class
+  priors, tune or compare methods, run PA/OA experiments, and configure
+  image encoders. Also handles requested drift, monitoring, review, and
+  benchmark audits.
 license: MIT
-compatibility: Python >=3.10, uv, pu-toolbox (>= 1.10.0)
 metadata:
   author: shuidisjtu
-  version: 1.10.0
+  version: 1.11.0
 ---
 
 # pu-workflow
 
-End-to-end PU learning analysis for the
-[pu-learning-toolbox](https://github.com/shuidisjtu/pu-learning-toolbox)
-project. The user describes a PU analysis task in natural language; you
-execute the four steps below, stopping at the checkpoints, and report
-results with actionable advice. Follow the steps in order; never skip
-data profiling or the checkpoint reviews.
+Turn the user's PU learning goal into an executable analysis or study,
+then explain the saved results in the user's language. Choose the route
+that matches the task and load its reference when needed.
 
-## When to use
+## Establish the task
 
-Trigger on: "analyze this PU data", "run PU analysis", "which PU method
-should I use", "is SCAR plausible here", "estimate the class prior",
-"check labeling propensity assumptions". Do NOT use for plain binary
-classification with full labels.
+Reuse the user's choices and existing authorization. Establish the goal,
+input paths and shapes, label availability, sampling design, prior target
+and source, available validation/support data, device, execution budget,
+and output directory. Ask for missing information when it changes the
+statistical design or the permitted work. For a complete analysis request,
+use an appropriate automatic prior estimator when required and record it.
+Carry diagnostic findings into method selection and reporting while
+continuing the authorized work.
 
-## Prerequisites
+## Environment and capability discovery
 
-- Working directory: repository root of pu-learning-toolbox (all paths
-  below are relative to it).
-- Environment: `uv` installed; dependencies present (`uv sync` if
-  missing). Deep methods need optional torch extras.
-- Input data contract: feature matrix as CSV (rows = samples, first row
-  must be a non-numeric header) or .npy 4-D NCHW images; PU labels as a
-  single-column CSV of {1, 0} with a header row. Headerless,
-  multi-column, or non-finite (NaN/Inf) inputs are rejected with a
-  clear error - report it to the user, do not work around it.
-- The profile/recommend scripts operate on table data (2-D CSV). For
-  4-D NCHW image data, go directly to Step 3 and pass
-  `--architecture cnn` (plus `--backbone`/`--device` as needed).
-
-## Workflow overview
-
-| Step | What | Executes | Output |
-|---|---|---|---|
-| 1. Profile & diagnose | Data quality + SCAR/SAR assumption evidence | `pu-toolbox profile` | `profile.json` |
-| 2. Recommend & prior | Method ranking + class-prior estimation | `pu-toolbox recommend` | `recommendation.json` |
-| 3. Train & evaluate | Full PU pipeline under stratified CV | `pu-toolbox run` (CLI) | `report.json` + `report.md` |
-| 4. Interpret & advise | Human-readable conclusions + next actions | you (see below) | summary to the user |
-
-All commands exit 0 on success and 1 on user/input errors (clear stderr
-message, no traceback). Outputs are strict JSON (no NaN/Infinity).
-
-## Step 1 — Profile & diagnose
-
-Run:
+Use Python >=3.10 and pu-toolbox >=1.11.0 with the capabilities selected below.
+Work in the user's data/output directory or a source checkout. Resolve
+references below relative to this skill directory. Prefer `uv run` in a
+project environment; an installed environment can invoke `pu-toolbox`
+and its Python interpreter directly.
 
 ```bash
-uv run pu-toolbox profile \
-  --data <X.csv> --labels <y_pu.csv> \
-  [--true-labels <y_true.csv>] \
-  --out-dir <work_dir>
+uv run pu-toolbox --help
+uv run pu-toolbox list-methods
+uv run pu-toolbox list-priors
 ```
 
-Read `<work_dir>/profile.json`:
+Check the installed `pu_toolbox.__version__`, selected command's `--help`,
+and Python signatures for the chosen route. Research APIs are available
+in the current source build; feature discovery selects the matching
+installed capabilities. Use the project's torch extras for image and
+encoder tasks. Report the package version and relevant capabilities.
 
-- `selection_diagnostic.status`: `plausible` / `at_risk` /
-  `inconclusive` — SCAR/SAR plausibility evidence.
-- `issues[]`: each has `code`, `severity` (`info`/`warning`/`error`),
-  `message`, `action`. The `action` field tells the user what to do.
+CSV feature inputs have a non-numeric header row; PU labels are a headered
+single column of 1 (labeled positive) and 0 (unlabeled). Raw image inputs
+use finite 4-D NCHW `.npy` arrays. Python APIs accept validated arrays.
+Inspect input shape, label counts and source identities before training.
 
-**Checkpoint 1 (mandatory):** if any issue has `severity` in
-{`warning`, `error`} or the diagnostic is not `plausible`, STOP. Explain
-the findings in plain language, give the suggested `action`, and wait
-for the user's decision before continuing.
+## Select the route
 
-For deeper context, see `docs/user/howto/data_profiling.md` and
-`docs/user/concepts/scar_sar.md` (in-repo, load on demand).
+| User task | Read | Execution and completion |
+|---|---|---|
+| Analyze existing PU data; tune or compare methods | [Analysis](references/analysis.md) | CLI/Pipeline or tuner/comparator; read profiles, selected settings and metric reports |
+| Construct PU observations; identify OS/TS; estimate or convert a prior | [Sampling and priors](references/sampling-and-priors.md) | Preprocessing and target-aware prior APIs; save sampling/source metadata and actual prior consumption |
+| Run four-role research, PA/OA or custom strategies | [Research experiments](references/research-experiments.md) | `ExperimentRunner`; read separate protocol selections, checkpoints, thresholds and test results |
+| Train images, inject an encoder or use frozen features | [Representations](references/representations.md) | Discover registered capabilities; save representation identity, training scope and model results |
+| Audit drift, monitor windows, create a review queue or audit a benchmark | [Extensions](references/extensions.md) | Run the requested extension and read its structured artifacts |
 
-## Step 2 — Recommend & prior
+A task can combine routes: construct data, run an experiment and interpret
+its results. Load the references for those stages as they become relevant.
 
-The recommender needs a class prior only for methods that require one
-(`requires_class_prior`). Decide how to obtain it, per **Checkpoint 2**:
+## Shared execution semantics
 
-**Checkpoint 2 (mandatory):** if the user has not supplied a class
-prior, STOP and offer exactly two options:
+- Record input sampling, labeling policy, training risk view, prior target,
+  validation supervision and representation as separate settings.
+- The current CLI profile/recommend/run path uses OS input semantics.
+  Explicit TS analyses use Python APIs with `input_sampling="ts"`.
+- Pipeline's call-level `class_prior` and report `prior.value` target the
+  population. Read estimator target declarations and recorded conversions
+  when estimating; training consumers receive their required pool priors.
+- For raw images, select an explicit CNN-capable classifier and specify
+  prior information appropriate to the image/feature route.
+- Fit preprocessing and trainable representations on the permitted train
+  data. Validation selects candidates, checkpoints and thresholds; test
+  evaluates the selected result. Record extra clean-support supervision.
+- Honor user-selected methods and budgets. Resolve CLI/input errors using
+  the actual error and command help; resume after a justified correction.
+  When progress requires a user decision, present the concrete choice.
 
-1. Auto-estimate (`recpe`, `pen_l1`, `km1`, or `km2`; pass `--prior-estimator`).
-2. Supply a domain value (`--class-prior 0.3`).
+## Report the result
 
-Wait for the user's choice. If the user explicitly declines a prior,
-run with `--prior-estimator none`; if the user gives a value, keep it
-verbatim.
+Read the saved JSON and model-selection artifacts. State the settings,
+executed budget, findings, available metrics, and actionable next steps.
+For Chinese summaries, load [the interpretation guide](references/interpret.zh-CN.md).
+State the conclusion supported by the analysis and its applicable
+conditions directly. Use actual artifact values and explain each metric
+in relation to its evaluation population.
+Keep each paragraph focused on the question the computation answers.
+For a fixed-prediction sweep, report the assumption grid and observed
+metric changes. Express additional information needs as concrete actions,
+such as collecting validation truth for supervised evaluation.
 
-Run with the chosen prior (or `--prior-estimator none` if none is
-needed):
-
-```bash
-uv run pu-toolbox recommend \
-  --profile <work_dir>/profile.json \
-  [--data <X.csv> --labels <y_pu.csv>] \
-  [--class-prior <value> | --prior-estimator recpe|pen_l1|km1|km2] \
-  [--top-k 5] [--has-gpu] \
-  --out-dir <work_dir>
-```
-
-Read `<work_dir>/recommendation.json`: `candidates[]` ordered by
-`rank`, each with `score`, `reasons[]`, `warnings[]`; `global_warnings[]`
-explain profile-level caveats.
-
-Report the top 3 candidates with their reasons to the user. If the
-candidate list is empty, explain the filter reasons
-(`filters_applied`) and suggest how to relax them.
-
-See `docs/user/concepts/method_selection.md` for the scoring
-dimensions.
-
-## Step 3 — Train & evaluate
-
-Use the existing CLI (stable, structured output):
-
-```bash
-uv run pu-toolbox run \
-  --data <X.csv> --labels <y_pu.csv> \
-  [--true-labels <y_true.csv>] [--class-prior <value>] \
-  [--classifier <name>|auto] [--prior-estimator <name>|none] \
-  [--cv 5] [--metrics <csv>] [--seed 42] [--save-model] \
-  --out-dir <work_dir>/run
-```
-
-Prefer `--classifier auto` (the recommender picks a method and records
-the choice in `report.json` under `provenance.classifier`); pick an
-explicit name only when the user asks for a specific method. Let the
-user's prior decision flow through: pass `--class-prior <value>` or
-`--prior-estimator` exactly as chosen in Step 2.
-
-Read `<work_dir>/run/report.json`: `cv_metrics` (a dict keyed by metric
-name; each entry has `available`, `mean`, `std`, `n_computed`,
-`reason`), `prior`, `provenance`, `issues[]` (`has_errors` /
-`has_warnings` summarized in `report.md`).
-
-**Checkpoint 3 (mandatory):** if `report.json` carries any error or
-warning entries (or the run failed with exit 1), STOP and walk the
-user through the messages before continuing to interpretation.
-
-See `docs/user/howto/pipeline.md` and `docs/user/howto/cli.md` for
-parameter details.
-
-## Step 4 — Interpret & advise
-
-Translate the results into plain language. Follow the Chinese
-interpretation guide in
-`.claude/skills/pu-workflow/references/interpret.zh-CN.md` (repo-root
-relative) for field-by-field meaning and advice templates; write your
-final summary in the language the user speaks. Cover:
-
-1. **Assumption verdict**: what the SCAR/SAR diagnostic said and what
-   it implies for the chosen method.
-2. **Prior estimate**: value, estimator, and sensitivity implications
-   (run `pu-toolbox sensitivity` if the user wants an assumption sweep:
-   `uv run pu-toolbox sensitivity --data <X.csv> --labels <y_pu.csv> --out-dir <work_dir>`).
-3. **Chosen method**: name, why it won, and its caveats (`warnings[]`).
-4. **Metric highlights**: the `available` metrics with `mean ± std`.
-5. **Next actions**: at most 3 concrete suggestions (fix a data issue,
-   supply a better prior, compare a specific alternative method).
-
-Do not invent numbers: cite only values present in the JSON outputs.
-
-## Optional extensions
-
-The four steps above cover the standard single-domain analysis. Engage
-the scenarios below only when the user's request mentions them, and
-keep the same discipline: run the commands, read the JSON outputs, and
-stop at the checkpoints.
-
-### A. Distribution-shift migration
-
-Trigger: the user mentions a target domain, covariate shift,
-cross-domain transfer, or source-to-target deployment.
-
-1. Audit source-to-target drift and export bounded covariate weights:
-
-```bash
-uv run pu-toolbox shift-audit \
-  --source-data <X_source.csv> --source-labels <y_source.csv> \
-  --target-data <X_target.csv> [--target-labels <y_target.csv>] \
-  --out-dir <work_dir>/shift
-```
-
-Read `<work_dir>/shift/` outputs for drift evidence and the exported
-source weights.
-
-**Checkpoint A (mandatory):** if the audit reports significant drift,
-STOP, explain the evidence and what covariate weighting changes, and
-wait for the user's decision before running a weighted model.
-
-2. Compare unweighted vs covariate-weighted PU models on the target
-   domain:
-
-```bash
-uv run pu-toolbox shift-run \
-  --source-data <X_source.csv> --source-labels <y_source.csv> \
-  --target-data <X_target.csv> --target-labels <y_target.csv> \
-  [--target-true-labels <y_target_true.csv>] \
-  [--target-class-prior <value>] [--classifier <name>] \
-  --out-dir <work_dir>/shift-run
-```
-
-Report which arm wins and by how much; cite only numbers present in
-the JSON outputs.
-
-See `docs/user/howto/distribution_shift.md` for details.
-
-### B. Deployment monitoring
-
-Trigger: the user asks to monitor a deployed PU model, check
-production drift window by window, or set up a human review queue.
-
-1. Append one target window to a persistent shift history:
-
-```bash
-uv run pu-toolbox shift-monitor \
-  --reference-data <X_ref.csv> --reference-labels <y_ref.csv> \
-  --window-data <X_win.csv> [--window-labels <y_win.csv>] \
-  --window-id <id> [--history <previous.json>] \
-  --out-dir <monitor_dir>
-```
-
-Outputs include `shift_history.json`, `window_shift.json` (plus `.md`)
-and `window_summary.json`.
-
-**Checkpoint B (mandatory):** if the monitor emits an alert (AUC or
-label-rate jump beyond its threshold), STOP, explain what degraded and
-by how much, and wait for the user's decision.
-
-2. Build a selective-prediction review queue from a saved model:
-
-```bash
-uv run pu-toolbox review \
-  --model <model.pkl> --data <X.csv> \
-  [--labels <y_pu.csv>] [--true-labels <y_true.csv>] \
-  [--query-strategy uncertainty|shift_weighted|diverse_uncertainty] \
-  [--query-budget 20] [--min-confidence 0.5] \
-  --out-dir <review_dir>
-```
-
-`<model.pkl>` comes from Step 3's `--save-model`.
-
-See `docs/user/howto/distribution_shift.md` and
-`docs/user/howto/cli.md` for details.
-
-### C. Benchmark audit
-
-Trigger: the user provides a benchmark result directory and asks to
-validate it.
-
-```bash
-uv run pu-toolbox audit-benchmark \
-  --result-dir <dir> [--output <audit.json>]
-```
-
-Read the audit report and walk the user through every issue with its
-severity before any further use of the results. See
-`docs/user/howto/cli.md` for parameter details.
-
-## Failure handling
-
-| Symptom | Action |
-|---|---|
-| Command exit 1 | Read the stderr `error:` message; fix the input and re-run, or ask the user how to proceed |
-| Diagnostic `at_risk` / `inconclusive` | Explain what it means and stop at Checkpoint 1, waiting for the user's decision |
-| Empty candidate list | Explain `filters_applied`; suggest relaxing filters (e.g. supply a prior, densify sparse data) |
-| `pu-toolbox run` exit 1 | Show the `error:` message; three options for the user: fix data and re-run / pick another method / get the full traceback |
-| Unknown classifier/prior name | Run `uv run pu-toolbox list-methods` / `uv run pu-toolbox list-priors` for the accepted set |
-| Extension command missing (`shift-*`, `review`, `audit-benchmark`) | The installed package predates the command; suggest `uv pip install -U pu-toolbox` |
-| `review` fails for missing `--model` file | Run Step 3 with `--save-model` to produce `model.pkl` first |
-
-## References
-
-- `docs/user/quickstart.md`, `docs/user/concepts/pu_problem.md`,
-  `docs/user/concepts/scar_sar.md`, `docs/user/concepts/method_selection.md`
-- `docs/user/howto/data_profiling.md`, `docs/user/howto/pipeline.md`,
-  `docs/user/howto/cli.md`, `docs/user/howto/sensitivity_analysis.md`,
-  `docs/user/howto/distribution_shift.md`, `docs/user/howto/model_tuning.md`,
-  `docs/user/howto/self_pu.md`, `docs/user/howto/sar_simulation.md`,
-  `docs/user/howto/diagnostic_reports.md`, `docs/user/howto/ui.md`,
-  `docs/user/howto/using_skill.md`
-- `docs/user/reference/api.md`
-- `.claude/skills/pu-workflow/references/interpret.zh-CN.md` (repo-root
-  relative; this file only exists on the .claude side)
+Complete the task when the requested artifacts exist, their key fields
+have been checked, and the user has a clear account of the result and
+any concrete follow-up work.

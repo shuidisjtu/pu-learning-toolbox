@@ -181,12 +181,16 @@ registry 声明需要先验的方法在运行入口使用 `--class-prior`，构�
 
 ## AI 工作流 Skill
 
-`pu-workflow`（Agent Skills 开放标准）以自然语言驱动完整 PU 分析流程：
-数据画像、假设诊断、算法推荐、训练评估与结果解读。Claude Code / Cursor
-（`.claude/skills/`）与 Codex / Gemini CLI / Windsurf（`.agents/skills/`）
-原生加载。技能随 PyPI wheel 分发：`pip install "pu-toolbox>=1.2" && pu-toolbox
-skill install` 一键启用；详见
-[启用与使用 pu-workflow Skill](docs/user/howto/using_skill.md)。
+`pu-workflow`（Agent Skills 开放标准）根据自然语言任务选择 CLI 或 Python API，
+覆盖 PU 分析、OS/TS 与 SCAR/SAR 构造、先验解析、调参比较、四角色 PA/OA 实验、
+CNN/encoder 流程，以及漂移、监控、人工复核和基准审计。执行时沿用用户的设置与预算，
+读取保存的产物解释结果。
+
+wheel 内置主入口和六份任务参考文件。`pu-toolbox skill install` 将完整资源安装到
+Claude Code / Cursor（`.claude/skills/`）及 Codex / Gemini CLI / Windsurf
+（`.agents/skills/`）；`--dest` 指定安装根目录，选择更新已有安装时使用 `--force`。
+本轮修订已用当前源码构建的 1.11.0 wheel 验证，各路线按已安装包的实际能力执行。
+详见[启用与使用 pu-workflow Skill](docs/user/howto/using_skill.md)。
 
 ## 开发
 

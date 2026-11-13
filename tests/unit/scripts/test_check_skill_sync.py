@@ -120,3 +120,67 @@ def test_determ_results_reproducible(tmp_path):
     """check_sync must be deterministic: repeated calls give identical issues."""
     a, b = _write_pair(tmp_path, "line1\nline2\n", "line1\nline2 CHANGED\n")
     assert check_sync(a, b) == check_sync(a, b)
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("drift", ["missing_a", "missing_b", "text", "binary"])
+def test_param_resource_drift_reported(tmp_path, drift):
+    a, b = _write_pair(tmp_path, _GOOD_FRONTMATTER + "# pu-workflow\n")
+    relative = Path("references/guide.md" if drift != "binary" else "assets/icon.bin")
+    for entry in (a, b):
+        resource = entry.parent / relative
+        resource.parent.mkdir(parents=True)
+        if (drift == "missing_a" and entry == a) or (drift == "missing_b" and entry == b):
+            continue
+        resource.write_bytes(b"guide\n" if drift != "binary" else b"\x00\xff\x01")
+    if drift in {"text", "binary"}:
+        (b.parent / relative).write_bytes(b"changed\n" if drift == "text" else b"\x00\xff\x02")
+    issues = check_sync(a, b)
+    assert any(relative.as_posix() in issue for issue in issues)
+
+
+@pytest.mark.unit
+def test_basic_resource_tree_and_nested_links(tmp_path):
+    a, b = _write_pair(tmp_path, _GOOD_FRONTMATTER + "[Guide](references/guide.md#usage)\n")
+    for entry in (a, b):
+        reference = entry.parent / "references/guide.md"
+        reference.parent.mkdir()
+        reference.write_text("[Entry](../SKILL.md)\n[Web](https://example.com)\n", encoding="utf-8")
+        asset = entry.parent / "assets/icon.bin"
+        asset.parent.mkdir()
+        asset.write_bytes(b"\x00\xff\x01")
+    assert check_sync(a, b) == []
+
+
+@pytest.mark.unit
+def test_edge_reference_line_endings_tolerated(tmp_path):
+    a, b = _write_pair(tmp_path, _GOOD_FRONTMATTER)
+    for entry, content in ((a, b"first\nsecond\n"), (b, b"first\r\nsecond\r\n")):
+        reference = entry.parent / "references/guide.md"
+        reference.parent.mkdir()
+        reference.write_bytes(content)
+    assert check_sync(a, b) == []
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("target", ["missing.md", "../../outside.md"])
+def test_param_invalid_local_reference_reported(tmp_path, target):
+    a, b = _write_pair(tmp_path, _GOOD_FRONTMATTER + "[Guide](references/guide.md)\n")
+    for entry in (a, b):
+        reference = entry.parent / "references/guide.md"
+        reference.parent.mkdir()
+        reference.write_text(f"[Details]({target})\n", encoding="utf-8")
+        if target.startswith("../"):
+            (entry.parent.parent / "outside.md").write_text("External file\n", encoding="utf-8")
+    issues = check_sync(a, b)
+    assert any("local link" in issue and target in issue for issue in issues)
+
+
+@pytest.mark.unit
+def test_edge_mirror_frontmatter_validated(tmp_path):
+    a, b = _write_pair(
+        tmp_path,
+        _GOOD_FRONTMATTER,
+        "---\nname: pu-workflow\ndescription: mirror\nuser-invocable: true\n---\n",
+    )
+    assert any("user-invocable" in issue for issue in check_sync(a, b))

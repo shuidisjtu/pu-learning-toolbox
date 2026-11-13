@@ -17,6 +17,7 @@ howto（操作）/ reference（契约），按阅读路径组织：
 
    | 任务 | 文档 |
    |---|---|
+   | 用自然语言驱动分析与研究流程 | [howto/using_skill.md](howto/using_skill.md) |
    | 生成 SCAR/SAR 数据 | [howto/sar_simulation.md](howto/sar_simulation.md) |
    | 构造同池 OS 与独立 TS 数据 | [howto/pu_sampling.md](howto/pu_sampling.md) |
    | 数据画像与假设提示 | [howto/data_profiling.md](howto/data_profiling.md) |
