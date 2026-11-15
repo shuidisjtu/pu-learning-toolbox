@@ -3,7 +3,7 @@
 Prerequisites: complete the [quickstart](../quickstart.md) and prepare data with true binary
 labels for a controlled PU experiment. This tutorial uses synthetic CPU data to call
 `ExperimentRunner` directly and extend its strategies. For the official Survey script workflow,
-see the [runbook](../../research/pu_survey/runbook.md) (currently Chinese); exact signatures
+see the [runbook](../../research/pu_survey/runbook.md); exact signatures
 are in the [API reference](../reference/api.md#four-role-execution-and-strategy-injection).
 
 The conceptual dimensions are [input sampling and risk pools](../concepts/pu_sampling.md),
@@ -318,5 +318,5 @@ selections, and test metrics for reconstructing the setting.
 - Consult the [API reference](../reference/api.md#four-role-execution-and-strategy-injection) for exact
   contracts. The [experiment-layer design](../../dev/experiment_layer.md) is optional Chinese
   background on design rationale.
-- Use the [Survey runbook](../../research/pu_survey/runbook.md) (currently Chinese) for official
+- Use the [Survey runbook](../../research/pu_survey/runbook.md) for official
   recipes and workbook generation.

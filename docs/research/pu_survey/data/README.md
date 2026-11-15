@@ -1,57 +1,78 @@
-# Survey 数据来源与解释边界
+# Survey Data Sources and Interpretation Limits
 
-数据加载器及当前类别映射以 [`datasets.py`](../../../../pu_toolbox/experiment/datasets.py)
-中的 `DatasetSpec` / `DataProvenance` 为准；运行产物的 split manifest 记录实际来源、
-seed、划分索引和 train-only 预处理。仓库不存储原始数据或训练结果。
+The loaders and current class mappings are defined by `SurveyDatasetSpec` and
+`DatasetProvenance` in [`datasets.py`](../../../../pu_toolbox/experiment/datasets.py).
+Each run's split manifest records its actual source, seed, partition indices, and train-only
+preprocessing. Raw data and training results are not stored in the repository.
 
-## 来源与许可
+## Sources and licensing
 
-| 数据槽位 | 来源与许可解释 |
+| Dataset slot | Source and licensing interpretation |
 |---|---|
-| MNIST | [原始来源](http://yann.lecun.com/exdb/mnist/)；下载定义可参考 torchvision，镜像或软件包许可证不自动构成原始数据授权 |
-| Fashion-MNIST | [发布方](https://github.com/zalandoresearch/fashion-mnist)，发布方仓库声明 MIT |
-| CIFAR-10 | [发布方](https://www.cs.toronto.edu/~kriz/cifar.html)；保留原始来源，不从依赖库许可证推断数据许可 |
-| IMDB | [Large Movie Review Dataset](https://ai.stanford.edu/~amaas/data/sentiment/)，保留其研究用途条件与来源声明 |
-| 20 Newsgroups | [原始来源](http://qwone.com/~jason/20Newsgroups/)；scikit-learn 的 BSD 软件许可不能代替新闻文本授权；20→7 超类映射由加载器明确执行 |
-| Spambase / Connect-4 | [UCI Spambase](https://archive.ics.uci.edu/dataset/94/spambase) / [UCI Connect-4](https://archive.ics.uci.edu/dataset/26/connect-4)，页面声明 CC BY 4.0，保留署名；Connect-4 的 b/o/x 按分类特征处理 |
-| `adni` 槽位 | 实际为下节 Alzheimer MRI 替代数据，不能称为获批 ADNI 数据 |
+| MNIST | [Original source](http://yann.lecun.com/exdb/mnist/); torchvision supplies download definitions. A mirror or package license does not automatically authorize use of the original data |
+| Fashion-MNIST | [Publisher](https://github.com/zalandoresearch/fashion-mnist); the recorded publisher repository declares MIT |
+| CIFAR-10 | [Publisher](https://www.cs.toronto.edu/~kriz/cifar.html); retain the original source without inferring a data license from a dependency's software license |
+| IMDB | [Large Movie Review Dataset](https://ai.stanford.edu/~amaas/data/sentiment/); retain its research-use conditions and source statements, without inferring an additional license |
+| 20 Newsgroups | [Original source](http://qwone.com/~jason/20Newsgroups/); scikit-learn's BSD software license does not authorize the news text. The loader explicitly maps 20 groups to 7 superclasses |
+| Spambase / Connect-4 | [UCI Spambase](https://archive.ics.uci.edu/dataset/94/spambase) / [UCI Connect-4](https://archive.ics.uci.edu/dataset/26/connect-4); the recorded pages state CC BY 4.0, requiring attribution. Connect-4's b/o/x values are categorical features |
+| `adni` slot | The Alzheimer MRI substitute described below; do not describe it as approved ADNI data |
 
-原始数据收集入口 `scripts/collect_survey_public_data.py` 使用已登记 URL/摘要；已存在文件
-不匹配时拒绝覆盖。MNIST/Fashion 的校验值来自 torchvision，20 Newsgroups 来自 scikit-learn；
-它们是依赖项目登记的校验值。UCI Connect-4 未登记发布方摘要，本地 SHA-256 只用于字节身份。
-许可状态按来源记录保留，未知时标为 `unknown`。
+The collection entry point, `scripts/collect_survey_public_data.py`, uses recorded URLs and
+digests and refuses to overwrite an existing mismatched file. MNIST/Fashion checksums come
+from torchvision and 20 Newsgroups checksums from scikit-learn; these are checksums recorded
+by dependency projects. No publisher digest is registered for UCI Connect-4, so its local
+SHA-256 establishes byte identity only. Preserve licensing uncertainty from the source records:
+an unknown license is not a grant. Dataset provenance uses `not_stated_by_source` when no
+license is transcribed, retaining the date and notes of the source review.
 
-## Alzheimer MRI 替代数据
+## Alzheimer MRI substitute
 
-本项目的 `adni` 槽位使用 Kaggle *Alzheimer's Dataset (4 class of Images)* 的个人镜像
-[`Jahnabi19/AD-Dataset`](https://github.com/Jahnabi19/AD-Dataset/tree/d90729118954bbedfe481dea8a53b4f3ee5a21b2)，
-固定 commit `d90729118954bbedfe481dea8a53b4f3ee5a21b2`。
-这不是 ADNI 数据，也不带 ADNI 数据使用许可。镜像未声明许可证，原 Kaggle 页面当时标为 Unknown。
+The project's `adni` slot uses a personal mirror of Kaggle's
+*Alzheimer's Dataset (4 class of Images)*:
+[`Jahnabi19/AD-Dataset`](https://github.com/Jahnabi19/AD-Dataset/tree/d90729118954bbedfe481dea8a53b4f3ee5a21b2),
+pinned to commit `d90729118954bbedfe481dea8a53b4f3ee5a21b2`.
+This is not ADNI data and carries no ADNI data-use approval. The mirror states no license;
+the original Kaggle page was recorded as License: Unknown at the time of review.
 
-- 共 6400 张图像；NonDemented 3200、VeryMildDemented 2240、ModerateDemented 64、MildDemented 896。
-- NonDemented 为正类，其余三类为负类，总体先验 0.5；这与 PU-Bench 的另一二值定义不同。
-- 原图为灰度 JPEG，加载器缩放到 128×128；归一化统计只从实际 train 计算。
-- 来源没有 subject IDs，当前按样本索引划分，subject 级隔离尚待核验，可能存在跨划分同受试者切片。
-  需要 subject/group 证据的路径在缺少该信息时拒绝运行。
+- There are 6400 images: NonDemented 3200, VeryMildDemented 2240, ModerateDemented 64,
+  and MildDemented 896.
+- NonDemented is positive; the other three classes are negative, giving population prior 0.5.
+  This differs from PU-Bench's alternative binary mapping.
+- The originals are grayscale JPEGs, resized by the loader to 128×128. Normalization
+  statistics are fitted only on the actual train partition.
+- The source has no subject IDs. Current splits use sample indices, so subject-level isolation
+  cannot be verified and slices from the same subject may cross partitions. Paths requiring
+  verified subject/group evidence reject missing evidence. The explicit clean-support route
+  instead records `group_policy="unverifiable"`, `subject_isolation="not_checkable"`, the
+  known risk, and an owner-approval identifier; that record does not establish subject isolation.
 
-归档摘要、类别及身份事实见
-[`adni_substitute_receipt_20261012.json`](adni_substitute_receipt_20261012.json)。
-其中历史验收状态描述当时的材料状态，不自动决定新结果有效性。
+Archive digests, class counts, and identity facts are retained in
+[`adni_substitute_receipt_20261012.json`](adni_substitute_receipt_20261012.json).
+Its historical acceptance status describes the materials at that time and does not
+automatically determine the validity of new results.
 
-## 划分、support 与保留的机器事实
+## Splits, support, and retained machine-readable facts
 
-四角色为 train / pu_val / clean_val / test，真实测试标签只用于最终评测。
-独立 clean support 从 train 划出时移除原行，并记录全部角色索引及实际正负标签预算；
-支持集和选模验证集不能重用。项目 support 规模为 Spambase 100、其余已配置支持数据集 500，
-实际执行还须以 support manifest 为准。
+The four roles are train / pu_val / clean_val / test. True test labels are used only for final
+evaluation. Independent clean support carved from train removes those rows from train and
+records all role indices and the actual positive/negative label budget. Support and selection
+validation cannot reuse samples. The project's configured support sizes are 100 for Spambase
+and 500 for the other configured support datasets; actual execution must also follow the
+support manifest. Support selection is label-blind, uniform without replacement, and uses
+the predeclared split seed; it does not retry until a desired class composition appears.
 
-PULNS 原论文覆盖 MNIST、CIFAR-10、Spambase；其他数据集是项目扩展。
-MNIST 的偶数/奇数、CIFAR 的 vehicle/animal 映射与原文一致；Spambase 保留 spam-positive，
-原文的原始编码未独立证实。论文中的 γ 是 U 内正类比例，不是标记频率 c。
-论文 support 规模不能静默成为新实验默认，作者代码未被确认。
+The original PULNS paper covers MNIST, CIFAR-10, and Spambase; the other datasets are project
+extensions. MNIST's even/odd and CIFAR's vehicle/animal mappings match the paper. Spambase
+retains spam-positive labeling; the paper's original encoding has not been independently
+confirmed. The paper's γ is the positive proportion in U, not the labeling frequency c.
+Its support sizes must not silently become new-experiment defaults, and the authors' code
+has not been confirmed.
 
-实际数据来源、文件摘要与划分身份以各次数据准备生成的 provenance 和 split manifest 为准；
-早期试点的划分索引及收件记录已退役，历史可从清理前提交 `7d11f2c4` 查阅。
-P3MIX 文献锚点仅保留论文来源、数值及可比性限制，不绑定早期试点划分。
-其余方法来源 JSON 和 P3MIX/PULNS 文献锚点保存外部来源事实，配合
-[方法卡](../../method_cards/)解释实现差异，不作为训练、报告生成或人工审批的强制依赖。
+Actual source, file digests, and split identity come from the provenance and split manifest
+generated for each preparation. Early pilot split indices and receipt records have been
+retired; historical material is available at the pre-cleanup commit `7d11f2c4`.
+The P3MIX literature anchors retain paper sources, numbers, and comparability limits without
+binding early pilot splits. Other method-source JSON and P3MIX/PULNS literature anchors retain
+external source facts. [Method cards](../../method_cards/) provide optional Chinese background
+on implementation differences; these records are not mandatory dependencies for training,
+report generation, or human approval.

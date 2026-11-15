@@ -1,42 +1,71 @@
 # PU Survey
 
-工具箱提供可复用的实验运行与结果报告能力。科学设置见[实验协议](pu_survey_protocol.md)，官方示例脚本的操作流程见[运行指南](runbook.md)，Python 接口的调用与扩展示例见 [DIY 实验教程](../../user/howto/custom_experiments.md)。
+The toolbox provides reusable experiment execution and result reporting. Read the
+[protocol](pu_survey_protocol.md) for scientific settings, the [runbook](runbook.md) for the
+repository's Survey scripts, and the [custom experiment guide](../../user/howto/custom_experiments.md)
+for direct Python calls and strategy extensions.
 
-## 交付物与完成定义
+## Deliverables and acceptance boundaries
 
-**A. 结果文件生成能力**
+**Result reporting**
 
-- 从已有 v3 manifest 或 summary 生成一个含四组结果页的工作簿：SCAR–PA、SCAR–OA、SAR–OA（LBE-A/B 分开）、PN oracle。训练路径、数据集、视图和 support 分开，额外监督 PA 标记为 `PA+clean-support`，不生成跨数据集总排名。
-- Accuracy 按五个 seed 计算均值与样本标准差；AUC、F1、Precision、Recall 是附加指标。缺 seed、无定义指标、失败、数值风险与排除项明确展示，不补零或补造结果。
-- 单配置成本、完整调参成本和峰值显存保留；PA/OA 引用同一份 fit 成本，避免重复计费。
-- 输出 `survey_results.xlsx`、`diagnostic_cards.md/json`、`conclusions.md/json`。结论区分文献事实、本实验观测和推断，说明所需证据缺失的诊断信号。
+- Generate a workbook from existing v3 manifests or a summary, with four result groups:
+  SCAR–PA, SCAR–OA, SAR–OA (LBE-A/B separately), and PN oracle. Keep training paths, datasets,
+  risk views, and support settings distinct. Label PA with extra supervision as
+  `PA+clean-support`; do not produce an overall ranking across datasets.
+- Report Accuracy means and sample standard deviations over five seeds; AUC, F1, Precision,
+  and Recall are supplementary metrics. Show missing seeds, undefined metrics, failures,
+  numerical risks, and exclusions without filling in zeros or inventing observations.
+- Retain single-configuration cost, complete tuning cost, and peak GPU memory. PA/OA share
+  the same fit-cost record to avoid double counting.
+- Write `survey_results.xlsx`, `diagnostic_cards.md/json`, and `conclusions.md/json`.
+  Distinguish literature facts, observations from these experiments, and inference; identify
+  diagnostic signals whose required evidence is missing.
 
-**B. 代码功能**
+**Execution capabilities**
 
-- `ExperimentRunner.fit(model, train, pu_val, clean_val, test)`：四角色隔离、PA/OA 独立选模与独立测试，见 [DIY 实验教程](../../user/howto/custom_experiments.md#2-prepare-four-data-roles)。
-- 可注入数据生成器、训练器和选模策略；DIY 实验无需读取内置 Survey 配置，见[策略扩展与完整 demo](../../user/howto/custom_experiments.md#1-run-the-complete-example)。
-- 官方入口读取用户准备的四路数据，记录候选轨迹、选择记录、所选权重与指标。
-- 批量入口按数据集、方法与训练路径规划范围，续跑时核对视图、profile、配方与 split 身份；命令见[运行指南](runbook.md#执行官方示例)。
-- PN oracle 与 PU 对照共享 split、表征和预算，仅使用 OA。
-- 保存 seed、实际配置、split/视图/先验语义、环境与代码/依赖身份，支持从数据到报告的完整命令链。
-- 新运行保存 `research_settings`，汇总按 seed 留存采样、标记、风险池、先验、监督与表征设置，
-  并在摘要、工作簿和诊断卡中展示。
+- `ExperimentRunner.fit(model, train, pu_val, clean_val, test)` isolates four data roles,
+  independently selects PA/OA models, and evaluates on independent test data. See
+  [four-role preparation](../../user/howto/custom_experiments.md#2-prepare-four-data-roles).
+- Inject generators, trainers, and selection strategies. Custom studies do not need built-in
+  Survey configuration; see the [complete example](../../user/howto/custom_experiments.md#1-run-the-complete-example).
+- Survey entry points read caller-prepared splits and record candidate trajectories,
+  selection artifacts, selected weights, and metrics.
+- The batch entry plans datasets, methods, and training paths; resumption checks view,
+  profile, recipe, and split identities. Commands are in the [runbook](runbook.md).
+- PN oracle shares splits, representations, and budgets with the PU comparison and uses OA only.
+- Record seeds, effective configurations, split/view/prior semantics, environment, and
+  code/dependency identities throughout the data-to-report command chain.
+- New runs save `research_settings`. Summaries retain per-seed sampling, labeling, risk-pool,
+  prior, supervision, and representation settings and display them in workbooks and diagnostic cards.
 
-## 配置与结果读取
+## Configuration and historical results
 
-新运行只维护 `survey-v3.2`（revision `2026-11-08-clean-support-coverage`，[执行配置](../../../pu_toolbox/experiment/survey_protocol_v3_2.json)）和 `survey-recipes-v1.3`（[配方](../../../pu_toolbox/experiment/survey_recipe_registry_v1_3.json)）。
-配方锁定与可运行标识表示工程执行能力。clean-support 覆盖全部 8 个数据集；IMDB/20News 用冻结
-split 的 SBERT 特征，ADNI 用冻结 split 原始图像并以 `group_policy="unverifiable"` 记录
-subject 隔离不可核验。
+New runs use `survey-v3.2`, revision `2026-11-08-clean-support-coverage`
+([execution configuration](../../../pu_toolbox/experiment/survey_protocol_v3_2.json)), and
+`survey-recipes-v1.3` ([recipes](../../../pu_toolbox/experiment/survey_recipe_registry_v1_3.json)).
+Locked recipes and runnable flags describe engineering execution capability. Clean-support
+configuration covers all eight datasets. IMDB/20News use frozen-split SBERT features; the
+`adni` slot uses raw frozen-split images and records unverifiable subject isolation through
+`group_policy="unverifiable"`.
 
-已有 v3.0/v3.1/v3.2 manifest 通过只读结果链使用，保留原版本、blockers、失败和选模身份。已有 summary 可直接导出，无需旧运行配置、比较矩阵或审批文档。
+Read existing v3.0/v3.1/v3.2 manifests through the read-only result pipeline, retaining original
+versions, blockers, failures, and selection identities. Existing summaries can be exported
+directly without old execution configurations, comparison matrices, or approval documents.
 
-方法能力与来源见[算法注册表](../../../pu_toolbox/registry/builtin_methods.py)和[方法卡](../method_cards/)；[方法元信息](../../../pu_toolbox/experiment/method_ledger.json)仅保存视图、校准与先验说明。文献事实可通过 `--literature` 显式提供；原生 OS/TS 诊断分组可通过 `--native-views` 提供，缺少时报告缺失原因。
+Method capabilities and sources are recorded in the [registry](../../../pu_toolbox/registry/builtin_methods.py).
+[Method cards](../method_cards/) provide optional Chinese research background. The
+[method ledger](../../../pu_toolbox/experiment/method_ledger.json) records view, calibration,
+and prior semantics. Supply literature facts explicitly through `--literature` and native
+OS/TS diagnostic groupings through `--native-views`; reports explain missing information.
 
-## 当前实验状态
+## Interpretation and provenance
 
-已有训练任务结束，训练产物与已有结果另行保存。2026-11-08 新增的 IMDB/20News/ADNI
-clean-support 单元的代码与制品路径已就绪，正式 seed × c 训练待外部 GPU 主机执行；
-在完成前不把它们计为已完成结果。GradPU/KLDCE 暂时搁置，相关数值风险按已有记录保留。
+Execution capability, completed training, and verified numerical reproduction are distinct
+claims. Training artifacts and results are maintained separately from this repository.
+Preserve numerical risks and exclusions recorded in each manifest when interpreting results.
 
-工具箱不再保存队列、服务器排程、交接、修复任务单和全过程审批流水。历史可从清理前提交 `7d11f2c4` 查阅，已保存 manifest 不改标为新版本。数据来源、许可与 ADNI 替代数据事实继续保留，见[数据说明](data/README.md)。
+Queues, server schedules, handovers, repair tasks, and complete approval histories are not
+part of the toolbox. Historical records remain available at pre-cleanup commit `7d11f2c4`;
+saved manifests are not relabeled as new versions. Read the [data notes](data/README.md) for
+sources, licensing qualifications, and the Alzheimer MRI substitute used in the `adni` slot.

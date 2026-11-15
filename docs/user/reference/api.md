@@ -2187,8 +2187,8 @@ validation; older adapters may reject newer provenance contracts.
 
 The experiment layer exposes four-role PU research protocols through `pu_toolbox.experiment`.
 For the public Survey split protocol, see
-[pu_survey_protocol.md](../../research/pu_survey/pu_survey_protocol.md) §2.3–§2.4
-(currently Chinese). [experiment_layer.md](../../dev/experiment_layer.md) §1 is optional
+[pu_survey_protocol.md](../../research/pu_survey/pu_survey_protocol.md) §2.3–§2.4.
+[experiment_layer.md](../../dev/experiment_layer.md) §1 is optional
 Chinese design background. The table lists public symbols and their purpose; docstrings
 define parameter contracts and behavior.
 
@@ -2438,7 +2438,7 @@ Underlying `survey_summary` retains statistical tools including `aggregate_metri
 identity, or statistical inputs violate the contract. Diagnostics and conclusions distinguish
 literature facts, experimental observations, and inference. Missing evidence retains its reason;
 interpretation does not replace observation. For reproduction commands and output structure,
-see the [runbook](../../research/pu_survey/runbook.md) (currently Chinese).
+see the [runbook](../../research/pu_survey/runbook.md).
 
 ## Errors and exceptions
 
