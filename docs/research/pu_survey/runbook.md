@@ -74,7 +74,7 @@ uv run python scripts/run_survey_pilot.py --protocol survey-v3.2 --recipe-regist
 
 批量运行共享代码/依赖凭证放在 `<results>/batch_evidence`，manifest 引用该文件；单单元入口直接记录身份。迁移结果时一并保存共享凭证和所选权重，结果读取不要求原机器的绝对路径存在。
 
-Python 接口的四路数据构造、参数调整和策略扩展示例见 [DIY 实验教程](../../user/howto/custom_experiments.md)，精确签名见 [API 参考](../../user/reference/api.md#四角色运行与策略注入)。
+Python 接口的四路数据构造、参数调整和策略扩展示例见 [DIY 实验教程](../../user/howto/custom_experiments.md)，精确签名见 [API 参考](../../user/reference/api.md#four-role-execution-and-strategy-injection)。
 
 ## 汇总结果与导出
 

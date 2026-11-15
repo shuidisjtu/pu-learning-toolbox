@@ -125,4 +125,4 @@ is non-identifying and how audit mode provides more direct evidence about select
 ## Next steps
 
 - [End-to-end training and evaluation](pipeline.md).
-- [Exact API contracts](../reference/api.md) (currently Chinese).
+- [Exact API contracts](../reference/api.md).

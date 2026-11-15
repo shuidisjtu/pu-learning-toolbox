@@ -3,8 +3,8 @@
 Prerequisites: complete the [quickstart](../quickstart.md) and prepare data with true binary
 labels for a controlled PU experiment. This tutorial uses synthetic CPU data to call
 `ExperimentRunner` directly and extend its strategies. For the official Survey script workflow,
-see the [runbook](../../research/pu_survey/runbook.md); exact signatures are in the
-[API reference](../reference/api.md#四角色运行与策略注入) (both currently Chinese).
+see the [runbook](../../research/pu_survey/runbook.md) (currently Chinese); exact signatures
+are in the [API reference](../reference/api.md#four-role-execution-and-strategy-injection).
 
 The conceptual dimensions are [input sampling and risk pools](../concepts/pu_sampling.md),
 [labeling policies](../concepts/scar_sar.md), [prior targets](../concepts/class_prior_semantics.md),
@@ -143,8 +143,8 @@ conversion.
 
 New models must support sklearn cloning and parameter interfaces, declare
 `label_semantics="pu"` and their actual input capabilities, and return finite per-sample scores
-from `decision_function(X)`. The [API reference](../reference/api.md#实验层experiment) (currently
-Chinese) defines complete data, model, and trajectory contracts. When a custom selector returns
+from `decision_function(X)`. The [API reference](../reference/api.md#experiment-layer-experiment)
+defines complete data, model, and trajectory contracts. When a custom selector returns
 `threshold=None`, the model must supply `predict(X)` returning 0/1 labels.
 
 ## 4. Extend the label generator
@@ -215,7 +215,7 @@ Deep models can use `DeepFitTrainer` and per-epoch checkpoints. Configuration in
 `reclaim_unselected_checkpoints`. Custom trainers produce their own per-epoch weights and
 trajectories. `SelectionArtifact.epoch` is the 1-based position in the trajectory;
 `checkpoint_index` identifies selected weights. The
-[API reference](../reference/api.md#实验层experiment) (currently Chinese) defines restoration
+[API reference](../reference/api.md#experiment-layer-experiment) defines restoration
 and storage-budget contracts.
 
 ## 6. Extend the selection protocol
@@ -269,7 +269,7 @@ Test has the same feature values as clean validation but independent sample iden
 labels are read after selection. Fixed single-point models record `epoch` and `checkpoint_index`
 as `None`. Actual per-epoch models use `EpochCheckpointTrainer` to save trajectories, then the
 protocols independently select snapshots. See the
-[API reference](../reference/api.md#实验层experiment) (currently Chinese) for snapshot contracts.
+[API reference](../reference/api.md#experiment-layer-experiment) for snapshot contracts.
 PA includes a population-prior constant offset; see [model-selection concepts](../concepts/pu_model_selection.md)
 for its meaning and formula.
 
@@ -315,7 +315,7 @@ selections, and test metrics for reconstructing the setting.
 - Replace the four `DatasetPart` objects with your data, retaining global identities and
   train-only preprocessing.
 - Begin with candidate dictionaries, then replace the generator, trainer, or selector as needed.
-- Consult the [API reference](../reference/api.md#四角色运行与策略注入) (currently Chinese) for exact
+- Consult the [API reference](../reference/api.md#four-role-execution-and-strategy-injection) for exact
   contracts. The [experiment-layer design](../../dev/experiment_layer.md) is optional Chinese
   background on design rationale.
 - Use the [Survey runbook](../../research/pu_survey/runbook.md) (currently Chinese) for official

@@ -115,7 +115,7 @@ requested/realized counts and rates, sampling policy, seed, rounding/fallback ru
 version. LBE metadata records counts, parameters, auxiliary-truth provenance, and
 `sampling_policy`. The general Bernoulli entry point can return propensity. See the
 [SAR simulation guide](../howto/sar_simulation.md) and [API reference](../reference/api.md)
-(the latter currently Chinese) for operational contracts.
+for operational contracts.
 
 ## 7. Sources
 
