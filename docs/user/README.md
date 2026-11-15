@@ -1,52 +1,73 @@
-# 用户文档
+# User documentation
 
-本目录面向**库使用者**（含第三方仓库中调用本工具箱 API 的开发者），
-是 PU Learning Toolbox 的使用文档，按任务类型分三层：concepts（原理）/
-howto（操作）/ reference（契约），按阅读路径组织：
+This directory is for library users, including developers calling the toolbox API from other
+repositories. It organizes PU Learning Toolbox documentation by task: concepts explain the
+principles, how-to guides cover operations, and reference pages define contracts.
 
-1. **[快速开始](quickstart.md)**（5 分钟）——安装、CLI 三命令跑通演示数据、Python 最小片段。**从这里开始。**
-2. **概念**（`concepts/`，想理解原理时读）：
-   - [PU 问题设定](concepts/pu_problem.md)——标记机制、符号与 π 的角色
-   - [PU 输入采样与训练风险视图](concepts/pu_sampling.md)——OS/TS、有限池、原生 U 与实际损失池
-   - [SCAR/SAR 机制与识别边界](concepts/scar_sar.md)
-   - [类先验的目标、来源与换算](concepts/class_prior_semantics.md)——总体/U/风险池/拼接表
-   - [PU 选模](concepts/pu_model_selection.md)——PA/OA 条件、独立选择与监督预算
-   - [表征与训练路径](concepts/representations.md)——encoder、端到端 CNN 与冻结特征
-   - [选择 PU 方法](concepts/method_selection.md)——选型决策原理
-3. **操作指南**（`howto/`，做具体任务时读，按实验流程排序）：
+The entry pages and all concepts below are in English. How-to guides and the API reference
+currently remain in Chinese and will be migrated at the same paths in later batches.
 
-   | 任务 | 文档 |
+## Reading path
+
+1. **[Quickstart](quickstart.md)**: installation, the demo CLI workflow, and a minimal Python
+   example. **Start here.**
+2. **Concepts** (`concepts/`), when you need the underlying principles:
+
+   | Topic | Document |
    |---|---|
-   | 用自然语言驱动分析与研究流程 | [howto/using_skill.md](howto/using_skill.md) |
-   | 生成 SCAR/SAR 数据 | [howto/sar_simulation.md](howto/sar_simulation.md) |
-   | 构造同池 OS 与独立 TS 数据 | [howto/pu_sampling.md](howto/pu_sampling.md) |
-   | 数据画像与假设提示 | [howto/data_profiling.md](howto/data_profiling.md) |
-   | PUPipeline 端到端训练评估 | [howto/pipeline.md](howto/pipeline.md) |
-   | 使用命令行接口 | [howto/cli.md](howto/cli.md) |
-   | 调整模型与搜索超参数 | [howto/model_tuning.md](howto/model_tuning.md) |
-   | 定制四角色实验与扩展策略 | [howto/custom_experiments.md](howto/custom_experiments.md) |
-   | 注入 encoder 与冻结特征 | [howto/custom_encoders.md](howto/custom_encoders.md) |
-   | 使用图形界面 | [howto/ui.md](howto/ui.md) |
-   | 生成诊断报告 | [howto/diagnostic_reports.md](howto/diagnostic_reports.md) |
-   | 类先验与标记倾向敏感性分析 | [howto/sensitivity_analysis.md](howto/sensitivity_analysis.md) |
-   | 审计并处理源域到目标域的分布漂移 | [howto/distribution_shift.md](howto/distribution_shift.md) |
-   | 训练 Self-PU 分类器 | [howto/self_pu.md](howto/self_pu.md) |
+   | PU problem, notation, and the roles of π | [PU problem setting](concepts/pu_problem.md) |
+   | OS/TS, finite pools, native U, and the actual loss pool | [Input sampling and training risk views](concepts/pu_sampling.md) |
+   | Labeling mechanisms and identifiability | [SCAR/SAR](concepts/scar_sar.md) |
+   | Population, U, risk-pool, and training-table priors | [Class-prior targets, sources, and conversions](concepts/class_prior_semantics.md) |
+   | PA/OA conditions, independent selection, and supervision budgets | [PU model selection](concepts/pu_model_selection.md) |
+   | Encoders, end-to-end CNNs, and frozen features | [Representations and training paths](concepts/representations.md) |
+   | Method selection principles | [Choosing a PU method](concepts/method_selection.md) |
 
-4. **API 参考**（[reference/api.md](reference/api.md)，查精确参数时读）
+3. **How-to guides** (`howto/`, currently Chinese), ordered by experiment workflow:
 
-推荐顺序：快速开始 →（可选概念）→ 按任务的 howto。每篇 howto 开头有前置条件、结尾有下一步。
+   | Task | Guide |
+   |---|---|
+   | Describe analysis and research tasks in natural language | [Using the pu-workflow skill](howto/using_skill.md) |
+   | Generate SCAR/SAR data | [SAR simulation](howto/sar_simulation.md) |
+   | Construct same-pool OS and independent TS data | [PU sampling](howto/pu_sampling.md) |
+   | Profile data and inspect assumption evidence | [Data profiling](howto/data_profiling.md) |
+   | Train and evaluate with PUPipeline | [Pipeline](howto/pipeline.md) |
+   | Use the command-line interface | [CLI](howto/cli.md) |
+   | Configure models and search hyperparameters | [Model tuning](howto/model_tuning.md) |
+   | Customize four-role experiments and extend strategies | [Custom experiments](howto/custom_experiments.md) |
+   | Inject encoders and use frozen features | [Custom encoders](howto/custom_encoders.md) |
+   | Use the graphical interface | [UI](howto/ui.md) |
+   | Generate diagnostic reports | [Diagnostic reports](howto/diagnostic_reports.md) |
+   | Analyze class-prior and propensity sensitivity | [Sensitivity analysis](howto/sensitivity_analysis.md) |
+   | Audit and handle source-to-target distribution shift | [Distribution shift](howto/distribution_shift.md) |
+   | Train a Self-PU classifier | [Self-PU](howto/self_pu.md) |
 
-已有真实 PU 数据：先确认[采样来源](concepts/pu_sampling.md)，再检查
-[标记假设](concepts/scar_sar.md)与[先验目标](concepts/class_prior_semantics.md)，
-然后使用[数据画像](howto/data_profiling.md)和 [Pipeline](howto/pipeline.md)。
+4. **[API reference](reference/api.md)** (currently Chinese), for exact parameters and contracts.
 
-合成/对照研究：从[问题维度](concepts/pu_problem.md#6-用独立维度描述研究设置)出发，
-依次读采样、标记政策、先验、[选模](concepts/pu_model_selection.md)与
-[表征](concepts/representations.md)，再运行[四角色 DIY 示例](howto/custom_experiments.md)。
-采样操作见[OS/TS 教程](howto/pu_sampling.md)与[示例 15](../../examples/minimal/15_pu_sampling.py)。
-先验传递见[示例 16](../../examples/minimal/16_prior_targets.py)与[Pipeline 指南](howto/pipeline.md)。
-SAR 政策对照见[示例 17](../../examples/minimal/17_sar_policies.py)；
-encoder 注入与冻结特征见[完整教程](howto/custom_encoders.md)和
-[示例 18](../../examples/minimal/18_custom_encoders.py)。
+Start with the quickstart, read concepts as needed, and then choose a how-to guide for your task.
+Each how-to guide includes prerequisites and next steps.
 
-开发者与贡献者文档见 [docs/README.md](../README.md) 的开发者栏。
+## Existing PU data
+
+Identify the [sampling design](concepts/pu_sampling.md), then check the
+[labeling assumptions](concepts/scar_sar.md) and
+[prior target](concepts/class_prior_semantics.md). Continue with
+[data profiling](howto/data_profiling.md) and the [pipeline](howto/pipeline.md).
+
+## Synthetic and comparative studies
+
+Start with the [independent dimensions of a research setting](concepts/pu_problem.md#6-describe-research-settings-with-independent-dimensions).
+Read sampling, labeling policies, priors, [model selection](concepts/pu_model_selection.md), and
+[representations](concepts/representations.md), then run the
+[four-role DIY example](howto/custom_experiments.md).
+
+The [OS/TS how-to guide](howto/pu_sampling.md) and
+[example 15](../../examples/minimal/15_pu_sampling.py) cover sampling operations.
+[Example 16](../../examples/minimal/16_prior_targets.py) and the
+[pipeline guide](howto/pipeline.md) trace prior values into training.
+[Example 17](../../examples/minimal/17_sar_policies.py) compares SAR policies.
+The [encoder guide](howto/custom_encoders.md) and
+[example 18](../../examples/minimal/18_custom_encoders.py) cover encoder injection and frozen features.
+
+For repository development and contributions, use the contributor section of the
+[documentation index](../README.md).

@@ -1,47 +1,73 @@
-# 快速开始
+# Quickstart
 
-> 前置条件：Python 3.10+。`pip install pu-toolbox`（torch 方法另加 `pip install "pu-toolbox[torch]"`；图形界面使用 `pip install "pu-toolbox[ui]"`）。
+Requires Python 3.10+. Install the package:
 
-## 步骤 1：生成演示数据
+```bash
+pip install pu-toolbox
+```
+
+For torch methods, use `pip install "pu-toolbox[torch]"`. For the graphical interface, use
+`pip install "pu-toolbox[ui]"`.
+
+## Step 1: Generate demo data
 
 ```bash
 pu-toolbox make-demo-data --out-dir demo/ --n 200 --seed 42
-# 产出 demo/X.csv、demo/y_pu.csv、demo/y_true.csv
+# Writes demo/X.csv, demo/y_pu.csv, and demo/y_true.csv.
 ```
 
-`--n` 为每类样本数（总 2n），`--c` 为 SCAR 标注概率（默认 0.5）。
+`--n` is the number of samples per true class (2n in total). `--c` is the requested positive-class
+labeling fraction (default 0.5). This SCAR constructor selects a fixed quota uniformly without
+replacement, so rounding can affect the realized fraction; it does not use independent Bernoulli
+draws. The default demo provides enough labeled positives for the default five-fold CV.
 
-## 步骤 2：一条命令跑完整实验
+## Step 2: Run the complete workflow
 
 ```bash
 pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
-# auto 模式自动估先验 → 画像 → 推荐算法 → 训练 → PU 分层 CV → 评估
 ```
 
-## 步骤 3：查看结果
+In auto mode, the pipeline resolves the prior, profiles the data, recommends a method, trains
+with PU-stratified cross-validation, and produces evaluation reports. Prior estimation is used
+when needed; the report records its source and the prior values actually consumed by training.
+The unlabeled samples include both true classes. The demo's `y_true.csv` is not passed to this
+training command.
 
-```bash
-# results/report.md   完整 Markdown 报告
-# results/report.json 严格 JSON（无 NaN），可程序化消费
-```
+## Step 3: Inspect the results
 
-## 步骤 4：Python 最小片段
+- `results/report.md`: the full Markdown report.
+- `results/report.json`: strict JSON without NaN literals, suitable for programmatic use.
+
+## Step 4: Run the Python API
+
+After generating the demo above, run this snippet from the same working directory:
 
 ```python
+import pandas as pd
 from pu_toolbox import PUPipeline
 
-pipe = PUPipeline()                  # classifier="auto"，自动选算法
-report = pipe.fit_evaluate(X, y_pu)  # X: (n, d)，y_pu: {1, 0} PU 标签
+X = pd.read_csv("demo/X.csv").to_numpy()
+y_pu = pd.read_csv("demo/y_pu.csv")["label"].to_numpy()
+
+pipe = PUPipeline()  # classifier="auto" selects a method.
+report = pipe.fit_evaluate(X, y_pu)  # X: (n, d); y_pu: {1, 0} PU labels.
 
 print(report.summary())
 report.save("results/pipeline.json")
 ```
 
-## 接下来呢？
+Here `1` means labeled positive and `0` means unlabeled. The default pipeline expects OS input:
+a single population sample with some positives labeled. Independent P and population U require
+`input_sampling="ts"`; see [input sampling](concepts/pu_sampling.md).
 
-- 用自然语言描述分析或研究任务：[启用 pu-workflow Skill](howto/using_skill.md)
-- 不想使用命令行：安装后运行 `pu-toolbox-ui`，见 [howto/ui.md](howto/ui.md)
-- 调整模型或搜索参数：[howto/model_tuning.md](howto/model_tuning.md)
-- 完整实验的每一步怎么调：见 [howto/pipeline.md](howto/pipeline.md)
-- 想理解 PU 问题与标记机制：见 [concepts/pu_problem.md](concepts/pu_problem.md)
-- 全部命令与参数：见 [howto/cli.md](howto/cli.md) 与 [reference/api.md](reference/api.md)
+## Next steps
+
+The [PU problem setting](concepts/pu_problem.md), [SCAR/SAR](concepts/scar_sar.md),
+and [prior semantics](concepts/class_prior_semantics.md) explain the core concepts in English.
+The following task guides and API reference currently remain in Chinese:
+
+- Describe an analysis or research task in natural language: [pu-workflow skill](howto/using_skill.md).
+- Use the graphical interface: run `pu-toolbox-ui` after installing the UI extra; see [UI](howto/ui.md).
+- Configure models or search parameters: [model tuning](howto/model_tuning.md).
+- Control each step of the workflow: [pipeline](howto/pipeline.md).
+- Look up commands and parameters: [CLI](howto/cli.md) and [API reference](reference/api.md).
