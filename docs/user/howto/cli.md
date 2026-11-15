@@ -1,146 +1,158 @@
-# 使用命令行接口
+# Using the command-line interface
 
-> 前置条件：先完成 [快速开始](../quickstart.md)（3 条命令的完整流程）。
-> 概念：CLI 是库层的薄封装——学习逻辑在库内；`sensitivity`、`recommend` 两个子命令
-> 在 CLI 内直接对估计器 `fit`，其余子命令委托库层；`run` 子命令另自持配置合并、
-> 网格拼装与制品落盘：`report.json`/`report.md` 每次都写，`tuning.json`/`comparison.json`/
-> `model.pkl` 按分支写出（配置含网格时出 `tuning.json`、含多模型设置时出 `comparison.json`、
-> 传 `--save-model` 才出 `model.pkl`）。
+> Prerequisite: complete the [quickstart](../quickstart.md).
+> The CLI wraps library functionality. `sensitivity` and `recommend` directly call estimator
+> `fit`; other commands delegate learning logic to the library. The `run` command also
+> merges configuration, assembles searches, and writes artifacts: `report.json` and
+> `report.md` are always produced; `tuning.json`, `comparison.json`, and `model.pkl`
+> depend on the selected search/comparison branch and `--save-model`.
 
-## 快速上手（3 条命令）
+## Quickstart workflow
 
 ```bash
-# 1. 生成 SCAR 演示数据（X.csv / y_pu.csv / y_true.csv）
+# 1. Generate SCAR demo data: X.csv, y_pu.csv, and y_true.csv.
 pu-toolbox make-demo-data --out-dir demo/ --n 200 --seed 42
 
-# 2. 一键式全流程训练评估（auto 模式自动选算法）
+# 2. Train and evaluate; auto mode selects a method.
 pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 
-# 3. 查看结果
-#    results/report.md    完整 Markdown 报告
-#    results/report.json  严格 JSON（无 NaN），可程序化消费
+# 3. Inspect results/report.md and results/report.json.
+# The JSON report uses strict encoding without NaN literals.
 ```
 
-## 命令与参数
+## Commands and parameters
 
 ### run
 
-| 参数 | 必填 | 默认 | 说明 |
+| Parameter | Required | Default | Meaning |
 |---|---|---|---|
-| `--data X.csv` | ✅ | — | 特征矩阵（行 = 样本；首行必须是表头）。也接受 `.npy` 4-D NCHW 图像数组（配 `--architecture cnn`） |
-| `--labels y_pu.csv` | ✅ | — | PU 标签单列 {1, 0}（首行必须是表头） |
-| `--out-dir results/` | ✅ | — | 输出目录（report.json + report.md） |
-| `--true-labels` | — | — | 真值单列 {0, 1}，启用 oracle 指标（auc 等） |
-| `--class-prior` | — | — | 显式类先验 (0, 1)，跳过估计 |
-| `--prior-estimator` | — | `pen_l1` | `pen_l1`/`recpe`/`km1`/`km2`/`none`，也接受注册表名如 `class_prior_estimation`（别名 `cpe`；`pe` 已弃用） |
-| `--prior-param` | — | — | 估计器超参数，可重复（如 `--prior-param sigma=3.0 --prior-param n_centers=100`）；值自动转为 int/float/str；与估计器实例方式互斥 |
-| `--classifier` | — | `auto` | 注册方法名或 `auto`（推荐器选算法） |
-| `--classifier-param` | — | — | 分类器构造参数，可重复；支持 JSON 数字/布尔值/列表/对象（如 `--classifier-param reg_lambda=0.01`） |
-| `--config` | — | — | 导入 UI/CLI 共用的 JSON 运行配置；显式非默认参数覆盖配置值 |
-| `--architecture` | — | `mlp` | 深度算法网络架构：`mlp`（表格数据，默认）或 `cnn`（4-D NCHW 图像，需 `--classifier wconpu/infomax_pu/nnpu`） |
-| `--backbone` | — | `cnn13` | CNN 骨架：`cnn13`/`cnn13_no_bn`/`resnet18`/`resnet50`（仅 `--architecture cnn` 有效；mlp 下指定会报错） |
-| `--device` | — | `auto` | 深度算法 torch 设备：`auto`/`cpu`/`cuda`（`auto` 在有 GPU 时自动用 CUDA） |
-| `--max-epochs` | — | 估计器默认 | 深度算法训练轮数上限（仅对构造签名含 `max_epochs` 的算法生效，如 `wconpu`/`self_pu`/`nnpu`） |
-| `--cv` | — | `5` | CV 折数 |
-| `--metrics` | — | 默认四件套 | 逗号分隔（`pu_risk,recall,auc`） |
-| `--seed` | — | `42` | 随机种子（同种子输出可复现） |
-| `--save-model` | — | 关 | 额外保存 `model.pkl`（最终模型，pickle） |
-| `--quiet` | — | 关 | 只打印错误，不打印 summary |
+| `--data X.csv` | Yes | — | Features, one sample per row, with a header. Also accepts finite 4-D NCHW image arrays in `.npy` files with `--architecture cnn` |
+| `--labels y_pu.csv` | Yes | — | Headered single-column PU labels `{1, 0}` |
+| `--out-dir results/` | Yes | — | Output directory for report.json and report.md |
+| `--true-labels` | No | — | Single-column truth `{0, 1}` for oracle metrics such as AUC |
+| `--class-prior` | No | — | Explicit population prior in (0, 1), bypassing estimation |
+| `--prior-estimator` | No | `pen_l1` | `pen_l1` / `recpe` / `km1` / `km2` / `none`, or registered names such as `class_prior_estimation` (alias `cpe`; `pe` is deprecated) |
+| `--prior-param` | No | — | Repeatable estimator constructor parameters, e.g. `--prior-param sigma=3.0 --prior-param n_centers=100`; values accept JSON literals |
+| `--classifier` | No | `auto` | Registered method name or automatic recommendation |
+| `--classifier-param` | No | — | Repeatable constructor parameters accepting JSON numbers, booleans, lists, and objects, e.g. `--classifier-param reg_lambda=0.01` |
+| `--config` | No | — | JSON run configuration shared with the UI; explicitly supplied nondefault options override configured values |
+| `--architecture` | No | `mlp` | `mlp` for tables or `cnn` for 4-D NCHW images with an explicit supported classifier |
+| `--backbone` | No | `cnn13` in CNN mode | `cnn13` / `cnn13_no_bn` / `resnet18` / `resnet50`; rejected in MLP mode |
+| `--device` | No | `auto` | Torch device: `auto` / `cpu` / `cuda`; auto selects CUDA when available |
+| `--max-epochs` | No | Estimator default | Epoch cap for constructors accepting `max_epochs`, e.g. WConPU, Self-PU, or nnPU |
+| `--cv` | No | `5` | Number of CV folds |
+| `--metrics` | No | Four default metrics | Comma-separated names or aliases, e.g. `pu_risk,recall,auc` |
+| `--seed` | No | `42` | Random seed |
+| `--save-model` | No | Off | Save the final model as `model.pkl` using pickle |
+| `--quiet` | No | Off | Suppress the summary; errors still print |
 
-`--data` 与 `--labels` 的 CSV 首行必须是表头（列名）；首行若为数字会被拒绝并报错（防静默丢失首样本）。
+The first CSV row must contain column names. A numeric first row is rejected to avoid silently
+discarding the first sample. PU label 0 means unlabeled, not a known negative. The current CLI
+uses OS input semantics; independent TS analyses use the Python API with `input_sampling="ts"`.
 
-### 辅助命令
+### Supporting commands
 
-- `list-methods`：列出全部注册算法（名称 / family / 是否需要先验 / 实现状态 /
-  输入维度 Input / 原生架构 Arch / 主输入语义 Labels / 能否自动实例化，共 8 列；能力列由注册表
-  元数据驱动）。Labels为pu/pn/pnu，Auto-inst只表示能否构造，不代表PU工作流可用。
-  `run`、模型比较/调优和`sensitivity`训练前要求PU主输入；PNU不能用于这些二值PU入口。
-  新算法注册后自动出现。
-- `list-priors`：列出 `--prior-estimator` 可用的估计器（`km1`/`km2` 映射到
-  `KernelMeanPriorEstimator(variant=...)`）。
-- `make-demo-data --out-dir demo/ [--n 200] [--c 0.5] [--n-features 5] [--separation 1.0] [--seed 42]`：
-  用 `make_scar_dataset` 生成演示 CSV（`--n` 为每类样本数，总 2n；`--c` 为
-  SCAR 标注概率；`--separation` 默认 1.0，避免强分离度下类先验估计系统性低估）。
-- `profile --data X.csv --labels y_pu.csv [--true-labels y_true.csv] [--out-dir .]`：
-  数据画像 + SCAR/SAR 假设诊断，写 `profile.json`（pu-workflow 环节 1）。
-- `recommend --profile profile.json [--data X.csv --labels y_pu.csv] [--class-prior 0.3 | --prior-estimator recpe] [--top-k 5] [--has-gpu] [--out-dir .]`：
-  算法推荐 + 类先验估计（估计需 `--data/--labels`），写 `recommendation.json`
-  （pu-workflow 环节 2）。
-- `sensitivity --data X.csv --labels y_pu.csv [--classifier elkan_noto] [--class-priors 0.1,...,0.9] [--seed 42] [--out-dir .]`：
-  假设敏感性分析（先验/标记倾向扫描），写 `sensitivity.json`（pu-workflow 环节 4）。
-- `audit-benchmark --result-dir 结果目录 [--output audit.json]`：检查 benchmark 的必需产物、
-  配置哈希、trial/seed 完整性、重复行、指标有限值，以及 official-data PU split 的样本重叠
-  和目标先验一致性。失败时退出码为 1；`paper_claim=false` 与脏工作区作为警告保留。
-- `shift-audit --source-data source.csv --source-labels source_labels.csv --target-data target.csv
-  [--target-labels target_labels.csv] --out-dir shift_results/`：用 OOF 域分类器审计源/目标
-  分布差异，导出 `shift_report.json`、`shift_report.md` 和
-  `source_importance_weights.csv`。检测不等于适配；导出的边际权重只具有协变量漂移保证，
-  详见[分布漂移指南](distribution_shift.md)。
-- `shift-run --source-data source.csv --source-labels source_labels.csv --target-data target.csv
-  --target-labels target_labels.csv [--target-true-labels y_true.csv | --target-class-prior 0.3]
-  --out-dir shift_results/`：在同一目标集配对比较未加权与加权模型；只有 oracle 或先验依赖
-  指标参与自动推荐，输出比较报告、漂移报告、源权重与两臂目标预测。
-- `shift-monitor --reference-data source.csv --reference-labels source_labels.csv
-  --window-data current.csv [--window-labels current_labels.csv] --window-id 2026-08
-  [--history previous_history.json] --out-dir monitor/`：追加一个部署窗口并输出告警、窗口漂移
-  报告、源权重和可续接的 `shift_history.json`。
-- `review --model trusted_model.pkl --data current.csv [--labels current_labels.csv]
-  --query-budget 20 --query-strategy uncertainty --out-dir review/`：生成拒绝预测和主动人工
-  复核队列。pickle 仅可加载自己生成或可信来源的模型，不能加载未知文件。
-- `skill install [--force] [--dest 目录]`：将 `pu-workflow` 主入口和六份任务参考文件安装到
-  `~/.claude/skills/` 与 `~/.agents/skills/`。`--dest` 指定共同根目录；已有安装默认保留，
-  选择更新时使用 `--force`。技能按任务选择 CLI 或 Python API，详见
-  [启用与使用 pu-workflow Skill](using_skill.md)。
+- `list-methods`: lists registered classifiers in eight columns: name, family, prior requirement,
+  implementation status, Input dimensionality, native Arch, main-input Labels, and Auto-inst.
+  Capabilities come from registry metadata. Labels can be pu/pn/pnu; Auto-inst describes
+  construction, not eligibility for PU workflows. `run`, tuning/comparison, and `sensitivity`
+  require PU main-input semantics, so PNU is excluded from these binary-PU entry points.
+  Registered methods appear automatically.
+- `list-priors`: lists available prior estimators. `km1` and `km2` map to
+  `KernelMeanPriorEstimator(variant=...)`.
+- `make-demo-data --out-dir demo/ [--n 200] [--c 0.5] [--n-features 5] [--separation 1.0] [--seed 42]`:
+  uses `make_scar_dataset` to write demo CSVs. There are `n` samples per true class, 2n total.
+  `--c` requests a positive-class labeling fraction under uniform fixed-count SCAR selection.
+  The default separation 1.0 avoids the stronger prior-underestimation behavior of highly
+  separated demo classes.
+- `profile --data X.csv --labels y_pu.csv [--true-labels y_true.csv] [--out-dir .]`:
+  profiles data and labeling-mechanism evidence, writing `profile.json`.
+- `recommend --profile profile.json [--data X.csv --labels y_pu.csv] [--class-prior 0.3 | --prior-estimator recpe] [--top-k 5] [--has-gpu] [--out-dir .]`:
+  recommends methods and writes `recommendation.json`. Prior estimation requires data and labels.
+- `sensitivity --data X.csv --labels y_pu.csv [--classifier elkan_noto] [--class-priors 0.1,...,0.9] [--seed 42] [--out-dir .]`:
+  scans class-prior/propensity assumptions and writes `sensitivity.json`.
+- `audit-benchmark --result-dir results/ [--output audit.json]`: checks required artifacts,
+  configuration hashes, trial/seed completeness, duplicate rows, finite metrics, and official-data
+  PU split overlap and target-prior consistency. Failed checks exit with code 1;
+  `paper_claim=false` and a dirty worktree remain warnings.
+- `shift-audit --source-data source.csv --source-labels source_labels.csv --target-data target.csv [--target-labels target_labels.csv] --out-dir shift_results/`:
+  uses an OOF domain classifier to audit source/target differences. Writes `shift_report.json`,
+  `shift_report.md`, and `source_importance_weights.csv`. Detection and adaptation are separate;
+  marginal weights have covariate-shift guarantees. See [distribution shift](distribution_shift.md).
+- `shift-run --source-data source.csv --source-labels source_labels.csv --target-data target.csv --target-labels target_labels.csv [--target-true-labels y_true.csv | --target-class-prior 0.3] --out-dir shift_results/`:
+  compares weighted and unweighted models on the same target set. Only oracle or prior-dependent
+  metrics drive automatic recommendations. Outputs comparison/shift reports, source weights,
+  and target predictions from both arms.
+- `shift-monitor --reference-data source.csv --reference-labels source_labels.csv --window-data current.csv [--window-labels current_labels.csv] --window-id 2026-08 [--history previous_history.json] --out-dir monitor/`:
+  appends a deployment window and writes alerts, a window shift report, source weights,
+  and resumable `shift_history.json`.
+- `review --model trusted_model.pkl --data current.csv [--labels current_labels.csv] --query-budget 20 --query-strategy uncertainty --out-dir review/`:
+  produces selective predictions and an active human-review queue. Load only models you created
+  or trust; do not load unknown pickle files.
+- `skill install [--force] [--dest agent-home/]`: installs the pu-workflow entry and six
+  reference files into `~/.claude/skills/` and `~/.agents/skills/`. `--dest` changes their
+  shared root. Existing installations are retained unless `--force` is used.
+  The skill chooses CLI or Python APIs by task; see [the skill guide](using_skill.md).
 
-## 深度算法与图像数据
+## Deep methods and image data
 
-`run` 支持可注入 CNN 骨架的深度算法（WConPU、InfoMax PU、nnPU），
-需先安装可选依赖 `pip install pu-toolbox[torch]`。
+Install `pip install "pu-toolbox[torch]"` for deep learning. The `run` command supports
+deep classifiers whose current declarations and constructor signatures allow CNN encoder
+injection; nnPU, WConPU, and InfoMax PU are examples. Discover the current set through
+`pu-toolbox run --help` and the capability columns in `pu-toolbox list-methods`.
 
-- **表格数据**（默认）：`--classifier wconpu --architecture mlp`，MLP 骨架
-- **图像数据**：`--data` 传 4-D NCHW float 数组（.npy 文件，如
-  `benchmarks/deep_pu` 数据加载器导出的数组），配合
-  `--architecture cnn --backbone cnn13|cnn13_no_bn|resnet18|resnet50`
-- `--architecture cnn` 仅对声明了 `encoder` 参数、支持骨架注入的深度算法
-  （`wconpu` / `infomax_pu` / `nnpu`）有效；`auto`、非深度算法、或未适配的
-  深度算法（如 `self_pu`）配合 `--architecture cnn` 会报错。完整支持清单以
-  `pu-toolbox list-methods` 的能力列为准（声明驱动，会随新算法接入更新）
-- 深度训练较慢（WConPU 默认 100 epoch，可用 `--max-epochs` 调整），可减少 `--cv` 折数
+- Tables use `--architecture mlp`, for example with `--classifier wconpu`.
+- Images use finite 4-D NCHW float arrays in `.npy` files with
+  `--architecture cnn --backbone cnn13` (or another supported backbone).
+- CNN mode requires an explicit compatible classifier. `auto`, traditional methods, and
+  methods without encoder injection, such as Self-PU, cannot use this pipeline CNN path.
+  A method may impose additional backbone constraints.
+- Deep training can be expensive. WConPU defaults to 100 epochs; use `--max-epochs` where
+  supported and reduce `--cv` when appropriate.
 
-## 退出码
+## Exit codes
 
-| 码 | 含义 |
+| Code | Meaning |
 |---|---|
-| 0 | 成功 |
-| 1 | 用户/运行错误（文件缺失、标签非法、方法名无效等；stderr 输出 `error: ...`） |
-| 2 | 参数语法错误（argparse） |
+| 0 | Success |
+| 1 | Input/runtime error, such as a missing file, invalid labels, or method; stderr contains `error: ...` |
+| 2 | Argument syntax error from argparse |
 
-`audit-benchmark` 只验证产物自洽性和可追溯性，不证明实现等同于官方源码，也不替代论文
-协议核对、数据授权确认或统计结论审阅。只有这些外部证据也完成后，才能升级论文复现声明。
+`audit-benchmark` validates artifact consistency and traceability. It does not establish equality
+to official source, verify the paper protocol or data authorization, or review statistical
+conclusions. Those require their own evidence before upgrading a reproduction claim.
 
-`shift-audit` 的域 AUC 只检测可观测域差异，不能识别漂移类型；目标 PU 标签省略时只允许
-审计，报告中的 `adaptation_ready=false`。
+Domain AUC in `shift-audit` detects observable domain differences without identifying the
+shift type. Without target PU labels, only auditing is available and `adaptation_ready=false`.
 
-## 类先验解析顺序
+## Prior resolution order
 
-`--class-prior`、`--prior-estimator` 与 `--prior-param` 的组合遵循显式优先：
+Explicit values take precedence:
 
-1. **`--class-prior 0.5`（显式）**：最高优先级，报告标 `source: user`，`--prior-estimator` 被忽略（二者同时给出时以显式值为准）；
-2. **估计器实例携带的 prior**（Python API，`source: constructor`）；
-3. **`--prior-estimator` 自动估计**（`source: estimated`）。
+1. `--class-prior 0.5`: the report records `source: user`; this value takes precedence over
+   `--prior-estimator` when both are supplied.
+2. A classifier constructor prior (Python API), recorded as `source: constructor` and interpreted
+   by that classifier's declared target.
+3. Automatic estimation through `--prior-estimator`, recorded as `source: estimated`.
 
-`--prior-param KEY=VALUE` 只作用于第 3 步的估计器构造（例如 `--prior-param sigma=3.0` 覆盖 pen_l1 的核宽度）；数值参数不接受非数值字符串（`sigma=abc` 会在估计前报错退出，而非静默降级）。
+`--prior-param KEY=VALUE` only configures the estimator in step 3. For example,
+`--prior-param sigma=3.0` changes penL1's kernel width. Invalid numeric settings such as
+`sigma=abc` fail before estimation rather than silently degrading.
 
-## 与 Python API 的关系
+The CLI call-level prior and report `prior.value` target the population. The Pipeline resolves
+an estimator's declared target and converts the prior for each training consumer; see
+[prior semantics](../concepts/class_prior_semantics.md).
 
-`pu-toolbox run` 等价于 `PUPipeline(classifier=..., prior_estimator=..., cv=..., metrics=..., random_state=...).fit_evaluate(X, y_pu, y_true=..., class_prior=...)`。
-图形界面导出的配置可直接传给 `run --config`；配置内含参数网格时会运行 `PUTuner` 并
-生成 `tuning.json`，包含多模型设置时会运行 `PUModelComparator` 并生成
-`comparison.json`。手写搜索或自定义 CV splitter 仍可使用 Python API 的 `PUTuner` /
-`PUPipeline`，详见[模型调整指南](model_tuning.md)。不想使用命令行可启动
-[图形界面](ui.md)。
+## Relationship to Python APIs
 
-## 下一步
+A plain `pu-toolbox run` delegates to
+`PUPipeline(classifier=..., prior_estimator=..., cv=..., metrics=..., random_state=...).fit_evaluate(X, y_pu, y_true=..., class_prior=...)`.
+Pass a UI-exported configuration with `run --config`. A parameter grid selects the `PUTuner`
+branch and produces `tuning.json`; a multi-model configuration selects `PUModelComparator`
+and produces `comparison.json`. Use the Python APIs for custom searches or CV splitters.
+See [model tuning](model_tuning.md), or use the [UI](ui.md).
 
-- Python 版完整流程（参数解析、降级语义、指标证据）：[pipeline.md](pipeline.md)
-- 精确参数契约：[API 参考](../reference/api.md)
+## Next steps
+
+- Python workflow, resolution, degradation, and metric evidence: [pipeline](pipeline.md).
+- Exact parameter contracts: [API reference](../reference/api.md), currently Chinese.

@@ -11,7 +11,7 @@ using `make_scar_labels`, `make_fixed_count_labels`, or `make_sar_labels`, and p
 data generators. For real PU data, record the actual sampling and labeling process. For controlled
 experiments, record the source data, sampling policy, and labeling mechanism. Operational details
 are in the [sampling guide](../howto/pu_sampling.md) and
-[SCAR/SAR simulation guide](../howto/sar_simulation.md) (currently Chinese).
+[SCAR/SAR simulation guide](../howto/sar_simulation.md).
 
 The standard PU setting assumes one-sided labeling: a labeled sample is truly positive.
 
@@ -79,8 +79,7 @@ inventory, see the [semantic baseline](../../dev/pu_research_semantics.md#4-历�
 The pipeline resolves a call-level population prior first, then a classifier constructor prior
 according to its declared target, then estimation when required. See the
 [pipeline guide](../howto/pipeline.md) for operations and
-[sensitivity analysis](../howto/sensitivity_analysis.md) for misspecification checks
-(both currently Chinese).
+[sensitivity analysis](../howto/sensitivity_analysis.md) for misspecification checks.
 
 ## 5. Differences from supervised learning
 
@@ -91,7 +90,7 @@ according to its declared target, then estimation when required. See the
 | Labeling mechanism | No missing positive labels in the fully labeled setting | SCAR/SAR assumptions affect method choice |
 
 See [SCAR/SAR](scar_sar.md) for definitions and identifiability limits, and the
-[data profiling guide](../howto/data_profiling.md) (currently Chinese) for assumption evidence.
+[data profiling guide](../howto/data_profiling.md) for assumption evidence.
 
 ## 6. Describe research settings with independent dimensions
 
@@ -103,7 +102,7 @@ See [SCAR/SAR](scar_sar.md) for definitions and identifiability limits, and the
 | Prior target and source | Population, U, or concatenated table? Known or estimated? | [Prior semantics](class_prior_semantics.md) |
 | Validation supervision and criterion | Which labels do PA/OA use? How are checkpoints and thresholds selected? | [PU model selection](pu_model_selection.md) |
 | Representation and training | Two-dimensional features, a trainable CNN, or a frozen encoder? | [Representations](representations.md) |
-| Evaluation and comparison | Which population does test represent? Are splits, seeds, and budgets comparable? | [Custom experiments](../howto/custom_experiments.md) (currently Chinese) |
+| Evaluation and comparison | Which population does test represent? Are splits, seeds, and budgets comparable? | [Custom experiments](../howto/custom_experiments.md) |
 
 For example, “OS input + LBE-A weighted fixed-count labeling + TS-compatible risk pool + known
 population prior + OA + trainable ResNet-18” specifies separate choices. SCAR/SAR describes the

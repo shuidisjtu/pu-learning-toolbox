@@ -1,23 +1,26 @@
-# 审计并处理 PU 分布漂移
+# Auditing and Handling PU Distribution Shift
 
-> 前置条件：准备来自历史/训练环境的源域 `(X_source, y_source_pu)`，以及来自当前
-> 部署环境的目标域 `X_target`。要启动加权适配，还需要一小批目标域 PU 标签
-> `y_target_pu`。
+> Prerequisites: source-domain `(X_source, y_source_pu)` from the historical/training environment
+> and target-domain `X_target` from the current deployment environment. Weighted adaptation
+> also requires target PU labels `y_target_pu` aligned to those target rows.
 
-## 先理解输出边界
+## Understand the interpretation boundary
 
-本功能先判断源域和目标域是否可区分，再估计边际密度比
-`p_target(x) / p_source(x)`。它提供的是**协变量漂移加权基线**：只有在
-`p_source(y|x) = p_target(y|x)` 时，权重才有相应的适配解释。
+The audit tests whether source and target are distinguishable, then estimates a bounded relative
+transform of the marginal density ratio `p_target(x) / p_source(x)`. This is a **covariate-shift
+weighting baseline**: its adaptation interpretation requires
+`p_source(y|x) = p_target(y|x)`.
 
-- 域分类 OOF AUC 高：存在可观测差异，但不能单独判断是协变量、类先验还是概念漂移；
-- 域分类 OOF AUC 低：当前审计器没有发现强差异，不等于证明两个分布相同；
-- ESS 低、权重集中在边界或归一化前相对质量很低：源域覆盖不足，不应自动适配；
-- 源域 CV 指标不是目标域性能。目标域真值只用于单独标记的 oracle 指标。
+- High out-of-fold (OOF) domain AUC indicates observable differences; it does not identify
+  covariate, prior, or concept shift by itself.
+- Low OOF domain AUC means this auditor found no strong difference; it does not prove equality.
+- Low effective sample size (ESS), boundary-concentrated weights, or very low relative mass
+  before normalization indicates inadequate source coverage; avoid automatic adaptation.
+- Source CV metrics are not target performance. Target truth supports separately labeled oracle metrics.
 
-## CLI：先做漂移审计
+## CLI: audit first
 
-源域与目标域 CSV 必须具有非数字表头和相同的特征列数：
+Source and target CSVs need nonnumeric headers and the same feature-column count:
 
 ```bash
 pu-toolbox shift-audit \
@@ -28,21 +31,21 @@ pu-toolbox shift-audit \
   --out-dir shift_results/
 ```
 
-目标域标签还未收集时可省略 `--target-labels`；审计仍会执行，但报告中的
-`adaptation_ready` 固定为 `false`。
+Omit `--target-labels` if target labels are unavailable. The audit still runs, but
+`adaptation_ready` is `false`.
 
-输出目录包含：
+The output directory contains:
 
-| 文件 | 内容 |
+| File | Contents |
 |---|---|
-| `shift_report.json` | 严格 JSON：域 AUC、严重度、ESS、权重分位数、问题与实现边界 |
-| `shift_report.md` | 人可读解释和下一步建议 |
-| `source_importance_weights.csv` | `source_row` 与均值归一化的源域权重 |
+| `shift_report.json` | Strict JSON: domain AUC, severity, ESS, weight quantiles, issues, and implementation boundaries |
+| `shift_report.md` | Readable interpretation and suggested next steps |
+| `source_importance_weights.csv` | `source_row` and source weights normalized to mean one |
 
-常用参数：`--alpha 0.1` 控制相对密度比上界变换，`--cv 5` 控制域分类 OOF
-折数，`--probability-clip 1e-6` 防止域概率的 odds 数值发散。
+Common options: `--alpha 0.1` controls the bounded relative-ratio transform, `--cv 5` sets domain
+OOF folds, and `--probability-clip 1e-6` prevents divergent domain-probability odds.
 
-## Python：仅审计
+## Python: audit only
 
 ```python
 from pu_toolbox.diagnostics import analyze_pu_shift
@@ -51,7 +54,7 @@ shift = analyze_pu_shift(
     X_source,
     y_source_pu,
     X_target,
-    y_target_pu=y_target_pu,  # 可省略；省略时不能进入适配
+    y_target_pu=y_target_pu,  # Optional; required to enable adaptation.
     alpha=0.1,
     cv=5,
     random_state=42,
@@ -63,16 +66,16 @@ shift.save("shift_report.json")
 shift.save("source_importance_weights.csv")
 ```
 
-权重 CSV 与源域行严格一一对应。JSON 只存权重摘要和产物名，不内嵌整列权重，避免报告
-随样本量无限膨胀。
+The weights CSV preserves one-to-one source-row alignment. JSON stores weight summaries and
+artifact names rather than the full weight vector, keeping reports bounded as sample counts grow.
 
-## Python：显式启动协变量适配
+## Python: explicitly enable covariate adaptation
 
 ```python
 from pu_toolbox.workflows import ShiftAwarePUPipeline
 
 workflow = ShiftAwarePUPipeline(
-    classifier="elkan_noto",  # 默认；必须真正支持 sample_weight
+    classifier="elkan_noto",  # Default; the method must actually use sample_weight.
     cv=5,
     shift_cv=5,
     random_state=42,
@@ -82,19 +85,20 @@ report = workflow.fit_evaluate(
     y_source_pu,
     X_target,
     y_target_pu=y_target_pu,
-    y_true_target=y_true_target,        # 可选，仅 oracle 评估
-    target_class_prior=0.30,            # 可选，启用目标域先验依赖指标
+    y_true_target=y_true_target,        # Optional, for oracle evaluation only.
+    target_class_prior=0.30,            # Optional; enables prior-dependent target metrics.
 )
 
 print(report.shift.to_markdown())
 print(report.target_metrics["pu_auc_roc"].mean)
 ```
 
-工作流会把源域权重按 CV 训练折切片，并传给最终全量重训。`upu`、`pnu` 等声明
-`sample_weight_support="ignored"` 的分类器会立即失败；不会出现命令成功但权重未生效的
-情况。当前支持权重的完整列表见 [API 参考](../reference/api.md#sample_weight-三档语义)。
+The workflow slices source weights by CV training fold and passes them to the final refit.
+Methods declaring `sample_weight_support="ignored"`, such as `upu` and `pnu`, fail immediately
+instead of silently ignoring adaptation weights. See the
+[API reference](../reference/api.md#sample_weight-三档语义) for weight-support contracts.
 
-若只需要“审计 + 未加权源域基线”，调用：
+For an audit plus an unweighted source baseline:
 
 ```python
 report = workflow.fit_evaluate(
@@ -105,10 +109,10 @@ report = workflow.fit_evaluate(
 )
 ```
 
-覆盖检查失败时，默认抛出 `PipelineError`。`allow_unstable=True` 可用于受控研究实验，但
-警告仍保留在报告中；这不是生产环境的推荐设置。
+Failed coverage checks raise `PipelineError` by default. Controlled research can set
+`allow_unstable=True`; warnings remain in the report. This is not recommended for production.
 
-## CLI：配对比较后再决定
+## CLI: compare paired arms before deciding
 
 ```bash
 pu-toolbox shift-run \
@@ -122,13 +126,20 @@ pu-toolbox shift-run \
   --out-dir shift_comparison/
 ```
 
-命令在同一目标集上配对运行未加权和加权两臂，写出
-`shift_comparison.json/.md`、`shift_report.json`、`source_importance_weights.csv` 和
-`target_predictions.csv`。若提供 `--target-true-labels`，默认以 oracle AUC 决策；否则可用
-目标类先验依赖的 PU risk。两者都没有时仍给出对照数值，但结论固定为 `audit_only`。
-覆盖不稳定且未设置 `--allow-unstable` 时不执行加权臂，结论为 `collect_target_data`。
+The command compares unweighted and weighted arms on the same target set. It writes
+`shift_comparison.json/.md`, `shift_report.json`, `source_importance_weights.csv`, and
+`target_predictions.csv`. With `--target-true-labels`, the default decision uses oracle AUC;
+otherwise it can use target-prior-dependent PU risk. With neither, it still provides comparison
+values but concludes `audit_only`. Unstable coverage without `--allow-unstable` skips the weighted
+arm and concludes `collect_target_data`.
 
-## 连续窗口监控
+Oracle-guided comparison requires a designated validation/audit set. Keep final test data
+independent; do not use its truth to choose the adaptation arm, threshold, or prior.
+
+## Monitor successive windows
+
+Use aligned reference arrays `X_reference, y_reference_pu` and the next window's
+`X_august, y_august_pu`:
 
 ```python
 from pu_toolbox.diagnostics import PUShiftMonitor
@@ -144,10 +155,11 @@ print(window.alert_level, window.alert_codes)
 monitor.save_history("shift_history.json")
 ```
 
-告警覆盖高域漂移、不可适配、相邻窗口 AUC 突跳和标记率突跳。历史只保存窗口摘要，不保存
-特征与标签；用同配置的新监控器调用 `load_history(...)` 后可继续追加。
+Alerts cover high domain shift, adaptation blocks, and abrupt neighboring-window changes in AUC
+or labeled fraction. History stores window summaries without features or labels. A new monitor
+with the same configuration can call `load_history(...)` and continue appending.
 
-## 区分类先验变化与标记机制变化
+## Separate prior changes from labeling changes
 
 ```python
 from pu_toolbox.diagnostics import analyze_domain_assumptions
@@ -157,17 +169,22 @@ assumptions = analyze_domain_assumptions(
     y_source_pu,
     X_target,
     y_target_pu,
-    source_class_prior=0.25,   # 省略则两个域分别用 pen_l1 估计
+    source_class_prior=0.25,   # If omitted, estimate each domain separately with pen_l1.
     target_class_prior=0.35,
 )
 print(assumptions.conclusion)
 print(assumptions.differences)
 ```
 
-报告利用 `P(S=1)=π·c̄` 分开类先验与平均正例标记倾向，并提供局部 3×3 先验敏感性表。
-`c̄` 只是聚合量：即便它在两域相同，也不能证明 SCAR 或排除特征依赖 SAR。
+The report uses `P(S=1)=π·c̄` to separate class prior from mean positive-labeling propensity,
+and provides a local 3×3 prior-sensitivity table. `c̄` is an aggregate: equal values across
+domains do not establish SCAR or exclude feature-dependent SAR.
 
-## 不确定样本拒绝与主动复核
+## Abstention and active review
+
+Here `fitted_model` is a trained model and `target_relevance_weight` is a finite, nonnegative,
+nonzero vector aligned to **target** rows. The source-weight vector from the shift audit cannot
+be substituted for target-row weights.
 
 ```python
 from pu_toolbox.diagnostics import analyze_pu_uncertainty
@@ -184,35 +201,41 @@ review = analyze_pu_uncertainty(
 review.save("uncertainty_rows.csv")
 ```
 
-`selective_prediction=-1` 表示交给人工/下游规则，不是负类。三种查询策略分别是纯不确定性、
-漂移权重乘不确定性、以及在不确定候选中的聚类多样性；已有标记正例默认不进入查询池。
-这里的概率边际是模型不确定性启发式量，不是经覆盖校准的置信区间。
+`selective_prediction=-1` delegates to human/downstream review; it is not a negative class.
+The three query strategies are uncertainty alone, shift weight times uncertainty, and cluster
+diversity among uncertain candidates. Labeled positives are excluded from the query pool when
+PU labels are supplied. The probability margin is an uncertainty heuristic, not a
+coverage-calibrated confidence interval.
 
-## 怎样行动
+## Choosing an action
 
-| 结果 | 建议 |
+| Finding | Suggested action |
 |---|---|
-| AUC 低、ESS 高 | 保留监控；仍需目标域验证，不要写成“无漂移” |
-| AUC 中等/高、ESS 高、覆盖正常 | 检查协变量漂移假设后比较未加权与加权模型 |
-| ESS 低或相对质量很低 | 优先补采目标域/相似源域数据，不依赖极端权重 |
-| 两域已标记正例率变化明显 | 分别审计类先验与标记倾向；已标记率不是类先验 π |
-| 怀疑 `p(y|x)` 已变化 | 使用目标域 PU 数据做专门适配/重训；当前边际权重没有联合漂移保证 |
+| Low AUC, high ESS | Continue monitoring and target validation; do not claim absence of shift |
+| Moderate/high AUC, high ESS, adequate coverage | Check covariate-shift assumptions, then compare unweighted and weighted models |
+| Low ESS or very low relative mass | Collect more target/similar-source data before relying on extreme weights |
+| Large change in labeled-positive fraction | Audit prior and propensity separately; labeled fraction is not π |
+| Suspected change in `p(y|x)` | Use target PU data for dedicated adaptation/retraining; marginal weighting has no joint-shift guarantee |
 
-## 研究级联合漂移
+## Research joint-shift methods
 
-AISTATS 2025 的联合漂移方法估计 `p_target(x,y) / p_source(x,y)`，并交替训练共享
-特征、分类头和类别条件权重模型。研究包提供两条路径：
+The AISTATS 2025 joint-shift method estimates `p_target(x,y) / p_source(x,y)` and alternates
+shared-feature, classifier-head, and class-conditional weight-model training. The research
+package provides:
 
-- `JointShiftPUClassifier`：无需 Torch 的 sklearn 软类别条件近似；
-- `DynamicJointShiftPUClassifier`：Torch clean-room 实现论文式 (19)/(20) 目标、损失修正、
-  共享特征和 Algorithm 1 梯度隔离。
+- `JointShiftPUClassifier`: a sklearn soft class-conditional approximation without Torch.
+- `DynamicJointShiftPUClassifier`: a Torch clean-room implementation of the paper's
+  Equations (19)/(20), loss correction, shared features, and Algorithm 1 gradient isolation.
 
-作者论文明确说明源码为 proprietary，未公开实现，因此后者只能声明公式级 clean-room
-实现，不能声明官方源码等价或论文数值复现，也未进入注册表/`auto`。开发清单见
-[分布漂移感知 PU 补充清单](../../dev/distribution_shift_aware_pu_checklist.md)。
+The paper states that its source is proprietary and does not release an implementation.
+The latter path therefore claims formula-level clean-room implementation, not official-source
+equivalence or numerical reproduction. It is outside the registry/`auto`. The
+[development checklist](../../dev/distribution_shift_aware_pu_checklist.md) is optional Chinese
+implementation background.
 
-## 下一步
+## Next steps
 
-- 精确对象、参数和报告字段：[API 参考](../reference/api.md)
-- 类先验/标记倾向不确定性：[敏感性分析](sensitivity_analysis.md)
-- 完整设计与理论边界：[开发者设计说明](../../dev/distribution_shift_aware_pu.md)
+- [Exact objects, parameters, and report fields](../reference/api.md) (currently Chinese).
+- [Prior/propensity sensitivity](sensitivity_analysis.md).
+- [Design and theoretical boundaries](../../dev/distribution_shift_aware_pu.md)
+  (optional Chinese background).

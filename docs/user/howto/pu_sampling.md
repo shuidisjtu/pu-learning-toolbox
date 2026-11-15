@@ -1,12 +1,13 @@
-# 构造同池 OS 与独立 TS 数据
+# Constructing Same-Pool OS and Independent TS Data
 
-前置条件：安装工具箱，了解[采样设计](../concepts/pu_sampling.md)和
-[先验目标](../concepts/class_prior_semantics.md)。本教程使用小规模 CPU 高斯数据。
+Prerequisites: install the toolbox and read [sampling designs](../concepts/pu_sampling.md) and
+[prior targets](../concepts/class_prior_semantics.md). This tutorial uses small CPU Gaussian datasets.
 
-## 1. 从同一 clean 池定额标记
+## 1. Label a fixed quota within one clean pool
 
-`make_fixed_count_labels` 在真实正类中均匀无放回选择指定数量，保留输入行序。
-例如一个 40 个正类、60 个负类的完整池，标记 20 个正例后，U 中剩余 20 个正类和 60 个负类。
+`make_fixed_count_labels` selects a specified number of true positives uniformly without
+replacement and preserves input row order. For example, labeling 20 positives in a complete pool
+of 40 positives and 60 negatives leaves 20 positives and 60 negatives in U.
 
 ```python
 import numpy as np
@@ -18,14 +19,15 @@ assert y_pu.sum() == 20
 assert y_true[y_pu == 0].mean() == 0.25
 ```
 
-如果按比例指定配额，使用 `make_scar_labels(y_true, c=0.5, random_state=7)`；
-若需要 Bernoulli 或特征相关标记，见 [SCAR/SAR 模拟](sar_simulation.md)。
-`make_pu_labels(..., mechanism="fixed_count", n_labeled=20)` 提供统一分派入口。
+To specify the quota as a fraction, use `make_scar_labels(y_true, c=0.5, random_state=7)`.
+For Bernoulli or feature-dependent labeling, see [SCAR/SAR simulation](sar_simulation.md).
+`make_pu_labels(..., mechanism="fixed_count", n_labeled=20)` is the unified dispatcher.
 
-## 2. 独立取得正例 P 与总体混合 U
+## 2. Obtain independent positive P and population-mixture U samples
 
-`make_gaussian_case_control_data` 从正类条件高斯分布取得 P，再独立从目标总体取得 U。
-目标总体由 `class_prior` 及正负类均值确定，每个 U 样本的类别独立抽取。
+`make_gaussian_case_control_data` draws P from the positive class-conditional Gaussian and
+independently draws U from the target population. `class_prior` and the positive/negative class
+means define that population; each U observation's class is drawn independently.
 
 ```python
 import numpy as np
@@ -41,37 +43,44 @@ assert metadata["unlabeled_class_prior"] == y_true[y_pu == 0].mean()
 assert len(set(metadata["sample_ids"])) == 880
 ```
 
-输出按 P 后 U 排列，`y_pu` 为训练角色标签，`y_true` 用于合成审计与评测。
-`metadata` 保存目标总体先验、U 和拼接表经验先验、样本身份、分布参数和抽样政策。
-`sample_ids` 的 `positive:` 与 `population:` 前缀标记两个独立来源中的抽样事件。
-这些身份在单次输出中唯一；合并多个生成结果时，由调用者增加批次命名空间。
-整数 seed 可复现全部输出；传入 `RandomState` 时沿用其当前随机流，元数据中的 seed 为 `None`。
+Outputs are ordered P then U. `y_pu` identifies the training roles; `y_true` supports synthetic
+auditing and evaluation. `metadata` records the target population prior, empirical U and
+training-table priors, sample identities, distribution parameters, and sampling policy.
 
-## 3. 运行成对比较示例
+The `positive:` and `population:` prefixes in `sample_ids` identify draws from the two independent
+sources. These identities are unique within one output; add a batch namespace when combining
+multiple outputs. Integer seeds reproduce all outputs. Passing a `RandomState` continues its
+current random stream and records the metadata seed as `None`.
+
+## 3. Run the paired comparison example
 
 ```powershell
 uv run python examples/minimal/15_pu_sampling.py --seed 7
 ```
 
-[示例 15](../../../examples/minimal/15_pu_sampling.py)先生成独立 TS，
-再把其中总体抽样得到的 U 作为 clean 来源池，构造 OS 条件。
-两组共享目标总体 0.4 和同一总体抽样，便于观察移除已标记正例后的 U 变化。
-输出分别显示目标参数、有限样本经验比例、标记数量及抽样政策。
+[Example 15](../../../examples/minimal/15_pu_sampling.py) first generates independent TS data,
+then uses its population-sampled U as a clean source pool to construct OS observations. The two
+settings share target population prior 0.4 and the same population draw, making the change in U
+after removing labeled positives visible. Output distinguishes target parameters, finite-sample
+empirical proportions, labeled counts, and sampling policies.
 
-研究数据按原始身份先切分 train / pu_val / clean_val / test，再在允许的分区生成标签。
-完整四角色组合见[自定义实验](custom_experiments.md)。
+Split research data into train / pu_val / clean_val / test by original identity before generating
+labels within permitted partitions. See [custom experiments](custom_experiments.md) for a complete
+four-role workflow.
 
-## 4. 迁移已有调用
+## 4. Migrate existing calls
 
-| 已有用法 | 对应入口 |
+| Existing usage | Replacement |
 |---|---|
 | `make_case_control_labels(y_true, n_labeled, random_state)` | `make_fixed_count_labels(y_true, n_labeled, random_state)` |
-| `make_pu_labels(..., mechanism="case_control")` | 改为 `mechanism="fixed_count"`，其余参数保留 |
-| 以独立 TS 为目标的 Gaussian 教学代码 | `make_gaussian_case_control_data(..., class_prior=...)`，接收四个返回值 |
+| `make_pu_labels(..., mechanism="case_control")` | Change to `mechanism="fixed_count"`, retaining other arguments |
+| Gaussian teaching code intended to represent independent TS | `make_gaussian_case_control_data(..., class_prior=...)`, accepting four return values |
 
-旧 `case_control` 名字保留同池行为与 seed 轨迹，发出 `FutureWarning`，计划在 2.0 移除。
-新定额入口支持全部为正类的输入；旧别名延续原有双类别输入校验。
-`make_gaussian_pu_data` 继续提供“全部正例可见、U 来自负类”的教学场景，
-返回第三项为该拼接表的真实正类比例。
+The legacy `case_control` names retain same-pool behavior and seeded random sequences, emit a
+`FutureWarning`, and are scheduled for removal in 2.0. The new fixed-count entry accepts all-positive
+inputs; legacy aliases preserve their original two-class validation. `make_gaussian_pu_data`
+continues to provide the teaching case where all positives are visible and U comes from negatives;
+its third return value is the true positive proportion of that concatenated table.
 
-参数有效域和完整返回字段见 [API 参考](../reference/api.md#数据生成)。
+See the [API reference](../reference/api.md#数据生成) (currently Chinese) for valid parameter
+domains and complete return fields.

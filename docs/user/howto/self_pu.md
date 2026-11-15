@@ -1,27 +1,40 @@
-# 训练 Self-PU 分类器
+# Training a Self-PU classifier
 
-> 前置条件：先完成 [快速开始](../quickstart.md)。
-> 概念：π 的角色与 clean validation 的需求见 [concepts/pu_problem.md](../concepts/pu_problem.md)。
-> 完整论文方法卡：[Self-PU method card](../../research/method_cards/Self-PU.md)。
+> Prerequisite: complete the [quickstart](../quickstart.md).
+> Read [the PU problem](../concepts/pu_problem.md) and
+> [prior semantics](../concepts/class_prior_semantics.md) for prior targets.
+> The [Self-PU method card](../../research/method_cards/Self-PU.md) provides optional
+> Chinese research background.
 
-`SelfPUClassifier` 是 sklearn 风格的 PyTorch PU 分类器，实现 Self-PU 的三个核心阶段：
-动态 self-paced trusted set、clean-validation meta reweighting，以及双 student/EMA teacher
-蒸馏。当前实现是可测试的 clean-room 核心，不等同于 MNIST、CIFAR-10 或 ADNI 的完整
-论文复现。
+`SelfPUClassifier` is a sklearn-style PyTorch PU classifier with three core components:
+a dynamic self-paced trusted set, clean-validation meta reweighting, and dual student/EMA
+teacher distillation. The testable clean-room core does not by itself establish full numerical
+reproduction on MNIST, CIFAR-10, or ADNI.
 
-## 1. 数据协议
+## 1. Data protocol
 
-训练集只包含 P/U 标签：
+The training labels contain only P/U roles:
 
-- `y_pu == 1`：可靠的 labeled positive；
-- `y_pu == 0`：来自边缘分布的 unlabeled；
-- `class_prior`：已知或仅由训练 fold 估计的 $`P(Y=1)`$。
+- `y_pu == 1`: reliable labeled positives.
+- `y_pu == 0`: unlabeled observations, containing both true classes.
+- `class_prior`: the prior required by the selected training risk view. The default direct
+  estimator path declares `class_prior_target="native_unlabeled"`; it consumes the positive
+  proportion in native U. With independent TS sampling, native U represents the population.
+  Under OS, convert a population prior to native U before a direct default-view fit.
+  Do not derive training priors from test truth.
 
-完整 self-calibration 还需要独立的 `(X_val, y_val)`。这里的 `y_val` 是真实二分类标签，
-可编码为 `{0, 1}` 或 `{-1, 1}`，并且必须同时包含两类。验证集用于 meta-gradient 和最终
-teacher 选择，不能使用测试集替代。
+Full self-calibration also needs an independent `(X_val, y_val)`. These are true binary labels,
+encoded as `{0, 1}` or `{-1, 1}`, with both classes present. They drive meta-gradients and
+final teacher selection. Do not substitute test data for this support/validation role.
 
-## 2. 完整训练
+The Pipeline accepts a population prior and converts it for its training consumers.
+Direct calls retain the estimator's risk-view contract; `os_or_ts` controls that view,
+separately from how input data were sampled.
+
+## 2. Full training
+
+Assume the training, independent clean-validation, and test arrays have already been prepared.
+The prior 0.3 below must match the chosen risk view:
 
 ```python
 from pu_toolbox.estimators.deep import SelfPUClassifier
@@ -51,69 +64,95 @@ probabilities = classifier.predict_proba(X_test)
 scores = classifier.decision_function(X_test)
 ```
 
-默认 backbone 是适用于表格或展平输入的两层 MLP。图像输入可直接使用 NCHW 数组并传入
-输出形状为 `(n_samples,)` 或 `(n_samples, 1)` 的自定义 PyTorch `backbone`。
+Install the torch extra before using this classifier. The example requests CUDA; use
+`device="cpu"` when CUDA is unavailable and choose an appropriate execution budget.
 
-## 3. 无 clean validation 的消融模式
+The default backbone is a two-layer MLP for tabular or flattened inputs. Direct estimator calls
+also accept NCHW image arrays with a custom PyTorch `backbone` returning shape `(n_samples,)`
+or `(n_samples, 1)`. This custom-backbone route does not declare native CNN support or expose
+the Pipeline's `encoder` injection interface.
 
-未提供 `validation_data` 且 `require_validation=False` 时，模型会发出 `UserWarning`，并：
+## 3. Ablation without clean validation
 
-- 继续运行动态 trusted set；
-- 不启用 validation meta reweighting；
-- 继续运行 student/teacher distillation；
-- 用训练集 nnPU risk 选择最终 teacher；
-- 设置 `calibration_mode_="ablation"`。
+With no `validation_data` and `require_validation=False`, the classifier warns and:
 
-这条路径不能报告为完整 Self-PU。正式实验建议始终设置 `require_validation=True`，让缺失
-clean validation 直接失败。
+- Keeps dynamic trusted-set updates.
+- Disables validation meta reweighting.
+- Keeps student/teacher distillation.
+- Sets `calibration_mode_="ablation"`.
 
-## 4. 训练阶段和状态
+Teacher selection then depends on the available data. If independent `pu_validation_data`
+is supplied, PU-validation nnPU risk selects a teacher/checkpoint. With neither clean nor PU
+validation, training-set nnPU risk selects the final teacher.
 
-两个 student 使用不同的最终 pace，实际 trusted ratio 为
-`min(pace_i, max_trust_ratio)`。每次更新都重新排序完整 U pool，所以旧样本可退出，且正负
-方向始终成对选择。保存的 target 是模型概率而不是硬 0/1。
+This path is not full Self-PU. For full-meta experiments, set `require_validation=True`
+so missing clean validation fails immediately. A generic Pipeline/CLI workflow does not expose
+this independent clean-validation input; use the direct estimator API or a trainer that
+explicitly supplies isolated support data.
 
-拟合后可审计：
+## 4. Training stages and state
 
-| 属性 | 内容 |
+The two students have distinct final paces. Their effective trusted ratios are
+`min(pace_i, max_trust_ratio)`. Each update reranks the complete native-U pool, so previously
+trusted observations can leave. Positive/negative directions are selected in pairs. Targets
+are model probabilities rather than hard 0/1 labels.
+
+After fitting, inspect:
+
+| Attribute | Content |
 |---|---|
-| `trusted_indices_` | 两个 student 的全局样本索引、soft labels 和选择方向 |
-| `trusted_history_` | 每 epoch 的目标、实际规模、进入和退出数 |
-| `reweight_history_` | meta 是否启用、fallback、CE 支持率和权重质量 |
-| `distillation_history_` | hard-sample 比例及 student/teacher MSE |
-| `training_history_` | nnPU、trusted CE、calibrated CE、一致性和总损失 |
-| `best_teacher_index_` | 最终选择的 teacher 1 或 2 |
-| `teacher_selection_basis_` | clean validation accuracy 或消融 nnPU risk |
+| `trusted_indices_` | Per-student global indices, soft labels, and selection directions |
+| `trusted_history_` | Per-epoch targets, realized sizes, entries, and exits |
+| `reweight_history_` | Meta activation, fallback, CE support fraction, and weight quality |
+| `distillation_history_` | Hard-sample fraction and student/teacher MSE |
+| `training_history_` | nnPU, trusted CE, calibrated CE, consistency, and total losses |
+| `best_teacher_index_` | Selected teacher 1 or 2 |
+| `teacher_selection_basis_` | Clean-validation accuracy, PU-validation nnPU risk, or training nnPU risk in ablation |
 
-`reweight_gamma` 限制有 CE 权重的样本比例；若某列 meta influence 全部非正，会使用稳定
-均匀回退并记录 `ce_fallback` 或 `pu_fallback`。`sample_weight` 当前会明确抛出
-`NotImplementedError`，因为静默地只加权部分损失会破坏算法语义。
+`reweight_gamma` limits the fraction of samples receiving CE weights. If all meta influences
+in a column are nonpositive, stable uniform fallback is used and recorded as `ce_fallback`
+or `pu_fallback`. Non-`None` `sample_weight` raises `NotImplementedError`: weighting only
+some losses would change algorithm semantics.
 
-## 5. Checkpoint 与复现边界
+The default `distillation_scope="untrusted_u"` preserves the established restricted scope.
+The explicit `"paper_population"` option covers P plus untrusted U for student consistency
+and P plus all U for teacher consistency. Record this setting when comparing results;
+training-view calibration does not change those identity-based sets.
+
+## 5. Checkpoints and reproduction boundaries
 
 ```python
 checkpoint = classifier.get_training_checkpoint()
 ```
 
-checkpoint 包含两个 student、两个 teacher、optimizer/scheduler、trusted set、四类历史、
-类先验和最终 teacher 选择。返回的是独立副本，可交给 `torch.save`；当前接口不承诺跨不同
-backbone 自动恢复实例，恢复时应使用相同构造配置和模型结构。
+The checkpoint includes both students, both teachers, optimizer/scheduler states, trusted sets,
+training histories, the class prior, and final teacher selection. It is an independent copy
+that can be passed to `torch.save`. The interface does not promise automatic restoration
+across different backbones; use the same constructor configuration and architecture when restoring.
 
-当前实现已经覆盖算法核心和统一 estimator contract，但以下仍属于独立 paper-like 工作：
+Core estimator coverage does not establish completion of these separate reproduction tasks:
 
-- 官方 MNIST/CIFAR-10/ADNI 数据划分与预处理；
-- 论文对应的 6-layer/13-layer/multi-branch backbone；
-- 五随机种子、完整 200 epochs、消融和论文表格对齐；
-- 与官方 commit、历史依赖环境的数值比较。
+- Official MNIST/CIFAR-10/ADNI splits and preprocessing.
+- Paper-specific 6-layer, 13-layer, and multi-branch backbones.
+- Five-seed, full 200-epoch studies, ablations, and paper-table comparisons.
+- Numerical comparisons with the official commit and historical dependency environment.
 
-最小可运行示例：
+Run the small executable example:
 
 ```bash
 python examples/minimal/10_self_pu.py
 ```
 
-## 下一步
+This script is a training smoke example. It currently passes the illustrative prior 0.3
+directly to the classifier despite generating OS data with population prior 0.3. When adapting
+it, convert the population prior with the training partition's labeled fraction using
+`population_to_native_unlabeled(..., input_sampling="os")` before fitting the default risk view.
 
-- 已有独立 support 制品时，可用[显式 TS full-meta 双轨入口](../../research/method_cards/Self-PU.md)；它记录额外标签预算并使用 `PA+clean-support`/OA，非纯 PU PA 或正式 Survey 配方。
-- 在完整实验流程中使用该分类器：[pipeline.md](pipeline.md)（传 `SelfPUClassifier` 实例）
-- 生成诊断报告：[diagnostic_reports.md](diagnostic_reports.md)
+## Next steps
+
+- For an independent support artifact, inspect the explicit TS full-meta/checkpoint route in
+  the [method card](../../research/method_cards/Self-PU.md) (Chinese). It records extra label
+  budgets and `PA+clean-support`/OA; interpret that supervision separately from purely PU PA,
+  and check the applicable versioned Survey recipe before attributing results.
+- For the generic workflow and its available input roles, see [pipeline](pipeline.md).
+- Generate [diagnostic reports](diagnostic_reports.md).

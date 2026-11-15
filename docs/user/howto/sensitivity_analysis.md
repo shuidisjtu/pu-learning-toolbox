@@ -1,12 +1,16 @@
-# 类先验与标记倾向敏感性分析
+# Class-Prior and Labeling-Propensity Sensitivity
 
-> 前置条件：先完成 [快速开始](../quickstart.md) 与 [PUPipeline 端到端训练评估](pipeline.md)。
-> 概念：观测恒等式 $`q=\pi\bar c`$ 与不可识别性见 [concepts/pu_problem.md](../concepts/pu_problem.md)。
+> Prerequisites: complete the [quickstart](../quickstart.md) and [pipeline guide](pipeline.md).
+> See [the PU problem](../concepts/pu_problem.md) for $`q=\pi\bar c`$ and identifiability.
 
-`analyze_pu_sensitivity` 固定模型输出，扫描 OS 总体先验和平均标记倾向，计算 PU 指标
-及其与观测标记率的相容性。
+`analyze_pu_sensitivity` holds model outputs fixed while scanning OS population priors and mean
+labeling propensities. It computes PU metrics and checks compatibility with the observed labeled
+fraction. This analysis does not refit the model.
 
-## 1. 基本使用
+## 1. Basic usage
+
+Prepare a fitted classifier and aligned OS validation arrays `X_valid, y_valid`, where `y_valid`
+contains PU labels. `fitted_classifier` below must expose `predict` and `decision_function`.
 
 ```python
 from pu_toolbox.diagnostics import analyze_pu_sensitivity
@@ -23,20 +27,22 @@ print(analysis.to_frame(axis="class_prior"))
 print(analysis.metric_ranges)
 ```
 
-`y_pu` 必须使用可规范化为 `{1, 0}` 的 PU 标签，`y_pred` 必须为 `{1, 0}`。
-`y_pu` 必须同时包含 labeled-positive 和 unlabeled 组（`y_pred` 为单类不报错）。
-`class_priors` 与 `label_propensities` 至少提供一个；参数合法范围与每个 `SensitivityPoint` 的字段含义
-见 [API 参考](../reference/api.md)。要点：
+`y_pu` must normalize to `{1, 0}` and contain both labeled-positive and unlabeled groups.
+`y_pred` must use `{1, 0}`; single-class predictions are allowed. Supply `class_priors`,
+`label_propensities`, or both. See the [API reference](../reference/api.md) for valid domains
+and `SensitivityPoint` fields.
 
-- 未提供 `scores` 时，risk 使用 `y_pred` 映射出的 `+1/-1` 分数；precision 始终使用
-  `y_pred`，所以显式分数只影响 risk，不影响 estimated precision。
-- `metric_ranges` 仅汇总 `is_consistent=True` 且指标可用的点。边界 $`\pi=1`$ 虽代数上
-  可相容，但现有 PU 指标要求 `(0,1)`，因此该点指标为 `None`。
+- Without `scores`, risk uses `+1/-1` scores mapped from `y_pred`. Estimated precision always
+  uses `y_pred`, so explicit scores affect risk only.
+- `metric_ranges` summarizes only consistent points with available metrics. An implied
+  boundary $`\pi=1`$ can be algebraically consistent, but the PU metrics require `(0,1)`,
+  so its metrics are `None`. The explicit `class_priors` grid excludes 1.
 
-## 2. 保存与实验记录
+## 2. Persistence and experiment records
 
-本接口使用 OS 完整输入池估计总体风险项；`class_priors` 对应总体先验。
-零一风险为 `2*pi*mean_P(score<=0) + mean_all(score>0) - pi`。
+This interface uses the complete OS input pool to estimate the population risk term;
+`class_priors` denotes population priors. Its zero-one risk is
+`2*pi*mean_P(score<=0) + mean_all(score>0) - pi`.
 
 ```python
 analysis.save("artifacts/sensitivity.json")
@@ -44,22 +50,23 @@ analysis.save("artifacts/sensitivity.md")
 analysis.save("artifacts/sensitivity.csv")
 ```
 
-JSON 使用严格模式，不写入 `NaN` 或 `Infinity`。CSV 适合绘图；JSON 保留 feasible
-region、指标区间与 provenance；Markdown 适合附在实验报告中。
+JSON is strict, with no `NaN` or `Infinity` literals. CSV supports plotting; JSON preserves
+the feasible region, metric ranges, and provenance; Markdown suits experiment reports.
 
-## 3. 正确解读
+## 3. Interpretation
 
-固定输出曲线展示指标对假设的敏感性，适合训练后报告、先验设置对比和配置排错。
-训练稳健性研究则固定 split/seed，在每个先验设置下重新拟合，并报告多 seed 均值、
-标准差与失败率。
+Fixed-output curves describe metric sensitivity to assumptions, supporting post-training reports,
+prior-setting comparisons, and configuration debugging. For training robustness studies, keep
+splits/seeds fixed, refit at each prior setting, and report multi-seed means, standard deviations,
+and failure rates.
 
-完整可运行示例：
+Complete runnable example:
 
 ```bash
 uv run python examples/minimal/09_sensitivity_analysis.py
 ```
 
-## 下一步
+## Next steps
 
-- 回到 [用户文档首页](../README.md) 选择下一个任务
-- 精确参数契约：[API 参考](../reference/api.md)
+- Choose another task from the [user documentation](../README.md).
+- [Exact API contracts](../reference/api.md) (currently Chinese).

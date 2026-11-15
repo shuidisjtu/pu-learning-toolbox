@@ -64,7 +64,7 @@ a single population sample with some positives labeled. Independent P and popula
 
 The [PU problem setting](concepts/pu_problem.md), [SCAR/SAR](concepts/scar_sar.md),
 and [prior semantics](concepts/class_prior_semantics.md) explain the core concepts in English.
-The following task guides and API reference currently remain in Chinese:
+Continue with these English task guides. The linked API reference currently remains in Chinese.
 
 - Describe an analysis or research task in natural language: [pu-workflow skill](howto/using_skill.md).
 - Use the graphical interface: run `pu-toolbox-ui` after installing the UI extra; see [UI](howto/ui.md).

@@ -65,7 +65,7 @@ print(report.summary())
 ```
 
 Documentation index: [docs/README.md](docs/README.md). The index, contributor guides,
-user entry pages, quickstart, and concepts are in English. How-to guides, the API reference,
+user entry pages, quickstart, concepts, and how-to guides are in English. The API reference
 and Survey reproduction documents currently remain in Chinese and are being migrated.
 More runnable examples:
 [`examples/minimal/`](examples/minimal/).

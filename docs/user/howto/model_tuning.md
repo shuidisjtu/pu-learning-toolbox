@@ -1,14 +1,19 @@
-# 调整模型与搜索超参数
+# Configuring Models and Searching Hyperparameters
 
-`PUPipeline` 允许按注册名配置分类器参数；`PUTuner` 在相同的 PU 分层验证、类先验和
-指标语义上比较参数组合。参数与最终选择都会进入结果记录，便于复查。
+`PUPipeline` accepts constructor parameters for a classifier selected by registry name. `PUTuner`
+compares combinations using the same PU-stratified validation, prior handling, and metric
+semantics. Results retain the configurations and final selection for review.
 
-`class_prior` 表示目标总体先验。默认 OS 路径将先验估计器声明的原生 U 估计换算为总体值；
-`input_sampling="ts"` 使用独立总体 U。`PUTuner` 与 `PUModelComparator` 将此参数
-传入各 trial 的 Pipeline。报告的 `prior.value` 保存总体值，`training_consumption`
-保存各折与最终 fit 的实际目标和数值。
+Examples below use `X, y_pu` from the [quickstart](../quickstart.md). Their `class_prior=0.4` is
+an explicit illustrative population-prior assumption, not a value computed from hidden labels.
+Use a known or independently estimated prior appropriate to your own data.
 
-## 固定模型参数
+`class_prior` targets the population. Default OS input converts an estimator's declared native-U
+result to a population value; `input_sampling="ts"` uses independent population U. `PUTuner` and
+`PUModelComparator` pass this setting into each trial's Pipeline. Reports retain the population
+value in `prior.value` and actual per-fold/final targets and values in `training_consumption`.
+
+## Set fixed model parameters
 
 ```python
 from pu_toolbox import PUPipeline
@@ -24,7 +29,7 @@ report = PUPipeline(
 ).fit_evaluate(X, y_pu, class_prior=0.4)
 ```
 
-原来需要额外必填参数的方法也可以按名称使用：
+Methods with extra required constructor arguments can also be selected by name:
 
 ```python
 pipe = PUPipeline(
@@ -33,12 +38,13 @@ pipe = PUPipeline(
 )
 ```
 
-`class_prior`、`random_state` 和 CNN `encoder` 由流水线管理，不能放入
-`classifier_params`；请使用 `fit_evaluate(class_prior=...)`、`random_state=...` 和
-`architecture` / `backbone` 参数。
+The pipeline manages `class_prior`, `random_state`, and the CNN `encoder`; do not put these in
+`classifier_params`. Use `fit_evaluate(class_prior=...)`, `random_state=...`, and the workflow's
+`architecture` / `backbone` arguments instead.
 
-命令行使用可重复的 `--classifier-param KEY=VALUE`。值支持 JSON 数字、布尔值、
-列表和对象，普通字符串可以不加引号：
+The CLI accepts repeated `--classifier-param KEY=VALUE`. Values support JSON numbers, booleans,
+lists, and objects; plain string values need no JSON quotation marks. This multi-line command
+uses POSIX shell continuations; in PowerShell, put it on one line or use PowerShell continuations.
 
 ```bash
 pu-toolbox run \
@@ -49,7 +55,7 @@ pu-toolbox run \
   --classifier-param max_iter=2000
 ```
 
-## PU-aware 网格搜索
+## PU-aware grid search
 
 ```python
 from pu_toolbox.model_selection import PUTuner
@@ -71,28 +77,30 @@ print(result.best_score)
 best_model = result.best_report.final_model
 ```
 
-默认对 `pu_zero_one_risk` 取最小值，对其他指标取最大值；可用
-`higher_is_better=` 显式覆盖。每个失败或指标不可用的组合会保留在
-`result.trials` 中，只有所有组合都不可用时才抛出 `PipelineError`。
+The default minimizes `pu_zero_one_risk` and maximizes other metrics; override explicitly with
+`higher_is_better=` when needed. Failed combinations and combinations with unavailable metrics
+remain in `result.trials`. If none produces a usable score, the tuner raises `PipelineError`.
 
-搜索阶段的每个 trial 只计算 PU 分层 CV；选出最佳组合后才执行一次全量重训和模型
-诊断。因此 `result.best_report.final_model` 仍是可直接预测的最终模型，同时避免为每个
-候选重复生成最终模型。
+Each search trial computes PU-stratified CV only. After choosing the best combination, the tuner
+performs one full-data refit and builds diagnostics. `result.best_report.final_model` is therefore
+ready for prediction without fitting a final model for every candidate.
 
-如果选择 `pu_auc_roc`、`pu_accuracy` 或 `pu_f1`，必须向 `fit` 提供
-`y_true`。没有真实标签时优先使用 `pu_zero_one_risk`，并检查类先验估计是否可靠。
+Scoring with `pu_auc_roc`, `pu_accuracy`, or `pu_f1` requires `y_true` in `fit`. Supplying it makes
+selection use clean-label supervision; use only labels permitted by your study's validation
+budget, and keep final test truth separate. Without clean labels, consider `pu_zero_one_risk`
+and inspect the reliability of its prior and assumptions. Assess the selected configuration
+on independent test data after fixing the choice.
 
-## 图形界面
+## Graphical interface
 
-图形界面包含固定参数编辑器和网格搜索面板，不需要编写 Python。安装与操作见
-[图形界面](ui.md)。
+The [UI](ui.md) provides fixed-parameter and grid-search panels without Python code.
 
-## 比较多个模型
+## Compare multiple models
 
-`PUModelComparator` 共享同一目标总体先验、输入采样设计、PU 分层 CV 和指标比较多个注册模型，并对最佳
-模型执行最终全量重训：
+`PUModelComparator` compares registered models using a common population prior, input sampling
+design, PU-stratified CV, and metric, then refits the best model on all supplied training data.
 
-**示例 A：全部成功比较（标签语义兼容）**
+**Example A: compatible PU label semantics.**
 
 ```python
 from pu_toolbox.model_selection import PUModelComparator
@@ -108,18 +116,22 @@ print(comparison.best_classifier, comparison.best_score)
 best_model = comparison.best_report.final_model
 ```
 
-**示例 B：语义预检（pnu 需要三元标签，提前拒绝）**
+**Example B: preflight rejection of PNU label semantics.**
 
 ```python
-# y_pu 为 {1, 0} PU 标签；pnu 需要 {+1, -1, 0} 三元标签（P/N/U），
-# 构造时即拒绝，不会先训练其他模型再记录pnu失败。
+# y_pu contains {1, 0} PU labels; PNU requires {+1, -1, 0} for P/N/U.
+# Construction rejects this combination before any model is trained.
 try:
     PUModelComparator(classifiers=["upu", "pnu", "pusb"], cv=5)
 except ValueError as error:
     print(error)  # declares label_semantics='pnu', ... requires 'pu'
 ```
 
-PNU 分类器需要 `{+1, -1, 0}` 三元标签（P/N/U），不能直接用于仅有 `{1, 0}` PU 标签的
-数据（见 [PNU 方法卡](../../research/method_cards/PNU.md)）。语义预检通过后，比较器对运行期
-优化器/后端等错误仍遵循失败隔离：单个方法失败记为 `failed` 并继续，全部方法失败或评分不可用时抛出
-`PipelineError`；`best_classifier` 仅从成功的方法中选择。
+PNU requires three-way P/N/U labels and cannot be used directly in this PU-only workflow. The
+[PNU method card](../../research/method_cards/PNU.md) provides optional Chinese research background.
+After semantic preflight, runtime optimizer/backend failures remain isolated: the comparator
+records a failed method and continues. It selects `best_classifier` only from successful methods,
+and raises `PipelineError` if every method fails or has unavailable scoring.
+
+See the [pipeline guide](pipeline.md) for workflow boundaries and the
+[model-selection concepts](../concepts/pu_model_selection.md) for independent PA/OA experiments.
