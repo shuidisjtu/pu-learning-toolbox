@@ -19,9 +19,9 @@ Use each source for its own subject:
 | Algorithm interfaces, registration, and capability declarations | [New algorithm template](docs/dev/new_algorithm_template.md) |
 | Source comments and their quality gates | [Comment governance](docs/dev/comment_governance.md) |
 
-The five developer guides above, this guide, the user entry pages, quickstart, and concepts are
-in English. How-to guides, the API reference, and Survey reproduction documents currently remain
-in Chinese and will follow in later batches. Internal plans and
+The five developer guides above, this guide, the user entry pages, quickstart, concepts, and
+how-to guides are in English. The API reference and Survey reproduction documents currently
+remain in Chinese and will follow in later batches. Internal plans and
 historical decisions may remain in Chinese; they are optional background for ordinary contributions.
 The English developer guides state the required contribution rules. Describe new architectural
 tradeoffs in the PR for maintainers to resolve.

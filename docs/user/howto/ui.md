@@ -1,99 +1,119 @@
-# 使用图形界面
+# Using the graphical interface
 
-图形界面基于 Streamlit，作为可选依赖提供，不会增加核心安装体积。
+The Streamlit interface is an optional dependency, separate from the core installation.
 
-本界面只接收PU主训练标签：1为已标记正例、0为未标记，不是真实负类。
-真值上传仅用于评价，不会自动改为PN训练。模型信息展示 `label_semantics`，
-PN/PNU方法不进入PU选项；配置导入或直接调用执行入口也受训练前语义门禁约束。
+The UI accepts PU main-training labels: 1 means labeled positive and 0 means unlabeled,
+not a true negative. Optional uploaded truth is for evaluation and does not switch training
+to PN. Model details show `label_semantics`; PN/PNU methods are excluded from PU choices.
+Imported configurations and direct execution calls also pass the pre-training semantics gate.
 
-## 安装与启动
+The current runtime interface uses Chinese labels. This English guide gives translations
+alongside the relevant controls; UI localization is a separate task.
+
+## Install and launch
 
 ```bash
 pip install "pu-toolbox[ui]"
 pu-toolbox-ui
 ```
 
-命令会在本机启动 Web 页面并打开浏览器。服务只处理用户在页面中上传的数据；工具箱
-本身不会主动把数据发送到外部服务。部署到共享服务器时，文件可见性、认证和网络访问
-策略由部署者负责。
+The command starts a local web service and opens a browser. The toolbox processes uploaded
+data without initiating transfers to external services. On shared servers, the operator owns
+file visibility, authentication, and network access policies.
 
-## 页面流程
+## Page workflow
 
-1. 上传特征 CSV 或 4-D NCHW `.npy` 图像数组。
-2. 上传单列 `{1, 0}` PU 标签；真实 `{1, 0}` 标签可选。
-3. 查看样本、特征、已标正例和未标记样本摘要。
-4. 使用自动推荐、手动选择单个模型，或选择多个模型在相同 CV 条件下比较。
-5. 在高级面板勾选要调整的参数，并用数字、开关或选项控件设置值；复杂参数仍可用
-   “额外固定参数”JSON 输入。也可以打开“比较多组超参数”填写参数网格。
-6. 启动分析，查看指标图表、诊断提示和全部调参 trial。
-7. 下载 JSON/Markdown 报告、预测 CSV、模型以及调参记录。
-8. 在“部署监控与人工复核”中上传目标窗口，查看漂移告警、预测覆盖率和建议人工复核行。
+1. Upload a feature CSV or 4-D NCHW `.npy` image array.
+2. Upload single-column `{1, 0}` PU labels and, optionally, true binary labels.
+3. Inspect sample, feature, labeled-positive, and unlabeled counts.
+4. Use automatic recommendation, select one model manually, or compare several under the same CV settings.
+5. In the advanced panel, select parameters to edit and set their numeric, boolean, or categorical
+   values. Use the additional fixed-parameter JSON field for complex values, or enable
+   “compare hyperparameter combinations” for a grid.
+6. Start analysis and inspect metrics, diagnostic messages, and tuning trials.
+7. Download JSON/Markdown reports, prediction CSVs, models, and tuning records.
+8. Use the deployment monitoring/review panel to upload a target window and inspect shift
+   alerts, prediction coverage, and rows proposed for human review.
 
-侧栏可导入或导出 `pu-run-config.json`。配置包含模型、固定参数、参数网格、先验、CV、
-指标和随机种子，但不包含上传的数据。相同配置也能交给命令行复跑：
+The sidebar imports/exports `pu-run-config.json`. It contains model choices, fixed parameters,
+parameter grids, priors, CV, metrics, and seeds, but not uploaded data. Reuse it from the CLI:
 
 ```bash
 pu-toolbox run --data X.csv --labels y_pu.csv --out-dir results/ \
   --config pu-run-config.json
 ```
 
-命令行中显式提供的非默认选项和 `--classifier-param` 会覆盖配置文件对应值；若配置包含
-参数网格，命令行也会执行同样的搜索并额外生成 `tuning.json`。
+Explicit nondefault CLI options and `--classifier-param` values override corresponding
+configuration values. A configured parameter grid also runs through the CLI and produces
+`tuning.json`.
 
-“比较模型”模式至少选择两个无需额外必填构造参数的方法。页面逐个执行相同的 PU 分层
-CV，失败的方法会保留错误记录而不会中断其他方法；最终只对最佳模型做一次全量重训。
-比较记录可下载为 `comparison.json`。包含比较设置的配置交给 CLI 后也会产生同名文件。
+Model-comparison mode needs at least two eligible methods with no additional required constructor
+parameters. It applies the same PU-stratified CV to each. Runtime failures remain in the
+comparison record while other methods continue; only the winning model receives a final
+full-data refit. Download the record as `comparison.json`. A comparison configuration passed
+to the CLI produces the same artifact name.
 
-训练在后台线程中运行，页面会显示当前阶段和完成比例。点击“取消运行”后，取消信号会在
-下一个安全边界生效（工作流阶段、CV fold、调参 trial 或模型比较项之间）；已经进入
-单个估计器 `fit` 的计算会先结束当前调用。侧栏保留当前服务进程最近 20 次运行的
-开始/结束时间、模式、状态和结果摘要，刷新页面仍可查看，重启 Streamlit 服务后清空；
-多用户部署时该历史由同一服务进程的所有会话共享。
+Training runs in a background thread with stage/progress updates. The cancel control
+(`取消运行`) takes effect at the next safe boundary: workflow stages, CV folds, tuning
+trials, or comparison items. An estimator `fit` already in progress finishes its current call.
+The sidebar keeps start/end times, mode, status, and summaries for the service process's most
+recent 20 runs. History survives page refreshes but is cleared when the Streamlit process
+restarts. Sessions in a shared service process share this history.
 
-训练完成后，部署面板把当前训练数据作为固定参考域。上传目标窗口特征和 PU 标签后，可：
+After training, the deployment panel uses the current training data as a fixed reference domain.
+Upload a target window's features and PU labels to:
 
-- 新建窗口 ID，或上传上一次的 `shift_history.json` 继续监控；
-- 查看域 AUC、告警级别、预测 coverage 和人工复核数量；
-- 在纯不确定性与多样性不确定性策略之间切换；
-- 下载更新后的监控历史、窗口漂移 JSON 和逐行复核 CSV。
+- Start a new window ID or continue from an uploaded `shift_history.json`.
+- Inspect domain AUC, alert level, prediction coverage, and review count.
+- Choose uncertainty or diversity-aware uncertainty sampling.
+- Download updated history, window shift JSON, and per-row review CSVs.
 
-部署检查不会重新训练模型。共享服务上的历史文件仍由用户自行保存和再次上传，服务器不会
-跨进程永久保管数据。
+Deployment checks do not retrain the model. Users must save and re-upload monitoring histories;
+the server does not retain them across processes.
 
-CSV 第一行必须是非数字列名，特征必须全部为有限数值。图像模式支持声明了
-`encoder` 能力且满足当前 UI 输入条件的深度算法（例如 InfoMax PU、WConPU、nnPU、
-PAN、PULDA 和 Holistic-PU；列表由注册表能力与 UI 可运行条件自动推导），
-可选择 CNN13、ResNet-18 或 ResNet-50 等 backbone；各方法可能限制具体骨架，需同时安装 torch：
+## Input and model eligibility
+
+CSV headers must be nonnumeric column names, and features must be finite numeric values.
+Image mode uses deep methods that declare encoder capability and meet the current UI
+requirements. Examples include InfoMax PU, WConPU, nnPU, PAN, PULDA, and Holistic-PU;
+the list is derived from registry capabilities and UI eligibility. Available backbones include
+CNN13, ResNet-18, and ResNet-50, subject to method-specific restrictions. Install torch as well:
 
 ```bash
 pip install "pu-toolbox[ui,torch]"
 ```
 
-DGPU 的 `generator` 是 Python 对象协议，不能用 JSON 表单安全构造，因此暂不出现在
-UI 的模型下拉框中；仍可通过 Python API 完整配置。
+DGPU requires a Python-object `generator` protocol that cannot be constructed safely from a
+JSON form, so it is absent from the model selector. Configure it through the Python API.
 
-PULNS、LaGAM 需要独立干净的奖励/support 标签集，当前 UI、CLI 和普通 Pipeline没有
-这个独立输入角色，因此不列入手动/比较模型，导入相关配置也会明确拒绝且不改变原配置。
-页面中的可选真实标签用于评估，不能代替训练奖励集。PULNS 的原生 CNN能力仍在注册表中
-登记；需要该方法时使用 Python estimator API，显式提供隔离的 `support_data`。
+PULNS and LaGAM require an independent clean reward/support set. The current UI, CLI, and ordinary
+Pipeline do not expose that additional role, so these methods are excluded from manual/comparison
+choices. Importing an incompatible configuration fails explicitly without altering the original
+configuration. Optional evaluation truth cannot substitute for training support labels. PULNS's
+native CNN capability remains registered; use its estimator API with explicitly isolated
+`support_data`.
 
-## 参数输入示例
+## Parameter examples
 
-常用标量和枚举参数不需要手写 JSON：先在“需要调整的参数”中勾选，页面会根据构造器
-类型显示数字输入框、开关或下拉选项。未勾选的可选参数继续使用模型默认值。
+For common scalar and categorical parameters, choose fields under “parameters to adjust”
+(`需要调整的参数`). The UI derives numeric controls, switches, and dropdowns from constructor
+types. Unselected optional parameters retain model defaults.
 
-复杂参数或批量粘贴可使用“额外固定参数（高级 JSON）”：
+For complex values or bulk entry, use “additional fixed parameters (advanced JSON)”
+(`额外固定参数（高级 JSON）`):
 
 ```json
 {"loss": "logistic", "max_iter": 2000}
 ```
 
-参数网格：
+Enable “compare hyperparameter combinations” (`比较多组超参数`) and enter a grid:
 
 ```json
 {"reg_lambda": [0.001, 0.01, 0.1]}
 ```
 
-固定参数会应用到每个 trial，同一个参数不能同时出现在固定参数和参数网格中。
+Fixed parameters apply to every trial. A parameter cannot occur in both the fixed mapping and
+the search grid.
 
-下一步：[调整模型与搜索超参数](model_tuning.md)；[指标与精确 API](../reference/api.md)。
+Next: [model configuration and tuning](model_tuning.md) and the
+[API reference](../reference/api.md) (currently Chinese).

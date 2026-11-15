@@ -1,14 +1,15 @@
-# 生成 SCAR/SAR 数据
+# Generating SCAR/SAR Data
 
-> 前置条件：先完成 [快速开始](../quickstart.md)。
-> 概念：SCAR/SAR 的数学定义与三种生成机制见 [concepts/scar_sar.md](../concepts/scar_sar.md)。
+> Prerequisite: complete the [quickstart](../quickstart.md).
+> Concepts: [SCAR/SAR](../concepts/scar_sar.md) defines the mechanisms and three generation presets.
 
-本模块用于构造可控的 PU benchmark。真实标签用于模拟标记机制和分类评估，
-propensity 用于标记机制恢复评估，训练接口接收生成后的 PU 视图。
+This module constructs controlled PU benchmarks. True labels support simulation of the labeling
+mechanism and classification evaluation; propensity supports labeling-mechanism recovery evaluation.
+Training interfaces receive the generated PU views.
 
-## 1. 公共接口
+## 1. Public interfaces
 
-### 1.1 只计算 propensity
+### 1.1 Compute propensity only
 
 ```python
 from pu_toolbox.preprocessing import make_sar_propensity
@@ -22,10 +23,10 @@ propensity = make_sar_propensity(
 )
 ```
 
-返回值表示 `P(S=1|Y,X)`，所以真实负类位置固定为零。函数会校准截距，使正类中的
-propensity 均值等于 `label_frequency`。
+The result represents `P(S=1|Y,X)`, so true-negative entries are always zero. The function calibrates
+an intercept so mean propensity among true positives equals `label_frequency`.
 
-### 1.2 从完整标签生成 PU 标签
+### 1.2 Generate PU labels from complete labels
 
 ```python
 from pu_toolbox.preprocessing import make_sar_labels
@@ -40,11 +41,12 @@ y_pu, propensity = make_sar_labels(
 )
 ```
 
-`y_pu` 使用项目规范：`1` 为观察到的正类，`0` 为 U。默认
-`ensure_labeled=True`，当小样本 Bernoulli 抽样没有选中任何正类时，会选择 propensity
-最高的真实正类，以保证下游估计器可以训练。研究纯采样分布时可显式关闭该保护。
+`y_pu` follows the canonical convention: `1` is observed positive and `0` is U.
+With the default `ensure_labeled=True`, if Bernoulli sampling selects no positive in a small
+dataset, the highest-propensity true positive is labeled as a fallback. Disable this guard
+explicitly when studying the unmodified sampling distribution.
 
-### 1.3 直接生成合成数据
+### 1.3 Generate synthetic data directly
 
 ```python
 from pu_toolbox.preprocessing import make_sar_dataset
@@ -61,61 +63,66 @@ X, y_pu, y_true, propensity = make_sar_dataset(
 )
 ```
 
-训练模型传入 `X, y_pu`。`y_true` 用于分类评估，`propensity` 用于标记机制恢复评估；
-额外 clean support、OA 选模等监督使用按[数据角色](custom_experiments.md#2-准备四路数据)分别记录。
+Pass `X, y_pu` to the learner. Use `y_true` for classification evaluation and `propensity`
+for labeling-mechanism recovery evaluation. Record extra clean support, OA selection, and other
+supervision separately by [data role](custom_experiments.md#2-prepare-four-data-roles).
 
-> **默认机制是 SAR**：`make_sar_dataset` 不传 `mechanism` 时解析为 `"linear"`（标记依赖特征）
-> 并发出 `UserWarning`。类先验估计器与多数 PU 分类器假设 SCAR；SCAR 场景请显式传
-> `mechanism="scar"`（区别见 [concepts/scar_sar.md](../concepts/scar_sar.md)）。
+**The default mechanism is SAR:** omitting `mechanism` in `make_sar_dataset` resolves to
+`"linear"` (feature-dependent labeling) and emits a `UserWarning`. Class-prior estimators and
+many PU classifiers assume SCAR. Pass `mechanism="scar"` explicitly for a SCAR setting; see
+[SCAR/SAR concepts](../concepts/scar_sar.md).
 
-## 2. 标记率语义
+## 2. Labeling-rate semantics
 
-`label_frequency` 是正类 propensity 的目标均值：
+`label_frequency` is the target mean positive-class propensity:
 
 ```math
 \frac{1}{n_{+}}\sum_{i\,:\,Y_{i}=1} e(x_{i}) = \bar c.
 ```
 
-其中 $`\bar c`$ 即传入的 `label_frequency`，$`e(x)`$ 为正类标记倾向。
-OS 总体的已标记比例满足 $`q=\pi_{population}\bar c`$，符号见
-[SCAR/SAR 概念](../concepts/scar_sar.md#1-two-labeling-mechanisms)。
+Here $`\bar c`$ is the supplied `label_frequency` and $`e(x)`$ is positive-class labeling
+propensity. The OS population labeled fraction satisfies $`q=\pi_{population}\bar c`$; see
+[SCAR/SAR concepts](../concepts/scar_sar.md#1-two-labeling-mechanisms) for notation.
 
-实际标记比例由 Bernoulli 抽样产生，会围绕目标波动。正式报告应同时保存：
+The realized fraction comes from Bernoulli sampling and fluctuates around the target. Save:
 
-- 目标平均 propensity；
-- 实际 `sum(y_pu)/sum(y_true)`；
-- 正类 propensity 标准差；
-- 数据 seed 和机制强度。
+- Target mean propensity.
+- Realized `sum(y_pu)/sum(y_true)`.
+- Positive-class propensity standard deviation.
+- Data seed and mechanism strength.
 
-比较实验时同时核对实际标记数与机制，分析标记数量及选择偏好的作用。
+Check both realized labeled counts and mechanisms when comparing experiments, so the effects of
+label quantity and selection preference remain distinguishable.
 
-### 2.1 对照 Bernoulli 与具名定额策略
+### 2.1 Compare Bernoulli and named fixed-quota policies
 
 ```powershell
 uv run python examples/minimal/17_sar_policies.py --seed 7 --label-frequency 0.4
 ```
 
-[示例 17](../../../examples/minimal/17_sar_policies.py)对同一个 OS clean 池运行四种政策，
-每种输出标签哈希、目标/实际标记率、计数、seed 和评分来源。
+[Example 17](../../../examples/minimal/17_sar_policies.py) applies four policies to the same clean
+OS pool. Each reports a label hash, target/realized rate, counts, seed, and score provenance.
 
-| 策略 | 机制参数与评分来源 | 抽样政策 | seed=7 的实际标记数 |
+| Policy | Mechanism parameters and score source | Sampling policy | Realized count at seed=7 |
 |---|---|---|---:|
-| linear | 正类内标准化投影，`strength=1.5`，等权特征方向 | 独立 Bernoulli，`ensure_labeled=False` | 63 |
-| nonlinear | 同一投影加入中心化二次项，`strength=1.5` | 独立 Bernoulli，`ensure_labeled=False` | 61 |
-| LBE-A | 本 clean 池真实标签拟合 LogisticRegression，`k=10`，90% 权重加 10% 均匀平滑 | 定额加权无放回 | 64 |
-| LBE-B | 同一拟合范围，`k=10, shrink_coef=1` | 定额加权无放回 | 64 |
+| linear | Projection standardized within positives, `strength=1.5`, equal feature weights | Independent Bernoulli, `ensure_labeled=False` | 63 |
+| nonlinear | Same projection with a centered quadratic term, `strength=1.5` | Independent Bernoulli, `ensure_labeled=False` | 61 |
+| LBE-A | LogisticRegression fitted to this clean pool's true labels, `k=10`, 90% weights plus 10% uniform smoothing | Fixed quota, weighted sampling without replacement | 64 |
+| LBE-B | Same fit scope, `k=10, shrink_coef=1` | Fixed quota, weighted sampling without replacement | 64 |
 
-池中有 160 个真正例，请求标记率为 0.4。Bernoulli 的期望计数为 64；
-LBE 配额为 `min(n_pos, max(1, round(c*n_pos)))`，使用半数取偶并保证至少一例。
-LBE 权重按正例内的相对偏好解释，公式和来源见
-[具名机制对照](../concepts/scar_sar.md#6-paper-definitions-and-named-implementations)。
+The pool contains 160 true positives and the requested rate is 0.4. The Bernoulli expected count
+is 64. LBE uses quota `min(n_pos, max(1, round(c*n_pos)))`, with ties-to-even rounding and a
+minimum of one available positive. Interpret LBE weights as relative preferences among positives;
+see [named mechanism definitions](../concepts/scar_sar.md#6-paper-definitions-and-named-implementations)
+for formulas and sources.
 
-在四角色实验中，Generator 分别在 train 和 pu_val 生成视图，辅助评分在各自允许的
-clean 分区拟合。可将 `SARLBEAGenerator()` 或 `SARLBEBGenerator()` 传给
-`ExperimentRunner(generator=...)`，并通过 `protocols=[ProtocolOA()]` 使用 clean 验证选模。
-组件替换步骤见[实验教程](custom_experiments.md#4-扩展标签生成器)。
+In four-role experiments, the Generator constructs train and pu_val views separately and fits
+auxiliary scores within each permitted clean partition. Pass `SARLBEAGenerator()` or
+`SARLBEBGenerator()` through `ExperimentRunner(generator=...)`, using
+`protocols=[ProtocolOA()]` for clean-validation selection. See
+[extending a generator](custom_experiments.md#4-extend-the-label-generator) for component replacement.
 
-## 3. SCAR/SAR 对比 benchmark
+## 3. SCAR/SAR comparison benchmark
 
 ```bash
 python -m benchmarks.assigned_methods.run \
@@ -123,28 +130,31 @@ python -m benchmarks.assigned_methods.run \
   --output benchmarks/assigned_methods/results/scar_sar_comparison
 ```
 
-配置对每个 seed 复用相同的数据生成过程和目标标记率，依次运行 SCAR、线性 SAR 和
-非线性 SAR。除分类指标外，还报告：
+For each seed, the configuration reuses the same data-generation process and target labeling
+rate across SCAR, linear SAR, and nonlinear SAR. In addition to classification metrics it reports:
 
-- `posterior_spearman`；
-- `posterior_kendall`；
-- `pairwise_ranking_accuracy`；
-- `propensity_mse_positive`；
-- `propensity_spearman_positive`。
+- `posterior_spearman`.
+- `posterior_kendall`.
+- `pairwise_ranking_accuracy`.
+- `propensity_mse_positive`.
+- `propensity_spearman_positive`.
 
-SCAR 的真实 propensity 是常数，因此 propensity rank correlation 在数学上未定义，
-结果中记录为空值。
+SCAR truth has constant propensity, so propensity rank correlations are mathematically undefined
+and are recorded as null values.
 
-## 4. 常见错误
+## 4. Common mistakes
 
-- **负类出现 `y_pu=1`**：违反 PU 单边标记机制，应视为数据生成错误。
-- **监督角色混用**：按 train、pu_val、clean_val、test 分别记录训练、PU 选模、OA 和最终评测所用的标签。
-- **混淆 propensity 均值和实际标记率**：前者已校准，后者有抽样波动。
-- **忽略特征尺度**：模拟器在真实正类内标准化后构造 propensity，外部自定义机制也应
-  明确尺度处理。
-- **只报告 accuracy**：selection-bias 方法还应报告排序和 propensity 恢复质量。
+- **A negative receives `y_pu=1`:** this violates one-sided PU labeling and is a data-generation error.
+- **Mixing supervision roles:** record training, PU selection, OA, and final evaluation labels
+  separately for train, pu_val, clean_val, and test.
+- **Confusing mean propensity with realized labeling rate:** the former is calibrated; the latter
+  has sampling variation.
+- **Ignoring feature scale:** the simulator standardizes within true positives before constructing
+  propensity. State the scale handling for external custom mechanisms too.
+- **Reporting only accuracy:** selection-bias methods should also report ranking and propensity
+  recovery quality when those quantities are available in the controlled benchmark.
 
-## 下一步
+## Next steps
 
-- 检查生成数据的质量与假设证据：[data_profiling.md](data_profiling.md)
-- 精确参数契约：[API 参考](../reference/api.md)
+- Check generated data quality and assumption evidence: [data profiling](data_profiling.md).
+- Look up exact parameter contracts: [API reference](../reference/api.md) (currently Chinese).

@@ -1,13 +1,19 @@
-# 数据画像与假设提示
+# Data Profiling and Assumption Evidence
 
-> 前置条件：先完成 [快速开始](../quickstart.md)。
-> 概念：为什么 SCAR/SAR 通常不可识别、两种证据的区分见 [concepts/scar_sar.md](../concepts/scar_sar.md)。
+> Prerequisite: complete the [quickstart](../quickstart.md).
+> See [SCAR/SAR](../concepts/scar_sar.md) for identifiability limits and evidence types.
 
-`profile_pu_data` 在训练前统一检查 PU 标签规模、特征质量、类先验一致性和标记机制证据。它返回结构化的 `PUDataProfile`，既可在终端阅读，也可序列化后写入实验记录。
+`profile_pu_data` checks PU label counts, feature quality, prior consistency, and labeling-mechanism
+evidence before training. Its structured `PUDataProfile` can be read in a terminal or serialized
+into experiment records. The examples below assume aligned arrays `X, y_pu`; audit examples
+add corresponding binary truth `y_true`.
 
-**核心解释边界**：仅观察到 $`X`$ 与 $`S`$ 时通常无法识别 SCAR/SAR；`observed_mixture` 证据只能筛查，`audited_positives`（提供 `y_true`）才能给出可识别证据，且 `plausible` ≠ 证明 SCAR 成立。完整推导与证据表见 [concepts/scar_sar.md](../concepts/scar_sar.md)。
+**Interpretation boundary:** observing only $`X`$ and $`S`$ generally does not identify SCAR versus
+SAR. `observed_mixture` evidence is screening; `audited_positives` (with `y_true`) can directly
+test feature-dependent selection within true positives. `plausible` does not prove SCAR. See
+[SCAR/SAR](../concepts/scar_sar.md) for the derivation and evidence table.
 
-## 1. 基本用法
+## 1. Basic usage
 
 ```python
 from pu_toolbox.preprocessing import profile_pu_data
@@ -23,9 +29,10 @@ print(report.format_text())
 payload = report.to_dict()
 ```
 
-公共 PU 标签会先规范化为 `{1, 0}`。`class_prior` 是用户提供或独立估计的 $`P(Y=1)`$；profiler 不会利用隐藏真值偷偷估计类先验。
+Public PU labels are normalized to `{1, 0}`. `class_prior` is a supplied or independently
+estimated population $`P(Y=1)`$; the profiler does not estimate it from hidden truth.
 
-若有人工复核、延迟结果或合成实验中的真实标签，可启用审计模式：
+Enable audit mode when manual review, delayed outcomes, or a synthetic experiment provides truth:
 
 ```python
 audited_report = profile_pu_data(
@@ -38,32 +45,44 @@ audited_report = profile_pu_data(
 )
 ```
 
-所有 `y_pu == 1` 的样本必须在 `y_true` 中也是正类，否则接口会拒绝输入。这可以及早发现“正例标签并非可信正例”的契约冲突。
+Every sample with `y_pu == 1` must also be positive in `y_true`; otherwise the interface rejects
+the input. This exposes a conflict with the trusted-positive assumption early.
 
-## 2. 返回对象
+## 2. Returned object
 
-`PUDataProfile` 的字段表、`selection_diagnostic["status"]` 取值与全部问题代码
-（`no_labeled_positives` 等 13 个稳定 code）见 [API 参考](../reference/api.md)。要点：
+See the [API reference](../reference/api.md) for `PUDataProfile` fields,
+`selection_diagnostic["status"]` values, and issue codes such as `no_labeled_positives`.
 
-- `report.has_errors`：存在会阻止可靠训练的数据错误；`report.has_warnings`：训练前应复核的问题。
-- `report.format_text()` 生成终端可读报告；`report.to_dict()` 生成可写入 JSON 的普通容器。
-- 错误不会被自动修复。静默插补、删除列或改写标签会改变实验数据流，并可能造成训练/验证泄漏。
+- `report.has_errors` indicates data errors that prevent reliable training;
+  `report.has_warnings` identifies issues to review before training.
+- `report.format_text()` produces readable text; `report.to_dict()` produces ordinary
+  containers suitable for JSON output.
+- Errors are not repaired automatically. Silent imputation, column removal, or label rewriting
+  changes the data flow and can introduce training/validation leakage.
 
-## 3. 类先验一致性
+## 3. Class-prior consistency
 
-若提供 `class_prior=pi`，报告计算：
+For default OS input, supplying `class_prior=pi` makes the report compute:
 
 ```math
 \widehat c = \frac{n_{\mathrm{labeled}}/n}{\pi}.
 ```
 
-它是由样本已标比例和类先验推导的标记频率。若 $`\widehat c>1`$，报告 `inconsistent_class_prior`。这不自动证明类先验错误，因为总体先验与有限样本比例可能不同，但必须在实验记录中解释。
+This is the implied labeling frequency from the observed labeled fraction and population prior.
+If $`\widehat c>1`$, the report records `inconsistent_class_prior`. This alone does not establish
+that the population prior is wrong: finite-sample proportions can differ. Explain the discrepancy
+in the experiment record.
 
-类先验应来自独立知识、训练数据内部估计或嵌套验证。不得利用测试集真实标签回填，否则会产生信息泄漏。
+Use `input_sampling="ts"` for independent P and population U. That design records the extra-P
+table fraction and does not interpret it as an OS labeling frequency. See
+[prior semantics](../concepts/class_prior_semantics.md).
 
-## 4. 阈值与复现
+Obtain priors from independent knowledge, training-side estimation, or nested validation.
+Filling them in from test truth leaks information.
 
-默认配置：
+## 4. Thresholds and reproducibility
+
+Default configuration:
 
 ```python
 profile_pu_data(
@@ -78,25 +97,32 @@ profile_pu_data(
 )
 ```
 
-交叉验证折数会自动缩小到较少标记组的样本数。若最小组少于两个样本，状态为 `inconclusive`。生产报告应保存完整参数、软件版本和随机种子；不要只保存最终布尔判断。
+The selection diagnostic reduces its CV folds to the size of the smaller label group. If that
+group has fewer than two samples, its status is `inconclusive`. Preserve complete parameters,
+software versions, and seeds, rather than only the final boolean result.
 
-## 5. 稀疏输入与数据泄漏
+## 5. Sparse input and leakage
 
-接口支持 scipy 稀疏矩阵，并在计算方差时保留隐式零。稀疏矩阵显式存储的 `NaN` 和 `inf` 也会被检测。
+The interface supports scipy sparse matrices, including implicit zeros in variance calculations.
+It also detects explicitly stored `NaN` and `inf` values.
 
-Profiler 可以在划分前用于只读质量检查，但任何会学习统计量的修复操作，例如插补、标准化、降维和低方差筛选，都必须在每个训练折内部拟合。审计用 `y_true` 只用于假设诊断，不得作为分类器训练特征或超参数选择捷径。
+Read-only quality checks can precede splitting. Repairs that learn statistics, such as imputation,
+scaling, dimensionality reduction, and low-variance filtering, must be fitted inside each training
+fold. Audit `y_true` supports assumption diagnostics; do not use it as classifier features or a
+shortcut to hyperparameter selection.
 
-## 6. 完整示例
+## 6. Complete example
 
-运行：
+Run:
 
 ```bash
 python examples/minimal/07_data_profiling.py
 ```
 
-示例并排生成 SCAR 与线性 SAR 数据，并展示观测模式为什么是非识别性的，以及审计模式如何提供更直接的标记机制证据。
+The example generates SCAR and linear SAR data side by side, showing why observational evidence
+is non-identifying and how audit mode provides more direct evidence about selection.
 
-## 下一步
+## Next steps
 
-- 端到端训练评估：[pipeline.md](pipeline.md)
-- 精确参数契约：[API 参考](../reference/api.md)
+- [End-to-end training and evaluation](pipeline.md).
+- [Exact API contracts](../reference/api.md) (currently Chinese).

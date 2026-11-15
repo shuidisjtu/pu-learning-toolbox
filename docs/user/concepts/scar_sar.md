@@ -28,7 +28,7 @@ The `mechanism` parameter of `make_sar_propensity` / `make_sar_dataset` supports
 `feature_weights` controls the projection direction. By default, all features receive equal
 weights, normalized to unit L2 norm. With `strength=0`, both linear and nonlinear mechanisms
 reduce to constant propensity, providing a useful implementation boundary check. See the
-[SAR simulation guide](../howto/sar_simulation.md) (currently Chinese) for generation examples.
+[SAR simulation guide](../howto/sar_simulation.md) for generation examples.
 
 **The default is SAR:** omitting `mechanism` in `make_sar_dataset` resolves to `"linear"` and
 emits a `UserWarning`. Class-prior estimators and many PU classifiers assume SCAR. Before
@@ -63,7 +63,7 @@ depends on sample size, model capacity, and observed features.
 - When profiling reports `sar_signal`, investigate how labels were obtained, choose comparisons
   according to method assumptions, and perform sensitivity analysis.
 
-See the [data profiling guide](../howto/data_profiling.md) (currently Chinese) for how these
+See the [data profiling guide](../howto/data_profiling.md) for how these
 signals are used, and [method selection](method_selection.md) for mismatch risks.
 
 ## 5. Generation probabilities, sampling weights, and realized counts
@@ -115,7 +115,7 @@ requested/realized counts and rates, sampling policy, seed, rounding/fallback ru
 version. LBE metadata records counts, parameters, auxiliary-truth provenance, and
 `sampling_policy`. The general Bernoulli entry point can return propensity. See the
 [SAR simulation guide](../howto/sar_simulation.md) and [API reference](../reference/api.md)
-(currently Chinese) for operational contracts.
+(the latter currently Chinese) for operational contracts.
 
 ## 7. Sources
 

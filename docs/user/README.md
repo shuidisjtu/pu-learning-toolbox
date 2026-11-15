@@ -4,8 +4,8 @@ This directory is for library users, including developers calling the toolbox AP
 repositories. It organizes PU Learning Toolbox documentation by task: concepts explain the
 principles, how-to guides cover operations, and reference pages define contracts.
 
-The entry pages and all concepts below are in English. How-to guides and the API reference
-currently remain in Chinese and will be migrated at the same paths in later batches.
+The entry pages, concepts, and how-to guides below are in English. The API reference currently
+remains in Chinese and will be migrated at the same paths in a later batch.
 
 ## Reading path
 
@@ -23,7 +23,7 @@ currently remain in Chinese and will be migrated at the same paths in later batc
    | Encoders, end-to-end CNNs, and frozen features | [Representations and training paths](concepts/representations.md) |
    | Method selection principles | [Choosing a PU method](concepts/method_selection.md) |
 
-3. **How-to guides** (`howto/`, currently Chinese), ordered by experiment workflow:
+3. **How-to guides** (`howto/`), ordered by experiment workflow:
 
    | Task | Guide |
    |---|---|

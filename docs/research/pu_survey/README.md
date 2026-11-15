@@ -13,8 +13,8 @@
 
 **B. 代码功能**
 
-- `ExperimentRunner.fit(model, train, pu_val, clean_val, test)`：四角色隔离、PA/OA 独立选模与独立测试，见 [DIY 实验教程](../../user/howto/custom_experiments.md#2-准备四路数据)。
-- 可注入数据生成器、训练器和选模策略；DIY 实验无需读取内置 Survey 配置，见[策略扩展与完整 demo](../../user/howto/custom_experiments.md#1-先运行完整示例)。
+- `ExperimentRunner.fit(model, train, pu_val, clean_val, test)`：四角色隔离、PA/OA 独立选模与独立测试，见 [DIY 实验教程](../../user/howto/custom_experiments.md#2-prepare-four-data-roles)。
+- 可注入数据生成器、训练器和选模策略；DIY 实验无需读取内置 Survey 配置，见[策略扩展与完整 demo](../../user/howto/custom_experiments.md#1-run-the-complete-example)。
 - 官方入口读取用户准备的四路数据，记录候选轨迹、选择记录、所选权重与指标。
 - 批量入口按数据集、方法与训练路径规划范围，续跑时核对视图、profile、配方与 split 身份；命令见[运行指南](runbook.md#执行官方示例)。
 - PN oracle 与 PU 对照共享 split、表征和预算，仅使用 OA。

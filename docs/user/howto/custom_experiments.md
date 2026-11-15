@@ -1,59 +1,66 @@
-# 用 Python API 定制四角色 PU 实验
+# Customizing Four-Role PU Experiments with Python
 
-前置条件：完成[快速开始](../quickstart.md)，准备带真实二元标签的数据，用于构造可控的 PU 实验。
-本教程使用 CPU 合成数据，介绍 `ExperimentRunner` 的直接调用和策略扩展。
-官方 Survey 脚本的运行流程见[运行指南](../../research/pu_survey/runbook.md)；
-接口签名见 [API 参考](../reference/api.md#四角色运行与策略注入)。
+Prerequisites: complete the [quickstart](../quickstart.md) and prepare data with true binary
+labels for a controlled PU experiment. This tutorial uses synthetic CPU data to call
+`ExperimentRunner` directly and extend its strategies. For the official Survey script workflow,
+see the [runbook](../../research/pu_survey/runbook.md); exact signatures are in the
+[API reference](../reference/api.md#四角色运行与策略注入) (both currently Chinese).
 
-研究设置的原理分别见[输入采样与风险池](../concepts/pu_sampling.md)、
-[标记政策](../concepts/scar_sar.md)、[先验目标](../concepts/class_prior_semantics.md)、
-[PA/OA](../concepts/pu_model_selection.md)与[表征路径](../concepts/representations.md)。
-本教程使用 OS 输入，uPU 显式配置 `os_or_ts="ts"`，以完整 OS 池估计边际风险项，
-消费总体先验。历史参数在这里描述训练风险池适配；输入来源按 OS 记录。
+The conceptual dimensions are [input sampling and risk pools](../concepts/pu_sampling.md),
+[labeling policies](../concepts/scar_sar.md), [prior targets](../concepts/class_prior_semantics.md),
+[PA/OA](../concepts/pu_model_selection.md), and [representations](../concepts/representations.md).
+This tutorial uses OS input and explicitly configures uPU with `os_or_ts="ts"`, estimating the
+marginal risk term with the complete OS pool and consuming a population prior. Here the historical
+parameter requests training-risk-pool adaptation; input provenance remains OS.
 
-## 1. 先运行完整示例
+## 1. Run the complete example
 
-在仓库根目录执行：
+From the repository root:
 
 ```powershell
 uv sync --python 3.11
 uv run python examples/minimal/14_diy_experiment.py
 ```
 
-[示例源码](../../../examples/minimal/14_diy_experiment.py)运行两组实验，每组训练三个 uPU 候选：
+[Example source](../../../examples/minimal/14_diy_experiment.py) runs two experiments, each training
+three uPU candidates:
 
-| 实验 | 标签生成 | 训练 | 选模 |
+| Experiment | Label generation | Training | Selection |
 |---|---|---|---|
-| `basic` | 内置 SCAR | 内置 `FitTrainer` | 独立 PA 与 OA |
-| `custom` | 带自定义策略标识的 SCAR | 仅在 train 拟合标准化器 | 固定阈值的 PU 选模与独立 OA |
+| `basic` | Built-in SCAR | Built-in `FitTrainer` | Independent PA and OA |
+| `custom` | SCAR with a custom policy identifier | Fit scaling only on train | Fixed-threshold PU selection and independent OA |
 
-终端显示各协议选中的候选编号、阈值和测试 Accuracy。添加 `--seed 11` 可更换随机种子。
-保存运行 manifest 时，指定一个尚不存在的输出目录：
+The terminal reports each protocol's candidate number, threshold, and test Accuracy. Add
+`--seed 11` to change the random seed. To save manifests, specify an output directory that does
+not already exist:
 
 ```powershell
 uv run python examples/minimal/14_diy_experiment.py --output-dir tmp/diy-experiment
 ```
 
-输出 `basic.json` 和 `custom.json`，包含生成记录、候选参数、选择结果、测试指标和成本。
-示例直接使用通用实验接口，配置中省略 `survey_protocol` 和 `recipe_registry`。
+The outputs `basic.json` and `custom.json` contain generation records, candidate parameters,
+selections, test metrics, and costs. The example uses the general experiment interfaces directly,
+omitting `survey_protocol` and `recipe_registry` from its configuration.
 
-## 2. 准备四路数据
+## 2. Prepare four data roles
 
-四份 `DatasetPart` 的输入标签都使用真实二元标签：`1` 为正类，`0` 为负类，
-并声明 `view="clean"`。runner 为 train 和 pu_val 分别生成 PU 视图，
-其中 `1` 为已标记正例，`0` 为未标记样本。
+All four input `DatasetPart` objects use true binary labels, with `1` positive and `0` negative,
+and declare `view="clean"`. The runner separately generates PU views for train and pu_val,
+where `1` means labeled positive and `0` means unlabeled.
 
-| 角色 | 运行时用途 |
+| Role | Runtime purpose |
 |---|---|
-| `train` | 生成 PU 标签并训练候选；预处理统计在这里拟合 |
-| `pu_val` | 生成 PU 标签，供 PA 或自定义 PU 策略选模 |
-| `clean_val` | 真实标签验证集，供 OA 选模 |
-| `test` | 候选和阈值选定后，计算最终指标 |
+| `train` | Generate PU labels and train candidates; fit preprocessing statistics here |
+| `pu_val` | Generate PU labels for PA or a custom PU selection strategy |
+| `clean_val` | True-label validation for OA |
+| `test` | Compute final metrics after candidate and threshold selection |
 
-`indices` 使用同一原始数据源中的全局样本身份，四路内部和相互之间均须唯一。
-切分后的子集继续保留原始索引。`test` 设置 `for_selection=False`。
+`indices` are global sample identities from one original data source. They must be unique
+within and across all four roles. Preserve original identities when subsetting after splitting.
+Set `for_selection=False` for test.
 
-下面的片段可独立运行，按合成总体先验 0.5 构造四路输入并完成一次实验：
+This independent snippet builds four inputs from a synthetic population with prior 0.5 and runs
+one experiment:
 
 ```python
 import numpy as np
@@ -85,13 +92,14 @@ result = runner.fit(
 print(result.test_metrics)
 ```
 
-这里的输入是带完整标签的 benchmark 数据。已有真实 P/U 数据可直接使用估计器或
-[`PUPipeline`](pipeline.md)；四角色 runner 的输入契约要求上述完整标签视图。
+These inputs are fully labeled benchmark data. For existing real P/U observations, use an
+estimator or [PUPipeline](pipeline.md) directly; the four-role runner requires the complete-label
+input views described above.
 
-## 3. 修改参数、候选和运行输出
+## 3. Configure parameters, candidates, and outputs
 
-候选池中的每个字典通过估计器的 `set_params` 应用。runner 克隆模型后逐候选训练，
-随后让 PA 和 OA 各自选择候选与阈值。
+Each candidate dictionary is applied through the estimator's `set_params`. The runner clones
+the model, trains each candidate, and lets PA and OA select candidates and thresholds independently.
 
 ```python
 runner = ExperimentRunner(
@@ -109,38 +117,41 @@ runner = ExperimentRunner(
 )
 ```
 
-常用配置与使用场景如下：
+Common configuration choices:
 
-| 参数位置 | 用途 |
+| Location | Purpose |
 |---|---|
-| `seed` | 标签生成与未显式设置 `random_state` 的候选模型种子 |
-| `generator` | 标签生成策略实例；默认 `SCARGenerator()` |
-| `protocols` | 选模策略实例列表；默认 `[ProtocolPA(), ProtocolOA()]` |
-| `class_prior` | 总体正类先验；PA 必需，来源为生成设置或独立先验估计 |
-| `threshold_candidates` | 内置 PA/OA 的验证侧归一化阈值网格，默认 0–1 上 11 点 |
-| `manifest_path` | 保存运行 manifest；省略时从 `result.manifest` 读取 |
-| `config["c"]` | 正类标记率，默认 0.1 |
-| `config["candidates"]` | 候选参数字典列表，默认 `[{}]` |
-| `config["trainer"]` | 训练器实例；经典单点用 `FitTrainer()`，默认是 `DeepFitTrainer()` |
-| `config["split_ref"]` | 数据来源与划分说明；应记录实际数据版本和索引身份 |
-| `config["os_or_ts"]` | 请求估计器支持的训练风险视图；省略时沿用估计器默认行为 |
-| `config["architecture"]` | 显式声明 `"mlp"` 或 `"cnn"`，用于能力校验 |
+| `seed` | Label-generation seed and candidate seed when `random_state` is not explicitly set |
+| `generator` | Label-generation strategy instance; defaults to `SCARGenerator()` |
+| `protocols` | Selection strategy instances; defaults to `[ProtocolPA(), ProtocolOA()]` |
+| `class_prior` | Population positive prior, required by PA; comes from generation settings or independent estimation |
+| `threshold_candidates` | Validation-normalized threshold grid for built-in PA/OA; defaults to 11 points on 0–1 |
+| `manifest_path` | Persist the run manifest; if omitted, read `result.manifest` |
+| `config["c"]` | Positive-class labeling rate, default 0.1 |
+| `config["candidates"]` | Candidate parameter dictionaries, default `[{}]` |
+| `config["trainer"]` | Trainer instance; use `FitTrainer()` for classical single-point runs; the default is `DeepFitTrainer()` |
+| `config["split_ref"]` | Data-source and split description; record actual data versions and index identities |
+| `config["os_or_ts"]` | Request a training risk view supported by the estimator; omitting it preserves the estimator's default |
+| `config["architecture"]` | Explicit `"mlp"` or `"cnn"` capability check |
 
-Runner 将总体 `class_prior` 交给 Trainer；内置 `FitTrainer` 按估计器签名转发。
-本例 uPU 的完整 OS 风险池消费总体值 0.5。改用默认原生 U 风险时，自定义 Trainer
-通过 `population_to_native_unlabeled(population_prior, mean(y_pu))` 换算本训练分区的先验，
-再传给 `fit`；[示例 18](../../../examples/minimal/18_custom_encoders.py)展示该换算。
+The runner hands its population `class_prior` to the Trainer; built-in `FitTrainer` forwards it
+according to the estimator's signature. The complete OS risk pool in this uPU example consumes
+population value 0.5. For default native-U risk instead, a custom Trainer converts this train
+partition's prior with `population_to_native_unlabeled(population_prior, mean(y_pu))` before
+calling `fit`. [Example 18](../../../examples/minimal/18_custom_encoders.py) demonstrates this
+conversion.
 
-新模型需支持 sklearn 的克隆与参数接口，声明 `label_semantics="pu"` 和实际输入能力，
-并由 `decision_function(X)` 返回逐样本有限分数。完整数据、模型和轨迹契约见
-[API 参考](../reference/api.md#实验层experiment)。
-自定义 selector 返回 `threshold=None` 时，模型须提供返回 0/1 的 `predict(X)`。
+New models must support sklearn cloning and parameter interfaces, declare
+`label_semantics="pu"` and their actual input capabilities, and return finite per-sample scores
+from `decision_function(X)`. The [API reference](../reference/api.md#实验层experiment) (currently
+Chinese) defines complete data, model, and trajectory contracts. When a custom selector returns
+`threshold=None`, the model must supply `predict(X)` returning 0/1 labels.
 
-## 4. 扩展标签生成器
+## 4. Extend the label generator
 
-`Generator` 负责生成标签视图，特征数组由调用方准备。
-继承该接口，实现 `generate(X, y_true, c, seed)`，返回标签数组与元信息字典。
-示例复用 SCAR 抽样，增加应用自定义的标记策略版本：
+`Generator` constructs label views; the caller prepares feature arrays. Implement
+`generate(X, y_true, c, seed)`, returning a label array and metadata dictionary. This example
+reuses SCAR sampling and adds an application-specific policy version:
 
 ```python
 from pu_toolbox.experiment import SCARGenerator
@@ -154,17 +165,17 @@ class AuditedSCARGenerator(Generator):
         return labels, {**metadata, "policy_id": "diy-scar-v1"}
 ```
 
-通过 `generator=AuditedSCARGenerator()` 注入。生成器分别接收 train 和 pu_val，
-元信息写入 `result.manifest["generation"]`。替换采样逻辑时，应记录实际标记率、
-机制、种子和标签身份，并保证 PU 视图中的已标记行来自真实正类。
-PA 的 pu_val 需要同时包含已标记正例与 U。改用 SAR 时，根据标记机制选择相应评价准则；
-官方 SAR 实验使用 OA。
+Inject it with `generator=AuditedSCARGenerator()`. Train and pu_val are passed separately, and
+metadata enters `result.manifest["generation"]`. When replacing sampling logic, record the
+realized rate, mechanism, seed, and label identity. Ensure every labeled row in a PU view is
+truly positive. PA's pu_val requires both labeled positives and U. With SAR, choose the evaluation
+criterion according to the mechanism; the official SAR comparison uses OA.
 
-## 5. 扩展训练器
+## 5. Extend the trainer
 
-继承 `Trainer`，实现 `fit` 并返回 `RunTrajectory`。该方法接收训练 PU 标签和可选的
-`val_pu=(X_val, y_pu_val)`。示例在每个候选的 train 上拟合标准化器，然后把标准化器
-与已拟合分类器一起放入预测 Pipeline：
+Implement `Trainer.fit` and return a `RunTrajectory`. It receives training PU labels and
+optional `val_pu=(X_val, y_pu_val)`. This example fits a scaler within each candidate's train
+partition and stores it with the fitted classifier in a prediction Pipeline:
 
 ```python
 from sklearn.pipeline import Pipeline
@@ -186,9 +197,9 @@ class ScaledFitTrainer(Trainer):
         return trajectory
 ```
 
-通过 `config={"trainer": ScaledFitTrainer(), ...}` 注入**实例**。
-验证与测试的 `decision_function` 自动复用这个已拟合的标准化器。
-自写训练循环时，经典单点可返回：
+Inject an **instance** through `config={"trainer": ScaledFitTrainer(), ...}`. Validation and test
+`decision_function` calls reuse this fitted scaler. A custom classical single-point loop can
+return:
 
 ```python
 from pu_toolbox.experiment.tracking import EpochRecord, RunTrajectory
@@ -199,16 +210,18 @@ trajectory = RunTrajectory(
 )
 ```
 
-深度模型可使用内置 `DeepFitTrainer` 及逐 epoch checkpoint；配置入口包括
-`capture_epoch_checkpoints`、`checkpoint_dir`、`checkpoint_bytes_per_component` 和
-`reclaim_unselected_checkpoints`。自定义训练器负责产生自己的逐 epoch 权重与轨迹；
-`SelectionArtifact.epoch` 使用轨迹中从 1 开始的位置，`checkpoint_index` 指向所选权重。
-权重恢复与磁盘预算契约见 [API 参考](../reference/api.md#实验层experiment)。
+Deep models can use `DeepFitTrainer` and per-epoch checkpoints. Configuration includes
+`capture_epoch_checkpoints`, `checkpoint_dir`, `checkpoint_bytes_per_component`, and
+`reclaim_unselected_checkpoints`. Custom trainers produce their own per-epoch weights and
+trajectories. `SelectionArtifact.epoch` is the 1-based position in the trajectory;
+`checkpoint_index` identifies selected weights. The
+[API reference](../reference/api.md#实验层experiment) (currently Chinese) defines restoration
+and storage-budget contracts.
 
-## 6. 扩展选模策略
+## 6. Extend the selection protocol
 
-继承 `SelectionProtocol`，实现 `select`，返回 `SelectionArtifact`。
-示例在验证侧归一化阈值 0.5 上，使用内置 PU proxy accuracy 选择候选：
+Implement `SelectionProtocol.select`, returning a `SelectionArtifact`. This example selects
+a candidate using built-in PU proxy accuracy at validation-normalized threshold 0.5:
 
 ```python
 from dataclasses import replace
@@ -226,36 +239,41 @@ class FixedThresholdPA(SelectionProtocol):
         return replace(artifact, protocol=self.name)
 ```
 
-通过 `protocols=[FixedThresholdPA(), ProtocolOA()]` 注入。完整示例同时注入这三个自定义策略。
-`name` 与返回的 `artifact.protocol` 保持一致，每个策略使用唯一名称。
+Inject it through `protocols=[FixedThresholdPA(), ProtocolOA()]`. The complete example injects
+all three custom strategies. Each strategy needs a unique `name` matching its returned
+`artifact.protocol`.
 
-普通 `SelectionProtocol` 子类接收生成后的 pu_val。需要干净验证标签的自定义 OA 策略应继承
-`ProtocolOA`，runner 据此路由 clean_val；修改协议名称时同步更新返回的 artifact。
-自行定义阈值与分数变换时，把验证侧的 `val_score_min` 和 `val_score_scale` 保存在
-`artifact.metrics`，runner 在最终评测时复用它们。
+Ordinary `SelectionProtocol` subclasses receive generated pu_val. A custom OA selector requiring
+clean validation labels should inherit `ProtocolOA`, which the runner uses to route clean_val.
+Keep the artifact's protocol synchronized when renaming the selector. When defining custom
+thresholds and score transformations, store validation-side `val_score_min` and `val_score_scale`
+in `artifact.metrics`; the runner reuses them for final evaluation.
 
-### 6.1 手算 PA/OA 的独立选择
+### 6.1 Work through independent PA/OA selection
 
 ```powershell
 uv run python examples/minimal/14_diy_experiment.py --fixed-selection
 ```
 
-这条路径复用内置选择协议，比较两个固定单点候选：A 使用第一列分数，B 使用第二列分数。
-PU 验证输入为 `[[1,0],[0,1]]`、PU 标签为 `[1,0]`；clean 验证输入为
-`[[0,1],[1,0]]`、真实标签为 `[1,0]`。阈值网格为 `[0,0.5,1]`，总体先验为 0.5。
+This path reuses built-in protocols to compare two fixed single-point candidates: A scores the
+first feature column, B the second. PU validation features are `[[1,0],[0,1]]` with PU labels
+`[1,0]`; clean validation features are `[[0,1],[1,0]]` with true labels `[1,0]`.
+The threshold grid is `[0,0.5,1]` and population prior is 0.5.
 
-| 协议 | 所选候选 | 阈值 | 验证准则值 | 独立 test Accuracy |
+| Protocol | Selected candidate | Threshold | Validation criterion | Independent test Accuracy |
 |---|---|---:|---:|---:|
-| PA | A（编号 0） | 0.5 | 1.5 | 0 |
-| OA | B（编号 1） | 0.5 | 1 | 1 |
+| PA | A (index 0) | 0.5 | 1.5 | 0 |
+| OA | B (index 1) | 0.5 | 1 | 1 |
 
-test 使用与 clean 验证相同的特征值与独立样本身份；评测标签在选择完成后读取。
-固定单点模型的 `epoch` 与 `checkpoint_index` 记录为 `None`。
-真实逐 epoch 模型通过 `EpochCheckpointTrainer` 保存轨迹，再由两个协议分别选择快照；
-快照引用契约见 [API 参考](../reference/api.md#实验层experiment)。
-PA 的分数含总体先验常数项，含义和公式见[选模概念](../concepts/pu_model_selection.md)。
+Test has the same feature values as clean validation but independent sample identities; its
+labels are read after selection. Fixed single-point models record `epoch` and `checkpoint_index`
+as `None`. Actual per-epoch models use `EpochCheckpointTrainer` to save trajectories, then the
+protocols independently select snapshots. See the
+[API reference](../reference/api.md#实验层experiment) (currently Chinese) for snapshot contracts.
+PA includes a population-prior constant offset; see [model-selection concepts](../concepts/pu_model_selection.md)
+for its meaning and formula.
 
-## 7. 读取结果并继续预测
+## 7. Read results and continue prediction
 
 ```python
 print(result.selections)      # Selected run, epoch, threshold and validation metrics
@@ -265,35 +283,40 @@ print(result.resources)       # Training and tuning costs
 print(result.manifest["selection"]["OA"]["candidate_index"])
 ```
 
-`SelectionArtifact.run_index` 对应成功训练的轨迹列表；原始候选编号从 manifest 的
-`selection[name]["candidate_index"]` 读取。
+`SelectionArtifact.run_index` indexes successful training trajectories. Read the original
+candidate number from manifest `selection[name]["candidate_index"]`.
 
-继续使用经典模型预测时，同时取出 `result.selected_models[name]` 和
-`result.selections[name]`，复用验证侧分数变换与所选阈值。
-完整示例的 `predict_selected(result, name, X_new)` 封装了这一过程。
-这使后续预测与报告中的分类规则一致。
+For continued classical-model prediction, retrieve both `result.selected_models[name]` and
+`result.selections[name]`, reusing the validation score transform and selected threshold.
+The complete example's `predict_selected(result, name, X_new)` implements this process so
+new predictions follow the same classification rule as the report.
 
-## 8. 逐个替换研究组件
+## 8. Replace research components one at a time
 
-从固定 split、seed 和已知总体先验开始，每次替换一个组件，按以下顺序检查结果：
+Start with fixed splits, seed, and known population prior. Replace one component at a time and
+check the following outputs:
 
-| 组件 | 最小替换方式 | 检查的输出 |
+| Component | Minimal replacement | Output to inspect |
 |---|---|---|
-| 数据与采样 | 替换四份 `DatasetPart`；OS/独立 TS 构造见示例 15 | 来源索引、角色、总体与 U 先验 |
-| Generator | SCAR 换成 LBE-A/B，SAR 路径选 OA | 公式版本、请求/实际数量、标签哈希，见示例 17 |
-| 先验与模型 | 固定总体值或独立估计值；按 Trainer 风险目标传参 | 估计来源、训练实际消费，见示例 16、18 |
-| Trainer | 注入 `ScaledFitTrainer` 或自己的循环 | train 拟合统计、轨迹、成本与 checkpoint |
-| SelectionProtocol | 标准 PA 换成 `FixedThresholdPA` | 独立候选/快照/阈值及验证变换 |
-| 表征 | 注入 encoder 或先冻结抽特征 | 初始化、训练范围与表示身份，见[encoder 教程](custom_encoders.md) |
+| Data and sampling | Replace the four `DatasetPart` objects; see example 15 for OS/independent TS | Source indices, roles, population and U priors |
+| Generator | Replace SCAR with LBE-A/B; use OA for SAR | Formula version, requested/realized counts, label hashes; see example 17 |
+| Prior and model | Fixed population value or independent estimate; pass the Trainer's risk target | Estimation provenance and actual training consumption; see examples 16 and 18 |
+| Trainer | Inject `ScaledFitTrainer` or a custom loop | Train-fitted statistics, trajectories, cost, and checkpoints |
+| SelectionProtocol | Replace standard PA with `FixedThresholdPA` | Independent candidates/snapshots/thresholds and validation transforms |
+| Representation | Inject an encoder or extract frozen features first | Initialization, fit scope, and representation identity; see [encoders](custom_encoders.md) |
 
-完整示例的 `basic` 和 `custom` 保留同一总体、split、采样政策、训练风险池和候选预算，
-展示生成器、标准化训练器与选择策略的注入。manifest 保存 split_ref、生成记录、
-候选参数、风险视图、独立选择及 test 指标，可用于重建本次设置。
+The complete example's `basic` and `custom` runs share the population, split, sampling policy,
+training risk pool, and candidate budget, demonstrating generator, scaled trainer, and selector
+injection. Manifests preserve split_ref, generation records, candidates, risk views, independent
+selections, and test metrics for reconstructing the setting.
 
-## 9. 下一步
+## 9. Next steps
 
-- 使用自己的数据替换四份 `DatasetPart`，保留全局索引与 train-only 预处理。
-- 从候选参数字典开始调整，再按需要替换生成器、训练器或选择策略。
-- 查阅 [API 参考](../reference/api.md#四角色运行与策略注入)了解参数契约，
-  查阅[实验层设计](../../dev/experiment_layer.md)了解接口的设计依据。
-- 按官方 Survey 配方执行及生成工作簿时，使用[运行指南](../../research/pu_survey/runbook.md)。
+- Replace the four `DatasetPart` objects with your data, retaining global identities and
+  train-only preprocessing.
+- Begin with candidate dictionaries, then replace the generator, trainer, or selector as needed.
+- Consult the [API reference](../reference/api.md#四角色运行与策略注入) (currently Chinese) for exact
+  contracts. The [experiment-layer design](../../dev/experiment_layer.md) is optional Chinese
+  background on design rationale.
+- Use the [Survey runbook](../../research/pu_survey/runbook.md) (currently Chinese) for official
+  recipes and workbook generation.

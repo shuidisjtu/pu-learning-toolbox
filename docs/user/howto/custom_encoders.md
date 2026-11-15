@@ -1,33 +1,37 @@
-# 注入 encoder 与使用冻结特征
+# Injecting Encoders and Using Frozen Features
 
-前置条件：安装 `uv sync --extra torch`，了解[表征与训练路径](../concepts/representations.md)
-和[先验目标](../concepts/class_prior_semantics.md)。本教程用 CPU 合成图像，分别运行
-端到端 nnPU 与冻结 encoder 后的传统 uPU。
+Prerequisites: install `uv sync --extra torch` and read
+[representations and training paths](../concepts/representations.md) and
+[prior targets](../concepts/class_prior_semantics.md). This tutorial uses synthetic CPU images
+for end-to-end nnPU and traditional uPU trained on frozen encoder features.
 
-## 1. 运行完整示例
+## 1. Run the complete example
 
 ```powershell
 uv run python examples/minimal/18_custom_encoders.py
 uv run python examples/minimal/18_custom_encoders.py --output-dir tmp/encoder-demo
 ```
 
-输出目录使用新路径，包含 `settings.json`、`native.pkl` 和 `frozen.pkl`。
-[示例 18](../../../examples/minimal/18_custom_encoders.py)的四角色规模为 32/12/12/12，
-输入为 `(N,1,8,8)`、取值在 `[0,1]` 的图像；总体先验为 0.5。
-train 按固定数 SCAR 标记一半正例，已标记比例为 0.25，原生 U 先验换算为 1/3。
-两条路径均按固定预算训练并使用模型默认阈值，测试标签用于最终评测。
+Use a new output directory; it contains `settings.json`, `native.pkl`, and `frozen.pkl`.
+[Example 18](../../../examples/minimal/18_custom_encoders.py) uses role sizes 32/12/12/12,
+images of shape `(N,1,8,8)` with values in `[0,1]`, and population prior 0.5.
+Fixed-count SCAR labels half the train positives, giving labeled fraction 0.25 and converted
+native-U prior 1/3. Both paths use fixed training budgets and the models' default thresholds;
+test labels are read for final evaluation.
 
-| 路径 | encoder 使用方式 | 训练参数与记录 |
+| Path | Encoder use | Training parameters and records |
 |---|---|---|
-| `native_cnn` | nnPU 每次 fit 深复制模板，训练副本与分类头 | 原生 U 先验、初始化/拟合权重哈希、训练轮数与模型保存加载检查 |
-| `cnn_feature_adapter` | 同一初始随机模板以 eval/no-grad 抽取四路特征 | 原生 U 先验、外部固定来源、split/representation/feature 哈希 |
+| `native_cnn` | nnPU deep-copies the template at each fit and trains the copy and prediction head | Native-U prior, initial/fitted weight hashes, epochs, and save/load checks |
+| `cnn_feature_adapter` | The same initial random template extracts all four roles in eval/no-grad mode | Native-U prior, fixed external provenance, and split/representation/feature hashes |
 
-示例的随机模板记录 seed 与 `pretraining="none"`；两条路径按各自训练设置解释指标。
+The random template records its seed and `pretraining="none"`. Interpret metrics under each
+path's own training settings.
 
-## 2. 构造模板并训练 nnPU
+## 2. Construct a template and train nnPU
 
-下面片段可独立运行。先固定初始化 seed，再创建模板；`random_state` 控制拟合过程。
-encoder 输出有限二维特征，nnPU 推断特征维度后接单输出线性头。
+This snippet runs independently. Set the initialization seed before creating the template;
+`random_state` controls fitting. The encoder produces finite two-dimensional features;
+nnPU infers their dimension and appends a single-output linear head.
 
 ```python
 import numpy as np
@@ -56,16 +60,18 @@ assert model.encoder_ is not template
 assert model.decision_function(X).shape == (32,)
 ```
 
-直接调用 nnPU 的默认 `fit` 时，`class_prior` 指向原生 U；显式换算使用本训练分区的
-已标记比例。`PUPipeline` 则接收总体先验，按分类器声明和每折计数换算，详见
-[Pipeline 指南](pipeline.md)。
+Direct nnPU `fit` with its default risk view consumes a native-U `class_prior`; the explicit
+conversion uses this train partition's labeled fraction. `PUPipeline` instead accepts a
+population prior and converts it using classifier declarations and per-fold counts; see the
+[pipeline guide](pipeline.md).
 
-模板与 `model.encoder_` 分别保留初始化和拟合状态。多候选或多折可以复用初始化模板，
-每次 fit 获得独立副本。自定义 `model=nn.Linear(4,1)` 可替换分数头。
+The template retains initialization state; `model.encoder_` holds fitted state. Reuse the
+initial template across candidates or folds, with each fit obtaining its own copy.
+Use `model=nn.Linear(4,1)` to replace the score head.
 
-## 3. 替换共享骨干
+## 3. Replace the shared backbone
 
-通过同一个 `encoder` 参数换入库内骨干：
+Pass a built-in backbone through the same `encoder` parameter:
 
 ```python
 from pu_toolbox.estimators.deep import build_encoder
@@ -77,22 +83,22 @@ with torch.no_grad():
     assert shared(torch.zeros(2, 1, 32, 32)).shape == (2, 512)
 ```
 
-`build_encoder` 内嵌通道归一化，默认均值/标准差为 0.5。微型模板直接使用输入数值；
-自行添加归一化时，将参数写入表征设置。
-完整示例可选运行共享骨干，两种命令使用 `(N,1,32,32)`：
+`build_encoder` includes channel normalization, defaulting to mean/std 0.5. The tiny template
+uses input values directly; record parameters if adding custom normalization. The complete
+example can optionally run shared backbones; both commands use `(N,1,32,32)`:
 
 ```powershell
 uv run python examples/minimal/18_custom_encoders.py --backbone cnn13_no_bn --max-epochs 1
 uv run python examples/minimal/18_custom_encoders.py --backbone resnet18 --max-epochs 1
 ```
 
-ResNet 依赖 torchvision，使用随机初始化 `weights=None`。精确骨干参数见
-[build_encoder 契约](../reference/api.md#build_encoder)。
+ResNet requires torchvision and uses random initialization with `weights=None`. See the
+[build_encoder contract](../reference/api.md#build_encoder) (currently Chinese) for exact parameters.
 
-## 4. 冻结 encoder 后训练传统方法
+## 4. Train a traditional method with a frozen encoder
 
-四路 clean 数据先组成 `DatasetBundle`，使用同一 encoder 提取特征。
-下面片段承接前文的 `rng` 与 `template`，构造四路数据后生成 train 的 PU 标签：
+First assemble four clean roles into a `DatasetBundle`, then extract features with one encoder.
+This snippet continues with `rng` and `template` above and generates train PU labels:
 
 ```python
 from pu_toolbox.estimators.risk import UPUClassifier
@@ -122,14 +128,16 @@ frozen_model = UPUClassifier(
 print(representation["representation_sha256"])
 ```
 
-adapter 在 eval/no-grad 下抽取，检查权重哈希，随后恢复各子模块模式，保留四角色的索引和标签。
-`fixed_external` 声明固定外部模板来源。冻结由 train 拟合的 encoder 时，使用
-`encoder_fit_scope="train_partition_only"` 并传入 `encoder_fit_indices=bundle.train.indices`；
-同时在 `backbone_manifest` 记录训练数据、监督类型和权重版本。
+The adapter extracts in eval/no-grad mode, checks weight hashes, restores each module's mode,
+and preserves role indices and labels. `fixed_external` declares the source of the fixed template.
+To freeze an encoder fitted on train, use `encoder_fit_scope="train_partition_only"` and
+`encoder_fit_indices=bundle.train.indices`; record training data, supervision type, and weight
+version in `backbone_manifest`.
 
-## 5. 保存加载与继续预测
+## 5. Save, reload, and continue prediction
 
-端到端模型包含拟合后的 encoder 和头；冻结路径保存 encoder 与分类器：
+The end-to-end model contains the fitted encoder and head. The frozen path stores the encoder
+and classifier:
 
 ```python
 import pickle
@@ -138,9 +146,9 @@ restored = pickle.loads(pickle.dumps(model))
 np.testing.assert_array_equal(restored.decision_function(X), model.decision_function(X))
 ```
 
-从自己保存的 `native.pkl` 读取后，直接调用 `decision_function(X_new)`。
-`frozen.pkl` 读取结果为 `(encoder, classifier)`，先用保存的 encoder 对同样预处理的
-新图像以 eval/no-grad 抽取特征，再调用分类器：
+After loading your saved `native.pkl`, call `decision_function(X_new)` directly.
+Loading `frozen.pkl` returns `(encoder, classifier)`. Apply the same preprocessing to new images,
+extract features with the saved encoder in eval/no-grad mode, and call the classifier:
 
 ```python
 encoder, classifier = pickle.loads(pickle.dumps((template, frozen_model)))
@@ -151,6 +159,7 @@ with torch.no_grad():
 predictions = classifier.predict(new_features)
 ```
 
-保存后的 CPU 示例在回归中核对两条路径的预测一致性。数据切分、训练预算和初始化来源
-随设置文件保存；比较方式见[表征概念](../concepts/representations.md)，
-独立选模与自定义训练器见[四角色实验教程](custom_experiments.md)。
+The saved CPU example has regression coverage for prediction consistency on both paths.
+Settings preserve data splits, training budgets, and initialization provenance. See
+[representation concepts](../concepts/representations.md) for comparisons and the
+[four-role experiment tutorial](custom_experiments.md) for independent selection and custom trainers.
