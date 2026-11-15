@@ -1,78 +1,101 @@
-# PU Learning Toolbox 文档
+# PU Learning Toolbox documentation
 
-## 用户文档（docs/user/）
+The index and external contributor guides are in English. User tutorials, the API reference, and
+PU Survey reproduction documents are being migrated in later batches and currently remain in
+Chinese. Other internal research and maintenance records may continue in Chinese under the
+[language policy](adr/0022-public-documentation-language.md).
 
-**受众**：库使用者——包括使用本工具箱 API 的第三方仓库开发者；
-按**任务类型**分层：concepts 解释原理、howto 按任务走教程、reference查契约。
-仓库维护/贡献内容见 [开发者文档](#开发者文档docsdev)。
-从 [快速开始](user/quickstart.md) 开始，快速跑通首个实验。
+## User documentation (docs/user/)
 
-| 类别 | 文档 | 用途 |
+For library users, including developers integrating the public API into other repositories.
+Concepts explain the research model, how-to guides cover tasks, and reference pages define
+contracts. Start with the [quickstart](user/quickstart.md). The pages in this section are currently
+in Chinese; their paths will stay unchanged during migration.
+
+| Category | Document | Purpose |
 |---|---|---|
-| 入口 | [user/README.md](user/README.md) | 基本阅读和检索导引（从哪篇开始、按什么顺序读） |
-| 快速开始 | [user/quickstart.md](user/quickstart.md) | 安装 + CLI 三命令 + Python 最小片段 |
-| 概念 | [user/concepts/pu_problem.md](user/concepts/pu_problem.md) | PU 问题设定、符号表、π 的角色 |
-| 概念 | [user/concepts/pu_sampling.md](user/concepts/pu_sampling.md) | OS/TS、有限池来源与训练风险角色 |
-| 概念 | [user/concepts/scar_sar.md](user/concepts/scar_sar.md) | SCAR/SAR 机制与识别边界 |
-| 概念 | [user/concepts/class_prior_semantics.md](user/concepts/class_prior_semantics.md) | 总体/U/风险池/拼接表先验、换算条件与当前限制 |
-| 概念 | [user/concepts/pu_model_selection.md](user/concepts/pu_model_selection.md) | PA/OA、监督预算与独立选择 |
-| 概念 | [user/concepts/representations.md](user/concepts/representations.md) | encoder、端到端 CNN、冻结特征及比较条件 |
-| 概念 | [user/concepts/method_selection.md](user/concepts/method_selection.md) | 选型决策原理（推荐器 + 决策表） |
-| 操作 | [user/howto/pipeline.md](user/howto/pipeline.md) | PUPipeline 端到端训练评估 |
-| 操作 | [user/howto/cli.md](user/howto/cli.md) | 命令行接口 |
-| 操作 | [user/howto/model_tuning.md](user/howto/model_tuning.md) | 模型参数与 PU-aware 网格搜索 |
-| 操作 | [user/howto/custom_experiments.md](user/howto/custom_experiments.md) | 四角色实验 API、参数调整与策略扩展示例 |
-| 操作 | [user/howto/custom_encoders.md](user/howto/custom_encoders.md) | encoder 注入、共享骨干、冻结特征与保存加载 |
-| 操作 | [user/howto/ui.md](user/howto/ui.md) | 图形界面安装与使用 |
-| 操作 | [user/howto/data_profiling.md](user/howto/data_profiling.md) | 数据画像与假设提示 |
-| 操作 | [user/howto/pu_sampling.md](user/howto/pu_sampling.md) | 同池定额标记、独立 TS、元数据与旧入口迁移 |
-| 操作 | [user/howto/diagnostic_reports.md](user/howto/diagnostic_reports.md) | 生成诊断报告 |
-| 操作 | [user/howto/sensitivity_analysis.md](user/howto/sensitivity_analysis.md) | 类先验与标记倾向敏感性分析 |
-| 操作 | [user/howto/distribution_shift.md](user/howto/distribution_shift.md) | 分布漂移审计与协变量加权适配 |
-| 操作 | [user/howto/sar_simulation.md](user/howto/sar_simulation.md) | 生成 SCAR/SAR 数据 |
-| 操作 | [user/howto/self_pu.md](user/howto/self_pu.md) | 训练 Self-PU 分类器 |
-| 操作 | [user/howto/using_skill.md](user/howto/using_skill.md) | AI 任务路由、先验解析、研究实验、表征与 skill 安装 |
-| 参考 | [user/reference/index.md](user/reference/index.md) | **API 索引**：按模块分组的符号快速导航（跳转到 api.md 契约） |
-| 参考 | [user/reference/api.md](user/reference/api.md) | **API 权威契约**：签名、参数表、返回结构与最小示例（`check_api_docs` 门禁防漂移） |
+| Entry | [user/README.md](user/README.md) | Reading order and task navigation |
+| Quickstart | [user/quickstart.md](user/quickstart.md) | Installation, three CLI commands, and a minimal Python example |
+| Concept | [user/concepts/pu_problem.md](user/concepts/pu_problem.md) | PU problem settings, notation, and the roles of π |
+| Concept | [user/concepts/pu_sampling.md](user/concepts/pu_sampling.md) | OS/TS, finite-pool provenance, and training risk roles |
+| Concept | [user/concepts/scar_sar.md](user/concepts/scar_sar.md) | SCAR/SAR mechanisms and identifiability limits |
+| Concept | [user/concepts/class_prior_semantics.md](user/concepts/class_prior_semantics.md) | Population, U, risk-pool, and training-table priors; conversion conditions and limits |
+| Concept | [user/concepts/pu_model_selection.md](user/concepts/pu_model_selection.md) | PA/OA, supervision budgets, and independent selection |
+| Concept | [user/concepts/representations.md](user/concepts/representations.md) | Encoders, end-to-end CNNs, frozen features, and comparison conditions |
+| Concept | [user/concepts/method_selection.md](user/concepts/method_selection.md) | Recommender logic and method selection tables |
+| How-to | [user/howto/pipeline.md](user/howto/pipeline.md) | End-to-end training and evaluation with PUPipeline |
+| How-to | [user/howto/cli.md](user/howto/cli.md) | Command-line interface |
+| How-to | [user/howto/model_tuning.md](user/howto/model_tuning.md) | Model parameters and PU-aware grid search |
+| How-to | [user/howto/custom_experiments.md](user/howto/custom_experiments.md) | Four-role experiment API, parameters, and strategy injection |
+| How-to | [user/howto/custom_encoders.md](user/howto/custom_encoders.md) | Encoder injection, shared backbones, frozen features, and persistence |
+| How-to | [user/howto/ui.md](user/howto/ui.md) | Graphical interface installation and use |
+| How-to | [user/howto/data_profiling.md](user/howto/data_profiling.md) | Data profiling and assumption warnings |
+| How-to | [user/howto/pu_sampling.md](user/howto/pu_sampling.md) | Same-pool fixed-count labeling, independent TS, metadata, and legacy API migration |
+| How-to | [user/howto/diagnostic_reports.md](user/howto/diagnostic_reports.md) | Diagnostic report generation |
+| How-to | [user/howto/sensitivity_analysis.md](user/howto/sensitivity_analysis.md) | Class-prior and propensity sensitivity |
+| How-to | [user/howto/distribution_shift.md](user/howto/distribution_shift.md) | Distribution shift audits and covariate-weighted adaptation |
+| How-to | [user/howto/sar_simulation.md](user/howto/sar_simulation.md) | SCAR/SAR data generation |
+| How-to | [user/howto/self_pu.md](user/howto/self_pu.md) | Training Self-PU |
+| How-to | [user/howto/using_skill.md](user/howto/using_skill.md) | Agent task routing, prior resolution, experiments, representations, and skill installation |
+| Reference | [user/reference/index.md](user/reference/index.md) | Symbols grouped by module, linking to API contracts |
+| Reference | [user/reference/api.md](user/reference/api.md) | Authoritative signatures, parameters, return structures, and minimal examples; coverage checked by `check_api_docs` |
 
-## 开发者文档（docs/dev/）
+## External contributor guides (docs/dev/)
 
-贡献前必读；文档间的权威顺序见 [CONTRIBUTING.md](../CONTRIBUTING.md) 第 1 节。
+Start with [CONTRIBUTING.md](../CONTRIBUTING.md) for environment setup, branches, tests, shared
+helpers, and PR requirements. These five English guides contain the required extension and
+architecture rules; ordinary contributions do not require reading Chinese internal plans.
 
-| 文档 | 用途 |
+| Document | Purpose |
 |---|---|
-| [dev/architecture.md](dev/architecture.md) | 当前架构:模块分层、数据流、注册表 |
-| [dev/project_structure.md](dev/project_structure.md) | 目录结构（权威来源） |
-| [dev/compatibility.md](dev/compatibility.md) | Python/依赖支持矩阵、CI 职责与构建策略 |
-| [dev/architecture_principles.md](dev/architecture_principles.md) | 架构维护原则：腐朽信号、应手与审计历史（ADR-0001） |
-| [dev/comment_governance.md](dev/comment_governance.md) | 注释治理：判定标准、机械门禁规则、已裁决的保留项与存量迁移策略（ADR-0019） |
-| [dev/process_checklist.md](dev/process_checklist.md) | 进度清单与发布状态（权威来源） |
-| [dev/distribution_shift_aware_pu.md](dev/distribution_shift_aware_pu.md) | 分布漂移感知 PU 的假设、实现边界与验收标准 |
-| [dev/distribution_shift_aware_pu_checklist.md](dev/distribution_shift_aware_pu_checklist.md) | 分布漂移功能补充任务清单与完成证据 |
-| [dev/release_process.md](dev/release_process.md) | 发布流程（版本策略、预检、上传、回滚、维护） |
-| [research/method_cards/](research/method_cards/) | 各论文方法卡（公式、复现状态、实现边界；含未注册 research 求解器） |
-| [research/traditional_pu/](research/traditional_pu/) | 传统 PU 调优：`traditional_pu_metric_contract.md` 单域指标/基线与统计契约、`traditional_pu_optimization_plan.md` 调优顺序/参数簇/晋级规则/产物契约 |
-| [dev/data_leakage_audit_design.md](dev/data_leakage_audit_design.md) | 数据泄露审计门禁、切分隔离与负向测试设计 |
-| [dev/dual_architecture_plan.md](dev/dual_architecture_plan.md) | 双架构（MLP/CNN）渐进式升级方案：能力契约、阶段划分与实施结果（含各阶段设计决策要点） |
-| [dev/new_algorithm_template.md](dev/new_algorithm_template.md) | 新算法接入模板——能力声明清单、自动门禁与 CNN 最低测试要求 |
-| [dev/label_semantics_plan.md](dev/label_semantics_plan.md) | 标签语义契约：`label_semantics` 能力声明、检查点与实施计划（值层不可判定性、与防泄漏守卫的分工） |
-| [research/distribution_shift/](research/distribution_shift/) | 分布漂移：`distribution_shift_metric_contract.md` 审计/跨域目标评估/部署监控指标、`joint_shift_research_protocol.md` JointShift 评估协议与声明边界、`joint_shift_metadata_review_20261019.md` issue #69 元数据裁决 |
-| [research/pu_survey/](research/pu_survey/) | PU 调研实验：能力与当前状态、科学协议、运行与报告指南、数据来源说明；入口见 [pu_survey/README.md](research/pu_survey/README.md) |
-| [dev/experiment_layer.md](dev/experiment_layer.md) | 实验层（`pu_toolbox/experiment/`）关键设计机制：可注入策略接口、视图/轨迹语义、P0 已知局限 |
-| [dev/single_source_map.md](dev/single_source_map.md) | 单源地图：九个概念的权威真相源、消费者与重复判定（审计快照） |
-| [dev/pu_research_semantics.md](dev/pu_research_semantics.md) | 研究整合语义基线：采样/先验/逐方法风险消费、复现与后续退出条件 |
+| [dev/architecture.md](dev/architecture.md) | Module layers, dependency directions, data flow, and registry rules |
+| [dev/project_structure.md](dev/project_structure.md) | Authoritative file layout and local asset boundaries |
+| [dev/compatibility.md](dev/compatibility.md) | Python/dependency support, CI responsibilities, and packaging |
+| [dev/new_algorithm_template.md](dev/new_algorithm_template.md) | Capability declarations, registration gates, and minimum CNN tests |
+| [dev/comment_governance.md](dev/comment_governance.md) | Comment criteria, automated checks, retained cases, and migration policy |
 
-## 架构决策(docs/adr/)
+## Internal maintenance and research (Chinese)
 
-| 文档 | 用途 |
+These records provide optional design and audit background. Maintainers own project status and
+core architectural decisions. Required contribution rules are in the English guides above.
+
+| Document | Purpose |
 |---|---|
-| [adr/](adr/) | ADR 索引(架构治理/解耦/复现分级/测试 CI/流程惯例/发布策略/目录合并/方法卡清洗/调优判决/API 参考定位/注释质量门禁等) |
+| [dev/architecture_principles.md](dev/architecture_principles.md) | Architecture maintenance, decay signals, and governance history |
+| [dev/process_checklist.md](dev/process_checklist.md) | Authoritative task and release status |
+| [dev/distribution_shift_aware_pu.md](dev/distribution_shift_aware_pu.md) | Shift-aware PU assumptions, implementation boundaries, and acceptance criteria |
+| [dev/distribution_shift_aware_pu_checklist.md](dev/distribution_shift_aware_pu_checklist.md) | Shift feature tasks and evidence |
+| [dev/release_process.md](dev/release_process.md) | Versioning, preflight checks, publishing, rollback, and ownership |
+| [dev/data_leakage_audit_design.md](dev/data_leakage_audit_design.md) | Leakage checks, split isolation, and negative tests |
+| [dev/dual_architecture_plan.md](dev/dual_architecture_plan.md) | MLP/CNN capability design and phased implementation |
+| [dev/label_semantics_plan.md](dev/label_semantics_plan.md) | Label declarations, checkpoints, value-level ambiguity, and leakage guards |
+| [dev/experiment_layer.md](dev/experiment_layer.md) | Injectable experiment strategies, view/trace semantics, and known limits |
+| [dev/single_source_map.md](dev/single_source_map.md) | Shared concepts, authoritative implementations, consumers, and duplication audit |
+| [dev/pu_research_semantics.md](dev/pu_research_semantics.md) | Sampling, prior, per-method risk consumption, reproduction, and integration baseline |
+| [research/method_cards/](research/method_cards/) | Paper formulas, implementation/reproduction boundaries, and research solvers |
+| [research/traditional_pu/](research/traditional_pu/) | Traditional PU metric/baseline contracts, tuning, promotion rules, and artifacts |
+| [research/distribution_shift/](research/distribution_shift/) | Shift metrics, joint-shift protocol and claim boundaries, and metadata review |
 
-> ADR 记决策,版本/进度状态见 dev/process_checklist.md 与 dev/release_process.md。
+## PU Survey reproduction (currently Chinese)
 
-## 其他
+The public reproduction path will be migrated as a separate batch. Start at
+[research/pu_survey/README.md](research/pu_survey/README.md), then read the
+[protocol](research/pu_survey/pu_survey_protocol.md), [runbook](research/pu_survey/runbook.md), and
+[data sources](research/pu_survey/data/README.md). These describe execution capabilities, data
+roles, versioned artifacts, reporting, provenance, and scientific limits. Implementation capability,
+completed training, and verified paper numerical reproduction are separate claims.
 
-- [../README.md](../README.md)：项目门面（英文）；[../README.zh-CN.md](../README.zh-CN.md)：中文版
-- [../CONTRIBUTING.md](../CONTRIBUTING.md)：代码贡献、论文复现状态与 benchmark 产物管理
-- [../examples/minimal/](../examples/minimal/)：最小可运行示例脚本
-- [../benchmarks/deep_pu/README.md](../benchmarks/deep_pu/README.md)：深度 PU benchmark（InfoMax PU、WConPU、DGPU runner 与多 seed 结果）
+## Architecture decisions (docs/adr/)
+
+The [ADR archive](adr/) and its [index](adr/README.md) are primarily in Chinese. The English
+[current language policy](adr/0022-public-documentation-language.md) supersedes the historical
+language requirement. ADRs record decisions; version and task status belong to the internal
+maintenance records above.
+
+## Other entry points
+
+- [Project README](../README.md) (English).
+- [Contribution guide](../CONTRIBUTING.md) (English).
+- [Minimal runnable examples](../examples/minimal/) (Python).
+- [Deep PU benchmarks](../benchmarks/deep_pu/README.md) (Chinese): InfoMax PU, WConPU,
+  DGPU runners, and multi-seed results.

@@ -1,898 +1,906 @@
 # Project Directory Structure
 
-> 本文档是项目目录结构的权威定义。已实现/存在的文件如实列出，规划文件标注 `(planned)`。
-> 其中 `pu_toolbox/`、`tests/`、`scripts/`、`docs/` 四节的树块由 `generate_structure.py` 生成，
-> 文件名集合的双向一致由该门禁保证；其余各节（§1、§4、§4.1、§7）为人工维护。生成器覆盖哪些
-> 后缀、哪些子树只做分组登记、以及它**不**校验什么，见 §5 的范围说明。
+> This document is the authoritative directory inventory. Existing files are listed as such;
+> proposed files carry `(planned)`. `generate_structure.py` generates the tree blocks for
+> `pu_toolbox/`, `tests/`, `scripts/`, and `docs/`, checking file names in both directions.
+> Sections 1, 4, 4.1, and 7 are maintained manually. Section 5 explains suffix coverage,
+> grouped subtrees, and the limits of the generator's checks.
 
-## 1. 项目根目录
+## 1. Repository root
 
 ```text
 pu-learning-toolbox/
   pyproject.toml
   README.md
-  README.zh-CN.md
   CONTRIBUTING.md
   LICENSE
   .gitignore
   uv.lock
 ```
 
-### 1.1 源码、实验资产与交付物分开存放
+### 1.1 Separate source code, experiment assets, and deliverables
 
-| 类别 | 位置 | 管理方式 |
+| Category | Location | Management |
 |---|---|---|
-| 安装包源码 | `pu_toolbox/` | Git 管理；公共导入路径不因工作区整理而迁移 |
-| 自动化测试 / 示例 | `tests/`、`examples/` | Git 管理；不放真实数据和训练输出 |
-| 实验与维护入口 | `scripts/`、`benchmarks/` | Git 管理；保留公共运行和报告入口，退役实验过程专用脚本 |
-| 用户 / 开发 / 研究文档 | `docs/user/`、`docs/dev/`、`docs/research/` | Git 管理；保留方法、数据和使用说明，实验过程记录从 Git 历史查阅 |
-| 用户上传的原件 | `data/incoming/user-uploads/`（本地创建） | 按 `papers/`、`results/`、`datasets/`、`protocols/`、`tasks/`、`diagnostics/` 分类；保留原文件名与 SHA256 |
-| 接收中的外部交付 | `data/incoming/` | 下载完成、校验及对账前不混入已验收数据；`.part` 不是可删除旧文件的充分依据 |
-| 原始数据 / 标准切分 | `data/raw/`、`data/splits/` | 本地忽略；历史接收路径继续有效，不为统一命名改写 split manifest |
-| 运行与诊断证据 | `results/` | 本地忽略；保存 manifest、日志、选择产物和队列状态，保留历史协议身份 |
-| 对外发送的表格 / 文档 | `data/outgoing/` | 按交付日期建目录；交付快照不覆盖，不默认入 Git |
-| 旧构建包 / 开发草稿 | `data/archive/`（本地创建） | 分类归档；归档不是正式验收，也不自动授予删除权限 |
-| 一次性本地演示 | `data/local-demos/`（本地创建） | 与发布示例分开，用户文件不因不属于 PU 实验而删除 |
-| 临时计划 / 运行辅助文件 | `.tmp/`、`tmp/` | 本地忽略；可能包含后台控制器、交接清单或补跑依据，不能整目录清空 |
-| 可重建的开发缓存 | `.pytest_cache/`、`.ruff_cache/`、`__pycache__/` | 仅在核对无在用写入、无受版本控制或用户文件后清理 |
+| Package source | `pu_toolbox/` | Tracked in Git; workspace cleanup does not move public import paths. |
+| Automated tests / examples | `tests/`, `examples/` | Tracked in Git; keep real datasets and training outputs elsewhere. |
+| Experiment / maintenance entry points | `scripts/`, `benchmarks/` | Tracked in Git; retain public execution and reporting entry points, and retire scripts specific to obsolete experiment processes. |
+| User / developer / research documentation | `docs/user/`, `docs/dev/`, `docs/research/` | Tracked in Git; retain methods, data, and usage documentation. Consult Git history for experiment process records. |
+| Original user uploads | `data/incoming/user-uploads/` (created locally) | Categorize under `papers/`, `results/`, `datasets/`, `protocols/`, `tasks/`, or `diagnostics/`; retain original names and SHA256 hashes. |
+| Incoming external deliveries | `data/incoming/` | Keep separate from accepted data until downloads, verification, and reconciliation finish. A `.part` file alone does not justify deleting an older file. |
+| Raw data / standard splits | `data/raw/`, `data/splits/` | Ignored locally; retain historical receipt paths and do not rewrite split manifests merely to standardize names. |
+| Run / diagnostic evidence | `results/` | Ignored locally; retain manifests, logs, selection artifacts, queue state, and historical protocol identities. |
+| Outgoing tables / documents | `data/outgoing/` | Organize by delivery date; do not overwrite delivered snapshots or track them in Git by default. |
+| Old builds / development drafts | `data/archive/` (created locally) | Archive by category. Archiving neither constitutes formal acceptance nor grants permission to delete. |
+| One-off local demos | `data/local-demos/` (created locally) | Keep separate from published examples; retain user files even when unrelated to PU experiments. |
+| Temporary plans / run helpers | `.tmp/`, `tmp/` | Ignored locally; may contain background controllers, handoff lists, or rerun evidence. Do not empty entire directories. |
+| Rebuildable development caches | `.pytest_cache/`, `.ruff_cache/`, `__pycache__/` | Clean only after checking for active writers, tracked files, and user files. |
 
-以上本地目录不要求出现在干净 clone 中。服务器可生成 `LOCAL_WORKSPACE.html` 本地入口，
-列出分类后的上传文件、最新交付和整理收据；不提交机器绝对路径或私有下载地址。
-历史绝对路径可能嵌入脚本、manifest 和交付索引：迁移原件时校验前后 SHA256，并按需保留
-原位置的相对软链接；仅在本机 Git exclude 登记这些兼容入口，不用全局 `*.xlsx`、`*.json`
-规则掩盖本应跟踪的测试夹具或冻结证据。
+These local directories need not exist in a clean clone. A server may generate a local
+`LOCAL_WORKSPACE.html` index of categorized uploads, recent deliveries, and cleanup receipts.
+Do not commit machine-specific absolute paths or private download URLs.
+Historical absolute paths may be embedded in scripts, manifests, and delivery indexes.
+When moving originals, verify SHA256 before and after the move and retain relative symlinks
+at old locations when needed. Register those compatibility paths only in the local Git exclude;
+do not hide tracked test fixtures or frozen evidence behind blanket `*.xlsx` or `*.json` rules.
 
-清理按证据而非文件日期判断：可再生成缓存可以删除；未交付且已被完整新版替代的渲染中间件
-需先验证来源一致、无独有结果，再删除并记录重建来源。已交付结果、用户上传、原始数据、
-切分、冻结协议/比较矩阵与 checkpoint 默认保留。checkpoint 只通过对应实验的回收机制处理，
-不得用目录批量删除替代其选择产物与恢复状态审计。虚拟环境、外部 Git worktree 和后台服务
-也不在例行清理范围内。执行前预览精确路径，执行后保存移动/删除清单、哈希和恢复边界。
+Base cleanup on evidence, rather than file dates. Rebuildable caches may be removed;
+before deleting undelivered render intermediates superseded by a complete newer version,
+verify matching provenance and the absence of unique results, and record how to rebuild them.
+Retain delivered results, uploads, raw data, splits, frozen protocols/comparison matrices,
+and checkpoints by default. Use the experiment's checkpoint reclamation mechanism;
+bulk directory deletion cannot replace an audit of selection artifacts and recovery state.
+Virtual environments, external Git worktrees, and background services are outside routine cleanup.
+Preview exact paths before execution; retain move/delete inventories, hashes, and recovery limits afterward.
 
-## 2. Python 包（`pu_toolbox/`）
+## 2. Python package (`pu_toolbox/`)
 
 ```text
 pu_toolbox/
   core/
-    __init__.py                           (公共导出聚合)
-    base.py                               (shared: BasePUClassifier/BasePriorEstimator/BasePULoss 估计器与损失统一基类)
-    validation.py                         (shared: validate_pu_X_y/validate_pnu_X_y 输入与标量校验，fit 统一入口)
-    labels.py                             (shared: normalize_pu_labels/normalize_pnu_labels PU/PNU 标签规范化)
-    config.py                             (shared: 标签编码常量(+1/0/-1)与概率裁剪及 PU 比值阈值)
-    exceptions.py                         (shared: PULearningError 统一异常族（Validation/NotFitted/Registry 子类）)
-    random.py                             (shared: check_random_state 随机种子规范化（sklearn 兼容）)
-    tags.py                               (shared: Scenario/Assumption/ImplementationStatus 等类型化枚举)
-    device.py                             (shared: resolve_device/resolve_device_name CUDA 自动检测单源)
-    training_views.py                     (shared: TrainingView/build_training_view——P/原始 U/损失 U 角色与来源索引的中立构造，不认识台账·方法名·manifest)
-    fit_state.py                          # opt-in 失败拟合状态失效保护
+    __init__.py                           (public re-exports)
+    base.py                               (shared: BasePUClassifier/BasePriorEstimator/BasePULoss estimator and loss base classes)
+    validation.py                         (shared: validate_pu_X_y/validate_pnu_X_y input and scalar validation; common fit entry point)
+    labels.py                             (shared: normalize_pu_labels/normalize_pnu_labels PU/PNU label normalization)
+    config.py                             (shared: label constants (+1/0/-1), probability clipping, and PU ratio thresholds)
+    exceptions.py                         (shared: PULearningError family with Validation/NotFitted/Registry subclasses)
+    random.py                             (shared: sklearn-compatible check_random_state seed normalization)
+    tags.py                               (shared: typed Scenario/Assumption/ImplementationStatus enums)
+    device.py                             (shared: resolve_device/resolve_device_name CUDA autodetection)
+    training_views.py                     (shared: neutral TrainingView/build_training_view construction of P/raw-U/loss-U roles and source indices; independent of ledgers, method names, and manifests)
+    fit_state.py                          # opt-in state invalidation after failed fits
   preprocessing/
-    __init__.py                           (公共导出聚合)
-    _sampling.py                          # 固定正例配额与均匀无放回标记共享原语
-    pu_labeling.py                        (make_scar_labels/make_pu_labels 等造 PU/PNU 标签及高斯合成数据)
-    selection_bias.py                     (make_sar_propensity/make_sar_labels SAR 倾向与合成数据)
-    profiling.py                          (pu_data_summary 等轻量摘要与 scar_diagnostic SCAR 诊断)
-    data_profiler.py                      (profile_pu_data 结构化画像（摘要+问题清单+假设提示）)
+    __init__.py                           (public re-exports)
+    _sampling.py                          # shared fixed positive quotas and uniform labeling without replacement
+    pu_labeling.py                        (make_scar_labels/make_pu_labels PU/PNU labels and synthetic Gaussian data)
+    selection_bias.py                     (make_sar_propensity/make_sar_labels SAR propensities and synthetic data)
+    profiling.py                          (pu_data_summary lightweight summaries and scar_diagnostic SCAR diagnostics)
+    data_profiler.py                      (profile_pu_data structured summaries, issues, and assumption warnings)
   prior/
-    __init__.py                           (公共导出聚合)
-    recpe.py                              (native: ReCPEEstimator 重分组类先验估计，默认 KM2 基估计器)
-    pen_l1.py                             (native: ClassPriorEstimator 罚 L1 闭式先验，theta 网格搜索)
-    kernel_mean.py                        (native: KernelMeanPriorEstimator KM1/KM2 核均值混合比例估计)
-    bbe.py                                (standalone: BBE α_U 统计量与隔离留出 PvU 评分，不注册为总体先验)
-    semantics.py                          (OS/独立 TS 的原生 U 与总体先验质量换算)
+    __init__.py                           (public re-exports)
+    recpe.py                              (native: ReCPEEstimator regrouping prior estimation; default KM2 base estimator)
+    pen_l1.py                             (native: ClassPriorEstimator penalized L1 closed-form prior with theta grid search)
+    kernel_mean.py                        (native: KernelMeanPriorEstimator KM1/KM2 kernel-mean mixture proportion estimation)
+    bbe.py                                (standalone: BBE α_U statistic and isolated held-out PvU scoring; not registered as a population prior)
+    semantics.py                          (native-U and population-prior mass conversion for OS and independent TS)
   utils/
-    __init__.py                           (公共导出聚合)
-    basis.py                              (shared: build_linear_basis/build_rbf_basis 基函数构造与中心子采样)
-    centroid.py                           (shared: MoM 质心与经验协方差原语，LDCE/KLDCE 共用)
-    activations.py                        (shared: sigmoid_stable 数值稳定 sigmoid，uPU/nnPU 损失单源)
-    serialization.py                      (shared: json_safe/canonical_hash 等报告序列化与 Markdown 转义单源)
+    __init__.py                           (public re-exports)
+    basis.py                              (shared: build_linear_basis/build_rbf_basis basis construction and center subsampling)
+    centroid.py                           (shared: MoM centroids and empirical covariance for LDCE/KLDCE)
+    activations.py                        (shared: sigmoid_stable numerically stable sigmoid for uPU/nnPU losses)
+    serialization.py                      (shared: json_safe/canonical_hash report serialization and Markdown escaping)
   losses/
-    __init__.py                           (公共导出聚合)
-    upu.py                                (native: UPULoss 无偏 PU 风险（logistic/squared 边缘损失）)
-    nnpu.py                               (native: NonNegativePULoss 非负风险评估与 nnPU 训练步)
-    pnu.py                                (native: PNU 风险组合组件（PN/NU/PU），risk/pnu.py 复用)
-    llsvm.py                              (native: llsvm_objective/calibration_loss LLSVM 损失组件（官方公式）)
+    __init__.py                           (public re-exports)
+    upu.py                                (native: UPULoss unbiased PU risk with logistic/squared margin losses)
+    nnpu.py                               (native: NonNegativePULoss nonnegative risk evaluation and nnPU training step)
+    pnu.py                                (native: PN/NU/PU risk components reused by risk/pnu.py)
+    llsvm.py                              (native: llsvm_objective/calibration_loss LLSVM loss components from official formulas)
   estimators/
-    classic/                              (2/2 native)
-      __init__.py                         (公共导出聚合)
-      elkan_noto.py                       (native: Elkan–Noto SCAR 概率修正/加权重训, 分层 K 折 OOF 估 c)
-      llsvm.py                            (native: 线性 LLSVM 大间隔标定, SGD 非凸目标+早停, 对齐官方公式)
-      rank_pruning.py                     # PU-only Rank Pruning, OOF 剪枝与加权
+    classic/                              (native classical estimators)
+      __init__.py                         (public re-exports)
+      elkan_noto.py                       (native: Elkan–Noto SCAR probability correction/weighted refit; stratified K-fold OOF estimation of c)
+      llsvm.py                            (native: linear large-margin LLSVM calibration; nonconvex SGD objective and early stopping aligned with official formulas)
+      rank_pruning.py                     # PU-only Rank Pruning with OOF pruning and weighting
     risk/
-      __init__.py                         (公共导出聚合)
-      _class_prior.py                     (shared: 类先验推导与 1−2ph 稳定性检查, KLDCE/LDCE 共用)
-      ldce.py                             (native: 线性 LDCE(切断PU): MoM 质心+椭球约束, m-更新与次梯度 w 交替)
-      kldce.py                            (native: ACS + 原生 SMO + RBF kernel)
-      kldce_smo.py                        (原生配对 SMO 求解器: 解析更新 + KKT 选择)
-      dist_pu.py                          (native: clean-room expectation 默认目标+可选作者 polar histogram 损失组件，单阶段 MLP, torch 可选)
-      vpu.py                              (native: VPU 变分风险/MixUp、可训练 CNN 与 CPU 数据分批适配)
-      pulda.py                            (native: PULDA 分布对齐+双向 margin+EMA 伪标签 MixUp，两阶段二维 MLP 适配)
-      upu.py                              (native: uPU 凸风险估计器(du Plessis'15): 双铰链/逻辑/平方损失三变体)
-      nnpu.py                             (native: nnPU 非负风险(修正分支 -γr 梯度), mini-batch SGD + encoder)
-      pnu.py                              (native: 凸 PNU 半监督闭式解(平方损失, 对齐 pywsl, η 混合 P/NU))
-      puet.py                             (native: PU Extra Trees nnPU/二次风险驱动的随机树集成，CPU)
-      cvir.py                             (CVIR 论文加权目标、注入 CNN/CPU 分批与两阶段成本快照)
+      __init__.py                         (public re-exports)
+      _class_prior.py                     (shared: class-prior derivation and 1−2ph stability checks for KLDCE/LDCE)
+      ldce.py                             (native: linear LDCE for censoring PU, MoM centroid, ellipsoid constraint, and alternating m/subgradient-w updates)
+      kldce.py                            (native: ACS + native SMO + RBF kernel)
+      kldce_smo.py                        (native paired SMO solver: analytical updates and KKT selection)
+      dist_pu.py                          (native: default clean-room expectation objective and optional author polar-histogram loss; single-stage MLP, optional torch)
+      vpu.py                              (native: VPU variational risk/MixUp, trainable CNN, and CPU-resident data batching)
+      pulda.py                            (native: PULDA distribution alignment, bidirectional margin, EMA pseudo-label MixUp, and two-stage 2-D MLP adaptation)
+      upu.py                              (native: du Plessis'15 convex uPU estimator with double-hinge/logistic/squared losses)
+      nnpu.py                             (native: nnPU nonnegative risk with correction-branch -γr gradient; mini-batch SGD + encoder)
+      pnu.py                              (native: convex PNU closed-form semisupervised squared loss aligned with pywsl; η mixes P/NU)
+      puet.py                             (native: CPU PU Extra Trees ensemble driven by nnPU/quadratic risk)
+      cvir.py                             (CVIR paper-weighted objective, injected CNN/CPU batching, and two-stage cost snapshots)
     bias_aware/
-      __init__.py                         (公共导出聚合)
-      pusb.py                             (native: PUSB 选择偏差打分: LR 源分类器 + 可配置阈值(保序不保后验))
+      __init__.py                         (public re-exports)
+      pusb.py                             (native: PUSB selection-bias scores; LR source classifier and configurable threshold preserve ordering rather than posterior probabilities)
       pusb_kernel.py                      (native: official-aligned RBF PUSB adapter)
-      lbe.py                              (native: LBE 实例依赖标注偏差: 交替加权 LR 估后验+倾向, sklearn)
+      lbe.py                              (native: instance-dependent labeling bias; alternating weighted LR posterior/propensity estimation, sklearn)
     deep/
-      __init__.py                         (公共导出聚合: DGPU/GradPU/RobustPU/SplitPU/LaGAM/InfoMaxPU/SelfPU/WConPU 分类器与 vision 工厂)
-      grad_pu.py                          (native: GradPU 输入梯度惩罚 + 未归一化正样本加权，二维 MLP)
-      robust_pu.py                        (native: Robust-PU nnPU 预训练 + 自步加权伪负例，二维 MLP)
-      split_pu.py                         (native: Split-PU nnPU teacher + 预测分歧分组 + 分支一致性，二维 MLP)
-      lagam.py                            (native: LaGAM 独立 support 元梯度、注入 CNN/CPU 分批与阶段成本)
-      self_pu.py                          (native: SelfPUClassifier 双学生自步进+元重加权+蒸馏 (官方精确对齐))
-      infomax_pu.py                       (native: InfoMaxPURepresentation/InfoMaxPUClassifier PURL+nnPU 流水线, PU-SMI 目标)
-      weighted_contrastive_pu.py          (native: WeightedContrastivePUClassifier 原型+SAT+momentum queue 加权对比 (WConPU 论文协议))
-      vision.py                           (shared: 公共 CNN encoder factory: build_encoder/CNN_BACKBONES 单源)
-      dgpu.py                             (native: DGPUClassifier 判别-生成协作循环 + generator fit/sample/warm_start 协议)
-      _validation.py                      (shared: encoder 输出校验单源: validate_encoder_features 2-D/有限/feature_dim>=1)
-      pan.py                              # PAN 预测对抗 MLP, 原生 OS
-      pulns.py                            # PULNS RL 负例选择, 独立 clean support
-      gen_pu.py                           # GenPU 两生成器三判别器与合成 PN
-      holistic_pu.py                      # Holistic-PU 趋势与自然断点伪标签
-      p3mix.py                            # P3Mix/P3Mix-E/P3Mix-C 实验级分类器与 mixup 组件
-      lbe_neural.py                       # 双网络 Adam generalized EM、稳定 E/M 目标与独立 CNN 适配
-      tedn.py                             # TEDn 完整交替训练、内部留出 BBE、未加权目标与训练误差停止
+      __init__.py                         (public DGPU/GradPU/RobustPU/SplitPU/LaGAM/InfoMaxPU/SelfPU/WConPU classifier and vision-factory exports)
+      grad_pu.py                          (native: GradPU input-gradient penalty and unnormalized positive weighting; 2-D MLP)
+      robust_pu.py                        (native: Robust-PU nnPU pretraining and self-paced weighted pseudo-negatives; 2-D MLP)
+      split_pu.py                         (native: Split-PU nnPU teacher, prediction-disagreement groups, and branch consistency; 2-D MLP)
+      lagam.py                            (native: LaGAM independent-support meta-gradients, injected CNN/CPU batching, and stage costs)
+      self_pu.py                          (native: SelfPUClassifier dual-student self-paced learning, meta-reweighting, and distillation aligned with official implementation)
+      infomax_pu.py                       (native: InfoMaxPURepresentation/InfoMaxPUClassifier PURL+nnPU pipeline and PU-SMI objective)
+      weighted_contrastive_pu.py          (native: WeightedContrastivePUClassifier prototypes, SAT, and momentum-queue weighted contrast under the WConPU paper protocol)
+      vision.py                           (shared: public build_encoder/CNN_BACKBONES CNN encoder factory)
+      dgpu.py                             (native: DGPUClassifier discriminative-generative cooperation and generator fit/sample/warm_start protocol)
+      _validation.py                      (shared: validate_encoder_features checks 2-D, finite outputs, and feature_dim>=1)
+      pan.py                              # PAN predictive-adversarial MLP, native OS
+      pulns.py                            # PULNS RL negative selection with independent clean support
+      gen_pu.py                           # GenPU two generators, three discriminators, and synthetic PN
+      holistic_pu.py                      # Holistic-PU trends and natural-break pseudo-labels
+      p3mix.py                            # P3Mix/P3Mix-E/P3Mix-C experimental classifiers and mixup components
+      lbe_neural.py                       # dual-network Adam generalized EM, stable E/M objectives, and independent CNN adaptation
+      tedn.py                             # TEDn alternating training, internal held-out BBE, unweighted objective, and training-error stopping
     research/
-      __init__.py                         (公共导出聚合: 联合移位分类器/论文目标函数/JOINT_SHIFT_METHODS 工厂)
-      joint_shift.py                      (软类别条件域比与交替 PU 更新的联合漂移近似)
-      dynamic_joint_shift.py              (论文式联合权重/分类目标与共享特征动态训练)
-      joint_shift_baselines.py            (JointShiftPUBaseline trPU/tePU/fine-tune/MMD 对照与 build_joint_shift_estimator 消融工厂)
-    __init__.py                           (包标记: 分类器由子包与包根聚合导出, 根级无符号)
+      __init__.py                         (public joint-shift classifiers, paper objectives, and JOINT_SHIFT_METHODS factory)
+      joint_shift.py                      (joint-shift approximation using soft class-conditional domain ratios and alternating PU updates)
+      dynamic_joint_shift.py              (paper-style joint weighting/classification objectives and dynamic shared-feature training)
+      joint_shift_baselines.py            (JointShiftPUBaseline trPU/tePU/fine-tune/MMD controls and build_joint_shift_estimator ablation factory)
+    __init__.py                           (package marker; classifiers re-exported through subpackages and package root, with no symbols here)
   metrics/
-    __init__.py                           (公共导出聚合: 12 个分类指标函数统一出口)
-    classification.py                     (已实现: PU-only 指标 pu_zero_one_risk/pu_recall + 监督包装)
+    __init__.py                           (public classification-metric exports)
+    classification.py                     (implemented: PU-only pu_zero_one_risk/pu_recall metrics and supervised wrappers)
   diagnostics/
-    __init__.py                           (公共导出聚合: 诊断报告类与假设分析函数统一入口)
-    benchmark.py                          (audit_benchmark_results: 校验 benchmark 结果目录完整性/溯源/指标列)
-    report.py                             (已实现: build_diagnostic_report 汇总数据画像与模型指标诊断)
-    sensitivity.py                        (类先验/平均标记倾向假设敏感性)
-    shift.py                              (已实现: analyze_pu_shift 协变量漂移审计 → PUShiftReport)
-    domain_assumptions.py                 (已实现: analyze_domain_assumptions 跨域先验/标记机制移位诊断)
-    shift_monitor.py                      (已实现: PUShiftMonitor 窗口化重复漂移审计+告警, 持久化 history)
-    uncertainty.py                        (已实现: analyze_pu_uncertainty 不确定度/选择性预测/查询队列)
+    __init__.py                           (public diagnostic-report classes and assumption-analysis functions)
+    benchmark.py                          (audit_benchmark_results: result-directory completeness, provenance, and metric-column checks)
+    report.py                             (implemented: build_diagnostic_report combines data profiles and model-metric diagnostics)
+    sensitivity.py                        (sensitivity to class-prior/mean-labeling-propensity assumptions)
+    shift.py                              (implemented: analyze_pu_shift covariate-shift audit → PUShiftReport)
+    domain_assumptions.py                 (implemented: analyze_domain_assumptions cross-domain prior/labeling-mechanism shift diagnostics)
+    shift_monitor.py                      (implemented: PUShiftMonitor windowed repeated shift audits, alerts, and persistent history)
+    uncertainty.py                        (implemented: analyze_pu_uncertainty uncertainty, selective prediction, and query queues)
   model_selection/
-    __init__.py                           (公共导出聚合: 分裂器公开 + tuning/comparison 懒加载防环)
-    comparison.py                         (已实现: PUModelComparator 注册表分类器 CV 对比与排序)
-    split.py                              (已实现: PUStratifiedKFold 等 PU-aware 分裂器, 保每折标注正样本)
-    tuning.py                             (已实现: PUTuner 超参网格搜索, 复用 PUPipeline 与 PU 指标)
+    __init__.py                           (public splitters and lazily loaded tuning/comparison exports to avoid import cycles)
+    comparison.py                         (implemented: PUModelComparator CV comparison/ranking of registered classifiers)
+    split.py                              (implemented: PUStratifiedKFold PU-aware splitters retain labeled positives in each fold)
+    tuning.py                             (implemented: PUTuner hyperparameter grid search reusing PUPipeline and PU metrics)
   registry/
-    __init__.py                           (公共导出聚合; __getattr__ 懒转发 advisor 符号防导入环)
-    registry.py                           (已实现: 中央注册表 register_method/get_algorithm + 别名解析, 线程安全)
-    metadata.py                           (公开: AlgorithmMetadata 算法元数据契约, 注册表与文档生成共用)
-    builtin_methods.py                    (已实现: register_all_builtin_methods 批量注册 21 个内置算法元数据)
+    __init__.py                           (public re-exports; __getattr__ lazily forwards advisor symbols to avoid import cycles)
+    registry.py                           (implemented: thread-safe register_method/get_algorithm central registry and alias resolution)
+    metadata.py                           (public: AlgorithmMetadata contract shared by registry and documentation generation)
+    builtin_methods.py                    (implemented: register_all_builtin_methods registers built-in algorithm metadata; consult the registry for the current set)
   advisor/
-    __init__.py                           (公共导出聚合: 推荐引擎与推荐数据结构入口)
-    recommender.py                        (已实现: recommend_methods/recommend_from_profile 画像→注册表方法推荐)
-    rules.py                              (已实现: score_method 评分规则/method_warnings 风险告警; ScoringConfig 权重)
-    _types.py                             (advisor 私有组件: MethodCandidate/RecommendationResult 推荐结果数据结构)
+    __init__.py                           (public recommendation engine and result data structures)
+    recommender.py                        (implemented: recommend_methods/recommend_from_profile data-profile → registered-method recommendations)
+    rules.py                              (implemented: score_method rules, method_warnings risk warnings, and ScoringConfig weights)
+    _types.py                             (private advisor components: MethodCandidate/RecommendationResult data structures)
   workflows/
-    __init__.py                           (公共导出聚合: PUPipeline 与 PipelineReport/ShiftAware 报告入口)
-    pipeline.py                           (已实现: PUPipeline 一键 profile→先验→训练→CV→诊断, 支持 mlp/cnn 与 auto 推荐)
-    _evaluation.py                        (指标解析、PU-aware CV 执行与聚合)
-    _inputs.py                            (输入校验、splitter 准备与 CV provenance)
-    _models.py                            (工作流私有组件: 分类器/先验解析实例化与参数校验)
-    _reporting.py                         (工作流私有组件: build_pipeline_report 报告组装与 provenance 归一)
-    report.py                             (报告数据类: PipelineReport/PriorInfo/CVMetric; to_dict/to_json/save 契约)
-    shift.py                              (已实现: ShiftAwarePUPipeline 配对 baseline/加权比较 → ShiftComparisonReport)
-  cli/                                    (CLI 入口: argparse 子命令与工作流薄封装)
-    __init__.py                           (CLI 入口: build_parser/main 装配全部子命令, 用户错误→exit 1)
-    run.py                                (run 子命令: 双 CSV 输入、目录三件套输出、退出码 0/1/2)
-    info.py                               (list-methods/list-priors 子命令: 打印注册分类器与先验表, km1/km2 特列)
-    demo.py                               (make-demo-data 子命令: 生成 SCAR 演示 X/y_pu/y_true 三 CSV, 校验 5 折可跑)
-    profile.py                            (profile 子命令: 画像+SCAR/SAR 诊断, 写 profile.json 供 recommend 用)
-    recommend.py                          (recommend 子命令: 读 profile.json 推荐方法/估先验, 写 recommendation.json)
-    sensitivity.py                        (sensitivity 子命令: 固定模型预测的先验/倾向敏感性扫描, 写 sensitivity.json)
-    audit_benchmark.py                    (audit-benchmark 子命令: 审计 benchmark 结果, PASS/FAIL 摘要, 可选写 JSON)
-    skill.py                              (skill 子命令: 安装 wheel 内置 pu-workflow skill 至用户 agent 目录)
-    shift.py                              (shift-audit/shift-run 子命令: 漂移审计与加权训练比较, 写 shift_report/comparison 产物)
-    deployment.py                         (shift-monitor/review 部署子命令与产物导出)
-  ui/                                     (可选 Streamlit 图形界面，核心安装不导入 streamlit)
-    __init__.py                           (公共导出聚合: 数据加载/运行配置/部署分析/参数目录导出)
-    app.py                                (Streamlit 页面流程协调: main() 上传→配置→后台训练→渲染结果)
-    configuration.py                      (运行配置与 session state 适配: apply_run_configuration/parse_json_mapping)
-    data.py                               (CSV/NPY 上传解析与校验: load_feature_data (含 4-D NCHW)/load_label_data)
-    execution.py                          (三种运行模式调度: execute_analysis 普通/调参/比较 + finalize_run 历史收尾)
-    history.py                            (进程级运行历史: append/snapshot 线程安全, 刷新保留、重启清空)
-    parameters.py                         (参数元数据与类型化控件: classifier_catalog 签名反射/parameter_schema/render_parameter_form)
-    results.py                            (结果渲染与下载: render_results 指标/诊断提示/JSON-MD-pkl 下载)
-    runtime.py                            (后台执行: submit_background/BackgroundRun 线程池、进度快照与协作取消)
-    launcher.py                           (pu-toolbox-ui 启动入口: main() 包装 streamlit run app.py)
-    deployment.py                         (部署监控与主动复核: analyze_deployment_window 无 UI 依赖 + render_deployment_tools 面板)
-  experiment/                             # 公共实验层：四角色、PA/OA、独立测试、只读结果汇总与报告
-    cvir_adapter.py                       # 显式 alpha_U OS 与总体 pi/视图先验换算的独立 CVIR 接线
-    pulns_adapter.py                      # 额外 clean support 的全角色/分组隔离、预算与终点 OA 门禁（ADNI 记 unverifiable）
-    __init__.py                           (公共导出: ExperimentRunner/DatasetBundle/策略类/资源汇总/select_threshold)
-    bundle.py                             (四路数据合约: DatasetPart/DatasetBundle/validate_bundle)
-    datasets.py                           (survey 八数据集映射、官方/派生 test 策略与确定性四路切分)
-    feature_adapter.py                    (CNN 二维特征适配、encoder/特征哈希与榜单公平性分组门禁)
-    image.py                              (train-only 图像统计、缩放、ResNet-18/增强配置与哈希留痕)
-    candidate_image.py                    (PULDA 共享 ResNet-18 / GradPU 私有无 BN 图像技术构造，非正式准入)
-    text.py                               (固定 SBERT 文本向量、revision 留痕与内容寻址校验缓存；键按去重语料而非排列，故同一文本跨 seed 同值)
-    training_views.py                     (survey 边界适配器: 台账门禁与路由裁决、旧 run_view 词表在出口现算、manifest 留痕；角色构造委托 core.training_views)
-    manifest.py                           (manifest 写入/加载与必填键校验)
-    protocols.py                          (策略接口 ABC: Generator/Trainer/SelectionProtocol)
-    resources.py                          (候选/调参/GPU 资源计量、运行环境探测与跨 seed 汇总)
-    runner.py                             (ExperimentRunner 骨架: 校验/生成PU视图/候选池训练/PA-OA选择/独立测试)
-    strategies.py                         (内置策略: SCAR/SAR-LBE 生成、PA/OA 选模、Trainer 三实现、select_threshold)
-    tracking.py                           (运行留痕数据类: EpochRecord/RunTrajectory/SelectionArtifact/RunResult)
-    survey_execution.py                   (P2.0a 共享模型/图像装配、随机冻结 adapter 校验缓存与原空间 SAR 标记)
-    survey_protocol.py                    (单一 v3.2 执行配置、参数预算锁与实际运行身份；历史结果无需加载此模块)
-    checkpoints.py                        # 逐 epoch 权重快照、摘要校验与独立推理恢复
-    split_archive.py                      # 制品跨机传输: 逐文件摘要索引、确定性 tar 打包与接收端校验
-    pilot_plan.py                         # 确定性实验网格、完成判定、checkpoint 空间估算与作用域筛选
-    method_ledger.py                      # 调查方法台账访问（§4 程序化真值源的枚举拆分）
-    survey_summary.py                     (纯统计：seed 均值/样本标准差、分组、成本去重与缺失指标)
-    survey_result_coverage.py             # 新矩阵覆盖准备：显式期望/排除格与规范化观测对账；不推断最终矩阵、不授予正式资格
-    survey_recipe_registry.py             # P4.1 中心 recipe registry：闭集/schema/digest 与 manifest 绑定校验（纯函数）
-    survey_provenance.py                  # P2.2 报告身份块: 输入结果根/协议与对照摘要纯组装, git 只在入口 main 打戳, 渲染不带时间戳
-    batch_evidence.py                     # §5.6 批次证据包: 内容寻址的 commit/uv.lock/协议/环境身份, 读回校验 run 与包同批, 装配 manifest 引用块
-    survey_workbook.py                    # 交付工作簿版式: 汇总报告 → 协议 §5.1 四组各一页 + diagnostic/coverage/readme，不排名、缺 seed 行只进 coverage（纯函数，需 openpyxl）
-    survey_diagnostics.py                 # 方法诊断卡: 汇总报告按执行计划 §1.4.5 信号逐方法出观测与异常标记，列出算不了的信号，标记只是提示（纯函数）
-    survey_recipe_binding.py              # 候选池制品 v2、逐候选身份与 PA/OA trajectory 对账
-    clean_support_adapters.py             # Self-PU 完整 meta / LaGAM 独立支持集审计与终点 OA 接线
-    support_data.py                       # 独立 clean support：raw 重建或冻结 split carve、seed 策略、五角色制品校验
-    support_checkpoints.py                # 独立 support 的 meta 快照与 PA+clean-support/OA 双轨选择
-    genpu_recipe.py                       # GEN-PU 单候选工程配方、六网络成本与 PN 阶段 checkpoint 守卫
-    candidate_image_runner.py             # PULDA/GradPU 图像轨迹、实际阶段成本与快照字节守卫
-    survey_profile_identity.py            # 显式草案 profile/算法映射、身份清单与五角色/旧绑定拒绝
-    survey_staged_budget.py               # GEN-PU/PULDA 显式阶段预算、原生训练成本与快照体积核验
-    survey_episodic_budget.py             # Robust/Split/Holistic 原生 episode、停止规则与 LZO 已付成本核验
-    classical_candidate.py                # PUET 逐树与 RP 嵌套拟合的非 epoch 成本收据
-    kernel_candidate.py                   KLDCE 先验策略、稠密内存/可行性预检与成本收据
-    survey_backlog.py                     # 当前方法执行适配器、先验/阶段/实际资源核验
-    survey_conclusions.py                 # 结论分析: 按 §1.4.5 信号给结论归因，区分文献事实/本实验观测/推断；无信号、无证据或无来源的结论一律拒绝（纯函数）
-    reporting.py                          (summary 文本/JSON/CSV、四组工作簿、诊断卡与结论写出)
-    results.py                            (v3 manifest 只读消费、身份与预算一致性、seed 聚合和来源披露)
-    research_settings.py                  # 实验采样、风险池、先验输入、监督与表征设置及可读摘要
+    __init__.py                           (public PUPipeline, PipelineReport, and ShiftAware reports)
+    pipeline.py                           (implemented: PUPipeline profile→prior→training→CV→diagnostics; mlp/cnn and auto recommendations)
+    _evaluation.py                        (metric resolution, PU-aware CV execution, and aggregation)
+    _inputs.py                            (input validation, splitter preparation, and CV provenance)
+    _models.py                            (private workflow classifier/prior resolution, instantiation, and parameter checks)
+    _reporting.py                         (private build_pipeline_report assembly and provenance normalization)
+    report.py                             (PipelineReport/PriorInfo/CVMetric data classes; to_dict/to_json/save contracts)
+    shift.py                              (implemented: ShiftAwarePUPipeline paired baseline/weighted comparisons → ShiftComparisonReport)
+  cli/                                    (argparse subcommands and thin workflow wrappers)
+    __init__.py                           (build_parser/main assembles subcommands; user errors → exit 1)
+    run.py                                (run: two CSV inputs, three standard output files, exit codes 0/1/2)
+    info.py                               (list-methods/list-priors: registered classifiers and priors, with explicit km1/km2 entries)
+    demo.py                               (make-demo-data: SCAR X/y_pu/y_true CSV files checked for five-fold usability)
+    profile.py                            (profile: profiles and SCAR/SAR diagnostics; writes profile.json for recommend)
+    recommend.py                          (recommend: reads profile.json, recommends methods/estimates priors, writes recommendation.json)
+    sensitivity.py                        (sensitivity: prior/propensity scans with fixed predictions; writes sensitivity.json)
+    audit_benchmark.py                    (audit-benchmark: result audits, PASS/FAIL summaries, optional JSON)
+    skill.py                              (skill: installs the wheel's pu-workflow skill into user agent directories)
+    shift.py                              (shift-audit/shift-run: shift audit and weighted-training comparison; writes shift_report/comparison artifacts)
+    deployment.py                         (shift-monitor/review deployment commands and artifact exports)
+  ui/                                     (optional Streamlit UI; core installation does not import streamlit)
+    __init__.py                           (public data loading, run configuration, deployment analysis, and parameter catalogs)
+    app.py                                (Streamlit main(): upload→configuration→background training→results)
+    configuration.py                      (run configuration/session-state adapters: apply_run_configuration/parse_json_mapping)
+    data.py                               (CSV/NPY parsing and validation: load_feature_data including 4-D NCHW, and load_label_data)
+    execution.py                          (execute_analysis normal/tuning/comparison dispatch; finalize_run history completion)
+    history.py                            (process-wide history: thread-safe append/snapshot; retained on refresh, cleared on restart)
+    parameters.py                         (parameter metadata and typed widgets: classifier_catalog signature reflection/parameter_schema/render_parameter_form)
+    results.py                            (render_results metrics, diagnostic hints, and JSON/MD/pkl downloads)
+    runtime.py                            (submit_background/BackgroundRun thread pool, progress snapshots, and cooperative cancellation)
+    launcher.py                           (pu-toolbox-ui main() wraps streamlit run app.py)
+    deployment.py                         (UI-independent analyze_deployment_window and render_deployment_tools panel)
+  experiment/                             # public four-role experiments, PA/OA, independent testing, read-only summaries/reports
+    cvir_adapter.py                       # independent CVIR wiring for explicit OS alpha_U and population-pi/view-prior conversion
+    pulns_adapter.py                      # extra clean-support role/group isolation, budget, and endpoint OA gates; ADNI isolation marked unverifiable
+    __init__.py                           (public ExperimentRunner/DatasetBundle/strategies/resource summaries/select_threshold)
+    bundle.py                             (four-role data contract: DatasetPart/DatasetBundle/validate_bundle)
+    datasets.py                           (eight Survey datasets, official/derived test policies, deterministic four-role splits)
+    feature_adapter.py                    (CNN-to-2-D features, encoder/feature hashes, and leaderboard fairness-group gates)
+    image.py                              (train-only image statistics, scaling, ResNet-18/augmentation configuration, and hashes)
+    candidate_image.py                    (PULDA shared ResNet-18 / GradPU private BN-free image construction; technical, without formal admission)
+    text.py                               (fixed SBERT vectors, revision tracking, verified content-addressed cache keyed by deduplicated corpus rather than order; same text has equal features across seeds)
+    training_views.py                     (Survey boundary adapter: ledger gates, routing, legacy run_view vocabulary, manifest records; delegates role construction to core.training_views)
+    manifest.py                           (manifest writing/loading and required-key validation)
+    protocols.py                          (Generator/Trainer/SelectionProtocol strategy ABCs)
+    resources.py                          (candidate/tuning/GPU resource accounting, environment detection, cross-seed summaries)
+    runner.py                             (ExperimentRunner validation, PU views, candidate training, PA/OA selection, independent testing)
+    strategies.py                         (SCAR/SAR-LBE generators, PA/OA selection, three Trainer implementations, select_threshold)
+    tracking.py                           (EpochRecord/RunTrajectory/SelectionArtifact/RunResult provenance data classes)
+    survey_execution.py                   (P2.0a shared model/image assembly, random frozen-adapter validation cache, original-space SAR labeling)
+    survey_protocol.py                    (single v3.2 execution configuration, parameter/budget locks, actual run identities; historical results load independently)
+    checkpoints.py                        # per-epoch weight snapshots, digest checks, and independent inference restoration
+    split_archive.py                      # cross-host artifacts: per-file digest index, deterministic tar, receiver verification
+    pilot_plan.py                         # deterministic grids, completion checks, checkpoint space estimates, scope filters
+    method_ledger.py                      # Survey method-ledger access; enumeration separated from the programmatic source of truth
+    survey_summary.py                     (pure statistics: seed means/sample standard deviations, groups, deduplicated costs, missing metrics)
+    survey_result_coverage.py             # explicit expected/excluded cells and normalized observation reconciliation; does not infer the final matrix or grant formal eligibility
+    survey_recipe_registry.py             # P4.1 recipe registry: closed sets/schema/digests and manifest binding checks (pure functions)
+    survey_provenance.py                  # P2.2 report identity: pure assembly of result roots/protocol/control digests; Git stamping only in main, no render timestamps
+    batch_evidence.py                     # §5.6 content-addressed commit/uv.lock/protocol/environment evidence; verifies run/batch identity and builds manifest references
+    survey_workbook.py                    # report → four protocol §5.1 sheets + diagnostic/coverage/readme; no ranking, incomplete seeds only in coverage (pure functions; openpyxl)
+    survey_diagnostics.py                 # per-method observations and advisory flags from plan §1.4.5 signals; lists unavailable signals (pure functions)
+    survey_recipe_binding.py              # v2 candidate-pool artifacts, candidate identities, PA/OA trajectory reconciliation
+    clean_support_adapters.py             # Self-PU full-meta / LaGAM independent-support audits and endpoint OA wiring
+    support_data.py                       # independent clean support: raw reconstruction/frozen-split carving, seed policy, five-role artifact validation
+    support_checkpoints.py                # independent-support meta snapshots and PA+clean-support/OA selection tracks
+    genpu_recipe.py                       # single-candidate GEN-PU engineering recipe, six-network cost, PN-stage checkpoint guards
+    candidate_image_runner.py             # PULDA/GradPU image trajectories, actual stage costs, snapshot-byte guards
+    survey_profile_identity.py            # explicit draft profile/algorithm mapping, identity inventory, rejection of five-role/legacy binding mismatches
+    survey_staged_budget.py               # explicit GEN-PU/PULDA stage budgets, native costs, snapshot-size verification
+    survey_episodic_budget.py             # native Robust/Split/Holistic episodes, stopping rules, paid LZO cost checks
+    classical_candidate.py                # non-epoch cost receipts for PUET trees and RP nested fits
+    kernel_candidate.py                   KLDCE prior policy, dense-memory/feasibility preflight, and cost receipts
+    survey_backlog.py                     # current execution adapters; prior/stage/actual-resource checks
+    survey_conclusions.py                 # §1.4.5 signal attribution separates literature facts, observations, and inference; rejects unsupported conclusions (pure functions)
+    reporting.py                          (summary text/JSON/CSV, four-group workbooks, diagnostics, and conclusions)
+    results.py                            (read-only v3 manifests, identity/budget consistency, seed aggregation, provenance disclosure)
+    research_settings.py                  # sampling, risk pools, prior inputs, supervision, representation, and readable summaries
   __init__.py
-  run_config.py                           (已实现: RunConfiguration 可移植 JSON 运行配置, CLI/UI 共用, schema_version 校验)
-  progress.py                             (CancellationToken/emit_progress: 协作取消与进度回调原语)
+  run_config.py                           (implemented: portable RunConfiguration JSON shared by CLI/UI; schema_version validation)
+  progress.py                             (CancellationToken/emit_progress cooperative cancellation and progress callbacks)
 ```
 
-## 3. 测试（`tests/`）
+## 3. Tests (`tests/`)
 
 ```text
 tests/
-  contract/                             # 契约测试 — 写一次，所有 NATIVE 分类器复用
-    test_classifier_baseline.py         # fit/predict/decision_function/get_params 等
-    test_capability_declarations.py     # 能力声明 4 组不变量契约测试
-    test_build_encoder_export.py        # build_encoder 双层导出契约(mlp→None/ValueError/结构一致)
-    test_ledger_registry_consistency.py # 台账↔registry 字段/校准/采样一致性契约(+ HENG958 负责人复核、行号引用禁令)
-    test_public_exports.py              # 公共导出契约: 包 __init__ 的 __all__ 声明名必须真实存在(星号导入不炸), 补 check_api_docs 覆盖不到的漂移
-    test_layer_boundaries.py            # 下层对 experiment 层的依赖边界 ratchet(静态 AST 扫描抓函数内导入 + 子进程导入图抓传递依赖)
-    test_registry_dynamic_import.py     # registry 经 importlib 按名字动态加载 estimators/prior 的向上边(Core→Algorithms/Estimation): 静态 AST 扫描与子进程导入图都看不见的已裁决例外, 由注册表观测量钉住
-    conftest.py                         # contract 测试共享 fixture(ledger_methods: 加载台账并注册内置方法)
-    test_pulns_literature_anchors.py    # PULNS Table 3 公开锚点、协议来源与离散度单位歧义
-  estimators/                           # 按方法的测试（MATH/PROPERTY/API）
+  contract/                             # reusable contracts for all NATIVE classifiers
+    test_classifier_baseline.py         # fit/predict/decision_function/get_params
+    test_capability_declarations.py     # four groups of capability invariants
+    test_build_encoder_export.py        # build_encoder dual exports: mlp→None, ValueError, structural consistency
+    test_ledger_registry_consistency.py # ledger/registry fields, calibration, sampling, HENG958 owner review, no line-number citations
+    test_public_exports.py              # __all__ names must exist and star imports must work; complements check_api_docs
+    test_layer_boundaries.py            # experiment dependency ratchet: AST includes local imports; subprocess graphs detect transitive imports
+    test_registry_dynamic_import.py     # approved Core→Algorithms/Estimation importlib exception; registry observations cover edges invisible to static AST/import graphs
+    conftest.py                         # shared ledger_methods fixture loads ledger and registers built-ins
+    test_pulns_literature_anchors.py    # PULNS Table 3 anchors, protocol sources, dispersion-unit ambiguity
+  estimators/                           # method-specific MATH/PROPERTY/API tests
     risk/
-      test_ldce_math.py                 # LDCE 算法正确性 (MATH: MoM, 协方差, m-更新, 梯度)
-      test_ldce_core.py                 # LDCE fit/predict/属性/标签 (unit)
-      test_ldce_api.py                  # LDCE 收敛/约束/API/错误/回归 (unit)
-      test_kldce_math.py                # KLDCE 公式验证 + QP oracle + bias 恢复 (MATH)
-      test_kldce_property.py            # KLDCE 约束/鲁棒性 (PROPERTY)
-      test_kldce_kkt.py                 # KLDCE 真 KKT 残差(乘子恢复)+ ACS 收敛 (unit)
-      test_kldce_smo.py                 # KLDCE 原生 SMO 求解器/等价/增量梯度 (unit)
-      test_class_prior.py               # 类先验推导与质心分母共享助手 (unit)
+      test_ldce_math.py                 # LDCE MoM, covariance, m-update, gradients (MATH)
+      test_ldce_core.py                 # LDCE fit/predict/attributes/labels (unit)
+      test_ldce_api.py                  # LDCE convergence/constraints/API/errors/regressions (unit)
+      test_kldce_math.py                # KLDCE formulas, QP oracle, bias restoration (MATH)
+      test_kldce_property.py            # KLDCE constraints/robustness (PROPERTY)
+      test_kldce_kkt.py                 # true KKT residuals with multiplier recovery, ACS convergence (unit)
+      test_kldce_smo.py                 # native SMO solver, equivalence, incremental gradients (unit)
+      test_class_prior.py               # shared prior derivation and centroid denominator helpers (unit)
       __init__.py
     research/
-      test_dynamic_joint_shift_math.py  # 论文目标手算金标准、修正边界与动态训练
+      test_dynamic_joint_shift_math.py  # hand-calculated paper objectives, correction boundaries, dynamic training
     __init__.py
-  unit/                                 # 算法特有逻辑测试
+  unit/                                 # component-specific logic
     diagnostics/
-      test_report.py                    # 诊断报告指标、输入契约与序列化
-      test_sensitivity.py               # 假设扫描公式、边界与导出
-      test_benchmark_audit.py           # 持久化 benchmark 产物审计测试
-      test_shift.py                     # 漂移审计、相对权重、ESS 与序列化测试
-      test_domain_assumptions.py        # 双域先验/标记机制分解、可行性与序列化
-      test_shift_monitor.py             # 窗口 delta、告警、历史恢复与配置门禁
-      test_uncertainty.py               # 拒绝覆盖、三类查询策略与逐行产物
+      test_report.py                    # report metrics, input contracts, serialization
+      test_sensitivity.py               # assumption-scan formulas, boundaries, exports
+      test_benchmark_audit.py           # persisted benchmark artifact audits
+      test_shift.py                     # shift audits, relative weights, ESS, serialization
+      test_domain_assumptions.py        # two-domain prior/mechanism decomposition, feasibility, serialization
+      test_shift_monitor.py             # window deltas, alerts, history restoration, configuration gates
+      test_uncertainty.py               # rejection coverage, three query policies, per-row artifacts
     estimators/
-      test_elkan_noto.py                # Elkan-Noto 特有逻辑(OOF propensity 估计接近真 c、加权重训、类先验估计、predict_proba 列归一、pipeline 兼容)
-      test_upu.py                       # uPU 特有逻辑(可分边界、类先验敏感性、全 loss 变体、PU-CV λ 搜索、验证风险公式)
-      test_nnpu.py                      # nnPU 特有逻辑（含训练动态/早停）
-      test_nnpu_encoder.py              # nnPU encoder 注入(Sequential 组合/4-D 边界/默认回归)
-      test_bias_aware.py                # PUSB / LBE 特有逻辑(LBE propensity 有界性、单 EM 迭代、PUSB 全正报错、参数与类先验校验)
-      test_pusb_kernel.py               # official-aligned PUSB 公式、CV 与确定性
-      test_dist_pu.py                   # Dist-PU 特有逻辑(torch 依赖 importorskip、mixup 权重边界、class prior/epochs 参数校验)
-      test_vpu.py                       # VPU 公式 golden、归一化、注册/pipeline、checkpoint 与 CUDA smoke
-      test_vpu_ts_view.py               # VPU 的 TS-OS 训练视图(两池由核心角色位置产生、裸默认等价 ts、验证只请求 train 角色)
-      test_pulda.py                     # PULDA 双损失 golden、两阶段轨迹、注册/pipeline、checkpoint 与 CUDA smoke
-      test_grad_pu.py                   # GradPU 公式 golden、接口/注册、确定性、checkpoint 与 CUDA smoke
-      test_robust_pu.py                 # Robust-PU 自步权重、接口/注册、确定性、checkpoint 与 CUDA smoke
-      test_split_pu.py                  # Split-PU JS 公式、阶段、接口、确定性、checkpoint 与 CUDA smoke
-      test_lagam.py                     # LaGAM 二阶元标签、support 门禁、聚类对比与 CUDA smoke
-      test_puet.py                      # PUET 节点风险 golden、树集成、确定性、pickle 与 pipeline
-      test_self_pu.py                   # Self-PU pace/meta/EMA/三阶段训练
-      test_deep_pu.py                   # InfoMax PU/WConPU/DGPU 接口与 registry
-      test_deep_pu_vision.py            # WConPU 视觉骨干与张量增强
-      test_vision.py                    # 统一深度编码器入口 build_encoder
-      test_deep_vision_pickle.py        # 深度视觉模块 pickle 往返(E2/E3 回归;importorskip torch)
-      test_llsvm.py                     # LLSVM 特有逻辑(可分离合成训练、calibration 防全正、早停与显式先验路径)
-      test_encoder_validation.py        # validate_encoder_features 单元测试(2-D/有限/维度边界)
-      test_nnpu_gpu.py                  # nnPU CNN encoder GPU 执行级测试(无 CUDA 自动 skip)
-      test_nnpu_ts_view.py              # nnPU 的 TS-OS 训练视图（并集输入、视图门禁、验证保持 OS）
-      test_upu_ts_view.py               # UPUClassifier 的 TS-OS 训练视图(独立重推 golden、solver 池与分母、RBF 中心池)
-      test_pusb_kernel_ts_view.py       # PUSBKernelClassifier 的 TS-OS 训练视图(独立重推 golden、角色集与分母、OS 冻结基线)
-      test_pusb_kernel_view_invariants.py # PUSBKernel 视图不变量(中心/fold/阈值池不变、角色重合但不复制物理样本)
-      test_dist_pu_ts_view.py           # DistPU OS/TS 视图、expectation 冻结基线与 author-histogram 独立 golden
-      test_dist_pu_view_invariants.py   # DistPU 视图不变量(角色集在 fit 使用处钉住、两正则权重置零时逐位同轨、Mixup 池与 RNG 序列不变)
-      test_self_pu_ts_view.py           # SelfPU 视图的数学期望与 OS 冻结基线(两套配置 A 消融/B clean-meta、混合字面量独立手算、alpha 按行数非固定半、改造前后逐位等价)
-      test_self_pu_view_invariants.py   # SelfPU 视图不变量(负角色行数=未信任 U 行数、校准标志只出现在训练装配处、RNG 与前向次数两视图一致、trusted 人口与 pace 不随视图变化)
-      test_cvir.py                      # CVIR 负例保留顺序、先验门禁与显式 TS 路由
-      test_pan.py                       # PAN 公式、梯度隔离与保存加载
-      test_pulns.py                     # PULNS 奖励、support 隔离与空负例
-      test_rank_pruning.py              # Rank Pruning OOF、剪枝与噪声权重
-      test_gen_pu.py                    # GenPU anti-GAN 方向与风险池校准
-      test_holistic_pu.py               # Holistic-PU 论文/代码分歧与训练
-      test_p3mix.py                     # P3Mix 训练变体、检查点及工程边界
-      test_p3mix_math.py                # P3Mix 原文公式与纯候选/MixUp 辅助
-      test_pan_cnn.py                   # PAN 双编码器 CNN 更新、隔离与 checkpoint 回放
-      test_pulda_cnn.py                 # PULDA CNN 两阶段训练、CPU 图像驻留与权重回放
-      test_pulda_augmentation.py        # PULDA 两阶段逐批增强、MixUp 顺序、拒绝与模板隔离
-      test_grad_pu_cnn.py               # GradPU 原图二阶梯度、无 BN 编码器与权重回放
-      test_grad_pu_training_recipe.py   # GradPU 实际Adam调度、batch/更新数及运行声明
-      test_grad_pu_memory.py            # GradPU 暂存前后二阶梯度、RNG 与完整更新等价性
-      test_grad_pu_split_backward.py    # GradPU 分量反传/GP 分块与 joint 的损失、参数和 RNG 等价性
-      test_pulda_gradpu_inference_modes.py # PULDA/GradPU逐模块推理模式恢复、异常路径与BN/RNG不变性
-      test_split_pu_review_characterization.py # Split-PU #122 的JSD方向/分母与mini-batch总体混合反例
-      test_robust_pu_cnn.py             # Robust-PU CNN 阶段、BN 隔离与 CPU 权重/快照回放
-      test_split_pu_cnn.py              # Split-PU 多层 CNN 蒸馏、阶段隔离与快照回放
-      test_p3_budget_selection_evidence.py # 五方法预算计数、来源适配和选择签名边界
-      test_p3_source_behavior.py        # 五方法独立标量来源公式、梯度和边界对照
-      test_holistic_pu_cnn.py           # Holistic-PU 双阶段 CNN、模板/BN 隔离与快照回放
-      test_holistic_pu_initialization.py # Holistic-PU 后段重初始化、Adam 隔离与累计成本
-      test_holistic_pu_lzo.py           # Holistic-PU 正例 mixup 终点选择、状态恢复与全预算成本测试
-      test_pulns_cnn.py                 # PULNS CNN/奖励 probe 隔离、状态提取、最佳模型与全预算成本
-      test_gen_pu_cnn.py                # GEN-PU 像素生成、四 CNN 隔离、G 梯度、六网络成本与快照回放
-      test_lbe_review.py                # LBE 源公式、概率契约、重训失效与来源/校准复核
-      test_lbe_neural.py                # 神经 LBE 的预算、模板/随机性、序列化与 OS-only 边界
-      test_lbe_neural_math.py           # LBE 联合后验、完整似然梯度与极端 logits 独立数学对照
-      test_vpu_schedule.py              # VPU 源 Adam 重置边界、固定训练步数与默认兼容
-      test_vpu_encoder_stream.py        # VPU 注入 CNN、全局流式诊断、设备批次与快照兼容
-      test_cvir_source_encoder.py       # CVIR 来源差异/独立梯度、CNN 分批、U 排序与阶段快照
-      test_lagam_encoder_stream.py      # LaGAM CNN/support 分批、BN/RNG 隔离、快照与预算拒绝
-      test_lagam_virtual_scope.py       # LaGAM 虚拟范围的独立有限差分、双列扰动及平局数学对照
-      test_puet_adaptation_contract.py  # PUET 子叶约束、完整阈值、负增益拒绝与越界特征数适配回归
-      test_tedn.py                      # TEDn 公式梯度、原生 TS 契约与真实 BBE 合成训练
-      test_tedn_training.py             # TEDn 更新前估计、CNN 留出隔离、收敛与 checkpoint 回放
-      test_robust_pu_source_contract.py # Robust-PU 独立公式/真实梯度、逐行移动权重与源调度子集
-      test_candidate_fit_failures.py    # 五候选算法失败重训/回调与成功路径不变性
-      test_extended_candidate_fit_failures.py # 扩展候选参数绑定/取消与成功重训状态保护
-      test_pan_prediction_modes.py      # PAN 推理逐层模式/BN/RNG 隔离与异常恢复
-      test_pan_source_contract.py       # PAN 独立解析梯度、真实交替采样与来源绑定
-      test_rank_pruning_source_contract.py # RP 独立排序/计数、真实 OOF 隔离与最终重权成本
-      test_nnpu_lifecycle.py            # nnPU 失败重训失效、评分逐层模式恢复与成功训练等价
-      test_self_pu_lifecycle.py         # Self-PU 失败重训失效、teacher 评分隔离与 OS/TS 选择路径等价
-      test_self_pu_parameters.py        # Self-PU 有限实数/整数预算边界、RNG 早失败隔离与 NumPy 标量兼容
-      test_dist_pu_encoder.py           # Dist-PU encoder 两阶段/CPU-stream、singleton BN、旧 MLP 与快照兼容
-      test_p3mix_input_isolation.py     # 三变体原地网络输入隔离与异常模式恢复
-      test_cvir_input_modes.py          # CVIR原地输入隔离、推理模式及参数提前失败
-      test_lagam_paper_behavior.py      # LaGAM 独立 BCE/对比参考式、零梯度与硬标签元步
-      test_pulns_checkpoints.py         # PULNS episode 回调、默认兼容、失败失效和内部 best 恢复
-      test_cvir_calibration.py          # CVIR 训练风险池校准、角色展开逐位对照与失败/回放边界
-      test_p3mix_batching.py            # 合并切批、单角色尾批与原默认兼容性
-      test_kldce_feasible_start.py      # 单等式盒约束可行点、独立 LP 与大规模回归
+      test_elkan_noto.py                # OOF propensity near true c, weighted refit, priors, normalized probabilities, pipeline
+      test_upu.py                       # separable boundaries, prior sensitivity, loss variants, PU-CV λ search, validation risk
+      test_nnpu.py                      # nnPU training dynamics and early stopping
+      test_nnpu_encoder.py              # encoder injection, Sequential composition, 4-D boundaries, default regression
+      test_bias_aware.py                # LBE bounded propensity/EM, all-positive PUSB errors, parameter/prior validation
+      test_pusb_kernel.py               # official-aligned formulas, CV, determinism
+      test_dist_pu.py                   # optional torch, mixup boundaries, class-prior/epochs validation
+      test_vpu.py                       # golden formulas, normalization, registry/pipeline, checkpoints, CUDA smoke
+      test_vpu_ts_view.py               # core-role TS/OS pools, bare default equals TS, validation requests only train roles
+      test_pulda.py                     # golden dual losses, two-stage trajectories, registry/pipeline, checkpoints, CUDA smoke
+      test_grad_pu.py                   # golden formulas, API/registry, determinism, checkpoints, CUDA smoke
+      test_robust_pu.py                 # self-paced weights, API/registry, determinism, checkpoints, CUDA smoke
+      test_split_pu.py                  # JS formulas, stages, API, determinism, checkpoints, CUDA smoke
+      test_lagam.py                     # second-order meta-labels, support gates, cluster contrast, CUDA smoke
+      test_puet.py                      # golden node risks, ensembles, determinism, pickle, pipeline
+      test_self_pu.py                   # pace/meta/EMA/three-stage training
+      test_deep_pu.py                   # InfoMax PU/WConPU/DGPU API and registry
+      test_deep_pu_vision.py            # WConPU vision backbones and tensor augmentation
+      test_vision.py                    # shared build_encoder entry point
+      test_deep_vision_pickle.py        # vision pickle round trips, E2/E3 regressions; optional torch
+      test_llsvm.py                     # separable synthetic training, calibration against all-positive output, early stopping, explicit priors
+      test_encoder_validation.py        # validate_encoder_features: 2-D, finite values, dimension boundaries
+      test_nnpu_gpu.py                  # CNN encoder GPU execution; skips without CUDA
+      test_nnpu_ts_view.py              # TS/OS union input, view gates, OS validation
+      test_upu_ts_view.py               # independent golden TS/OS derivation, solver pools/denominators, RBF centers
+      test_pusb_kernel_ts_view.py       # golden TS/OS roles/denominators, frozen OS baseline
+      test_pusb_kernel_view_invariants.py # unchanged centers/folds/threshold pools; overlapping roles without physical duplication
+      test_dist_pu_ts_view.py           # OS/TS views, frozen expectation baseline, independent author-histogram golden
+      test_dist_pu_view_invariants.py   # fit-role sets, bitwise equivalence with zero regularizers, unchanged Mixup pools/RNG
+      test_self_pu_ts_view.py           # view expectations, frozen OS baseline, A ablation/B clean-meta, independent mixture arithmetic, row-count alpha, bitwise equivalence
+      test_self_pu_view_invariants.py   # negative-role count equals untrusted U, calibration only in training assembly, equal RNG/forward counts, unchanged trusted population/pace
+      test_cvir.py                      # negative retention order, prior gates, explicit TS routing
+      test_pan.py                       # formulas, gradient isolation, save/load
+      test_pulns.py                     # rewards, support isolation, empty negatives
+      test_rank_pruning.py              # OOF, pruning, noise weights
+      test_gen_pu.py                    # anti-GAN direction and risk-pool calibration
+      test_holistic_pu.py               # paper/code differences and training
+      test_p3mix.py                     # training variants, checkpoints, engineering boundaries
+      test_p3mix_math.py                # source formulas and pure candidate/MixUp helpers
+      test_pan_cnn.py                   # dual-encoder CNN updates, isolation, checkpoint replay
+      test_pulda_cnn.py                 # two-stage CNN, CPU-resident images, weight replay
+      test_pulda_augmentation.py        # per-batch two-stage augmentation, MixUp order, rejection, template isolation
+      test_grad_pu_cnn.py               # original-image second-order gradients, BN-free encoder, weight replay
+      test_grad_pu_training_recipe.py   # actual Adam schedule, batch/update counts, run declarations
+      test_grad_pu_memory.py            # offload equivalence of second-order gradients, RNG, full updates
+      test_grad_pu_split_backward.py    # component/GP-chunk vs joint backward loss, parameter, RNG equivalence
+      test_pulda_gradpu_inference_modes.py # per-module inference-mode restoration, errors, BN/RNG invariance
+      test_split_pu_review_characterization.py # #122 JSD direction/denominator and mini-batch population-mixture counterexample
+      test_robust_pu_cnn.py             # CNN stages, BN isolation, CPU weights/snapshot replay
+      test_split_pu_cnn.py              # multilayer CNN distillation, stage isolation, snapshot replay
+      test_p3_budget_selection_evidence.py # five-method budgets, source adaptation, selection-signature boundaries
+      test_p3_source_behavior.py        # independent scalar source formulas, gradients, boundaries for five methods
+      test_holistic_pu_cnn.py           # two-stage CNN, template/BN isolation, snapshot replay
+      test_holistic_pu_initialization.py # later-stage reinitialization, Adam isolation, cumulative costs
+      test_holistic_pu_lzo.py           # positive-mixup endpoint selection, state restoration, full-budget costs
+      test_pulns_cnn.py                 # CNN/reward-probe isolation, state extraction, best model, full-budget costs
+      test_gen_pu_cnn.py                # pixel generation, four-CNN isolation, G gradients, six-network costs, replay
+      test_lbe_review.py                # source formulas, probability contracts, failed refit invalidation, provenance/calibration
+      test_lbe_neural.py                # budgets, templates/randomness, serialization, OS-only boundaries
+      test_lbe_neural_math.py           # joint posterior, full-likelihood gradients, independent extreme-logit references
+      test_vpu_schedule.py              # source Adam resets, fixed steps, default compatibility
+      test_vpu_encoder_stream.py        # injected CNN, global streamed diagnostics, device batching, snapshot compatibility
+      test_cvir_source_encoder.py       # source differences/independent gradients, CNN batching, U ordering, stage snapshots
+      test_lagam_encoder_stream.py      # CNN/support batching, BN/RNG isolation, snapshots, budget rejection
+      test_lagam_virtual_scope.py       # independent finite differences, two-column perturbations, mathematical tie references
+      test_puet_adaptation_contract.py  # child-leaf constraints, full thresholds, negative-gain rejection, out-of-range feature-count adaptation
+      test_tedn.py                      # formula gradients, native TS contracts, real BBE synthetic training
+      test_tedn_training.py             # pre-update estimates, CNN holdout isolation, convergence, checkpoint replay
+      test_robust_pu_source_contract.py # independent formulas/actual gradients, per-row moving weights, source-schedule subset
+      test_candidate_fit_failures.py    # failed refits/callbacks and unchanged success paths for five candidates
+      test_extended_candidate_fit_failures.py # extended parameter binding/cancellation and successful-refit state guards
+      test_pan_prediction_modes.py      # per-layer inference modes, BN/RNG isolation, error recovery
+      test_pan_source_contract.py       # independent analytical gradients, actual alternating sampling, source binding
+      test_rank_pruning_source_contract.py # independent sort/count, real OOF isolation, final reweighting costs
+      test_nnpu_lifecycle.py            # failed-refit invalidation, per-layer scoring-mode restoration, successful-training equivalence
+      test_self_pu_lifecycle.py         # failed-refit invalidation, teacher scoring isolation, OS/TS selection equivalence
+      test_self_pu_parameters.py        # finite real/integer budgets, early-failure RNG isolation, NumPy scalars
+      test_dist_pu_encoder.py           # two-stage/CPU-stream encoders, singleton BN, legacy MLP/snapshot compatibility
+      test_p3mix_input_isolation.py     # in-place network-input isolation and error-mode restoration across three variants
+      test_cvir_input_modes.py          # in-place input isolation, inference modes, early parameter failure
+      test_lagam_paper_behavior.py      # independent BCE/contrast references, zero gradients, hard-label meta-step
+      test_pulns_checkpoints.py         # episode callbacks, default compatibility, failed-state invalidation, internal-best restoration
+      test_cvir_calibration.py          # training-risk-pool calibration, bitwise expanded-role references, failure/replay boundaries
+      test_p3mix_batching.py            # combined batching, single-role tail batches, default compatibility
+      test_kldce_feasible_start.py      # single-equality box feasibility, independent LP, large-scale regression
     losses/
       test_nnpu_loss.py                 # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py                  # uPU golden tests (MATH + PROPERTY)
       test_llsvm_loss.py                # LLSVM loss golden tests (MATH)
       test_pnu_loss.py                  # PNU loss golden tests (MATH)
     metrics/
-      test_classification.py            # PU 指标测试(average_precision/pu_recall/pu_estimated_precision/pu_negative_rate 手算 golden、与 sklearn 对照、空组与低先验边界)
+      test_classification.py            # hand-calculated average_precision/pu_recall/pu_estimated_precision/pu_negative_rate, sklearn references, empty groups, low priors
     model_selection/
-      test_comparison.py                # 多模型比较、失败隔离与选择方向
-      test_split.py                     # PU 切分器测试(每折保正样本、无重叠全覆盖、PU 比率近似保持、正样本数下限 MIN_POSITIVE_SAMPLES)
-      test_tuning.py                    # PUTuner 网格、选择方向与不可用指标
+      test_comparison.py                # model comparison, failure isolation, selection direction
+      test_split.py                     # positives per fold, disjoint complete coverage, approximate PU ratios, MIN_POSITIVE_SAMPLES
+      test_tuning.py                    # PUTuner grids, selection direction, unavailable metrics
     ui/
-      test_history.py                   # 进程级运行历史与收尾条目写入(D9 回归)
-      test_ui_helpers.py                # 上传解析、类型化参数、配置状态与模型目录
-      test_runtime.py                   # 后台运行、进度快照与协作式取消
-      test_deployment.py                # UI 部署分析辅助函数与错误路径
-      test_cnn_candidates.py            # CNN 候选集与骨架清单元数据驱动(registry 能力声明推导)
+      test_history.py                   # process-wide history and final entries (D9 regression)
+      test_ui_helpers.py                # upload parsing, typed parameters, configuration state, model catalogs
+      test_runtime.py                   # background runs, progress snapshots, cooperative cancellation
+      test_deployment.py                # deployment-analysis helpers and error paths
+      test_cnn_candidates.py            # registry-capability-driven CNN candidate/backbone catalogs
     prior/
-      test_recpe.py                     # ReCPE 特有逻辑(copy fraction 边界、自定义基分类器/基估计器、默认 KM2 基、置信区间 None、密度比分位数)
-      test_pen_l1.py                    # penL1 特有逻辑(自动 σ=中位数带宽、先验分离带/低先验带、估计有界)
-      test_kernel_mean.py               # KM1/KM2 kernel-mean 类先验估计
-      test_bbe.py                       # BBE 独立尾部公式、置信准则、重复分数与训练/留出隔离
-      test_prior_semantics.py           # 先验目标、质量恒等式、非法域与可辨识混合分布
+      test_recpe.py                     # copy-fraction boundaries, custom base classifier/estimator, default KM2, None confidence interval, density-ratio quantiles
+      test_pen_l1.py                    # automatic median-bandwidth σ, separated/low-prior bands, bounded estimates
+      test_kernel_mean.py               # KM1/KM2 kernel-mean prior estimation
+      test_bbe.py                       # independent tail formulas, confidence criteria, repeated scores, train/holdout isolation
+      test_prior_semantics.py           # prior targets, mass identities, invalid domains, identifiable mixtures
     preprocessing/
-      test_pu_labeling.py               # PU/PNU 标签生成(6 公共函数、统一分发器、参数校验与确定性)
-      test_selection_bias.py            # SCAR/SAR propensity、标记率校准与合成数据
-      test_profiling.py                 # 数据画像统计(pu_data_summary/pnu_data_summary 计数与比率、NaN/Inf 标记、稀疏输入与标签规范化)
-      test_data_profiler.py             # 结构化报告、质量规则与审计诊断
+      test_pu_labeling.py               # six public PU/PNU label functions, dispatcher, validation, determinism
+      test_selection_bias.py            # SCAR/SAR propensities, labeling-rate calibration, synthetic data
+      test_profiling.py                 # pu_data_summary/pnu_data_summary counts/ratios, NaN/Inf flags, sparse input, label normalization
+      test_data_profiler.py             # structured reports, quality rules, audit diagnostics
       __init__.py
-      test_sampling_semantics.py        # 同池定额、独立 TS、来源与旧入口兼容回归
+      test_sampling_semantics.py        # same-pool quotas, independent TS, provenance, legacy-entry compatibility
     scripts/
-      test_check_api_docs.py            # api.md 公共符号覆盖门禁(防漂移)脚本测试
-      test_check_baseline_configs.py    # 基线配置一致性门禁脚本测试
-      test_check_doc_links.py           # 文档链接门禁(orphan/md-link)脚本测试
-      test_check_format.py              # 格式门禁(ruff lint+format)脚本测试
-      test_check_math_rendering.py      # MathJax 渲染门禁脚本测试
-      test_check_skill_sync.py          # skill 双份一致性门禁脚本测试
-      test_check_test_quality_exemptions.py # 测试质量门禁豁免审查测试
-      test_generate_structure.py        # 结构文档生成器(--check/--update)单元测试
-      test_check_comment_quality.py     # 注释质量门禁(遗留标记/裸TBD/行尾注释)脚本测试
-      test_check_doc_links_sources.py   # 文档引用门禁源码语料(rule-1 在 .py 注释中的路径引用)测试
-      test_generate_layer_deps.py       # 层间依赖表生成器单元测试
-      test_check_doc_links_docs_scope.py # docs/ 纳入生成器后 rule-2 反向范围扩大的测试
-      test_generate_structure_docs_scope.py # 生成器 docs 作用域：按根后缀集收文件 + 分组子树豁免
-      test_check_comment_quality_partitions.py # 注释门禁分区机制(覆盖断言/空扫描拒绝/按分区判级/只增不减棘轮)
-      test_check_doc_links_rule3.py     # rule-3 架构表 vs 注册表 NATIVE: 提取不到即变红(单开文件避 15 测试上限)
-      test_check_project_metadata.py    # 项目元数据门禁失败路径: 拼装仓库跑 main(), 逐项变异须非零退出
-      test_check_test_quality_matcher.py # 覆盖类别名 token 边界匹配与碰撞反例, 前缀命中不得成唯一信用
-      test_check_survey_recipe_registry.py # recipe registry 门禁 main() 失败路径(畸形/无 profiles/坏 schema 变红)
-      test_collect_survey_public_data.py # 公开数据下载校验、复用与不覆盖契约;ADNI 替代数据的项目固定摘要
-      test_recipe_production_gate.py    # 正式注册表条件 CI 与声明锁拒收/确定性
-      _lbe_comparison_helpers.py        # 临时 LBE 对照的合成四路 fixture
-      test_lbe_comparison_execution.py  # 成对拟合、选中规则恢复及 test 隔离
-      test_lbe_comparison_plan.py       # split/seed/预算身份与预检拒收
-      test_lbe_diagnostics.py           # LBE 分支对称性、独立 SCAR 梯度与诊断计划
-      test_source_provenance.py         # 临时实验脚本Git工作目录与实际加载实现身份
-      test_clean_support_execution.py   # 三方法 CPU 实训、显式预算、OA 模型回放与告警拒收
-      test_prepare_clean_support.py     # 原始 reader、默认预览、制品写入与来源/输出边界
-      test_clean_support_checkpoint_execution.py # support 双轨 CLI、计划身份及选中模型回放
-      test_genpu_recipe_execution.py    # GEN-PU 计划摘要、实际双轨 CLI、选后回收与模型回放
-      test_candidate_image_execution.py # 图像 CLI 计划绑定、PA/OA 回放与非正式边界
-      test_selfpu_ts_support_execution.py # full-meta TS CLI 视图绑定、计划保护与双轨回放
-      test_survey_image_support_execution.py # 运行入口把 support 部分按图像路径装配(原生 CNN 缩放、adapter 特征、表格原样)
-      test_support_protocol_context.py  # support CLI 的版本、c token 与收据来源偏离判定
-      test_candidate_image_adni.py      # ADNI 替代槽位灰度图、双选模回放与非临床来源边界
-      test_pan_image_cli.py             # PAN 四角色 OS 图像命令、双选模回放与非正式预算拒收
-      test_vpu_image_cli.py             # VPU 四角色 TS 命令、归一化回放、显式参数与角色隔离
-      test_p3mix_image_execution.py     # P3Mix 图像显式预算、双协议回放与回收
-      test_classical_candidate_execution.py # PUET/RP 显式计划、四角色回放与失败证据
-      test_cvir_image_execution.py      # CVIR 图像先验、视图锁定与双协议回放
-      test_kldce_candidate_execution.py # KLDCE 实际 SCAR 绑定、四角色回放与失败证据
+      test_check_api_docs.py            # api.md public-symbol coverage gate
+      test_check_baseline_configs.py    # baseline-configuration consistency gate
+      test_check_doc_links.py           # orphan/Markdown-link gate
+      test_check_format.py              # ruff lint/format gate
+      test_check_math_rendering.py      # MathJax rendering gate
+      test_check_skill_sync.py          # mirrored skill consistency gate
+      test_check_test_quality_exemptions.py # test-quality exemption review
+      test_generate_structure.py        # structure generator --check/--update
+      test_check_comment_quality.py     # legacy markers, bare TBDs, trailing comments
+      test_check_doc_links_sources.py   # rule-1 path references in .py comments
+      test_generate_layer_deps.py       # layer dependency generator
+      test_check_doc_links_docs_scope.py # expanded reverse rule-2 scope after docs generator integration
+      test_generate_structure_docs_scope.py # per-root suffix coverage and grouped-subtree exemptions
+      test_check_comment_quality_partitions.py # coverage assertions, empty-scan rejection, partition severity, monotone ratchet
+      test_check_doc_links_rule3.py     # architecture-table/registry NATIVE checks fail on missing extraction; separate file respects 15-test limit
+      test_check_project_metadata.py    # synthetic-repository main() failure paths; each mutation exits nonzero
+      test_check_test_quality_matcher.py # category-token boundaries and collisions; prefixes cannot be sole coverage credit
+      test_check_survey_recipe_registry.py # main() rejects malformed data, missing profiles, bad schema
+      test_collect_survey_public_data.py # verified downloads, reuse/no-overwrite, pinned ADNI-substitute digest
+      test_recipe_production_gate.py    # formal-registry conditional CI, lock rejection, determinism
+      _lbe_comparison_helpers.py        # synthetic four-role fixtures for exploratory LBE comparisons
+      test_lbe_comparison_execution.py  # paired fits, selected-rule restoration, test isolation
+      test_lbe_comparison_plan.py       # split/seed/budget identities and preflight rejection
+      test_lbe_diagnostics.py           # branch symmetry, independent SCAR gradients, diagnostic plans
+      test_source_provenance.py         # exploratory-script Git directory and actual loaded implementation identity
+      test_clean_support_execution.py   # actual CPU training for three methods, explicit budgets, OA replay, warning rejection
+      test_prepare_clean_support.py     # raw readers, default preview, artifact writing, source/output boundaries
+      test_clean_support_checkpoint_execution.py # dual-track support CLI, plan identity, selected-model replay
+      test_genpu_recipe_execution.py    # plan digests, actual dual-track CLI, post-selection reclamation, replay
+      test_candidate_image_execution.py # image CLI plan binding, PA/OA replay, nonformal boundaries
+      test_selfpu_ts_support_execution.py # full-meta TS CLI view binding, plan guards, dual-track replay
+      test_survey_image_support_execution.py # support assembly through image paths: native-CNN scaling, adapter features, unchanged tables
+      test_support_protocol_context.py  # support CLI version, c token, receipt provenance deviations
+      test_candidate_image_adni.py      # ADNI-substitute grayscale images, dual-selection replay, nonclinical source boundaries
+      test_pan_image_cli.py             # four-role OS image commands, dual-selection replay, rejection of nonformal budgets
+      test_vpu_image_cli.py             # four-role TS commands, normalization replay, explicit parameters, role isolation
+      test_p3mix_image_execution.py     # explicit image budgets, dual-protocol replay, reclamation
+      test_classical_candidate_execution.py # PUET/RP explicit plans, four-role replay, failure evidence
+      test_cvir_image_execution.py      # image priors, view locks, dual-protocol replay
+      test_kldce_candidate_execution.py # actual SCAR binding, four-role replay, failure evidence
     advisor/
-      test_recommender.py               # 算法推荐器过滤、评分与输出
-      test_scoring_rules.py             # 推荐评分规则与推荐器边界
+      test_recommender.py               # filtering, scoring, outputs
+      test_scoring_rules.py             # recommendation scores and boundaries
       __init__.py
     cli/
-      test_classifier_params.py         # classifier-param JSON 解析与错误路径
-      test_cli_main.py                  # CLI 入口冒烟
-      test_run_deep.py                  # run 子命令深度架构路径（.npy 输入 + 参数）
-      test_info.py                      # list-methods / list-priors 子命令
-      test_demo.py                      # make-demo-data 子命令
-      test_skill.py                     # skill install 子命令（内置技能安装）
-      test_audit_benchmark.py           # audit-benchmark 子命令单元测试
-      test_profile.py                   # profile 子命令测试(pu-workflow 步骤 1)
-      test_recommend.py                 # recommend 子命令测试(pu-workflow 步骤 2)
-      test_sensitivity_cmd.py           # sensitivity 子命令测试(pu-workflow 步骤 4)
-      test_shift_audit.py               # shift-audit 参数、错误与产物测试
-      test_shift_run.py                 # shift-run 参数、错误与配对产物测试
-      test_deployment_commands.py       # shift-monitor/review CLI 参数与产物旅程
+      test_classifier_params.py         # classifier-param JSON parsing and errors
+      test_cli_main.py                  # CLI entry smoke
+      test_run_deep.py                  # deep run paths: .npy input and parameters
+      test_info.py                      # list-methods/list-priors
+      test_demo.py                      # make-demo-data
+      test_skill.py                     # bundled skill installation
+      test_audit_benchmark.py           # audit-benchmark
+      test_profile.py                   # profile, pu-workflow step 1
+      test_recommend.py                 # recommend, pu-workflow step 2
+      test_sensitivity_cmd.py           # sensitivity, pu-workflow step 4
+      test_shift_audit.py               # shift-audit parameters, errors, artifacts
+      test_shift_run.py                 # shift-run parameters, errors, paired artifacts
+      test_deployment_commands.py       # shift-monitor/review parameters and artifact journeys
     core/
-      test_device.py                    # resolve_device 设备解析共享助手测试
-      test_training_view_contract.py    # 中立角色视图: OS/TS 角色与顺序、自有数组冻结/借用、导入边界(estimator 不得拉起 experiment)
-      test_random.py                    # check_random_state 种子归一化助手直接测试(含与内联构造的双向差异)
-      test_fit_state.py                 # 拟合状态保护的异常、取消与签名契约
-      test_fit_guard_coverage.py        # 16 个候选 fit 保留共享失败守卫且不声明 clean 角色（纯 AST，无源码哈希）
+      test_device.py                    # shared resolve_device helper
+      test_training_view_contract.py    # neutral OS/TS roles/order, owned frozen/borrowed arrays, no estimator→experiment imports
+      test_random.py                    # direct check_random_state tests including differences from inline construction
+      test_fit_state.py                 # exceptions, cancellation, signatures for fit-state guards
+      test_fit_guard_coverage.py        # candidate fits retain shared failure guards and do not declare clean roles; AST, no source hashes
     workflows/
-      test_pipeline_report.py           # PipelineReport.summary() 先验可靠性上下文测试
-      test_metric_availability.py       # 指标可用性条件(compute_metric + proba gate)
-      test_architecture_capability.py   # 架构能力校验 gate(能力/签名漂移 fail-loud)
-      test_report_provenance.py         # 报告 provenance 架构能力 4 字段(mlp 裸配/native_cnn 全配)
-      test_label_semantics_entrypoints.py # CLI/UI/调参/推荐的标签语义入口门禁
-      test_pipeline_label_semantics.py  # pipeline 构造/运行/clone/auto 的语义错配拒绝
-      test_pipeline_prior_targets.py    # OS/TS 的估计目标、逐折消费、真实分类器与总体评估
+      test_pipeline_report.py           # prior-reliability context in PipelineReport.summary()
+      test_metric_availability.py       # compute_metric availability and probability gates
+      test_architecture_capability.py   # fail-loud capability/signature drift
+      test_report_provenance.py         # four architecture-capability fields for bare mlp/full native_cnn
+      test_label_semantics_entrypoints.py # CLI/UI/tuning/recommendation label-semantics gates
+      test_pipeline_label_semantics.py  # rejects mismatches in construction/run/clone/auto
+      test_pipeline_prior_targets.py    # OS/TS estimation targets, per-fold consumption, real classifiers, population evaluation
     experiment/
-      test_cvir_known_prior_adapter.py  # CVIR alpha_U/总体 pi、候选角色、manifest 与路径拒收
-      test_pulns_support_adapter.py     # PULNS 全角色隔离、额外标签预算与 OA-only 拒收
-      test_bundle.py                    # 四路数据合约: 合法通过/view 拒绝/索引不重叠/label 校验
-      test_datasets.py                  # survey 八数据集映射、官方/派生 test 与确定性四路切分
-      test_feature_adapter.py           # CNN 特征四路适配/哈希/fit 范围与 split/seed/预算公平门禁
-      test_image.py                     # 图像 train-only 统计、通道/缩放、ResNet-18 与 eval 无增强约束
-      test_candidate_image.py           # PULDA/GradPU seeded 共享/私有图像路径、BN 与非正式 manifest
-      test_candidate_image_receipt.py   # 图像实际fit收据、输入/模板/参数绑定及失配时训练前拒绝
-      test_text.py                      # 固定 SBERT 维度/revision/内容缓存与篡改检测；跨排列同条目、重复文本共享行
-      test_training_views.py            # 实验层边界适配器: TS-OS P/U 损失集合、原生假设门禁、eval/test 拒绝与 manifest 哈希
-      test_manifest.py                  # manifest 往返与必填键 fail-loud
-      test_protocols.py                 # 策略接口 ABC 契约与 generate 返回形状
-      test_runner.py                    # ExperimentRunner 端到端(小PU/CNN smoke)与 fail-loud
-      test_prepare_survey_splits.py     # 1.4 切分产物流水线(tabular/image/text 三路径假数据)
-      test_survey_script.py             # run_survey_experiment.py 端到端冒烟/先验强制/缺文件报错
-      test_survey_script_cvir.py        # CVIR 显式 CLI 先验换算、视图、快照容量/回收与已有证据保护
-      _survey_script_helpers.py         # 脚本测试共享夹具: 动态加载与基础/SAR 两套四路 split
-      test_survey_script_sar.py         # SAR 机制 CLI: OA-only/c token 门禁/审计字段/确定性
-      test_strategies_labeling.py       # SCAR/SAR-LBE 生成(固定计数/posterior 正例池/seed 确定性)
-      test_shared_sampling.py           # 通用/实验采样一致性、标签哈希与后续随机流
-      test_strategies_selection.py      # 阈值选择与 PA/OA 选模(真实标签/non-PU 视图拒绝/空轨迹)
-      test_tracking.py                  # 轨迹/选择制品/结果数据类字段
-      test_trainers.py                  # Fit/DeepFit/Supervised 训练策略
-      test_runner_oracle.py             # PN oracle 成功路径: 真实标签透传/OA-only/manifest 标注/c 无关性
-      test_runner_oracle_guards.py      # PN oracle 误配 fail-loud: 视图/生成器/训练器/先验/机制一致性
-      _runner_oracle_helpers.py         # oracle 测试共享夹具: 四路 bundle 与记录型训练器
-      test_survey_execution.py          # 共享 MLP/随机 encoder、adapter 缓存与 SAR 原空间一致性
-      test_survey_protocol.py           # 执行矩阵、runner 参数锁、比较公平性与正式结果阻断
-      test_survey_protocol_validation.py # 执行矩阵审核字段/KLDCE 可运行性/Self-PU 独立预算门禁
-      test_survey_protocol_cnn.py       # 真实 ResNet CPU 一 epoch smoke 与 encoder provenance 门禁
-      test_survey_protocol_review.py    # v3.x 策略条款状态、review_items 校验与摘要确定性
-      test_survey_script_protocol.py    # 版本化脚本、split/seed 对应、oracle 去重与 CIFAR 缓存命中
-      test_checkpoint_selection.py      # PA/OA 不同 epoch 选择、无泄漏与独立恢复反例
-      test_epoch_checkpoints.py         # 回调、权重快照、CPU/CUDA 保存加载与深度方法覆盖
-      test_checkpoint_coverage.py       # 覆盖不变量按声明而非已保存集合校验、丢 component 不解除 R9 阻断
-      test_checkpoint_disk_preflight.py # 跑批前磁盘容量守卫: 纯函数算术/边界/按执行模式分级与体积估算
-      test_dataset_provenance.py        # 制品追溯: 目录内已复核事实、许可逐条按官方页原文、下载来源与摘要
-      test_split_archive.py             # 传输索引与接收端校验: 清单/数据不一致、截断制品与打包确定性
-      test_pilot_plan.py                # 跑批计划: 矩阵展开与批次参数、已完成判定（拒收/缺 c_token/坏 manifest 均不算完成）
-      test_pilot_plan_dimensions.py     # 规划器定尺寸: 每个 native_2d 数据集有默认特征维度、图像行不索要特征维度
-      test_batch_evidence.py            # 批次证据包: 两个身份字段、内容寻址与篡改检出、同批校验、换 commit 各留一份
-      test_survey_pilot_driver_protocol.py # 驱动的协议默认: 不传 --protocol 即按 survey-v3.0 做计划，显式指定仍生效，未知文件报错而非静默回落
-      test_survey_pilot_driver.py       # 驱动开跑门禁: 缺 π 时一个批次都不启动、π 冲突须显式覆盖、argv 透传
-      _survey_pilot_helpers.py          # 驱动测试共享夹具: 脚本动态加载、subprocess 记录与 split 目录树
-      test_survey_pilot_request_scope.py # 请求范围: --protocol 决定计划与批次、无关数据集的坏 splits 不阻断分片、快照写失败报错、未知名按本矩阵列值
-      test_survey_pilot_subset.py       # 驱动子集: --datasets 收窄计划与批次、未知名拒绝、--plan-json 分区可核对、作用域到执行的集成断言
-      test_survey_pilot_execution_scope.py # 执行单元作用域: 三轴交集与三类拒绝（未知名/存在但不可运行/组合为空）、不可运行行保留而计划不含
-      test_survey_pilot_scope_wiring.py # 作用域接线: 计划/估算/split 读取/续跑同源收窄、快照记完整协议摘要与 selection、显式 ts 合法域随作用域变化
-      test_survey_pilot_batch_contract.py # 五批合同: B1/B2/B3a/B3b/B4 = 215/215/110/70/35、两两不相交、并集 645、矩阵排除项不进入任何批次
-      test_runner_class_prior.py        # PA 的 π 取值链: run 优先于 split 制品、来源留痕、缺失或残缺即拒绝
-      test_leaderboard_run_view.py      # 排行榜分组: 视图不同即不入同一组（os 与 ts 不可同榜）
-      test_method_ledger.py             # 方法台账读取: 枚举+中文注记归一、缺字段与非法值拒绝
-      test_runner_view_manifest.py      # 训练视图留痕: 成功与失败路径都记 run_view/calibration_applied
-      test_survey_script_view.py        # 训练视图: 台账默认与 CLI 覆盖、门禁、视图进产物路径
-      test_training_view_routing.py     # trainer 侧视图参数: 按签名探测转发、未声明 fail-loud、os 不传参
-      test_pilot_resume_view.py         # 续跑按视图限定: 默认视图逐单元解析、OS/TS 不折叠、非法制品不阻断扫描
-      test_checkpoint_storage_profiles.py # checkpoint 体积 profile: 按训练路径+backbone+model_family 分派、真实序列化上界、全 Pilot 精确字节
-      test_survey_formal_eligibility.py # 正式资格放行(D24): canonical 单元无阻断、真实偏差仍阻断、消融变体标签保留
-      test_checkpoint_reclaim.py        # D25 回收非选中权重：只留选中、reclaimed 语义、开关默认关闭
-      _survey_summary_helpers.py        # 审计/汇总入口测试共用夹具: manifest 树、config、两入口 CLI 构造器
-      test_survey_result_coverage.py    # 整行缺失/未完成/指标缺失/排除与资格问题分开；PN c-independent、机制/视图/预算/路径不混格
-      test_survey_summary_boundaries.py # 报告行拒绝合并的边界: 视图/机制/训练路径/协议不同即不同行
-      test_survey_summary_clean_support.py # 独立 support 双轨汇总、额外监督隔离、诊断入口与正式门禁
-      test_survey_summary_states.py     # 报告的两套闭集词表: 行身份(c_token/oracle)与状态(status/优先级/理由)
-      test_survey_summary_stats.py      # 汇总算术: 五 seed 收敛为一均值+样本标准差、缺 seed 只报不填、成本求和口径
-      test_survey_summary_measures.py   # 缺值怎么读: 测量/峰值/次要指标/状态四类缺席各不相同, 状态分档须划分闭集
-      _survey_recipe_registry_helpers.py # recipe registry 测试共用 fixture（从冻结协议派生，非手写副本）
-      test_survey_recipe_registry.py    # recipe registry 的 schema/候选池/摘要规则
-      test_survey_recipe_registry_manifest.py # manifest recipe 绑定校验（fail-closed + legacy 兼容）
-      test_survey_recipe_registry_sources.py # recipe registry 来源证据引用规则
-      test_survey_workbook.py           # 工作簿版式: 行落哪一页、clean support 另列、LBE-A/B 分块、缺 seed 进 coverage、未知机制报错而非丢弃
-      test_survey_diagnostics.py        # 诊断卡信号: 各信号何时标记与不标记、缺 seed 行不入信号、算不了的信号列明、渲染不称与论文一致
-      test_export_survey_results_cli.py # 导出入口端到端: 配置/summary.json 到工作簿、诊断卡与结论分析、坏输入报错且不写半截文件
-      test_survey_provenance.py         # 报告身份块: 纯组装、无 git 分支的降级与警告、渲染不带时间戳、三入口接线
-      test_p3_feature_adapter_smoke.py  # P3 预集成方法的共享冻结特征工程 smoke
-      test_p3_pulda_puet_runner_smoke.py # PULDA/PUET 四角色、TS 与 PA/OA 技术 smoke
-      test_survey_recipe_registry_draft.py # P4.1 draft 生成、排除、候选与旧 manifest 保护
-      test_oracle_cnn.py                # CNN PN oracle 端到端训练、OA 恢复与回收
-      test_multistage_disk_preflight.py # 两阶段 checkpoint 峰值预算优先级
-      test_p3_new_methods_runner_smoke.py # 新方法四角色 PA/OA 与支持集门禁
-      test_unimplemented_calibration_routing.py # 拒绝接口不等于 TS 校准能力
-      test_multistage_candidate_accounting.py # Robust/Split 全阶段更新计数与早停快照上界
-      test_checkpoint_prediction_batching.py # 快照推理分批登记/恢复、旧引用回退与非法元数据拒绝
-      test_checkpoint_training_context.py # 新方法阶段/轮次/更新计数、恢复与回收留痕
-      test_prepare_survey_splits_adni.py # ADNI 替代数据:读取(类别序/垃圾文件/计数校验)、无官方测试集划分、多归档收据汇总
-      test_survey_image_spec.py         # 图像规格按数据集取(v1 平铺规格原样可读;per_dataset 覆盖与校验)、运行入口按模态而非数据集名分支
-      test_survey_image_support.py      # support 部分与四路角色走同一套 train 拟合预处理与同一个冻结 encoder
-      test_survey_pilot_support.py      # 批次驱动的 support 轴:--support-root 的拒绝与读取、按 seed 占位、续跑按数据来源校验
-      test_survey_pilot_batch_evidence.py # 驱动写证据包: 每批一份并转交 argv、dry-run 不写、二次运行不新增、机制各自成包
-      test_prepare_survey_splits_connect4.py # Connect-4 固定独热编码与标准化契约
-      test_prepare_survey_splits_inputs.py # 实际读取输入身份与原收据字节摘要
-      test_prepare_survey_splits_mnist.py # MNIST 家族输入校验与官方 test 隔离
-      test_prepare_survey_splits_news.py # 20News 七前缀映射、原文与稳定排序
-      test_prepare_survey_splits_wiring.py # 新数据集 CLI、来源证据与拒绝覆盖接线
-      test_pilot_recipe_resume.py       # 配方绑定续跑：旧记录、缺失字段与错配不得算完成
-      test_runner_recipe_binding.py     # runner 训练前锁定门禁、候选冻结与选择身份
-      test_survey_pilot_recipe_binding.py # pilot 配方预检、子进程摘要固定与计划记录
-      test_survey_recipe_binding.py     # 配方生命周期、范围、候选与内部 CV 绑定契约
-      test_survey_script_recipe_binding.py # 单次 CLI 绑定拒收、独立目录与旧制品保护
-      test_survey_recipe_pool.py        # 池摘要、身份/索引闭集与参数搜索不越权契约
-      test_survey_recipe_pool_runtime.py # 多候选排除/重试与 runner、CLI、pilot、续跑接线
-      test_neural_lbe_runner.py         # 神经 LBE 的双 CNN、分轮推理快照、四角色及 test 隔离
-      test_clean_support_adapters.py    # 实际元更新、角色隔离、监督预算与模型回放
-      test_support_data.py              # 八数据集支持集抽样、split carve/seed 策略、train-only 预处理和制品回归
-      test_p3mix_literature_anchors.py  # P3Mix 论文锚点哈希与文献值和 pilot 数据分离，PDF/OpenReview 身份被钉住
-      _support_checkpoint_helpers.py    # support 双轨选择的合成 CPU 角色/方法 fixture
-      test_support_checkpoint_guards.py # support 角色、纯 PA 拒绝和快照容量边界
-      test_support_checkpoint_selection.py # 实际 meta、双轨候选/快照/阈值选择、隔离与回放
-      test_support_versioned_epochs.py  # 版本化 support 全 epoch 候选、warmup 回放与严格覆盖检查
-      test_cvir_population_adapter.py   # CVIR 视图先验换算、四角色隔离与实际快照上界
-      test_genpu_recipe.py              # GEN-PU 配方早拒绝、六网络真实成本与默认训练逐位对照
-      test_candidate_image_runner.py    # 图像快照与裸 fit 对照、训练角色隔离与容量拒绝
-      test_process_peak_rss.py          # 进程 RSS 单位、平台不支持与稳定计数处理
-      test_selfpu_ts_support.py         # 显式 TS clean-meta 四网络对照、角色与失败守卫
-      _profile_identity_helpers.py      # 临时身份草案与矩阵写入测试夹具，不提供正式预算
-      test_profile_identity_execution.py # profile 双轨/原生快照、实际子进程与完整来源续跑
-      test_survey_profile_identity.py   # 显式身份映射、旧路径兼容与错误/越权绑定拒绝
-      test_survey_staged_budget.py      # 阶段预算/角色/容量与原生权重对照，拒绝错误正式绑定
-      _episodic_budget_helpers.py       # 三方法临时小预算草案与确定性合成训练夹具
-      test_survey_episodic_budget.py    # 三方法真实 CLI/续跑、原生权重及停止/LZO 成本拒绝
-      test_staged_budget_comparability.py # 阶段预算真实投影与内层/GAN 成本、双批参数比较拒绝
-      test_survey_recipe_registry_locked.py # P4.1-B 冻结：范围、快照可重算、手改与未锁定绑定被拒
-      test_survey_canonical_version.py  # 各协议与自身 canonical 比较，保留真实子集/改参偏差
-      test_survey_full_meta_view.py     # full-meta 默认 OS、CLI/续跑一致与消融/显式 TS 兼容
-      test_pan_image_candidate.py       # PAN 双编码器隔离、逐 epoch C/D 成本与 recorder 数值不变
-      test_vpu_image_candidate.py       # VPU 训练边缘池、逐 epoch 归一化、重建 Adam 与实际成本
-      test_classical_candidate_cost.py  # 逐树/交叉拟合真实成本及默认结果不变
-      test_p3mix_image_candidate.py     # P3Mix 原生 OS 图像快照、teacher 与角色成本
-      test_classical_candidate_receipts.py # 逐次成本收据、失败保留与持久化拒绝
-      test_classical_selection_predictor.py # 非 epoch 选模阈值与验证集 affine 回放
-      test_cvir_image_candidate.py      # CVIR 图像阶段成本、观测先验与异常拒绝
-      test_kldce_candidate.py           # KLDCE 适配逐值一致、Phase-I 可行性与资源拒绝
-      test_cvir_bn_cardinality.py       # CVIR 空间 BN 基数、单样本训练与 RNG 隔离
-      test_survey_backlog.py            # v3.1 历史隔离、二维/CNN 与 SAR 真训练
-      test_gradpu_offload_execution.py  # 显式暂存策略、冻结配方与结果路径隔离
-      test_gradpu_split_execution.py    # GradPU split/chunk 的 CLI 记录、输出隔离与策略校验
-      test_survey_classical_image.py    # PUET/RP 图像表示、版本隔离与完整树/折预算
-      test_survey_conclusions.py        # 结论层: 信号归因、三类区分、文献事实须来源、推断须引用观测、无标记不出结论、同输入同输出
-      test_experiment_dependencies.py   # DIY 与结果消费不导入 Survey 过程模块
-      test_result_recipe_identity.py    # 已记录配方、候选与选择身份一致性
-      test_result_validation.py         # 选择证据、实际预算、复现信息与单 seed 边界
-      test_results.py                   # 只读结果统计、风险/缺失/排除与报告整合
-      test_survey_export_dependencies.py # summary 独立导出与确定性隔离验证
-      test_result_oracle_identity.py    # PN 对照的逐 seed 划分、特征与预算可比证据回归
-      test_result_paths.py              # Windows 长路径发现、读取与来源身份归一回归
-      test_split_identity.py            # 从实际四路 indices 校验身份、隔离与批量续跑
-      test_research_settings.py         # 运行设置、先验来源、风险视图及标记政策回归
-      test_result_research_settings.py  # 新旧设置的逐 seed 留存、历史身份与报告导出回归
+      test_cvir_known_prior_adapter.py  # alpha_U/population pi, candidate roles, manifest/path rejection
+      test_pulns_support_adapter.py     # all-role isolation, extra-label budgets, OA-only rejection
+      test_bundle.py                    # valid bundles, view rejection, disjoint indices, labels
+      test_datasets.py                  # eight-dataset mapping, official/derived tests, deterministic four-role splits
+      test_feature_adapter.py           # four-role CNN features, hashes, fit scope, split/seed/budget fairness
+      test_image.py                     # train-only statistics, channels/scaling, ResNet-18, no eval augmentation
+      test_candidate_image.py           # seeded shared/private PULDA/GradPU image paths, BN, nonformal manifests
+      test_candidate_image_receipt.py   # actual-fit receipts and input/template/parameter binding; pretraining mismatch rejection
+      test_text.py                      # fixed SBERT dimension/revision/cache, tampering, permutation invariance, duplicate-text rows
+      test_training_views.py            # TS/OS P/U loss sets, native assumptions, eval/test rejection, manifest hashes
+      test_manifest.py                  # round trips and fail-loud required keys
+      test_protocols.py                 # strategy ABC contracts and generate return shapes
+      test_runner.py                    # small-PU/CNN end-to-end smoke and fail-loud errors
+      test_prepare_survey_splits.py     # tabular/image/text split pipeline with synthetic fixtures
+      test_survey_script.py             # run_survey_experiment.py smoke, mandatory priors, missing files
+      test_survey_script_cvir.py        # explicit CLI prior conversion, views, snapshot capacity/reclamation, existing evidence
+      _survey_script_helpers.py         # dynamic loading and base/SAR four-role split fixtures
+      test_survey_script_sar.py         # OA-only/c-token gates, audit fields, determinism
+      test_strategies_labeling.py       # fixed counts, posterior positive pools, seed determinism
+      test_shared_sampling.py           # general/experiment sampling consistency, label hashes, subsequent RNG streams
+      test_strategies_selection.py      # thresholds, PA/OA, true-label/non-PU rejection, empty trajectories
+      test_tracking.py                  # trajectory/selection-artifact/result data-class fields
+      test_trainers.py                  # Fit/DeepFit/Supervised strategies
+      test_runner_oracle.py             # true-label forwarding, OA-only, manifest annotation, c independence
+      test_runner_oracle_guards.py      # fail-loud view/generator/trainer/prior/mechanism mismatch checks
+      _runner_oracle_helpers.py         # four-role bundles and recording trainers
+      test_survey_execution.py          # shared MLP/random encoders, adapter cache, original-space SAR consistency
+      test_survey_protocol.py           # execution matrix, parameter locks, fairness, formal-result blocking
+      test_survey_protocol_validation.py # review fields, KLDCE feasibility, independent Self-PU budget gates
+      test_survey_protocol_cnn.py       # real one-epoch CPU ResNet smoke and encoder provenance
+      test_survey_protocol_review.py    # v3.x policy status, review_items, deterministic digests
+      test_survey_script_protocol.py    # versioned scripts, split/seed matching, oracle deduplication, CIFAR cache hits
+      test_checkpoint_selection.py      # different PA/OA epochs, leakage guards, independent-restoration counterexamples
+      test_epoch_checkpoints.py         # callbacks, weights, CPU/CUDA save/load, deep-method coverage
+      test_checkpoint_coverage.py       # declared coverage rather than saved set; missing components retain R9 block
+      test_checkpoint_disk_preflight.py # pure capacity arithmetic, boundaries, execution-mode levels, size estimates
+      test_dataset_provenance.py        # verified artifact facts, official license wording, download sources/digests
+      test_split_archive.py             # index/data mismatch, truncated artifacts, deterministic packaging
+      test_pilot_plan.py                # matrix expansion/batches; rejected, missing-c_token, or malformed manifests never complete
+      test_pilot_plan_dimensions.py     # native_2d default dimensions; image rows do not require feature dimensions
+      test_batch_evidence.py            # two identities, content addressing, tampering, same-batch validation, per-commit retention
+      test_survey_pilot_driver_protocol.py # absent --protocol defaults to survey-v3.2; explicit selection respected; unknown files error
+      test_survey_pilot_driver.py       # no batch without π, explicit conflicting-π override, argv forwarding
+      _survey_pilot_helpers.py          # dynamic scripts, subprocess records, split-directory fixtures
+      test_survey_pilot_request_scope.py # protocol controls plans/batches; unrelated bad splits do not block shards; snapshot failures and matrix-specific names
+      test_survey_pilot_subset.py       # --datasets scope, unknown-name rejection, --plan-json partitions, execution integration
+      test_survey_pilot_execution_scope.py # three-axis intersections; unknown/unrunnable/empty rejection; unrunnable rows retained outside plans
+      test_survey_pilot_scope_wiring.py # shared plan/estimate/split/resume scope, full protocol digest/selection, scope-sensitive explicit TS domain
+      test_survey_pilot_batch_contract.py # historical five-batch contract: 215/215/110/70/35, disjoint union 645, exclusions absent
+      test_runner_class_prior.py        # PA π precedence: run over split; provenance; missing/incomplete rejection
+      test_leaderboard_run_view.py      # distinct views cannot share a leaderboard group
+      test_method_ledger.py             # enum/Chinese-note normalization, missing fields, invalid values
+      test_runner_view_manifest.py      # success/failure run_view/calibration_applied provenance
+      test_survey_script_view.py        # ledger defaults, CLI overrides, gates, artifact-path views
+      test_training_view_routing.py     # signature-based forwarding; undeclared views fail; no OS parameter
+      test_pilot_resume_view.py         # per-cell default views, separate OS/TS identities, invalid artifacts do not block scans
+      test_checkpoint_storage_profiles.py # path/backbone/model_family dispatch, actual serialization bounds, exact pilot bytes
+      test_survey_formal_eligibility.py # D24 canonical admission, genuine deviations blocked, ablation labels retained
+      test_checkpoint_reclaim.py        # D25 selected-only weights, reclaimed semantics, disabled by default
+      _survey_summary_helpers.py        # manifest trees, configs, audit/summary CLI fixtures
+      test_survey_result_coverage.py    # absent/incomplete/missing-metric/excluded/ineligible separation; PN c independence; mechanism/view/budget/path identity
+      test_survey_summary_boundaries.py # different views/mechanisms/paths/protocols never merge
+      test_survey_summary_clean_support.py # independent support tracks, extra supervision isolation, diagnostics, formal gates
+      test_survey_summary_states.py     # closed row-identity c_token/oracle and status/priority/reason vocabularies
+      test_survey_summary_stats.py      # five-seed means/sample SD, missing seeds reported without filling, cost sums
+      test_survey_summary_measures.py   # separate missing measurements/peaks/secondary metrics/statuses; closed status partitions
+      _survey_recipe_registry_helpers.py # fixtures derived from frozen protocol rather than copied by hand
+      test_survey_recipe_registry.py    # schema, candidate pools, digest rules
+      test_survey_recipe_registry_manifest.py # fail-closed binding with legacy compatibility
+      test_survey_recipe_registry_sources.py # source-evidence citation rules
+      test_survey_workbook.py           # sheet assignment, separate clean support, LBE-A/B groups, missing seeds in coverage, unknown mechanisms error
+      test_survey_diagnostics.py        # flag conditions, excluded incomplete seeds, unavailable signals, no paper-equivalence claims
+      test_export_survey_results_cli.py # config/summary.json to workbook/cards/conclusions; malformed inputs do not leave partial output
+      test_survey_provenance.py         # pure identity assembly, missing-Git degradation/warnings, no render timestamps, three entry points
+      test_p3_feature_adapter_smoke.py  # shared frozen-feature engineering smoke for preintegrated methods
+      test_p3_pulda_puet_runner_smoke.py # four-role PULDA/PUET TS and PA/OA technical smoke
+      test_survey_recipe_registry_draft.py # draft generation, exclusions, candidates, legacy manifest protection
+      test_oracle_cnn.py                # CNN PN-oracle training, OA restoration, reclamation
+      test_multistage_disk_preflight.py # two-stage peak-checkpoint budget precedence
+      test_p3_new_methods_runner_smoke.py # new-method four-role PA/OA and support gates
+      test_unimplemented_calibration_routing.py # rejecting an interface does not establish TS calibration capability
+      test_multistage_candidate_accounting.py # all-stage Robust/Split update counts and early-stop snapshot bounds
+      test_checkpoint_prediction_batching.py # inference-batch registration/restoration, legacy fallback, invalid metadata
+      test_checkpoint_training_context.py # stages/epochs/updates, restoration, reclamation provenance
+      test_prepare_survey_splits_adni.py # substitute-data ordering/junk/counts, no official test split, multi-archive receipts
+      test_survey_image_spec.py         # v1 flat/per_dataset specifications, overrides/validation, modality-based dispatch
+      test_survey_image_support.py      # support and four roles share train-fitted preprocessing and frozen encoder
+      test_survey_pilot_support.py      # --support-root rejection/loading, seed placeholders, provenance-based resume
+      test_survey_pilot_batch_evidence.py # one bundle per batch/mechanism, argv forwarding, dry-run and repeated-run behavior
+      test_prepare_survey_splits_connect4.py # fixed one-hot encoding and standardization
+      test_prepare_survey_splits_inputs.py # actual input identity and original receipt-byte digests
+      test_prepare_survey_splits_mnist.py # input validation and official-test isolation
+      test_prepare_survey_splits_news.py # seven-prefix mapping, original text, stable ordering
+      test_prepare_survey_splits_wiring.py # new dataset CLI, source evidence, no-overwrite wiring
+      test_pilot_recipe_resume.py       # legacy/missing/mismatched bindings never count as complete
+      test_runner_recipe_binding.py     # pretraining locks, frozen candidates, selection identities
+      test_survey_pilot_recipe_binding.py # recipe preflight, pinned subprocess digests, plan records
+      test_survey_recipe_binding.py     # recipe lifecycle, scope, candidates, inner-CV binding
+      test_survey_script_recipe_binding.py # single-run CLI rejection, isolated directories, old-artifact protection
+      test_survey_recipe_pool.py        # pool digests, closed identities/indices, bounded parameter-search authority
+      test_survey_recipe_pool_runtime.py # exclusions/retries across runner, CLI, pilot, resume
+      test_neural_lbe_runner.py         # dual CNN, per-round inference snapshots, four-role/test isolation
+      test_clean_support_adapters.py    # actual meta-updates, role isolation, supervision budgets, model replay
+      test_support_data.py              # eight-dataset support sampling, split carve/seed policy, train-only preprocessing, artifacts
+      test_p3mix_literature_anchors.py  # paper hashes, separation of literature/pilot values, pinned PDF/OpenReview identities
+      _support_checkpoint_helpers.py    # synthetic CPU roles/methods for dual-track support selection
+      test_support_checkpoint_guards.py # support roles, pure-PA rejection, capacity boundaries
+      test_support_checkpoint_selection.py # actual meta-updates, dual candidate/snapshot/threshold selection, isolation/replay
+      test_support_versioned_epochs.py  # versioned all-epoch candidates, warmup replay, strict coverage
+      test_cvir_population_adapter.py   # view-prior conversion, four-role isolation, actual snapshot bounds
+      test_genpu_recipe.py              # early rejection, actual six-network cost, bitwise default-training comparison
+      test_candidate_image_runner.py    # image snapshots vs bare fit, role isolation, capacity rejection
+      test_process_peak_rss.py          # RSS units, unsupported platforms, stable counts
+      test_selfpu_ts_support.py         # explicit TS clean-meta four-network references, roles, failure guards
+      _profile_identity_helpers.py      # draft identities/matrices; supplies no formal budgets
+      test_profile_identity_execution.py # dual-track/native snapshots, actual subprocesses, full-provenance resume
+      test_survey_profile_identity.py   # explicit mappings, legacy paths, erroneous/unauthorized binding rejection
+      test_survey_staged_budget.py      # stage budgets/roles/capacity/native weights; rejects incorrect formal bindings
+      _episodic_budget_helpers.py       # small draft budgets and deterministic synthetic fixtures for three methods
+      test_survey_episodic_budget.py    # actual CLI/resume, native weights, stopping/LZO cost rejection
+      test_staged_budget_comparability.py # actual stage projections, inner/GAN costs, rejection of cross-batch parameter comparisons
+      test_survey_recipe_registry_locked.py # P4.1-B scope, recomputable snapshots, rejection of manual edits/unlocked bindings
+      test_survey_canonical_version.py  # each protocol compared with its own canonical; actual subset/parameter deviations retained
+      test_survey_full_meta_view.py     # default OS, CLI/resume consistency, ablation/explicit-TS compatibility
+      test_pan_image_candidate.py       # dual-encoder isolation, per-epoch C/D costs, unchanged recorder values
+      test_vpu_image_candidate.py       # training marginal pool, per-epoch normalization, recreated Adam, actual costs
+      test_classical_candidate_cost.py  # actual tree/cross-fit costs and unchanged defaults
+      test_p3mix_image_candidate.py     # native-OS image snapshots, teacher/role costs
+      test_classical_candidate_receipts.py # per-fit cost receipts, retained failures, persistence rejection
+      test_classical_selection_predictor.py # non-epoch thresholds and validation affine replay
+      test_cvir_image_candidate.py      # image stage costs, observed priors, error rejection
+      test_kldce_candidate.py           # elementwise adaptation equivalence, Phase-I feasibility, resource rejection
+      test_cvir_bn_cardinality.py       # spatial BN cardinality, single-sample training, RNG isolation
+      test_survey_backlog.py            # v3.1 historical isolation, real 2-D/CNN/SAR training
+      test_gradpu_offload_execution.py  # explicit offload policies, frozen recipes, result-path isolation
+      test_gradpu_split_execution.py    # split/chunk CLI records, output isolation, policy validation
+      test_survey_classical_image.py    # PUET/RP image representations, version isolation, full tree/fold budgets
+      test_survey_conclusions.py        # signal attribution, facts/observations/inference, required sources/observations, no unflagged conclusions, determinism
+      test_experiment_dependencies.py   # DIY/results do not import Survey process modules
+      test_result_recipe_identity.py    # recorded recipe/candidate/selection identity consistency
+      test_result_validation.py         # selection evidence, actual budgets, reproducibility, single-seed boundaries
+      test_results.py                   # read-only statistics, risk/missing/excluded states, report integration
+      test_survey_export_dependencies.py # independent summary export and deterministic isolation
+      test_result_oracle_identity.py    # per-seed PN split/feature/budget comparability evidence
+      test_result_paths.py              # Windows long-path discovery/reading and provenance normalization
+      test_split_identity.py            # identity/isolation from actual four-role indices, batch resume
+      test_research_settings.py         # settings, prior provenance, risk views, labeling policies
+      test_result_research_settings.py  # per-seed new/legacy settings, historical identities, report exports
     utils/
-      test_activations.py               # sigmoid 数值稳定: float32/float64 极端输入不溢出、饱和到边界
-      test_json_scalars.py              # json_scalars 严格序列化: 标量收窄与 object 拆箱、逐字节报错文案、不改调用方数组
-      test_serialization_hashes.py      # 两个 JSON 摘要: strict 拒非有限数、lenient 仍写 NaN、有限载荷下两者一致
-      test_content_hashes.py            # 两个二进制摘要: array_hash 定 dtype/形状/字节且形状读自调用方(含 0-d)、file_hash 流式分块无关
-    test_basis_single_source.py         # 单一数据源 RBF kernel 公式一致性
-    test_run_config.py                  # UI/CLI 可移植运行配置 schema 与序列化
-    test_stable_modules.py              # §4.8 稳定模块清单完备性解析(浅克隆下只读索引不查标签)
-  integration/                          # 跨组件集成（CLI + PUPipeline + registry + estimators）
-    test_model_configuration.py         # 命名参数、必填参数与 PUTuner 确定性
-    test_pipeline.py                    # PUPipeline 全流程/先验解析/错误/可用性/确定性
-    test_pipeline_deep.py               # PUPipeline 深度算法集成（架构选择;importorskip torch）
-    test_run.py                         # run 子命令进程内端到端（真实 CSV IO + 真实训练）
-    test_cli_deep_save_model.py         # run --save-model CNN 保存回归（E2/E3;importorskip torch）
-    test_ui_app.py                      # Streamlit 页面渲染（ui extra；无依赖时 skip）
-    test_ui_history_flow.py             # UI 运行写入进程级历史（D9 接线;importorskip streamlit）
-    test_pipeline_device.py             # PUPipeline/深度估计器默认值(设备自动检测、epochs)
-    test_prior_params.py                # prior_params 转发集成测试(CLI --prior-param 后端)
-    test_run_errors.py                  # run 子命令错误路径集成测试(用户输入友好失败)
-    test_pipeline_sample_weight.py      # PUPipeline 逐折权重传递与语义拒绝测试
-    test_shift_workflow.py              # ShiftAwarePUPipeline 审计/适配/目标评估集成
-    test_joint_shift_classifier.py      # 联合漂移合成协议、有界性与确定性
-    test_shift_comparison.py            # 配对加权对照、证据门禁与报告集成
-    test_joint_shift_baselines.py       # 联合漂移四基线、消融、边界与确定性
-    test_cv_fold_isolation.py           # CV 折间训练隔离(折内权重在变/模板不被训练/折间不泄漏)
-    test_nnpu_pipeline_cnn.py           # nnPU 端到端 provenance 映射(cnn/mlp)+ encoder pickle 往返
-    test_pan_pipeline_cnn.py            # PAN/PULDA 原生 CNN 流水线、种子复验与架构门禁
-    test_iris_smoke.py                  # Iris 冒烟回归: 22 个 native 分类器可训练性与预测接口(不断言准确率)
-    test_pulns_cnn_support.py           # PULNS 内置 CNN 与独立奖励集、公共工作流不借用测试标签
-    test_dist_pu_pipeline_cnn.py        # Dist-PU 显式 CNN/CV 副本隔离与冻结 feature-adapter 路径保留
-    test_p3mix_pipeline_cnn.py          # 三变体真实卷积CV及四角色checkpoint选模回收
-    test_survey_recipe_binding_v3.py    # v3 单元经 CLI 绑定冻结注册表：字段齐备、聚合可验、篡改被拒
-    test_classical_candidate_runner.py  # PUET/RP 四角色 PA/OA 与无伪 epoch 成本导出
-    test_diy_experiment_example.py      # DIY 示例的预测、预处理与测试标签隔离
-    test_custom_encoder_example.py      # CNN/冻结特征示例、初始化隔离与保存加载
-    test_sar_policy_example.py          # SAR 示例的 Bernoulli/定额政策、计数与来源
-  e2e/                                  # 真实子进程端到端用户旅程（CI nightly 运行）
-    test_profile_script.py              # pu-workflow profile 步骤脚本（子进程）
-    test_recommend_script.py            # pu-workflow recommend 步骤脚本（子进程,含 profile→recommend 链）
-    test_sensitivity_script.py          # pu-workflow sensitivity 步骤脚本（子进程）
-    test_e2e_quickstart.py              # quickstart 旅程（demo→auto run→report）+ CLI 错误旅程
-    test_e2e_workflow_journey.py        # profile→recommend 链 + demo→profile→recommend→run 全链
-    test_e2e_subcommands.py             # 真实子进程 e2e: profile/recommend/sensitivity
-  benchmarks/                           # Benchmark runner 测试
-    test_assigned_benchmark_runner.py   # 前五篇 benchmark runner 测试
-    test_assigned_preflight.py          # 前五篇 paper-run 就绪审计测试
-    test_deep_pu_benchmark_runner.py    # 深度 PU runner 测试
-    test_deep_pu_model_selection.py     # 深度 PU runner 的 clean-validation 模型选择测试
-    test_deep_pu_official_data.py       # 官方数据加载与 split 测试
-    test_pusb_official_data.py          # PUSB 官方数据构造、runner 与 provenance
-    test_pusb_table2_benchmark.py       # claim-safe PUSB Table 2 benchmark runner 测试
-    test_pusb_table2_data.py            # 锁定 PUSB Table 2 数据集 loader 与采样审计测试
-    test_joint_shift_public_benchmark.py # 公开数据多 seed/CI/样本重叠 benchmark
-    test_traditional_pu_benchmark_runner.py # 传统 PU runner 状态机/resume/产物/失败隔离
-    test_traditional_pu_data.py         # 数据协议: SCAR/SAR/PNU 形状、h、病态性
-    test_traditional_pu_statistics.py   # 统计原语: 成功率/CI/配对差值
-    test_traditional_pu_configs.py      # 出货配置契约: 网格单元数(SCAR 60/PNU 6)/确定性/seed 集不重叠/resume 改配置拒绝
-    test_traditional_pu_protocol.py     # 数据隔离+失败统计: 无 oracle 标签列、污染 gate(含 resume)、degenerate 标记、全败 NaN 汇总
-    test_traditional_pu_compare.py      # §6 配对决断: 配对/方向/预算容差门控、oracle-only 判定、verdict CSV
-    test_traditional_pu_resume.py       # 增量落盘/resume: 中断行校验、跳过已完成格子仍回 16 行
-    test_traditional_pu_leakage_audit.py # 泄露审计: 黑名单/重复样本/guard/preflight 负向测试 + CLI 门禁
-    test_traditional_pu_tuning_round.py # 调优轮工具: 候选配置生成/退化率核对
-    test_traditional_pu_tuning_rank.py  # 调优轮排名: §4 筛选链/scar-sar 混合网格
-    tuning_helpers.py                   # 调优轮测试共享构造器(非测试模块)
-    test_traditional_pu_tuning_round_methods.py # 调优轮逐方法注册 smoke 测试(nnPU/uPU/LLSVM/Elkan-Noto)
-  __init__.py                           # tests 包声明(支持 tests.helpers 导入)
-  conftest.py                           # 共享 pytest fixtures(种子/rng/数据 fixture)
-  helpers.py                            # 数据工厂等普通函数(测试直接 import,不依赖 pytest)
-  test_import.py                        # 导入冒烟
-  test_labels.py                        # 标签规范化
-  test_validation.py                    # 数据集形态校验(维度/类别齐备/稀疏)
-  test_validation_labels.py             # 标签含义校验(label_semantics 声明与真值二值性)
-  test_registry.py                      # 注册机制
-  test_builtin_methods.py               # 注册表元数据
-  estimator_factories.py                # 契约层与 Iris 层共享的零参估计器工厂(非测试模块; torch 缺席时可导入)
+      test_activations.py               # stable float32/float64 sigmoid extremes, no overflow, saturation bounds
+      test_json_scalars.py              # strict narrowing/unboxing, exact error messages, unchanged caller arrays
+      test_serialization_hashes.py      # strict rejects nonfinite values, lenient writes NaN, equal finite-payload digests
+      test_content_hashes.py            # array dtype/shape/bytes including 0-D; streamed file hashes independent of chunking
+    test_basis_single_source.py         # shared RBF kernel formula consistency
+    test_run_config.py                  # portable UI/CLI configuration schema and serialization
+    test_stable_modules.py              # stable-module inventory completeness; shallow clones read index without tags
+  integration/                          # CLI + PUPipeline + registry + estimators
+    test_model_configuration.py         # named/required parameters and PUTuner determinism
+    test_pipeline.py                    # complete workflow, priors, errors, availability, determinism
+    test_pipeline_deep.py               # deep architecture selection; optional torch
+    test_run.py                         # in-process end-to-end run, actual CSV IO/training
+    test_cli_deep_save_model.py         # run --save-model CNN E2/E3 regressions; optional torch
+    test_ui_app.py                      # Streamlit rendering; skips without ui extra
+    test_ui_history_flow.py             # process-wide UI history wiring, D9; optional streamlit
+    test_pipeline_device.py             # pipeline/deep-estimator device autodetection and epochs defaults
+    test_prior_params.py                # prior_params forwarding behind CLI --prior-param
+    test_run_errors.py                  # friendly user-input errors
+    test_pipeline_sample_weight.py      # per-fold weight forwarding and semantic rejection
+    test_shift_workflow.py              # shift audits, adaptation, target evaluation
+    test_joint_shift_classifier.py      # synthetic protocol, boundedness, determinism
+    test_shift_comparison.py            # paired weighted controls, evidence gates, reports
+    test_joint_shift_baselines.py       # four controls, ablations, boundaries, determinism
+    test_cv_fold_isolation.py           # varying fold weights, untrained templates, no cross-fold leakage
+    test_nnpu_pipeline_cnn.py           # cnn/mlp provenance and encoder pickle round trips
+    test_pan_pipeline_cnn.py            # PAN/PULDA native CNN pipelines, seed checks, architecture gates
+    test_iris_smoke.py                  # native classifier trainability/prediction smoke without accuracy assertions
+    test_pulns_cnn_support.py           # built-in CNN, independent reward set, no test-label use by public workflows
+    test_dist_pu_pipeline_cnn.py        # explicit CNN/CV-copy isolation, frozen-feature adapter preservation
+    test_p3mix_pipeline_cnn.py          # three variants: real convolutional CV and four-role checkpoint selection/reclamation
+    test_survey_recipe_binding_v3.py    # CLI frozen-registry binding, complete fields, verifiable aggregation, tampering rejection
+    test_classical_candidate_runner.py  # PUET/RP four-role PA/OA and costs without artificial epochs
+    test_diy_experiment_example.py      # prediction/preprocessing/test-label isolation
+    test_custom_encoder_example.py      # CNN/frozen features, initialization isolation, save/load
+    test_sar_policy_example.py          # Bernoulli/fixed-quota policies, counts, provenance
+  e2e/                                  # real-subprocess user journeys in nightly CI
+    test_profile_script.py              # subprocess pu-workflow profile
+    test_recommend_script.py            # subprocess recommend including profile→recommend
+    test_sensitivity_script.py          # subprocess sensitivity
+    test_e2e_quickstart.py              # demo→auto run→report and CLI error journeys
+    test_e2e_workflow_journey.py        # profile→recommend and demo→profile→recommend→run
+    test_e2e_subcommands.py             # subprocess profile/recommend/sensitivity
+  benchmarks/                           # benchmark runners
+    test_assigned_benchmark_runner.py   # first-five-paper runner
+    test_assigned_preflight.py          # first-five-paper readiness audits
+    test_deep_pu_benchmark_runner.py    # deep-PU runner
+    test_deep_pu_model_selection.py     # clean-validation model selection
+    test_deep_pu_official_data.py       # official data loading and splits
+    test_pusb_official_data.py          # official-data construction, runner, provenance
+    test_pusb_table2_benchmark.py       # claim-safe Table 2 runner
+    test_pusb_table2_data.py            # locked loaders and sampling audits
+    test_joint_shift_public_benchmark.py # public-data multiseed/CI/sample-overlap benchmark
+    test_traditional_pu_benchmark_runner.py # state machine, resume, artifacts, failure isolation
+    test_traditional_pu_data.py         # SCAR/SAR/PNU shapes, h, degeneracy
+    test_traditional_pu_statistics.py   # success rates, CI, paired differences
+    test_traditional_pu_configs.py      # SCAR-60/PNU-6 grids, determinism, disjoint seeds, changed-config resume rejection
+    test_traditional_pu_protocol.py     # no oracle-label columns, contamination/resume gates, degenerate flags, all-failed NaN summaries
+    test_traditional_pu_compare.py      # §6 pairing/direction/budget tolerance, oracle-only decisions, verdict CSV
+    test_traditional_pu_resume.py       # incremental output, interrupted-row checks, completed cells still return 16 rows
+    test_traditional_pu_leakage_audit.py # blacklist/duplicates/guard/preflight negative tests and CLI gates
+    test_traditional_pu_tuning_round.py # candidate generation and degeneration-rate checks
+    test_traditional_pu_tuning_rank.py  # §4 filtering and mixed SCAR/SAR grids
+    tuning_helpers.py                   # shared tuning constructors; not a test module
+    test_traditional_pu_tuning_round_methods.py # registered-method smoke for nnPU/uPU/LLSVM/Elkan-Noto
+  __init__.py                           # package declaration for tests.helpers imports
+  conftest.py                           # shared seeds/rng/data pytest fixtures
+  helpers.py                            # ordinary data factories imported directly without pytest
+  test_import.py                        # import smoke
+  test_labels.py                        # label normalization
+  test_validation.py                    # dimensions, required classes, sparse input
+  test_validation_labels.py             # label_semantics declarations and binary truth labels
+  test_registry.py                      # registration
+  test_builtin_methods.py               # registry metadata
+  estimator_factories.py                # zero-argument factories shared by contract/Iris tests; importable without torch
 ```
 
-测试权威级别（pytest markers）：`unit`（算法特有逻辑）、`math`（手工计算 → 失败=代码bug）、`property`（数学不变量 → 失败=代码bug）、`contract`（API 契约）、`integration`（跨组件集成）、`e2e`（真实子进程用户旅程）、`slow`（慢速）、`paper`（论文复现）。
+Pytest markers express test purpose: `unit` (component-specific logic), `math` (hand-calculated
+references; failure indicates a code bug), `property` (mathematical invariants; failure indicates a
+code bug), `contract` (API contracts), `integration` (cross-component behavior), `e2e` (real-subprocess
+user journeys), `slow` (expensive tests), and `paper` (paper reproduction).
 
-测试金字塔分层与 CI 映射：`unit` + `integration` 为 PR 快层（`-m "not slow and not e2e"`）；`e2e` + `slow` 为 nightly 顶层（`-m "slow or e2e"`）。
+PR CI runs the fast layer with `-m "not slow and not e2e"`; nightly CI selects the top layer with
+`-m "slow or e2e"`.
 
-**测试分层与选择口径（2026-10-04 复核）**：通用层与实验层按**目录**分开——`tests/unit/experiment/`
-是实验层侧（71 个测试文件，其中 36 个为 `test_survey_*`，其余测实验层自身机制：runner / protocols /
-bundle / manifest / tracking / trainers / strategies）。**选择口径不分层**：该目录内所有测试文件都标
-`pytest.mark.unit`，没有 survey 之类的分区标记，CI 也不按路径过滤（口径见 `compatibility.md` §4）。
-故「将通用算法测试和 Survey 协议测试分开」在**目录粒度成立**、在**选择粒度不成立**
-（引号内措辞取自治理方案的阶段 6 任务 5 原文；该转抄随阶段 6 收口已从本仓库移除）。
+General and experiment tests are separated by **directory**: `tests/unit/experiment/` covers
+Survey protocols as well as runner, protocols, bundle, manifest, tracking, trainers, and strategies.
+This does not establish a separate **selection** boundary: these tests use `pytest.mark.unit`,
+without a Survey partition marker, and CI does not filter them by path. Consult
+[`compatibility.md`](compatibility.md) section 4 for the selection policy. Use the current tree
+above for the file inventory rather than historical file-count snapshots.
 
-## 4. 示例（`examples/`）
+## 4. Examples (`examples/`)
 
 ```text
 examples/
   minimal/
-    01_elkan_noto.py          (Elkan-Noto 概率校正 + 加权重训)
-    02_upu.py                 (uPU 凸风险最小化)
-    03_nnpu.py                (nnPU 非负风险估计)
-    04_pnu.py                 (PNU 半监督扩展)
-    05_recpe_pipeline.py      (ReCPE 类先验估计 + uPU 联合流程)
-    06_sar_simulation.py      (SCAR/SAR 标记机制与 propensity)
-    07_data_profiling.py      (PU 数据画像与 SCAR/SAR 审计提示)
-    08_diagnostic_report.py   (已拟合 PUSB 的结构化诊断报告)
-    09_sensitivity_analysis.py (固定模型输出的假设敏感性审计)
-    10_self_pu.py            (clean validation 下的 Self-PU 三阶段训练)
-    11_distribution_shift.py (源/目标漂移审计与受保护的协变量加权适配)
-    12_shift_decision_tools.py (配对决策、窗口监控、双域假设与主动复核)
-    13_dynamic_joint_shift.py (论文式动态联合漂移 research 求解器)
-    14_diy_experiment.py      (四角色实验与三类策略扩展示例)
-    15_pu_sampling.py         (同一目标总体的 OS/独立 TS 配对构造与先验计数)
-    16_prior_targets.py       (known/estimated 先验在 OS/TS 报告与训练中的目标换算)
-    17_sar_policies.py        (同池 Bernoulli 与 LBE-A/B 定额策略及评分来源)
-    18_custom_encoders.py     (nnPU encoder 注入、冻结特征 uPU 与保存加载)
+    01_elkan_noto.py          (probability correction and weighted refit)
+    02_upu.py                 (convex uPU risk minimization)
+    03_nnpu.py                (nonnegative PU risk estimation)
+    04_pnu.py                 (semisupervised PNU extension)
+    05_recpe_pipeline.py      (ReCPE prior estimation with uPU)
+    06_sar_simulation.py      (SCAR/SAR labeling mechanisms and propensities)
+    07_data_profiling.py      (PU data profiles and SCAR/SAR audit hints)
+    08_diagnostic_report.py   (structured diagnostics for a fitted PUSB model)
+    09_sensitivity_analysis.py (assumption sensitivity with fixed model outputs)
+    10_self_pu.py            (three-stage Self-PU with clean validation)
+    11_distribution_shift.py (source/target audits and guarded covariate-weighted adaptation)
+    12_shift_decision_tools.py (paired decisions, window monitoring, two-domain assumptions, active review)
+    13_dynamic_joint_shift.py (paper-style dynamic joint-shift research solver)
+    14_diy_experiment.py      (four-role experiments and three strategy extensions)
+    15_pu_sampling.py         (paired OS/independent TS from one target population and prior counts)
+    16_prior_targets.py       (known/estimated prior conversion in OS/TS reports and training)
+    17_sar_policies.py        (same-pool Bernoulli/LBE-A/B quotas and score provenance)
+    18_custom_encoders.py     (nnPU encoder injection, frozen-feature uPU, save/load)
 ```
 
-## 4.1 Benchmark（`benchmarks/`）
+## 4.1 Benchmarks (`benchmarks/`)
 
 ```text
 benchmarks/
-  _common.py                   (共享原语: canonical_hash 等单源)
+  _common.py                   (shared primitives including canonical_hash)
   __init__.py
-  assigned_methods/            (前五篇 + SCAR/SAR 已执行 benchmark)
+  assigned_methods/            (first-five-paper and executed SCAR/SAR benchmarks)
     __init__.py
-    runner.py                  (统一 JSON benchmark runner)
+    runner.py                  (shared JSON benchmark runner)
     run.py                     (CLI)
     README.md
-    preflight_paper.py         (源码/数据/历史环境与 toolbox 差距分轴审计)
-    pusb_official_data.py      (IJCNN1 仓库扩展校验、官方抽样、kernel/uLSIF 与 provenance)
-    pusb_table2_data.py        (Table 2 六数据集锁定 loader 与官方采样可行性审计)
-    pusb_table2_benchmark.py   (Table 2 严格/兼容计划、checkpoint/resume 与 provenance)
-    pusb_table2_parallel.py    (Table 2 有界并行、失败重试和自动聚合)
-    pusb_table2_aggregate.py   (跨 shard 完整 key、配置和 provenance 验收)
-    pusb_table2_report.py      (严格结果验收、配对置信区间与 Markdown/JSON 报告)
-    configs/official/          (五份 locked_not_executed paper-like 配置)
-    results/clean_room_multiseed/ (3 methods × 3 seeds 实际产物)
-    results/official_preflight/ (当前节点前五篇 blocker 报告)
-    results/pusb_official_data_smoke/ (PUSB 官方数据缩小网格 smoke)
-    results/pusb_official_data_feasible_multiseed/ (IJCNN1 仓库扩展：完整网格 3 seeds × 3 U + uLSIF)
-    results/pusb_table2_data_audit/ (Table 2 数据完整性与官方采样可行性报告)
-    results/pusb_table2_strict_plan/ (45 单元/4500 trials 的 claim-safe dry-run 计划)
-    results/pusb_table2_strict_full/ (4500 trials 聚合结果、统计摘要与声明安全报告)
-    results/scar_sar_comparison/ (SCAR vs SAR 对比 benchmark: 3 mechanisms × 10 seeds)
+    preflight_paper.py         (separate source/data/historical-environment/toolbox gap audits)
+    pusb_official_data.py      (IJCNN1 repository-extension checks, official sampling, kernel/uLSIF, provenance)
+    pusb_table2_data.py        (locked six-dataset Table 2 loaders and official-sampling feasibility)
+    pusb_table2_benchmark.py   (strict/compatible Table 2 plans, checkpoints/resume, provenance)
+    pusb_table2_parallel.py    (bounded concurrency, retries, automatic aggregation)
+    pusb_table2_aggregate.py   (cross-shard key/configuration/provenance acceptance)
+    pusb_table2_report.py      (strict acceptance, paired confidence intervals, Markdown/JSON)
+    configs/official/          (five locked_not_executed paper-like configurations)
+    results/clean_room_multiseed/ (actual 3-method × 3-seed artifacts)
+    results/official_preflight/ (first-five-paper blockers for the audited node)
+    results/pusb_official_data_smoke/ (reduced-grid official-data smoke)
+    results/pusb_official_data_feasible_multiseed/ (IJCNN1 repository extension: full 3-seed × 3-U grid + uLSIF)
+    results/pusb_table2_data_audit/ (data integrity and official-sampling feasibility)
+    results/pusb_table2_strict_plan/ (claim-safe 45-cell/4500-trial dry-run plan)
+    results/pusb_table2_strict_full/ (4500-trial aggregates, statistics, claim-boundary report)
+    results/scar_sar_comparison/ (3-mechanism × 10-seed SCAR/SAR comparison)
   deep_pu/
-    runner.py                  (InfoMax PU/WConPU/DGPU 统一 runner)
+    runner.py                  (shared InfoMax PU/WConPU/DGPU runner)
     run.py                     (CLI)
-    official_data.py           (公开数据、确定性 PU split、clean validation/grid selection、resume 与 provenance)
+    official_data.py           (public data, deterministic PU splits, clean-validation/grid selection, resume, provenance)
     run_official_data.py       (official-data CLI)
-    preflight_paper.py         (GPU/EDM/授权数据/实现差距审计)
+    preflight_paper.py         (GPU/EDM/licensed-data/implementation gap audits)
     configs/
       clean_room_multiseed.json
       official_data_smoke_fashion_mnist.json
       official_data_infomax_fashion_protocol_pi05.json
       official_data_wconpu_cifar10_protocol.json
       official_sources.lock.json
-      official/               (三份 paper-like 配置；InfoMax provisional matrix 已执行，其余待执行)
-    results/clean_room_multiseed/ (3 methods × 3 seeds 实际产物)
-    results/official_data_smoke_fashion_mnist/ (真实数据 3-seed smoke)
-    results/infomax_fashion_protocol_preflight/ (InfoMax Fashion-MNIST 完整协议执行前审计)
-    results/official_preflight/ (当前节点完整配置 blocker 报告)
-    results/wconpu_cifar10_protocol_preflight/ (WConPU CIFAR-10 执行前审计)
+      official/               (three paper-like configurations; consult their evidence for execution status and InfoMax provisional choices)
+    results/clean_room_multiseed/ (actual 3-method × 3-seed artifacts)
+    results/official_data_smoke_fashion_mnist/ (three-seed real-data smoke)
+    results/infomax_fashion_protocol_preflight/ (full-protocol Fashion-MNIST preflight)
+    results/official_preflight/ (full-configuration blockers for the audited node)
+    results/wconpu_cifar10_protocol_preflight/ (CIFAR-10 preflight)
   joint_shift/
     __init__.py
-    runner.py                  (公开 Wisconsin 多 seed/CI 联合漂移 smoke)
-    README.md                  (协议、运行命令、产物与声明边界)
+    runner.py                  (public Wisconsin multiseed/CI joint-shift smoke)
+    README.md                  (protocol, commands, artifacts, claim boundaries)
   traditional_pu/
     __init__.py
-    data.py                    (SCAR/SAR/PNU 合成数据、h 传递与病态性检查)
-    leakage_audit.py           (泄露审计: 特征黑名单/重复样本/y_true 路径守卫/trial 列门禁/preflight 报告)
-    statistics.py              (汇总原语: 均值/CI/配对差值/成功率)
-    runner.py                  (统一 runner: SCAR 主网格 + SAR 诊断线 + PNU 三元网格、状态机/resume/超时)
+    data.py                    (SCAR/SAR/PNU synthetic data, h forwarding, degeneracy checks)
+    leakage_audit.py           (feature blacklist, duplicates, y_true path guards, trial-column gates, preflight reports)
+    statistics.py              (means, confidence intervals, paired differences, success rates)
+    runner.py                  (SCAR main grid, SAR diagnostics, PNU triplet grid, state machine/resume/timeouts)
     run.py                     (CLI: --seed-set/--results-dir/--timeout-profile)
-    tuning_round.py            (调优轮工具: 候选配置生成/§4 筛选排名/§5 退化率核对)
-    README.md                  (协议、命令、超时冻结流程与声明边界)
+    tuning_round.py            (candidate generation, §4 filtering/ranking, §5 degeneration checks)
+    README.md                  (protocol, commands, timeout freezing, claim boundaries)
     configs/
       seven_methods_pu_baseline_v1.json
       pnu_baseline_v1.json
-      pnu_baseline_v2.json      (PNU 显式锁定默认参数基线, 调优轮 companion 来源)
-      seven_methods_pu_baseline_v2.json (契约 v1 口径历史快照, 勿在当前源码下重跑)
-      seven_methods_pu_baseline_v3.json (契约 v2 口径正式基线: risk 跟随原生 predict 阈值)
-      kldce_tuning_r1/         (KLDCE 调优第 1 轮 10 候选配置, 由 tuning_round 生成)
-      kldce_tuning_r3/         (KLDCE 调优第 1 轮重跑: b₀ 类对称修复后, 同参数表)
-      ldce_tuning_r1/          (LDCE 调优第 1 轮 10 候选配置, 由 tuning_round 生成)
-      nnpu_tuning_r1/          (nnPU 调优第 1 轮 10 候选配置, 由 tuning_round 生成)
-      upu_tuning_r1/           (uPU 调优第 1 轮 10 候选配置, 由 tuning_round 生成)
-      llsvm_tuning_r1/         (LLSVM 调优第 1 轮 10 候选配置, 由 tuning_round 生成)
-      elkan_noto_tuning_r1/    (Elkan-Noto 调优第 1 轮 10 候选配置, 由 tuning_round 生成)
-      elkan_noto_tuning_r2/    (Elkan-Noto 调优第 1 轮重跑: 契约 v2 口径, 同参数表)
-      pnu_tuning_r1/           (PNU 调优第 1 轮 10 候选配置, 由 tuning_round 生成)
-    results/                   (运行产物: <run-name>/ 下四件套 + report.md)
+      pnu_baseline_v2.json      (explicit locked-default PNU baseline and tuning companion source)
+      seven_methods_pu_baseline_v2.json (historical contract-v1 snapshot; do not rerun with current source)
+      seven_methods_pu_baseline_v3.json (formal contract-v2 baseline; risk uses native predict threshold)
+      kldce_tuning_r1/         (10 first-round candidates generated by tuning_round)
+      kldce_tuning_r3/         (first-round rerun after b₀ class-symmetry fix with the same parameter table)
+      ldce_tuning_r1/          (10 first-round candidates generated by tuning_round)
+      nnpu_tuning_r1/          (10 first-round candidates generated by tuning_round)
+      upu_tuning_r1/           (10 first-round candidates generated by tuning_round)
+      llsvm_tuning_r1/         (10 first-round candidates generated by tuning_round)
+      elkan_noto_tuning_r1/    (10 first-round candidates generated by tuning_round)
+      elkan_noto_tuning_r2/    (first-round rerun under contract v2 with the same parameter table)
+      pnu_tuning_r1/           (10 first-round candidates generated by tuning_round)
+    results/                   (four standard artifacts + report.md under <run-name>/)
 ```
 
-启用 clean-validation 模型选择的 official-data 运行还会生成 `model_selection.csv`，逐 seed
-记录每个参数候选、验证指标、分数与耗时；`trials.csv` 记录最终选中参数和 refit 结果。
+Official-data runs with clean-validation selection also produce `model_selection.csv`, recording
+each candidate, validation metric, score, and elapsed time per seed. `trials.csv` records the
+selected parameters and refit results.
 
-## 5. 文档（`docs/`）
+## 5. Documentation (`docs/`)
 
-> **范围（如实）**：本节树块由 `generate_structure.py` 生成，`--check` 守住块内**文件名集合**的
-> 双向一致——在库却没列出报 missing，列出而磁盘上没有报 stale。作用域边界如下：
+> **Generator scope:** `generate_structure.py --check` compares the **file-name set** in both
+> directions: repository files absent from the block are missing; listed files absent from disk
+> are stale.
 >
-> - **覆盖的后缀**：`docs/` 根收 `.md`、`.png`、`.json`（文档、图资产、调研数据清单三类）。
->   这三个以外的后缀（如将来出现的 `.csv`/`.ipynb`）不在块的作用域内：**既不必列出，也不由本块
->   校验；但一旦被列出，报错且不会被静默删掉**——`--check` 会报「后缀越界」（消息与「路径不存在」
->   区分开），`--update` 也会把这条 problem 打印出来，因为它确实会将该行从块中移除。
-> - **分组登记子树**：`adr/`（编号决策）与 `research/pu_survey/`（协议资产与各阶段交付/复核）
->   按**分组**登记，块只指向各自索引 [adr/README.md](../adr/README.md)、
->   [pu_survey/README.md](../research/pu_survey/README.md)——其文件随任务批次增删，逐条列会长期
->   滞后。子树下**未列出**的文件属刻意省略，不计 missing（`research/pu_survey/data/` 的两个
->   `.json` 即在此列）；子树下**已列出**的条目（`pu_survey_protocol.md`、`assets/` 的两张图）
->   仍照常做存在性校验。其余路径逐篇列出在库文档。
->   这条「按分组登记」本身有校验锚点：**声明的子树若在块里找不到自己的目录行，`--check` 报
->   problem 并点名缺哪个子树**（否则「按索引登记」与「整棵子树被删掉」在门禁里长得一样），
->   `--update` 会把该行补回为无注释的目录行、不会让子树就此消失。
-> - **catch 不到什么**：它只比对**文件名**，从不校验注释文字——注释由生成器原样读入、原样回抄，
->   不来自磁盘。所以「路径仍在、注释已过时」的行，任何基于路径存在性的门禁在原理上都看不见；
->   阶段 6 最终评审阻断的两条正是此类，且其中一条就落在**本节块内**（本块曾有一行把收口状态写成
->   「阶段 6/7 未完项」，文件名与路径全程有效），另一条是 §3 说明里指向已删
->   转抄的括号。文件名不变而含义改变时，只能由人改注释。
+> - **Suffixes:** `docs/` covers `.md`, `.png`, and `.json` documentation, figures, and data
+>   manifests. Other suffixes, such as `.csv` or `.ipynb`, need not be listed and are outside
+>   verification. If listed, they produce an out-of-scope-suffix problem distinct from a missing
+>   path. `--update` reports that problem as well as removing the unsupported entry.
+> - **Grouped subtrees:** `adr/` and `research/pu_survey/` are registered by group through
+>   [adr/README.md](../adr/README.md) and [pu_survey/README.md](../research/pu_survey/README.md).
+>   Unlisted files inside these subtrees are intentionally exempt from missing-file checks;
+>   this includes the two JSON files in `research/pu_survey/data/`. Explicitly listed entries,
+>   including `pu_survey_protocol.md` and the two asset images, still require valid paths.
+>   Other documentation paths are listed individually. Each registered subtree must retain its
+>   directory line: `--check` names a missing registration anchor, and `--update` restores it
+>   as an unannotated directory rather than silently dropping the subtree.
+> - **Limits:** the generator checks names, never annotation content. It reads and preserves
+>   annotations rather than deriving them from files. A valid path with an obsolete description
+>   therefore passes path checks; human review must update descriptions when meaning changes.
 >
-> 完整文档索引见 [docs/README.md](../README.md)。
+> See [docs/README.md](../README.md) for the complete documentation index.
 
 ```text
 docs/
-  adr/                                    # 架构与流程决策记录(ADR 索引 + 编号决策)
-  user/                                   # 用户文档：旅程式（快速开始 → 概念 → 操作 → 参考）
+  adr/                                    # architecture/process decisions: index and numbered ADRs
+  user/                                   # user journey: quickstart → concepts → how-tos → reference
     concepts/
-      pu_problem.md                       # PU 问题设定、符号表与 π 的角色
-      scar_sar.md                         # SCAR/SAR 机制与识别边界
-      method_selection.md                 # 选型决策原理（推荐器 + 决策表）
-      class_prior_semantics.md            # 总体/U/风险池先验、换算条件与实现边界
-      pu_model_selection.md               # PA/OA 原理、监督角色与独立选择
-      pu_sampling.md                      # OS/TS、有限池来源与训练风险视图
-      representations.md                  # encoder、原生 CNN 与冻结特征的比较条件
+      pu_problem.md                       # problem setting, notation, role of π
+      scar_sar.md                         # SCAR/SAR mechanisms and identification limits
+      method_selection.md                 # method-choice principles, recommender, decision table
+      class_prior_semantics.md            # population/U/risk-pool priors, conversion conditions, implementation limits
+      pu_model_selection.md               # PA/OA, supervision roles, independent selection
+      pu_sampling.md                      # OS/TS, finite-pool provenance, training risk views
+      representations.md                  # comparison conditions for encoders, native CNNs, frozen features
     howto/
-      pipeline.md                         # PUPipeline 端到端工作流
-      cli.md                              # 命令行接口
-      data_profiling.md                   # 数据画像与假设提示
-      diagnostic_reports.md               # 生成诊断报告
-      sensitivity_analysis.md             # 类先验/标记倾向敏感性分析
-      sar_simulation.md                   # SCAR/SAR 数据模拟
-      self_pu.md                          # Self-PU 训练
-      distribution_shift.md               # 分布漂移审计与协变量加权适配
-      model_tuning.md                     # 模型参数与 PU-aware 网格搜索
-      custom_experiments.md               # 四角色实验 API 与策略扩展教程
-      custom_encoders.md                  # encoder 注入、共享骨干与冻结特征教程
-      ui.md                               # 图形界面安装与使用
-      using_skill.md                      # 启用与使用 pu-workflow Skill
-      pu_sampling.md                      # 同池定额与独立 TS 构造、元数据及入口迁移
+      pipeline.md                         # end-to-end PUPipeline workflow
+      cli.md                              # command-line interface
+      data_profiling.md                   # data profiles and assumption hints
+      diagnostic_reports.md               # diagnostic report generation
+      sensitivity_analysis.md             # class-prior/labeling-propensity sensitivity
+      sar_simulation.md                   # SCAR/SAR simulation
+      self_pu.md                          # Self-PU training
+      distribution_shift.md               # shift audits and covariate-weighted adaptation
+      model_tuning.md                     # model parameters and PU-aware grid search
+      custom_experiments.md               # four-role experiment API and strategy extension
+      custom_encoders.md                  # encoder injection, shared backbones, frozen features
+      ui.md                               # UI installation and usage
+      using_skill.md                      # enabling and using the pu-workflow skill
+      pu_sampling.md                      # same-pool quotas, independent TS, metadata, entry-point migration
     reference/
-      api.md                              # 核心 API 精确契约
-      index.md                            # API 索引：按模块分组的符号导航
-    README.md                             # 用户旅程图
-    quickstart.md                         # 5 分钟快速开始
-  dev/                                    # 开发者文档（贡献前必读）
-    architecture.md                       # 当前架构:模块分层、模块依赖关系、数据流、注册表
-    project_structure.md                  # 目录结构（本文档，权威来源）
-    new_algorithm_template.md             # 新算法接入模板（能力声明与测试要求）
-    dual_architecture_plan.md             # 双架构渐进式升级计划（阶段 0-4 与实施结果）
-    label_semantics_plan.md               # 标签语义契约：`label_semantics` 能力声明与检查点
-    experiment_layer.md                   # 实验层关键设计机制：可注入策略、视图/轨迹语义
-    compatibility.md                      # Python/依赖支持矩阵、CI 职责与构建策略
-    architecture_principles.md            # 架构维护原则：腐朽信号、应手与审计历史
-    comment_governance.md                 # 注释治理：判定标准、门禁规则、已裁决保留项与迁移策略
-    single_source_map.md                  # 单源地图：九个概念的真相源、消费者与重复判定
-    data_leakage_audit_design.md          # 数据泄露审计设计（黑名单/重复样本/guard）
-    distribution_shift_aware_pu.md        # 分布漂移感知 PU 设计（OOF 审计/协变量加权）
-    distribution_shift_aware_pu_checklist.md # 漂移感知实现检查清单
-    process_checklist.md                  # 进度清单与发布状态（权威来源）
-    release_process.md                    # 发布流程：版本策略、预检清单、上传、回滚与维护
-    pu_research_semantics.md              # 研究整合的采样/先验/方法消费基线与阶段退出条件
+      api.md                              # precise public API contract
+      index.md                            # symbols grouped by module
+    README.md                             # user journey map
+    quickstart.md                         # five-minute quickstart
+  dev/                                    # contributor guides and optional internal background
+    architecture.md                       # current layers, dependencies, data flow, registry
+    project_structure.md                  # authoritative directory inventory (this document)
+    new_algorithm_template.md             # algorithm integration, capabilities, tests
+    dual_architecture_plan.md             # dual-architecture upgrade phases/results (Chinese)
+    label_semantics_plan.md               # label_semantics capability contract/checkpoints (Chinese)
+    experiment_layer.md                   # injectable strategies and view/trajectory design (Chinese)
+    compatibility.md                      # Python/dependency support, CI responsibilities, build policy
+    architecture_principles.md            # architecture maintenance signals and audit history (Chinese)
+    comment_governance.md                 # comment criteria, gates, accepted exceptions, migration
+    single_source_map.md                  # sources, consumers, duplication criteria (Chinese)
+    data_leakage_audit_design.md          # blacklist/duplicate/guard audit design (Chinese)
+    distribution_shift_aware_pu.md        # OOF/covariate-weighting design (Chinese)
+    distribution_shift_aware_pu_checklist.md # shift implementation checklist (Chinese)
+    process_checklist.md                  # authoritative progress/release status (Chinese)
+    release_process.md                    # versioning, preflight, upload, rollback, maintenance (Chinese)
+    pu_research_semantics.md              # sampling/prior/consumption baseline and phase exits (Chinese)
   research/
     method_cards/
       class_prior_estimation.md
@@ -920,91 +928,92 @@ docs/
       WConPU.md
       DGPU.md
       Importance_Weighted_PU_Shift.md
-      CVIR.md                             # CVIR 固定未标记正类先验的经典适配器（技术预集成）
-      GEN-PU.md                           # Gen-PU 三判别器/双生成器来源、视图和适配边界
-      Holistic-PU.md                      # Holistic-PU 趋势分组与伪 PN 适配边界
-      P3MIX.md                            # P3MIX 原文映射、完整 estimator 与准入边界
-      PAN.md                              # PAN 双网络风险与 CNN 接入边界
-      PULNS.md                            # PULNS 选择器与独立 clean support 标签预算
-      RP.md                               # RankPruning PU-only rho0=0 来源与 OOF 校准
-      BBE.md                              # BBE 原始来源差异、独立 α_U 接口与留出/采样边界
-      TEDn.md                             # TEDn 交替训练时序、来源差异与独立 TS 工程边界
+      CVIR.md                             # fixed-unlabeled-prior classical adapter; technical preintegration
+      GEN-PU.md                           # three-discriminator/two-generator sources, views, adaptation limits
+      Holistic-PU.md                      # trend grouping and pseudo-PN adaptation limits
+      P3MIX.md                            # paper mapping, full estimator, admission boundaries
+      PAN.md                              # dual-network risk and CNN integration boundaries
+      PULNS.md                            # selector and independent clean-support label budget
+      RP.md                               # PU-only rho0=0 sources and OOF calibration
+      BBE.md                              # source differences, standalone α_U, holdout/sampling limits
+      TEDn.md                             # alternating training order, source differences, independent-TS engineering limits
     traditional_pu/
-      traditional_pu_metric_contract.md   # 传统 PU 七算法单域指标、基线与统计契约
-      traditional_pu_optimization_plan.md # 七算法调优顺序、参数簇、晋级规则与产物契约
+      traditional_pu_metric_contract.md   # seven-method single-domain metrics, baselines, statistics
+      traditional_pu_optimization_plan.md # tuning order, parameter groups, advancement rules, artifacts
     distribution_shift/
-      distribution_shift_metric_contract.md # 分布漂移审计、跨域评估与部署监控指标契约
-      joint_shift_research_protocol.md    # JointShift 研究型算法评估协议与声明边界
-      joint_shift_metadata_review_20261019.md # issue #69：JointShift 域漂移与 PU 采样元数据裁决
+      distribution_shift_metric_contract.md # shift audits, cross-domain evaluation, deployment metrics
+      joint_shift_research_protocol.md    # research evaluation and claim boundaries
+      joint_shift_metadata_review_20261019.md # issue #69 domain-shift/PU-sampling metadata decisions
     pu_survey/
       assets/
-        Dataset.png                       # 8 数据集类别标签与索引（Table B.1）
-        Dateset_PU.png                    # PU 数据集统计：类别映射/输入尺寸/规模（Table B.2）
-      pu_survey_protocol.md               # PU 调研实验协议（8 数据集、PA/OA 双选模、tools 首次应用）
-  README.md                               # 导航首页（用户 / 开发者 / 项目过程分栏）
+        Dataset.png                       # eight-dataset class labels/indices (Table B.1)
+        Dateset_PU.png                    # PU mappings/input sizes/counts (Table B.2)
+      pu_survey_protocol.md               # eight-dataset protocol and independent PA/OA selection
+  README.md                               # user/contributor/internal-background navigation
 ```
 
-## 6. 脚本（`scripts/`）
+## 6. Scripts (`scripts/`)
 
-下表按用途导航，不移动脚本文件。已有后台队列和文档使用其固定路径；“日期较早”或
-“有另一个 runner”不足以证明某个入口已废弃。具体调用方式见
+The table groups scripts by purpose without moving them. Existing queues and documentation
+depend on fixed paths; age or the presence of another runner does not establish obsolescence.
+For commands, see the
 [Survey runbook](../research/pu_survey/runbook.md)。
 
-| 用途 | 常用入口（均位于 `scripts/`） |
+| Purpose | Common entry points (all under `scripts/`) |
 |---|---|
-| 数据收集与切分 | `collect_survey_public_data.py`、`prepare_survey_splits.py`、`survey_splits_archive.py`、`prepare_clean_support.py` |
-| 单任务 / pilot | `run_survey_experiment.py`、`run_survey_pilot.py`、`run_clean_support_experiment.py`、`run_genpu_recipe.py` |
-| 后台队列 / 看板 | `run_survey_parallel_queue.py`、`run_survey_backlog_campaign.py`、`run_survey_queue_fit.py`、`monitor_survey_queue.py`、`monitor_survey_campaign.py` |
-| 候选路径 / 资源规划 | `prepare_candidate_image_resource_plan.py`、`prepare_kldce_resource_plan.py`、`run_candidate_image_experiment.py`、`run_classical_candidate_experiment.py`、`run_candidate_readiness_campaign.py`、`run_candidate_five_seed_grid.py` |
-| 审计 / 汇总 / 交付 | `audit_survey_batches.py`、`audit_survey_queue.py`、`aggregate_survey_runs.py`、`summarize_survey_results.py`、`export_survey_results.py`、`export_survey_queue_handoff.py`、`compare_survey_results.py` |
-| 问题诊断 / 补跑准备 | `run_lbe_comparison.py`、`run_lbe_diagnostics.py`、`diagnose_gradpu_encoder.py`、`prepare_survey_support_repair.py`、`prepare_kldce_recovery.py`、`recover_survey_backlog_canary.py` |
-| 版本化协议与配方准备 | `prepare_survey_recipe_registry.py`、`prepare_survey_backlog_revision.py`、`prepare_survey_classical_image_revision.py`；不是整理目录时随意重生成冻结文件的入口 |
-| 质量门禁 / 结构生成 | `check_*.py`、`generate_structure.py`、`generate_layer_deps.py` |
-| 工作流薄包装 / 内部辅助 | `pu_workflow/`、`_source_provenance.py`、`_survey_host.py`、`_lbe_diagnostic_reference.py`；下划线辅助模块不作为通用训练入口 |
+| Data collection / splits | `collect_survey_public_data.py`, `prepare_survey_splits.py`, `survey_splits_archive.py`, `prepare_clean_support.py` |
+| Single runs / pilot | `run_survey_experiment.py`, `run_survey_pilot.py`, `run_clean_support_experiment.py`, `run_genpu_recipe.py` |
+| Background queues / dashboards | `run_survey_parallel_queue.py`, `run_survey_backlog_campaign.py`, `run_survey_queue_fit.py`, `monitor_survey_queue.py`, `monitor_survey_campaign.py` |
+| Candidate paths / resource planning | `prepare_candidate_image_resource_plan.py`, `prepare_kldce_resource_plan.py`, `run_candidate_image_experiment.py`, `run_classical_candidate_experiment.py`, `run_candidate_readiness_campaign.py`, `run_candidate_five_seed_grid.py` |
+| Audit / aggregation / delivery | `audit_survey_batches.py`, `audit_survey_queue.py`, `aggregate_survey_runs.py`, `summarize_survey_results.py`, `export_survey_results.py`, `export_survey_queue_handoff.py`, `compare_survey_results.py` |
+| Diagnostics / rerun preparation | `run_lbe_comparison.py`, `run_lbe_diagnostics.py`, `diagnose_gradpu_encoder.py`, `prepare_survey_support_repair.py`, `prepare_kldce_recovery.py`, `recover_survey_backlog_canary.py` |
+| Versioned protocols / recipes | `prepare_survey_recipe_registry.py`, `prepare_survey_backlog_revision.py`, `prepare_survey_classical_image_revision.py`; do not regenerate frozen assets merely to tidy directories. |
+| Quality gates / structure generation | `check_*.py`, `generate_structure.py`, `generate_layer_deps.py` |
+| Thin workflow wrappers / internal helpers | `pu_workflow/`, `_source_provenance.py`, `_survey_host.py`, `_lbe_diagnostic_reference.py`; underscore helpers are not general training entry points. |
 
 ```text
 scripts/
-  pu_workflow/                            (pu-workflow skill 环节脚本——兼容薄包装, 委托给 CLI 子命令)
-    profile.py                            (委托 `pu-toolbox profile`: profile.json 契约)
-    recommend.py                          (委托 `pu-toolbox recommend`: recommendation.json 契约)
-    sensitivity.py                        (委托 `pu-toolbox sensitivity`: sensitivity.json 契约)
-  check_test_quality.py                   (测试质量门禁：方法数/marker/覆盖率)
-  check_doc_links.py                      (文档一致性检查：5 条规则)
-  check_project_metadata.py               (Python/CI/extras/Hatchling 跨文件一致性)
-  check_math_rendering.py                 (方法卡 MathJax 渲染检查：缺上下标参数/括号配对/$ 配对)
-  check_skill_sync.py                     (Skill 同步检查：完整资源树、内部链接与可移植元数据，第 5 道门禁)
-  check_baseline_configs.py               (基线配置一致性：锁定配置 vs 源码构造器默认参数，第 7 道门禁)
-  check_format.py                         (格式门禁：ruff check + format --check 全目录，第 6 道门禁)
-  check_api_docs.py                       (api.md 公共符号覆盖防漂移：静态提取 __all__ + 注册名校验，第 8 道门禁)
-  generate_structure.py                   (结构文档生成器：--check 校验 / --update 重生成 project_structure.md 树块)
-  prepare_survey_splits.py                (P1.4 四路 split 产物准备：data/raw 生成 train/pu_val/clean_val/test.npz 与 manifest)
-  run_survey_experiment.py                (官方示例脚本(协议 §2.4 第 9 条)：单方法四路 PU 实验、PA/OA 选模、独立 test 评测)
-  run_survey_pilot.py                     (pilot 跑批驱动：批处理、按 manifest 判定已完成、checkpoint 磁盘预算、--dry-run、--datasets/--methods/--training-paths 三轴子集与 --plan-json 计划快照；计划与执行共用 --protocol 解析)
-  survey_splits_archive.py                (split 制品跨机传输：pack 确定性 tar + 逐文件索引、verify 接收端双向校验)
-  summarize_survey_results.py             # P2.2 数值汇总入口: 逐可比行一均值+样本标准差, 成本按 run 计避免 PA/OA 重复计费, 按状态分 formal/partial/diagnostic 三表
-  export_survey_results.py                # 交付物 A 导出入口: 批次配置或 summary.json → survey_results.xlsx + 诊断卡 md/json + 结论分析 md/json（不重算任何数）
-  check_survey_recipe_registry.py         # P4.1 recipe registry 门禁（未物化时声明跳过，落地即强制校验）
-  check_comment_quality.py                (注释质量门禁：遗留标记/TBD 上下文/行尾注释，默认扫 pu_toolbox/)
-  generate_layer_deps.py                  # 层间依赖表生成器(architecture.md §2.1 生成块)
-  prepare_survey_recipe_registry.py       (从冻结 pilot 协议只读生成 P4.1 registry draft)
-  collect_survey_public_data.py           (缺失公开数据收集与校验；不下载 ADNI)
-  run_lbe_comparison.py                   # 线性/神经 LBE 的独立四路成对探索实验
-  run_lbe_diagnostics.py                  # LBE 延长 EM 与 SCAR 固定 propensity 的独立诊断
-  _lbe_diagnostic_reference.py            # 不注册的 SCAR 约束解析梯度诊断参考
-  _source_provenance.py                   # 临时实验脚本仓库与实际加载源码身份分离
-  prepare_clean_support.py                # 显式预算的原始数据支持集制品准备；默认只预览
-  run_clean_support_experiment.py         # 独立支持集三方法 CPU 单候选 OA 探索与选中模型回放
-  run_genpu_recipe.py                     # 显式四角色 GEN-PU 单候选工程命令与 PA/OA manifest
-  run_candidate_image_experiment.py       # PULDA/GradPU 单候选四角色图像工程命令与资源回放
-  run_classical_candidate_experiment.py   PUET/RP 独立 CPU 四角色计划与执行
+  pu_workflow/                            (compatible thin skill wrappers delegating to CLI subcommands)
+    profile.py                            (delegates to `pu-toolbox profile`: profile.json contract)
+    recommend.py                          (delegates to `pu-toolbox recommend`: recommendation.json contract)
+    sensitivity.py                        (delegates to `pu-toolbox sensitivity`: sensitivity.json contract)
+  check_test_quality.py                   (test count/marker/coverage quality gate)
+  check_doc_links.py                      (five documentation consistency rules)
+  check_project_metadata.py               (Python/CI/extras/Hatchling cross-file consistency)
+  check_math_rendering.py                 (method-card MathJax: missing sub/superscript arguments, brackets, dollar delimiters)
+  check_skill_sync.py                     (complete mirrored resource trees, internal links, portable metadata)
+  check_baseline_configs.py               (locked configurations vs constructor defaults)
+  check_format.py                         (ruff check + format --check across the configured scope)
+  check_api_docs.py                       (api.md public-symbol coverage: static __all__ extraction and registered names)
+  generate_structure.py                   (--check validates / --update regenerates project_structure.md tree blocks)
+  prepare_survey_splits.py                (data/raw → four-role train/pu_val/clean_val/test.npz and manifests)
+  run_survey_experiment.py                (official example from protocol §2.4 item 9: single-method four-role PU, PA/OA, independent test)
+  run_survey_pilot.py                     (batches, manifest completion, checkpoint budgets, --dry-run, --datasets/--methods/--training-paths subsets, --plan-json; shared --protocol for planning/execution)
+  survey_splits_archive.py                (deterministic tar/index pack and bidirectional receiver verify)
+  summarize_survey_results.py             # comparable-row means/sample SD; per-run costs avoid PA/OA double counting; formal/partial/diagnostic tables
+  export_survey_results.py                # batch config/summary.json → survey_results.xlsx and diagnostic/conclusion md/json; no numeric recomputation
+  check_survey_recipe_registry.py         # P4.1 registry gate: explicit skip when absent, mandatory checks when materialized
+  check_comment_quality.py                (legacy markers, contextual TBDs, trailing comments; defaults to pu_toolbox/)
+  generate_layer_deps.py                  # architecture.md §2.1 dependency-table generation
+  prepare_survey_recipe_registry.py       (read-only P4.1 registry draft generation from frozen pilot protocol)
+  collect_survey_public_data.py           (collect/verify missing public data; does not download official ADNI data)
+  run_lbe_comparison.py                   # independent four-role paired linear/neural LBE exploration
+  run_lbe_diagnostics.py                  # extended EM and fixed-SCAR-propensity diagnostics
+  _lbe_diagnostic_reference.py            # unregistered SCAR-constrained analytical-gradient reference
+  _source_provenance.py                   # separates exploratory-script repository identity from loaded source identity
+  prepare_clean_support.py                # explicitly budgeted raw-data support artifacts; preview by default
+  run_clean_support_experiment.py         # independent-support CPU single-candidate OA exploration/replay for three methods
+  run_genpu_recipe.py                     # explicit single-candidate four-role engineering command and PA/OA manifests
+  run_candidate_image_experiment.py       # PULDA/GradPU single-candidate four-role images and resource replay
+  run_classical_candidate_experiment.py   independent CPU PUET/RP four-role planning/execution
 ```
 
-## 7. CI/CD（`.github/`）
+## 7. CI/CD (`.github/`)
 
 ```text
 .github/
   pull_request_template.md
   workflows/
-    tests.yml                (PR 快层: Python matrix unit+integration + 静态门禁 + wheel 安装冒烟)
-    nightly.yml              (每周一 03:23 UTC: slow + e2e 顶层全量, 3 × 3 matrix)
+    tests.yml                (PR fast layer: Python-matrix unit/integration, static gates, installed-wheel smoke)
+    nightly.yml              (Monday 03:23 UTC: full slow/e2e top layer, 3 × 3 matrix)
 ```

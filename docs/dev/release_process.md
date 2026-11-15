@@ -51,7 +51,7 @@
    uv pip install --python <venv>/Scripts/python.exe <name>
    # 跑 quickstart 三步 + list-methods
    ```
-2. **更新安装说明**:README.md / README.zh-CN.md / docs/user/quickstart.md 中的安装命令与"尚未发布"表述
+2. **更新安装说明**:README.md / docs/user/quickstart.md 中的安装命令与"尚未发布"表述
 3. **GitHub Release**:main 打 tag(如 `v1.0.0`)+ 创建 Release(功能摘要见 `process_checklist.md` 发布状态节与 commit log)
    - **Release notes 内容要求**:只写用户可感知的变更——新功能(API/CLI)、修复、行为变化。
      - **不写**验证结果废话:测试数量、"门禁全绿"、CI 通过等一律不写——测试不通过根本不会进入发布流程,写了就是噪音

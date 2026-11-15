@@ -1,297 +1,394 @@
-# 架构设计
+# Architecture
 
-## 1. 设计决策
+## 1. Design decisions
 
-设计决策与代价已迁移至 [docs/adr/](../adr/README.md)。本文档只描述当前架构。
+Design decisions and tradeoffs are recorded in [docs/adr/](../adr/README.md). This
+document describes the current architecture.
 
-**与 `project_structure.md` 的分工**：本文档解释"为什么这样组织"（模块划分、
-依赖方向、数据流、算法推荐与注册约定）；文件清单与目录结构以 [`project_structure.md`](project_structure.md) 为权威来源。
-**API 契约**：类的精确签名与方法语义以 [`user/reference/api.md`](../user/reference/api.md) 为权威来源，本文档不重复。
+**Relationship to `project_structure.md`**: this page explains module boundaries,
+dependency directions, data flow, recommendation, and registration conventions.
+[`project_structure.md`](project_structure.md) is authoritative for file inventories
+and directory structure. **API contracts**: exact signatures and method semantics
+belong in [the API reference](../user/reference/api.md), rather than being duplicated here.
 
-**研究设置语义**：输入采样、标记/抽样政策、风险角色、先验目标、验证监督与表征分别表达。
-沿用 core 的角色事实、estimator/registry 的能力声明与 experiment 的研究政策边界；
-公共理论入口见[PU 问题设定](../user/concepts/pu_problem.md)，当前逐实现事实见
-[语义基线](pu_research_semantics.md)，整合决策见 [ADR-0021](../adr/0021-pu-research-semantics.md)。
-采样入口与先验目标契约按语义基线的实施记录更新。`prior/semantics.py` 提供 OS/TS 质量换算；
-Pipeline 将估计解析为总体值，再按 estimator 的默认视图目标逐折换算，实际消费进入 `PriorInfo`。
-实验层 CVIR 适配器复用同一质量换算，保留研究风险视图与参数绑定政策。
-`preprocessing/_sampling.py` 统一固定正例配额与均匀无放回抽样，通用标记入口和实验生成器复用。
+**Research-setting semantics**: input sampling, labeling/selection policies, risk
+roles, prior targets, validation supervision, and representations are separate
+dimensions. Core owns role facts; estimators and the registry declare capabilities;
+the experiment layer owns research policies. Start with [the PU problem
+setting](../user/concepts/pu_problem.md). The [semantic baseline](pu_research_semantics.md)
+and [ADR-0021](../adr/0021-pu-research-semantics.md) provide optional Chinese
+implementation history and decision rationale.
 
-## 2. 模块分层
+`prior/semantics.py` supplies OS/TS probability-mass conversions. The pipeline resolves
+an estimate to a population prior, then converts it per fold to the estimator's
+default view target; `PriorInfo` records the values actually consumed. The experiment
+layer's CVIR adapter reuses these conversions while retaining its research risk
+views and parameter-binding policy. `preprocessing/_sampling.py` centralizes fixed
+positive quotas and uniform sampling without replacement for labeling entry points
+and experiment generators.
 
-> 分层为概念归类；"模块"列给出对应 `pu_toolbox/` 子包；职责为模块级边界。
-> 文件级职能（每个文件的核心功能与公开入口）见 [`project_structure.md`](project_structure.md)
-> 目录树旁注——本表不重复，避免真相源分裂。
+## 2. Module layers
 
-### Core — 地基层：无上层依赖，被其余层引用
+Layers are conceptual groups. The module column identifies `pu_toolbox/` subpackages
+and their responsibilities. File-level responsibilities and public entry points
+are documented alongside the directory trees in
+[`project_structure.md`](project_structure.md).
 
-| 模块 | 核心职责 | 详情来源 |
+### Core — foundations used by the other layers
+
+| Module | Responsibility | Details |
 |---|---|---|
-| `core/` | PU 基类、标签语义规范、输入校验与规范化、设备/随机源统一、异常与 tags 语义、**中立训练角色视图**（`core/training_views.py`） | [`../../pu_toolbox/core/__init__.py`](../../pu_toolbox/core/__init__.py) |
-| `preprocessing/` | SCAR/SAR 标签与数据生成、结构化数据画像 | [`../../pu_toolbox/preprocessing/__init__.py`](../../pu_toolbox/preprocessing/__init__.py)、[`画像指南`](../user/howto/data_profiling.md) |
-| `registry/` | 算法注册、元数据与内置方法发现 | [`../../pu_toolbox/registry/__init__.py`](../../pu_toolbox/registry/__init__.py)、[`内置方法表`](../../pu_toolbox/registry/builtin_methods.py) |
-| `advisor/` | 数据画像驱动的算法推荐 | [`../../pu_toolbox/advisor/__init__.py`](../../pu_toolbox/advisor/__init__.py)、[`选型原理`](../user/concepts/method_selection.md) |
-| `utils/` | 共享工具（非公开 API，可随小版本变化） | [`../../pu_toolbox/utils/__init__.py`](../../pu_toolbox/utils/__init__.py) |
+| `core/` | PU base classes, label semantics, input validation/normalization, device and random-state handling, exceptions, tags, and **neutral training-role views** (`core/training_views.py`) | [Exports](../../pu_toolbox/core/__init__.py) |
+| `preprocessing/` | SCAR/SAR labeling and data generation; structured data profiling | [Exports](../../pu_toolbox/preprocessing/__init__.py), [profiling guide](../user/howto/data_profiling.md) |
+| `registry/` | Algorithm registration, metadata, and built-in discovery | [Exports](../../pu_toolbox/registry/__init__.py), [built-in methods](../../pu_toolbox/registry/builtin_methods.py) |
+| `advisor/` | Algorithm recommendations based on data profiles | [Exports](../../pu_toolbox/advisor/__init__.py), [method selection](../user/concepts/method_selection.md) |
+| `utils/` | Shared utilities; private API that may change in minor releases | [Exports](../../pu_toolbox/utils/__init__.py) |
 
-### Estimation — 类先验与 PU 损失，被 Algorithms 使用
+### Estimation — class priors and PU losses used by Algorithms
 
-| 模块 | 核心职责 | 详情来源 |
+| Module | Responsibility | Details |
 |---|---|---|
-| `prior/` | 类先验估计器（ReCPE / penL1 / KM） | [`../../pu_toolbox/prior/__init__.py`](../../pu_toolbox/prior/__init__.py)、[`先验方法卡`](../research/method_cards/class_prior_estimation.md) |
-| `losses/` | PU 风险/损失函数 | [`../../pu_toolbox/losses/__init__.py`](../../pu_toolbox/losses/__init__.py) |
+| `prior/` | Class-prior estimators (ReCPE / penL1 / KM) | [Exports](../../pu_toolbox/prior/__init__.py), [prior method card (Chinese)](../research/method_cards/class_prior_estimation.md) |
+| `losses/` | PU risk/loss functions | [Exports](../../pu_toolbox/losses/__init__.py) |
 
-### Algorithms — 具体 PU 分类器实现
+### Algorithms — PU classifier implementations
 
-| 模块 | 核心职责 | 详情来源 |
+| Module | Responsibility | Details |
 |---|---|---|
-| `estimators/` | 全部 PU 分类器，按 `classic/`、`risk/`、`bias_aware/`、`deep/`、`research/` 分包 | [`../../pu_toolbox/estimators/__init__.py`](../../pu_toolbox/estimators/__init__.py) |
+| `estimators/` | PU classifiers grouped into `classic/`, `risk/`, `bias_aware/`, `deep/`, and `research/` | [Exports](../../pu_toolbox/estimators/__init__.py) |
 
-算法↔模块落点与实现状态（NATIVE / api_only / `official_exact` adapter）
-以注册表[`内置方法表`](../../pu_toolbox/registry/builtin_methods.py)（`_BUILTINS`）
-为真相源；各算法原理见[`方法卡`](../research/method_cards/)。
+The registry's [built-in table](../../pu_toolbox/registry/builtin_methods.py)
+(`_BUILTINS`) is authoritative for algorithm-to-module mappings and implementation
+status (NATIVE / api_only / `official_exact` adapter). [Method cards
+(Chinese)](../research/method_cards/) explain individual algorithms.
 
-### Evaluation — 结果评估与诊断，被 Orchestration 调用
+### Evaluation — evaluation and diagnostics used by Orchestration
 
-| 模块 | 核心职责 | 详情来源 |
+| Module | Responsibility | Details |
 |---|---|---|
-| `metrics/` | PU 评估指标（PU-only + 标准监督指标包装） | [`../../pu_toolbox/metrics/__init__.py`](../../pu_toolbox/metrics/__init__.py)、[`指标契约`](../research/traditional_pu/traditional_pu_metric_contract.md) |
-| `model_selection/` | PU 分层切分、模型调优与比较 | [`../../pu_toolbox/model_selection/__init__.py`](../../pu_toolbox/model_selection/__init__.py)、[`调优指南`](../user/howto/model_tuning.md) |
-| `diagnostics/` | 结构化诊断报告与假设敏感性分析 | [`../../pu_toolbox/diagnostics/__init__.py`](../../pu_toolbox/diagnostics/__init__.py)、[`报告指南`](../user/howto/diagnostic_reports.md) |
+| `metrics/` | PU-only metrics and wrappers for standard supervised metrics | [Exports](../../pu_toolbox/metrics/__init__.py), [metric contract (Chinese)](../research/traditional_pu/traditional_pu_metric_contract.md) |
+| `model_selection/` | PU-stratified splitting, tuning, and comparison | [Exports](../../pu_toolbox/model_selection/__init__.py), [tuning guide](../user/howto/model_tuning.md) |
+| `diagnostics/` | Structured diagnostic reports and assumption sensitivity analysis | [Exports](../../pu_toolbox/diagnostics/__init__.py), [report guide](../user/howto/diagnostic_reports.md) |
 
-### Orchestration — 端到端编排与 CLI
+### Orchestration — end-to-end workflows and CLI
 
-| 模块 | 核心职责 | 详情来源 |
+| Module | Responsibility | Details |
 |---|---|---|
-| `workflows/` | PUPipeline 端到端编排与漂移感知工作流 | [`../../pu_toolbox/workflows/__init__.py`](../../pu_toolbox/workflows/__init__.py)、[`流水线指南`](../user/howto/pipeline.md)、[`漂移指南`](../user/howto/distribution_shift.md) |
-| `cli/` | 命令行薄封装（子命令一览） | [`命令行指南`](../user/howto/cli.md)、[`../../pu_toolbox/cli/__init__.py`](../../pu_toolbox/cli/__init__.py) |
+| `workflows/` | PUPipeline orchestration and shift-aware workflows | [Exports](../../pu_toolbox/workflows/__init__.py), [pipeline guide](../user/howto/pipeline.md), [shift guide](../user/howto/distribution_shift.md) |
+| `cli/` | Thin command-line wrappers | [CLI guide](../user/howto/cli.md), [exports](../../pu_toolbox/cli/__init__.py) |
 
-### Experiment — 实验/研究协议层
+### Experiment — experiment and research protocols
 
-| 模块 | 核心职责 | 详情来源 |
+| Module | Responsibility | Details |
 |---|---|---|
-| `experiment/` | 面向研究者/实验用户的协议化实验编排：四路数据角色（train/pu_val/clean_val/test）、PA/OA 双协议离线选模、独立 test 评测、版本化留痕；`ExperimentRunner` 固定编排骨架，数据生成/训练/选模为可注入策略（`Generator`/`Trainer`/`SelectionProtocol`） | [`../../pu_toolbox/experiment/__init__.py`](../../pu_toolbox/experiment/__init__.py)、[`实验层设计`](experiment_layer.md)、[`ADR-0018`](../adr/0018-experiment-layer-public-api.md) |
+| `experiment/` | Protocol-based research orchestration: four data roles (`train/pu_val/clean_val/test`), independent PA/OA offline selection, independent test evaluation, and versioned provenance. `ExperimentRunner` provides a fixed skeleton with injectable generation, training, and selection strategies (`Generator`/`Trainer`/`SelectionProtocol`). | [Exports](../../pu_toolbox/experiment/__init__.py), [design background (Chinese)](experiment_layer.md), [ADR-0018 (Chinese)](../adr/0018-experiment-layer-public-api.md) |
 
-### User Layer — 用户入口（教学 / 图形界面 / 复现工具）与 agent 包装
+### User Layer — tutorials, UI, reproduction tools, and agent wrappers
 
-| 模块 | 核心职责 | 详情来源 |
+| Module | Responsibility | Details |
 |---|---|---|
-| `examples/` | 教程与最小示例 | [`../../examples/`](../../examples/) |
-| `ui/` | 图形界面（可选 ext，核心安装不导入 streamlit） | [`../../pu_toolbox/ui/__init__.py`](../../pu_toolbox/ui/__init__.py)、[`图形界面指南`](../user/howto/ui.md) |
-| `benchmarks/` | 论文复现基准（runner / 官方数据 / 产物管理；仓库根，官方数据由执行方提供） | [`../../benchmarks/`](../../benchmarks/) |
-| `scripts/pu_workflow/` | 兼容包装（委托 CLI 子命令） | [`../../scripts/pu_workflow/`](../../scripts/pu_workflow/) |
-| pu-workflow skill | agent 按任务路由到 CLI / Python 公共 API，按需读取分析、采样先验、研究、表征与扩展参考 | [`../../.claude/skills/pu-workflow/SKILL.md`](../../.claude/skills/pu-workflow/SKILL.md) |
+| `examples/` | Tutorials and minimal examples | [Examples](../../examples/) |
+| `ui/` | Optional graphical interface; core installation does not import Streamlit | [Exports](../../pu_toolbox/ui/__init__.py), [UI guide](../user/howto/ui.md) |
+| `benchmarks/` | Paper-reproduction runners, official-data integration, and artifact handling at the repository root; operators supply official data | [Benchmarks](../../benchmarks/) |
+| `scripts/pu_workflow/` | Compatibility wrappers delegating to CLI subcommands | [Wrappers](../../scripts/pu_workflow/) |
+| pu-workflow skill | Routes agent tasks to CLI/public Python APIs and loads analysis, sampling/prior, research, representation, and extension references as needed | [Skill entry](../../.claude/skills/pu-workflow/SKILL.md) |
 
-### 2.1 模块依赖关系
+### 2.1 Module dependencies
 
 <!-- BEGIN: layer-deps (generated by scripts/generate_layer_deps.py; do not edit by hand) -->
-**层间调用方向**（指向被依赖方；由代码实测生成，勿手改）：
+**Cross-layer dependencies** (targets are dependencies; generated from code, do not edit):
 
-| 层 | 使用/调用 |
+| Layer | Uses/calls |
 |---|---|
-| Core（`core/`、`preprocessing/`、`registry/`、`advisor/`、`utils/`） | — |
-| Estimation（`prior/`、`losses/`） | Core |
-| Algorithms（`estimators/`） | Core、Estimation |
-| Evaluation（`metrics/`、`model_selection/`、`diagnostics/`） | Core、Estimation（仅函数内）、Orchestration |
-| Orchestration（`workflows/`、`cli/`） | Core、Estimation、Algorithms、Evaluation |
-| Experiment（`experiment/`） | Core、Estimation、Algorithms（仅函数内）、Evaluation（仅函数内） |
-| User Layer（`ui/`、`benchmarks/`） | Core、Estimation、Algorithms、Evaluation、Orchestration |
+| Core (`core/`, `preprocessing/`, `registry/`, `advisor/`, `utils/`) | — |
+| Estimation (`prior/`, `losses/`) | Core |
+| Algorithms (`estimators/`) | Core, Estimation |
+| Evaluation (`metrics/`, `model_selection/`, `diagnostics/`) | Core, Estimation (function-local only), Orchestration |
+| Orchestration (`workflows/`, `cli/`) | Core, Estimation, Algorithms, Evaluation |
+| Experiment (`experiment/`) | Core, Estimation, Algorithms (function-local only), Evaluation (function-local only) |
+| User Layer (`ui/`, `benchmarks/`) | Core, Estimation, Algorithms, Evaluation, Orchestration |
 <!-- END: layer-deps -->
 
-> 上表由 `scripts/generate_layer_deps.py` 从代码实测生成（AST 扫描全部 import，**含函数内
-> 导入**，故 `（仅函数内）` 标注的那些边在普通导入图里看不见），`--check` 在文档与代码不等时
-> 失败。**覆盖边界（如实）**：本块只覆盖**层间**边；层内依赖与导入环不在块内，见下方说明段。
+The table is generated by `scripts/generate_layer_deps.py` using an AST scan of all
+imports, **including function-local imports**. Edges marked “function-local only”
+are absent from a module-load import graph. `--check` fails if the generated table
+differs from the source. Its scope is **cross-layer edges**; dependencies and cycles
+within a layer are described below.
 
-**层内依赖与环（手写，非生成）**：`Evaluation` 层内确有依赖——`diagnostics/report.py` 与
-`diagnostics/sensitivity.py` 依赖 `metrics`，`diagnostics/shift_monitor.py` 依赖
-`diagnostics.shift`。此外全包有两条**层内**环，均需函数内导入才能成环、故普通（模块加载期）导入图看不出：
-`estimators/risk/kldce.py` ↔ `kldce_smo.py`，以及 `experiment/survey_execution.py` ↔
-`survey_protocol.py`。**无跨层导入环**（层图上 `Evaluation` 与 `Orchestration` 互为对方的目标，其中向上的那半——`Evaluation → Orchestration`——即下方「依赖方向的已裁决例外」第 2 条；反向是正常边）。
+**Dependencies and cycles within layers (maintained manually)**:
+within Evaluation, `diagnostics/report.py` and `diagnostics/sensitivity.py` depend on
+`metrics`, and `diagnostics/shift_monitor.py` depends on `diagnostics.shift`.
+There are two within-layer cycles that involve function-local imports and therefore
+do not appear in a module-load graph: `estimators/risk/kldce.py` ↔ `kldce_smo.py`,
+and `experiment/survey_execution.py` ↔ `survey_protocol.py`. There are **no
+cross-layer import cycles**. At the aggregated layer level, Evaluation and
+Orchestration point to each other; Evaluation → Orchestration is the approved
+upward exception described below, while the reverse direction is normal.
 
-**未归层的顶层文件（如实登记）**：`pu_toolbox/__init__.py`（伞形 re-export 门面）、
-`pu_toolbox/run_config.py`、`pu_toolbox/progress.py` 不属于任何一层，故不参与上表的测量。
-其中 `run_config.py` **确有**向上依赖（`:11` → `estimators.deep.vision`、`:12` → `workflows`），
-登记为「未归层的顶层便利模块」。
-`benchmarks/` 虽在 `pu_toolbox/` 包外，仍属 User Layer 并已纳入测量。
+**Top-level files outside the layer map**:
+`pu_toolbox/__init__.py` (the umbrella re-export facade), `pu_toolbox/run_config.py`,
+and `pu_toolbox/progress.py` are excluded from the table. `run_config.py` does
+depend upward on `estimators.deep.vision` and `workflows`; it is an unlayered
+top-level convenience module. Although `benchmarks/` is outside the Python package,
+it belongs to User Layer and is included in the scan.
 
-**叶子入口与守卫（手写，非生成）**：实测仍无任何层指向 `Experiment`——不被任何层依赖（叶子入口）。
-该方向由 `tests/contract/test_layer_boundaries.py` 对全部下层模块做静态 AST 扫描与子进程导入图
-两层守卫（前者抓函数内导入、后者抓传递拉取，各自的盲区见该测试 docstring）。
+**Leaf entry point and guards (maintained manually)**:
+no layer depends on Experiment. `tests/contract/test_layer_boundaries.py` guards
+this direction using both static AST scans of all lower-layer modules and
+subprocess import graphs. The former catches function-local imports; the latter
+catches transitive imports. Their individual blind spots are documented in the test.
 
-跨层的两条**已裁决例外**见下方「依赖方向的已裁决例外」。
+**Approved dependency exceptions**:
 
-**依赖方向的已裁决例外**：
+1. **`registry` → `estimators` / `prior` (Core → Algorithms / Estimation)**:
+   `registry/builtin_methods.py` loads algorithm classes from **strings** with
+   `importlib.import_module` and `getattr`. This edge is invisible to both the
+   static AST scan and the subprocess import graph;
+   `tests/contract/test_registry_dynamic_import.py` guards its meaning.
+   Name-based lookup decouples the experiment layer from algorithm families:
+   adding an algorithm requires registration.
+2. **`model_selection` → `workflows` (Evaluation → Orchestration, upward)**:
+   `model_selection/comparison.py` and `tuning.py` statically depend on
+   `PUPipeline`. `model_selection/__init__.py` lazily loads these modules using
+   PEP 562 module-level `__getattr__`. Tuning and comparison built on a PU-aware
+   workflow remain Evaluation responsibilities; moving them would cost more than
+   it would improve the boundary.
 
-1. **`registry` → `estimators` / `prior`（Core → Algorithms / Estimation）**：
-   `pu_toolbox/registry/builtin_methods.py` 用 `importlib.import_module` + `getattr` 按
-   **字符串**加载算法类，这条边**静态 AST 扫描与子进程导入图都看不见**，由
-   `tests/contract/test_registry_dynamic_import.py` 钉住其含义。
-   保留理由：按名字查表正是实验层与算法谱系解耦的机制——新增算法只需注册。
-2. **`model_selection` → `workflows`（Evaluation → Orchestration，向上）**：
-   `model_selection/comparison.py` 与 `tuning.py` 静态依赖编排层的 `PUPipeline`；
-   `model_selection/__init__.py` 用 PEP 562 模块级 `__getattr__` 懒加载这两个模块。
-   保留理由：构建在 PU 感知工作流之上的调参与比较是该层职责，上移成本大于收益。
+**Survey attribution in general-layer docstrings**:
+some general-layer docstrings mention Survey context. These references do not
+affect behavior: they do not parse ledger fields, use Survey artifact paths, or
+hard-code repository paths. They are retained because they explain why the code
+was written that way.
 
-**通用层 docstring 的 Survey 归因（已裁定保留）**：通用层有些 docstring 归因引用了 Survey 语境，
-勘察确认**无一处进入行为**（没有解析台账字段、没有 survey 制品路径、无硬编码仓库路径）。
-判为保留：这些引用是「这段通用代码为何这么写」的信息，删除即丢失。
+**Representative module dependency chains**:
 
-**模块级依赖链**（代表性，层间单向；两条层内环见上）：
+- **Label semantics**: `core/labels.py` (label-convention recognition and remapping)
+  → `core/validation.py` (label normalization, X/y consistency, sample-size checks
+  and warnings, returning canonical inputs) → estimator `fit` entry points.
+- **Main-input intent gate**: the runner calls `core/validation.py`'s
+  `validate_label_semantics` for generated views; PU workflows call it for PU main
+  inputs. Pipeline resolution, execution, and actual-clone checks cover comparison,
+  tuning, CLI, and UI; CLI sensitivity checks its direct-fit path separately.
+  This gate does not replace value validation or object-identity leakage guards.
+  See [ADR-0020 (Chinese)](../adr/0020-main-input-label-semantics.md) for rationale.
+- **Data profiling**: `preprocessing/profiling.py` supplies statistical primitives
+  (`pu_data_summary`/`pnu_data_summary`/`scar_diagnostic`, kept backward compatible)
+  → `preprocessing/data_profiler.py` aggregates `PUDataProfile` and actionable
+  issues → `workflows` (first pipeline step), `diagnostics` (reports), and
+  `advisor` (recommendations).
+- **Metadata semantics**: `core/tags.py` is authoritative for registry metadata
+  fields and enums; registry and advisor use those definitions.
+- **Devices and randomness**: `core/device.py`'s `resolve_device` is the single
+  device-normalization entry point. `core/random.py`'s `check_random_state`
+  normalizes seeds for preprocessing and experiments. Preprocessing declares
+  `int | RandomState | None` and returns supplied instances unchanged to continue
+  their random stream. Experiments consume the helper but declare `seed` as
+  `int | None` in `experiment/protocols.py`. Estimators intentionally do not use
+  this helper: their `random_state` contract is `int | None`. The optional
+  [single-source map (Chinese)](single_source_map.md) records the rationale.
+- **Training views**: `core/training_views.py` constructs neutral
+  `positive` / `native_unlabeled` / `loss_unlabeled` roles and source indices
+  from one training partition, without ledger, method-name, or manifest knowledge.
+  `experiment/training_views.py` owns Survey ledger gates, routing decisions,
+  derivation of the historical `run_view` vocabulary at the boundary, and manifest
+  construction; it delegates role construction to core. Estimator `os_or_ts`
+  consumers depend on core. **`estimator → core` is allowed;
+  `estimator → experiment` is forbidden.** Static dependence on Survey protocols
+  would reverse the general-algorithm boundary. The reverse edge is absent in
+  measurement; estimator modules seen when importing lower modules come from the
+  umbrella re-exports in `pu_toolbox/__init__.py`, which runs before any
+  `pu_toolbox.*` import. `tests/contract/test_layer_boundaries.py` ratchets this
+  boundary with static AST and subprocess import checks. Role membership is a
+  fact owned by core; whether calibration is allowed is an experiment-layer policy.
+- **Experiment injection**: `experiment/runner.py` supplies the fixed skeleton,
+  with an injected `model` instance and strategy ABCs
+  (`Generator`/`Trainer`/`SelectionProtocol` in `protocols.py`). Replaceable
+  strategies handle generation, training, selection, and provenance.
+  `ExperimentRunner` imports neither estimators nor registry; it accepts an
+  instance through `fit(model, …)`. The **caller** obtains a class with
+  `registry.get_algorithm(method)`, instantiates it, and injects it. Adding a
+  registered algorithm requires no algorithm-specific runner, script, or
+  selection-chain changes.
 
-- **标签语义链**：`core/labels.py`（纯元语：标签约定识别与重映射）→ `core/validation.py`（组装层：标签规范化 + X/y 一致性 + 样本量门槛与告警，返回值已是规范形）→ 各估计器 `fit` 入口
-- **主输入意图门禁**：`core/validation.py` 的 `validate_label_semantics` 由runner按生成视图、由PU工作流按PU主输入消费；pipeline解析/运行/实际clone检查覆盖比较、调优和CLI/UI，CLI敏感性直接fit单独检查。该门禁不替代取值校验或对象身份防泄漏，见[ADR 0020](../adr/0020-main-input-label-semantics.md)。
-- **数据画像链**：`preprocessing/profiling.py`（统计元语：`pu_data_summary`/`pnu_data_summary`/`scar_diagnostic`，向后兼容）→ `preprocessing/data_profiler.py`（聚合编排：`PUDataProfile` + 可行动 issues）→ `workflows`（pipeline 首步）/ `diagnostics`（报告）/ `advisor`（推荐）
-- **字段语义**：`core/tags.py` 是 registry 元数据字段与枚举的权威来源，registry/advisor 均以其为准
-- **设备与随机源入口**：`core/device.py` 的 `resolve_device` 是全工具箱唯一的设备归一化入口。
-  `core/random.py` 的 `check_random_state` 服务**预处理与实验层**的 seed 归一化；
-  **预处理层**声明 `int | RandomState | None`，接受实例并原样返回以延续随机流，
-  **实验层**只消费该 helper（其 `experiment/protocols.py:42` 的 `seed` 声明为 `int | None`）；
-  估计器层**有意不经过它**——那里的 `random_state` 契约是 `int | None`，理由见 `single_source_map.md` §随机源
-- **训练视图链**：`core/training_views.py`（中立元语：从一次训练分区识别 `positive` / `native_unlabeled` / `loss_unlabeled` 三个角色与来源索引，不认识台账、方法名与 manifest）→ `experiment/training_views.py`（survey 边界：台账门禁、路由裁决、历史 `run_view` 词表在出口现算、manifest 构造；角色构造委托核心层）→ estimator 的 `os_or_ts` 消费点。**方向是 `estimator → core`，禁止 `estimator → experiment`**：estimator 是通用算法，静态依赖 survey 协议即构成反向依赖（反方向实测为 0；往下看会连带出现 estimator 模块，是**根包 `pu_toolbox/__init__.py` 的伞形 re-export** 所致——任何 `pu_toolbox.*` 子模块的导入都会先执行它，与实验包自身无关）。该边界由 `tests/contract/test_layer_boundaries.py` 的 ratchet 守住（静态 AST 扫描抓函数内导入，子进程导入图抓传递依赖）。角色是事实，能否校准是政策——政策留在实验层，事实下沉到核心层。
-- **实验层注入链**：`experiment/runner.py`（固定编排骨架）→ 注入的 `model` 实例（estimators，调用方经 `registry.get_algorithm` 获取，非静态 import）+ 策略 ABC（`protocols.py` 的 `Generator`/`Trainer`/`SelectionProtocol`）→ 生成/训练/选模/留痕各由可替换策略承担
+The layer list is an overview; consult the annotated
+[`project_structure.md`](project_structure.md) trees for file-level detail.
 
-  「非静态 import」指 `ExperimentRunner` 的 import 列表不含任何 estimator 或 registry，只经
-  `fit(model, …)` 接收实例；`model` 由**调用方**按方法名字符串 `registry.get_algorithm(method)`
-  查表取算法**类**、实例化后注入。按名字查表使实验层与算法谱系解耦——新增算法只需在 registry
-  注册，实验层的 runner/脚本/选模链零感知、零改动。
+## 3. Data flow
 
-> 分层为代表性概览，细粒度依赖以 [`project_structure.md`](project_structure.md)
-> 目录树为准。
-
-## 3. 数据流
-
-一条主链：`PUPipeline.fit_evaluate` 从数据到报告；方括号为对应模块
-（与 §2 分层表术语一致），后续文字只解释图中说不清的部分。
+The main chain is `PUPipeline.fit_evaluate`, from input data to reports.
+Brackets identify modules using the layer terminology above.
 
 ```text
-用户输入 (X, y_pu[, y_true])
-  ↓ 校验 + 标签规范化      [core/validation + labels]
-数据画像 profile            [preprocessing/data_profiler]
-  ↓ 画像 issues 含 error → fail-fast 停止
-推荐器选方法（auto 默认路径） [advisor/recommend_from_profile]
-  ↓ 显式 classifier 时跳过；推荐理由写入 provenance.classifier
-类先验估计（按需）         [prior/*]
-  ↑ 仅 requires_class_prior=True 的算法执行；不需要 π 的跳过
-  （如 PUSB/LBE/Elkan-Noto/InfoMax PU）
-训练（含 CV 切分）         [estimators/* + model_selection/split]
-  ↓ 输出 predict / decision_function / predict_proba
-评估 + 诊断 → 报告         [metrics + diagnostics → workflows/report]
+User input (X, y_pu[, y_true])
+  ↓ Validation + label normalization                [core/validation + labels]
+Data profile                                        [preprocessing/data_profiler]
+  ↓ Profile issues include an error → fail fast
+Method recommendation (default auto path)            [advisor/recommend_from_profile]
+  ↓ Skip for explicit classifier; record reasons in provenance.classifier
+Class-prior estimation (when needed)                 [prior/*]
+  ↑ Only for requires_class_prior=True; skip methods that do not require π
+    (e.g. PUSB/LBE/Elkan-Noto/InfoMax PU)
+Training (including CV splitting)                    [estimators/* + model_selection/split]
+  ↓ predict / decision_function / predict_proba
+Evaluation + diagnostics → report                   [metrics + diagnostics → workflows/report]
 ```
 
-- **输入契约**：`X` / `y_pu` 是用户整理好的 PU 数据——抽样（选择哪些样本）与
-  标签标记（哪些正例被标注）由研究者在工具箱之外完成，工具箱将其视为已给输入；
-  数据模拟器（`make_sar_*`/`make_scar_labels`/demo）只用于合成研究，不替代真实采样。
-  可选的 `y_true` 仅用于监督指标与审计，不参与训练。
-- **画像语义**：`PUDataProfile` 含基础统计、特征质量、问题级别、行动建议和标记机制证据。
-  无审计 `y_true` 时 SCAR/SAR 提示明确标记为非识别性筛查；提供 `y_true` 时仅在真实
-  正例内部评估 selection dependence，避免把类别可分性误认为 SAR。
-- **双域路径**（独立于单域入口）：`analyze_pu_shift` 用 OOF 域分类器估计可观测边际
-  漂移和相对密度比；`ShiftAwarePUPipeline` 在覆盖门禁通过后把源域权重逐折传给
-  `PUPipeline`。该路径保证固定为 covariate-shift-only，不把边际权重描述为联合
-  `p_target(x,y)/p_source(x,y)` 适配。
-- **报告组装**：`build_diagnostic_report`（`diagnostics`）只读画像、已拟合 estimator
-  和指标接口，不训练模型；将观测 PU、类先验依赖、监督 oracle 和不可用指标分别标记，
-  输出稳定 schema 的 JSON/Markdown 报告。
+- **Input contract**: `X` / `y_pu` are PU data prepared by the user. Researchers
+  choose samples and decide which positives receive labels outside the toolbox;
+  the toolbox treats them as supplied inputs. Simulators
+  (`make_sar_*`/`make_scar_labels`/demos) support synthetic research and do not
+  replace real-world sampling. Optional `y_true` is used only for supervised
+  metrics and auditing, never for training.
+- **Profiling semantics**: `PUDataProfile` contains basic statistics, feature
+  quality, issue severity, recommended actions, and labeling-mechanism evidence.
+  Without audit `y_true`, SCAR/SAR hints are explicitly non-identifying screening.
+  With `y_true`, selection dependence is evaluated only within true positives,
+  avoiding confusion between class separability and SAR.
+- **Two-domain path**, separate from the single-domain entry point:
+  `analyze_pu_shift` uses an out-of-fold domain classifier to estimate observable
+  marginal shift and relative density ratios. Once coverage gates pass,
+  `ShiftAwarePUPipeline` passes source-domain weights per fold to `PUPipeline`.
+  This path is restricted to covariate shift; marginal weights are not described
+  as joint `p_target(x,y)/p_source(x,y)` adaptation.
+- **Report assembly**: `build_diagnostic_report` in `diagnostics` reads profiles,
+  fitted estimators, and metric interfaces without training models. Stable-schema
+  JSON/Markdown reports distinguish observed-PU metrics, class-prior-dependent
+  metrics, supervised-oracle metrics, and unavailable metrics.
 
-### 3.1 实验层数据流（与 PUPipeline 主链平行）
+### 3.1 Experiment-layer data flow
 
-实验层是**面向研究者/实验用户**的第二条入口，数据带角色 + 显式选模协议，不经
-advisor/prior 推荐链路（与 §3 主链的 PUPipeline 非专家路径互补，零改动共存）：
+The experiment layer is a second entry point for researchers, using explicit data
+roles and selection protocols. It runs alongside the PUPipeline path and bypasses
+advisor/prior recommendations.
 
 ```text
-四路数据 train/pu_val/clean_val/test（clean 视图）  [bundle/DatasetPart + core/validation]
-  ↓ 校验（索引两两不重叠、视图语义、test 不参与选模）
-生成 PU 视图（SCAR/SAR/oracle，按需）              [strategies/Generator]
-  ↓ Trainer/PA 路径结构性接收不到真实标签（view=="pu" 校验）
-候选训练 → RunTrajectory                           [Trainer → 注入的 estimator]
-  （训练视图：OS 原生；原生 TS 方法经 TS-OS 校准，仅 train）
+Four clean-view roles: train/pu_val/clean_val/test    [bundle/DatasetPart + core/validation]
+  ↓ Validate disjoint indices and views; exclude test from selection
+Generate PU views (SCAR/SAR/oracle as needed)         [strategies/Generator]
+  ↓ Trainer/PA cannot receive true labels (view=="pu" validation)
+Candidate training → RunTrajectory                  [Trainer → injected estimator]
+  (Training views: native OS; native TS methods use TS-OS calibration, train only)
   ↓
-PA/OA 离线选模（逐 checkpoint，阈值网格，π 必传）   [strategies/SelectionProtocol]
+Independent PA/OA offline selection                  [strategies/SelectionProtocol]
+  (Per-checkpoint threshold grid; π is required for PA)
   ↓
-独立 test 评测 + 留痕（manifest）                   [runner → manifest]
+Independent test evaluation + manifest               [runner → manifest]
 ```
 
-- **视图语义**：bundle 输入的四份数据（含 `pu_val`）都存**真实标签**（clean 视图，
-  `validate_bundle` 强制）——PU 标签是训练/选模前由 `Generator.generate` 从真实标签按
-  SCAR/SAR 机制生成的，不预先落盘；生成产物 `view=="pu"`，使 Trainer/PA 路径结构性
-  接收不到真实标签（防止泄漏）。`pu_val`/`clean_val` 的命名指各数据**选模时用的视图**
-  （PA 用 PU 视图、OA 用 clean 视图），而非存储时的标签。
-- **抽样视图（OS/TS）**：基础数据始终为 OS（Single-Training-Set，单一 i.i.d. 样本）；
-  原生 TS（Two-Sample / Case-Control）方法不重新独立抽样，而是在训练期对每 mini-batch 做
-  TS-OS 校准 `D_U^k ∪ D_P^k`（正例批次并入未标记损失输入，仅限 train，验证/测试保持 OS）。
-  语义与门禁见协议 §2.3。
-- **选模协议**：PA/OA 各自独立——PA 用 proxy accuracy（OS 分支，π 必传），OA 用
-  clean_val 真实 Accuracy；逐 checkpoint 阈值网格选择，平手取最早候选（`selection_spec`）。
-- **版本化留痕**：manifest 固化 seed / split_ref / generation / selection /
-  test_results / elapsed / failures / resources 八类键，支持可审计复现。
+- **View semantics**: all four input bundle parts, including `pu_val`, store
+  **true labels** in clean views, enforced by `validate_bundle`.
+  `Generator.generate` produces PU labels from true labels under SCAR/SAR before
+  training and selection; those PU labels are not stored in advance. Generated
+  outputs have `view=="pu"`, structurally preventing the Trainer/PA path from
+  receiving true labels. The names `pu_val` / `clean_val` describe the views used
+  **at selection time** (PU for PA, clean for OA), rather than stored labels.
+- **Sampling views (OS/TS)**: the base data remain OS (Single-Training-Set, one
+  i.i.d. sample). Native TS (Two-Sample / Case-Control) methods do not independently
+  resample. During training they apply TS-OS calibration per mini-batch,
+  `D_U^k ∪ D_P^k`: the positive batch joins the unlabeled loss input. This applies
+  only to train; validation and test remain OS. See
+  [protocol §2.3](../research/pu_survey/pu_survey_protocol.md#23-pu-数据集生成).
+- **Selection**: PA and OA are independent. PA uses proxy accuracy's OS branch
+  with required π; OA uses true Accuracy on `clean_val`. Both search checkpoints
+  and a threshold grid, breaking ties in favor of the earliest candidate as
+  defined by `selection_spec`.
+- **Versioned provenance**: manifests preserve seed / split_ref / generation /
+  selection / test_results / elapsed / failures / resources for auditable runs.
 
-## 4. 算法注册与推荐
+## 4. Algorithm registration and recommendation
 
-每个算法在 `registry` 注册元信息（name/aliases/family/scenario/assumption/
-requires_class_prior/requires_clean_support/backend/maturity/source_status/implementation_status 与 4 个
-架构能力字段 native_architectures / input_ndims / encoder_parameter /
-trains_encoder）；字段语义与枚举以 `pu_toolbox/core/tags.py` 为权威，内置方法与
-算法↔模块落点、实现状态见 `pu_toolbox/registry/builtin_methods.py`。能力字段以
-估计器类属性为权威、注册时经 `registry/registry.py:141` `_sync_class_metadata_to_registry`
-同步——同步面覆盖 `_SYNC_FIELDS` 的全部 **13** 个成员，不只是 4 个架构能力字段，还包括
-`family` / `assumption` / `scenario` / `requires_class_prior` / `implementation_status` /
-`source_status` / `backend` / `maturity`（8 个条目字段）与 `label_semantics`；但**只对类
-自身声明的字段生效**，基类默认值不算（语义与消费点见 `dual_architecture_plan.md` §3-§4）。
-条目字面量该写什么，**逐字段**由「该类是否声明该字段」决定，与条目是否绑定无关：
-**类已声明的字段不得在字面量里重复出现**（写了也会被同步覆盖，是死写；守卫见
-`tests/test_builtin_methods.py` 的 `test_static_entries_do_not_redeclare_class_fields`），
-**类未声明的字段必须在字面量里显式声明**（此时字面量是唯一源，写错或漏写会静默落回 dataclass
-默认值）。所以「已绑定」不等于「一律不写」：`class_prior_estimation` 是已绑定条目，但它的类一个
-字段都不声明，8 个都要写；`pusb` / `lbe` 的 `requires_class_prior` 同理（它们靠基类默认值，而基类
-默认值不算「类声明」）。未绑定（`api_only`）条目没有类可同步，这 8 个字段全落在「类未声明」一侧，
-必须写全。余下 5 个字段（4 个架构能力字段与 `label_semantics`）不分绑定与否都不出现在字面量里，
-只来自类属性或默认值。
-`requires_clean_support=True` 的方法需要额外干净真值 support set；普通 PU-only
-推荐器排除它们，显式训练调用必须按方法卡规定的独立标签预算提供数据。
+Algorithms register metadata in `registry`: name/aliases/family/scenario/assumption/
+requires_class_prior/requires_clean_support/backend/maturity/source_status/
+implementation_status, plus architecture capabilities
+`native_architectures` / `input_ndims` / `encoder_parameter` / `trains_encoder`.
+`pu_toolbox/core/tags.py` is authoritative for field semantics and enums;
+`pu_toolbox/registry/builtin_methods.py` records built-ins, module mappings,
+and implementation status.
 
-### registry 与实验层 method_ledger.json 的分工
+Estimator class attributes are authoritative for declared capabilities.
+`_sync_class_metadata_to_registry` in `registry/registry.py` synchronizes the fields
+listed in `_SYNC_FIELDS`, including architecture capabilities, entry metadata,
+`label_semantics`, and prior-target declarations. Only declarations on the concrete
+class or non-abstract ancestors count; defaults inherited from `BasePUClassifier`
+or `BasePriorEstimator` do not count as authoritative declarations.
 
-`registry` 是**代码侧真相源**：`get_algorithm(name)` 按名字返回算法**类**（供脚本实例化训练）、
-`get_metadata(name)` 返回元数据（供能力/先验门禁与 advisor 推荐）。实验层另有
-`pu_toolbox/experiment/method_ledger.json`（survey 方法台账），是**实验侧结果标注真相源**：记录每个
-方法的论文出处、原生采样假设、OS/TS 校准、适配级别与复核结论。脚本读它的两处用途：① `--method`
-必须落在台账内（survey 范围外的方法 fail-loud）；② 把该 entry 复制到 run 目录旁
-（`method_ledger_entry.json`）标注结果。二者不重复：台账里与 registry 重叠的字段（能力 4 字段、
-`source_status`、`requires_class_prior`↔`prior_semantics`）由
-`tests/contract/test_ledger_registry_consistency.py` 合同测试绑定，台账镜像 registry、不得漂移。
-台账语义见[实验协议 §4](../research/pu_survey/pu_survey_protocol.md#4-需实现的算法)；
-当前字段见 [method_ledger.json](../../pu_toolbox/experiment/method_ledger.json)。
+Decide what belongs in each built-in entry **field by field**, rather than by whether
+a class is bound:
 
-`advisor` 把数据画像与 registry 元数据匹配后推荐方法：硬过滤（trainable、
-scenario、sparse、class_prior 可用性）→ 软评分（assumption 匹配/成熟度/可信度/
-规模/成本/GPU/标记充足度）→ 风险提示；权重外化为可定制的 `ScoringConfig`。
-推荐结果的结构与序列化契约见 [`user/reference/api.md`](../user/reference/api.md)，
-用户侧选型决策原理见 [`method_selection.md`](../user/concepts/method_selection.md)。
+- **Do not repeat class-declared fields in entry literals.** Synchronization would
+  overwrite them, making them dead writes. The guard is
+  `tests/test_builtin_methods.py::test_static_entries_do_not_redeclare_class_fields`.
+- **Explicitly supply entry fields that the class does not declare.** Their literals
+  are the sole source; missing or incorrect values can silently fall back to
+  dataclass defaults. This applies to the eight entry fields `family`,
+  `assumption`, `scenario`, `requires_class_prior`, `implementation_status`,
+  `source_status`, `backend`, and `maturity`.
+- Binding is not a reason to omit all literals. For example,
+  `class_prior_estimation` is bound but its class declares none of those eight
+  fields, so all eight must be supplied. `pusb` and `lbe` likewise need explicit
+  `requires_class_prior` literals when they only inherit the base default.
+  Unbound `api_only` entries must supply all eight.
+- Architecture capabilities and `label_semantics` come from class attributes or
+  defaults rather than entry literals. The current `_SYNC_FIELDS` definition is
+  authoritative for the complete synchronization surface.
 
-### 与 `model_selection` 的分界
+Methods with `requires_clean_support=True` need an additional clean labeled support
+set. The ordinary PU-only advisor excludes them. Explicit training calls must supply
+support data with an independent label budget as specified for the method.
 
-推荐器只做**元数据推理**（数据画像 × registry 元数据的过滤/评分/排序），
-不训练任何模型；选定算法后的**实证选择**——超参搜索（`PUTuner`）、跨配置
-比较（`PUModelComparator`）、CV 折结构（`PUStratifiedKFold`）——由
-`model_selection` 承担并真实训练。二者是同一"选择"决策链的两段：推荐器
-回答"该用哪个算法"（秒级、无 GPU），`model_selection` 回答"选定后哪个
-配置在数据上最好"（实证评估）。串联默认：`PUPipeline(classifier="auto")`
-消费推荐结果选定方法，再经 `model_selection` 的切分/调参进入训练；调参为
-显式叠加，不自动执行。用户侧决策原理见
-[`method_selection.md`](../user/concepts/method_selection.md)。
+### Registry versus the experiment method ledger
 
-## 5. 评价与切分
+`registry` is the **code-side source of truth**: `get_algorithm(name)` returns an
+algorithm **class** for callers to instantiate; `get_metadata(name)` returns
+metadata for capability/prior gates and advisor recommendations.
 
-| 能力 | 架构要点 | 详情 |
+`pu_toolbox/experiment/method_ledger.json` is the **experiment-side source of truth
+for result annotations**. It records paper sources, native sampling assumptions,
+OS/TS calibration, adaptation levels, and review findings. Scripts use it to enforce
+Survey scope for `--method` (fail loudly outside the ledger), and to copy the entry
+into the run directory as `method_ledger_entry.json`. Overlapping fields
+(the four capabilities, `source_status`, and
+`requires_class_prior` ↔ `prior_semantics`) must mirror the registry, enforced by
+`tests/contract/test_ledger_registry_consistency.py`.
+See [protocol §4](../research/pu_survey/pu_survey_protocol.md#4-需实现的算法)
+for semantics and [the ledger](../../pu_toolbox/experiment/method_ledger.json)
+for current fields.
+
+`advisor` matches profiles to registry metadata: hard filtering
+(trainability, scenario, sparsity, available class prior) → soft scoring
+(assumption match, maturity, trust, scale, cost, GPU, and label availability)
+→ risk hints. Weights are configurable through `ScoringConfig`.
+The [API reference](../user/reference/api.md) defines recommendation structures and
+serialization; [method selection](../user/concepts/method_selection.md) explains
+user-facing decisions.
+
+### Boundary with model_selection
+
+The advisor performs **metadata reasoning**: filtering, scoring, and ranking profiles
+against registry metadata without training models. `model_selection` performs
+**empirical selection** after a method is chosen: `PUTuner` searches hyperparameters,
+`PUModelComparator` compares configurations, and `PUStratifiedKFold` provides CV
+folds, with actual model training. The advisor answers which algorithm is suitable
+in seconds without a GPU; model selection evaluates which configuration works best
+on the data.
+
+By default, `PUPipeline(classifier="auto")` consumes the advisor's choice and uses
+`model_selection` splitting for training. Tuning is an explicit addition and does
+not run automatically. See [method selection](../user/concepts/method_selection.md).
+
+## 5. Evaluation and splitting
+
+| Capability | Architectural contract | Details |
 |---|---|---|
-| PU 分层切分 | `PUStratifiedKFold` / `PUStratifiedShuffleSplit`：保证每个训练折含 labeled positive，保留 P/U 比例 | [`调优指南`](../user/howto/model_tuning.md) |
-| PU 评估指标 | PU-only（`pu_zero_one_risk`/`pu_recall`/`pu_estimated_precision`/`pu_negative_rate`，不需真实标签）；有真值时用标准监督包装（AUC/F1/Accuracy 等） | [`指标契约`](../research/traditional_pu/traditional_pu_metric_contract.md) |
-| SCAR/SAR 证据 | 无审计真值时仅作非识别性筛查；提供 `y_true` 时在真实正例内检查 selection dependence | [`画像指南`](../user/howto/data_profiling.md) |
-| 结构化报告 | `build_diagnostic_report` 只读画像、已拟合估计器与指标接口，不训练；输出稳定 schema 的 JSON/Markdown | [`报告指南`](../user/howto/diagnostic_reports.md) |
-| 假设敏感性 | `analyze_pu_sensitivity` 固定模型输出扫 类先验×平均标记倾向 网格相容性；不承担 propensity 识别 | [`敏感性指南`](../user/howto/sensitivity_analysis.md) |
-| Selection-bias 模拟 | `make_sar_*` 支持常数/线性/非线性 propensity；`y_true/propensity` 对用户隐藏、仅供 benchmark | [`SAR 指南`](../user/howto/sar_simulation.md) |
+| PU-stratified splitting | `PUStratifiedKFold` / `PUStratifiedShuffleSplit` preserve P/U proportions and ensure each training fold contains labeled positives | [Tuning guide](../user/howto/model_tuning.md) |
+| PU metrics | PU-only `pu_zero_one_risk`/`pu_recall`/`pu_estimated_precision`/`pu_negative_rate` do not require true labels; standard supervised wrappers (AUC/F1/Accuracy, etc.) require truth | [Metric contract (Chinese)](../research/traditional_pu/traditional_pu_metric_contract.md) |
+| SCAR/SAR evidence | Non-identifying screening without audit truth; selection-dependence checks within true positives when `y_true` is supplied | [Profiling guide](../user/howto/data_profiling.md) |
+| Structured reports | `build_diagnostic_report` reads profiles, fitted estimators, and metrics without training; outputs stable-schema JSON/Markdown | [Report guide](../user/howto/diagnostic_reports.md) |
+| Assumption sensitivity | `analyze_pu_sensitivity` holds model outputs fixed and checks compatibility over a class-prior × mean-labeling-propensity grid; it does not identify propensity | [Sensitivity guide](../user/howto/sensitivity_analysis.md) |
+| Selection-bias simulation | `make_sar_*` supports constant/linear/nonlinear propensity; `y_true/propensity` are hidden from user-facing learners and reserved for benchmarks | [SAR guide](../user/howto/sar_simulation.md) |
 
-## 6. 论文方法到实现的索引
+## 6. Paper-to-implementation index
 
-每个方法的模块落点见 `project_structure.md` 目录树；论文公式、源码状态与
-复现风险见各方法卡 [`../research/method_cards/`](../research/method_cards/)
-（§8 源码状态与复现风险）。
+See the [project structure](project_structure.md) trees for each method's module
+location. [Method cards (Chinese)](../research/method_cards/) cover paper formulas,
+source status, and reproduction risks, including their source-status/risk section.

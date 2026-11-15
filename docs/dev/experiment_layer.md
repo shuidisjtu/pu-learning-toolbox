@@ -162,7 +162,7 @@ PN oracle 使用 `CleanLabelGenerator`、显式真标签 trainer 和 OA，支持
 **与通用层的边界（2026-11-06 复核）**：实验层在模块级依赖 Core
 （`core/`、`utils/`、`preprocessing/`）与 Estimation（`prior/`）；函数内还使用
 Core（`registry/`）、Evaluation（`metrics/`）与 Algorithms（`estimators/`）。
-依赖集合由 [architecture.md §2.1](architecture.md#21-模块依赖关系) 的生成表核对。
+依赖集合由 [architecture.md §2.1](architecture.md#21-module-dependencies) 的生成表核对。
 `SCARGenerator` 与通用标签入口共享固定正例配额与均匀无放回抽样；LBE-A/B 共享配额计算，
 各自保留权重公式、平滑、加权无放回和全选随机流政策。
 CVIR 的总体→原生 U 换算委托 `prior.semantics`，其包装器继续校验严格 `(0,1)` 域、
