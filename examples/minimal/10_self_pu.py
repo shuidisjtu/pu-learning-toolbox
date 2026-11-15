@@ -7,6 +7,7 @@ from sklearn.model_selection import train_test_split
 
 from pu_toolbox.estimators.deep import SelfPUClassifier
 from pu_toolbox.preprocessing import make_sar_dataset
+from pu_toolbox.prior import population_to_native_unlabeled
 
 
 def main() -> None:
@@ -27,8 +28,13 @@ def main() -> None:
         random_state=42,
     )
 
+    # Only the training partition determines the native-U prior conversion.
+    # Clean validation provides extra supervision for meta/teacher selection, not test evidence.
+    native_prior = population_to_native_unlabeled(
+        0.3, float((y_train == 1).mean()), input_sampling="os"
+    )
     classifier = SelfPUClassifier(
-        class_prior=0.3,
+        class_prior=native_prior,
         hidden_dim=32,
         warmup_epochs=1,
         self_paced_start=1,
@@ -38,6 +44,7 @@ def main() -> None:
         batch_size=128,
         require_validation=True,
         random_state=42,
+        device="cpu",
     ).fit(
         X_train,
         y_train,

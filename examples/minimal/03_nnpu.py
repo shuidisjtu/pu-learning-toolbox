@@ -5,6 +5,7 @@ import numpy as np
 from sklearn.metrics import accuracy_score
 
 from pu_toolbox.estimators.risk import NonNegativePUClassifier
+from pu_toolbox.prior import population_to_native_unlabeled
 
 # -- Generate SCAR PU data --
 rng = np.random.RandomState(42)
@@ -20,11 +21,13 @@ y_pu = np.zeros(2 * n, dtype=int)
 y_pu[:n][labeled_mask] = 1
 
 # -- Train and evaluate --
-# class_prior is passed to fit(), not the constructor
-clf = NonNegativePUClassifier(max_epochs=100, random_state=42)
-clf.fit(X, y_pu, class_prior=class_prior)
+# The default risk consumes native-U prior, supplied here through fit().
+# The constructor also accepts class_prior.
+native_prior = population_to_native_unlabeled(class_prior, float(y_pu.mean()), input_sampling="os")
+clf = NonNegativePUClassifier(max_epochs=100, random_state=42, device="cpu")
+clf.fit(X, y_pu, class_prior=native_prior)
 
 y_pred = clf.predict(X)
 acc = accuracy_score(y_true, y_pred)
 risk = clf.evaluate_pu_risk(X, y_pu)
-print(f"nnPU  |  Accuracy: {acc:.3f}  |  nnPU risk: {risk:.4f}")
+print(f"nnPU  |  Training accuracy: {acc:.3f}  |  Training nnPU risk: {risk:.4f}")

@@ -19,9 +19,12 @@ def main() -> None:
     X_target, y_target, y_true_target = make_scar_dataset(
         n=100, c=0.5, n_features=4, separation=1.5, random_state=20
     )
+    # A location shift exercises the workflow but need not preserve P(Y|X).
+    # This is not evidence that covariate-shift assumptions hold.
     X_target += 0.2
 
     workflow = ShiftAwarePUPipeline(classifier="elkan_noto", cv=3, shift_cv=3)
+    # Target truth makes this an oracle validation/audit comparison, not a final test.
     comparison = workflow.compare(
         X_source,
         y_source,
@@ -48,7 +51,11 @@ def main() -> None:
     )
     print("assumption difference:", assumptions.conclusion)
 
-    chosen = comparison.weighted or comparison.baseline
+    chosen = (
+        comparison.weighted
+        if comparison.recommendation == "reweight_recommended"
+        else comparison.baseline
+    )
     review = analyze_pu_uncertainty(
         chosen.final_model,
         X_target,

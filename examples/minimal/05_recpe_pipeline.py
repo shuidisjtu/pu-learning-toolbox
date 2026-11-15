@@ -34,4 +34,4 @@ clf.fit(X, y_pu)
 
 y_pred = clf.predict(X)
 acc = accuracy_score(y_true, y_pred)
-print(f"UPU (with ReCPE prior)  |  Accuracy: {acc:.3f}")
+print(f"UPU (with ReCPE prior)  |  Training accuracy: {acc:.3f}")

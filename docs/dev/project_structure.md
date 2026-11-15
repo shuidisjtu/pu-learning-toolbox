@@ -667,6 +667,7 @@ tests/
     test_diy_experiment_example.py      # prediction/preprocessing/test-label isolation
     test_custom_encoder_example.py      # CNN/frozen features, initialization isolation, save/load
     test_sar_policy_example.py          # Bernoulli/fixed-quota policies, counts, provenance
+    test_minimal_examples.py            # all minimal scripts, native-U priors, PNU and review decisions
   e2e/                                  # real-subprocess user journeys in nightly CI
     test_profile_script.py              # subprocess pu-workflow profile
     test_recommend_script.py            # subprocess recommend including profile→recommend
