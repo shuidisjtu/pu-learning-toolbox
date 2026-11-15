@@ -28,6 +28,8 @@ def main() -> None:
         random_state=42,
     )
 
+    # PUSB fits observed P-vs-U labels; class_prior does not alter its fitted baseline.
+    # Under SAR these SCAR-based curves are assumption sensitivity, not corrected truth.
     classifier = PUSBClassifier().fit(X_train, y_train, class_prior=0.3)
     analysis = analyze_pu_sensitivity(
         y_valid,

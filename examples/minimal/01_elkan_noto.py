@@ -25,4 +25,4 @@ clf.fit(X, y_pu)
 
 y_pred = clf.predict(X)
 acc = accuracy_score(y_true, y_pred)
-print(f"Elkan-Noto  |  Accuracy: {acc:.3f}  |  Estimated c: {clf.propensity_:.3f}")
+print(f"Elkan-Noto  |  Training accuracy: {acc:.3f}  |  Estimated c: {clf.propensity_:.3f}")

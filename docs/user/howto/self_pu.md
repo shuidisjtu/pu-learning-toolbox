@@ -143,10 +143,11 @@ Run the small executable example:
 python examples/minimal/10_self_pu.py
 ```
 
-This script is a training smoke example. It currently passes the illustrative prior 0.3
-directly to the classifier despite generating OS data with population prior 0.3. When adapting
-it, convert the population prior with the training partition's labeled fraction using
+This script is a CPU training smoke example. It converts the declared population prior 0.3
+using only the training partition's labeled fraction with
 `population_to_native_unlabeled(..., input_sampling="os")` before fitting the default risk view.
+Its clean validation labels provide extra supervision for meta/teacher selection; the script
+does not report independent-test performance or establish numerical reproduction.
 
 ## Next steps
 

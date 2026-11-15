@@ -22,6 +22,8 @@ def main() -> None:
         separation=2.0,
         random_state=20,
     )
+    # A location shift exercises the workflow but need not preserve P(Y|X).
+    # Any adaptation guarantee still depends on the covariate-shift assumptions.
     X_target = X_target + 0.25
 
     report = ShiftAwarePUPipeline(

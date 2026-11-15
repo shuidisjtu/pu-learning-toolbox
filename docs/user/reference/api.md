@@ -1236,7 +1236,7 @@ SelfPUClassifier(class_prior, *, backbone=None, hidden_dim=128, warmup_epochs=10
 - `fit(..., validation_data=...)` enables meta reweighting and clean-validation teacher selection. Keep this role independent from train/test.
 - `fit(..., pu_validation_data=...)` accepts P/U labels only, records both teachers' nnPU risks each epoch, and restores the lowest-PU-validation-risk teacher checkpoint. It does not enable meta reweighting requiring true labels. Without either validation input and with `require_validation=False`, ablation selects using training nnPU risk.
 - Real-valued parameters require finite scalars, rejecting bool, strings, arrays, complex values, and NaN/Inf. Budgets/stages require integers; `require_validation` is boolean; `random_state` is None or an integer in `[0,2**32-1]`. NumPy scalars are supported. Invalid settings raise `ValueError` before seed/model construction; failed refit requires a new successful fit before scoring.
-- Optional Chinese background: [Self-PU method card](../../research/method_cards/Self-PU.md). Example: [10_self_pu.py](../../../examples/minimal/10_self_pu.py); its illustrative prior needs the OS conversion explained in the [guide](../howto/self_pu.md).
+- Optional Chinese background: [Self-PU method card](../../research/method_cards/Self-PU.md). Example: [10_self_pu.py](../../../examples/minimal/10_self_pu.py); it applies the training-partition OS prior conversion explained in the [guide](../howto/self_pu.md).
 
 #### `InfoMaxPUClassifier` (registered as `infomax_pu`)
 

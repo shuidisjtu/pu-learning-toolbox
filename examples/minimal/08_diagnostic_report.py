@@ -30,6 +30,8 @@ def main() -> None:
         random_state=42,
     )
 
+    # PUSB is an observed-P-vs-U logistic baseline, not a latent-class posterior model.
+    # Its class_prior is metadata; SAR can invalidate SCAR-based PU metric interpretations.
     classifier = PUSBClassifier().fit(X_train, y_train, class_prior=0.3)
     report = build_diagnostic_report(
         X_test,

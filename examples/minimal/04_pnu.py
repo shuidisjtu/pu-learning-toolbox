@@ -21,10 +21,12 @@ y_pnu[:n][rng.rand(n) < 0.4] = 1  # labeled positive
 y_pnu[n:][rng.rand(n) < 0.4] = -1  # labeled negative
 
 # -- Train and evaluate --
-clf = PNUClassifier(class_prior=class_prior, eta=0.0, random_state=42)
+# Equal labeling rates preserve the population mixture in U in expectation.
+# eta=0.5 combines PN and PU risks; eta=0 would ignore U in this linear fit.
+clf = PNUClassifier(class_prior=class_prior, eta=0.5, random_state=42)
 clf.fit(X, y_pnu)
 
 y_pred = clf.predict(X)
 acc = accuracy_score(y_true, y_pred)
-print(f"PNU  |  Accuracy: {acc:.3f}  |  eta: {clf.eta_}")
+print(f"PNU  |  Training accuracy: {acc:.3f}  |  eta: {clf.eta_}")
 print(f"       n_P={clf.n_positive_}, n_N={clf.n_negative_}, n_U={clf.n_unlabeled_}")
