@@ -96,7 +96,7 @@ print(report.target_metrics["pu_auc_roc"].mean)
 The workflow slices source weights by CV training fold and passes them to the final refit.
 Methods declaring `sample_weight_support="ignored"`, such as `upu` and `pnu`, fail immediately
 instead of silently ignoring adaptation weights. See the
-[API reference](../reference/api.md#sample_weight-三档语义) for weight-support contracts.
+[API reference](../reference/api.md#sample_weight-support-levels) for weight-support contracts.
 
 For an audit plus an unweighted source baseline:
 
@@ -235,7 +235,7 @@ implementation background.
 
 ## Next steps
 
-- [Exact objects, parameters, and report fields](../reference/api.md) (currently Chinese).
+- [Exact objects, parameters, and report fields](../reference/api.md).
 - [Prior/propensity sensitivity](sensitivity_analysis.md).
 - [Design and theoretical boundaries](../../dev/distribution_shift_aware_pu.md)
   (optional Chinese background).

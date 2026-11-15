@@ -1,8 +1,8 @@
 # PU Learning Toolbox documentation
 
-The index, external contributor guides, user entry pages, quickstart, concepts, and how-to guides
-are in English. The API reference and PU Survey reproduction documents currently remain in
-Chinese and will follow in later batches. Other internal research and maintenance records may
+The index, external contributor guides, and all user documentation, including the API reference,
+are in English. PU Survey reproduction documents currently remain in Chinese and will follow
+in the next batch. Other internal research and maintenance records may
 continue in Chinese under the
 [language policy](adr/0022-public-documentation-language.md).
 
@@ -10,8 +10,8 @@ continue in Chinese under the
 
 For library users, including developers integrating the public API into other repositories.
 Concepts explain the research model, how-to guides cover tasks, and reference pages define
-contracts. Start with the English [quickstart](user/quickstart.md), concepts, and how-to guides.
-Reference pages are currently in Chinese; their paths will stay unchanged during migration.
+contracts. Start with the [quickstart](user/quickstart.md), concepts, and how-to guides, then
+consult the [API index](user/reference/index.md) for exact contracts.
 
 | Category | Document | Purpose |
 |---|---|---|

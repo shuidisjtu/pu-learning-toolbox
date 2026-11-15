@@ -162,4 +162,4 @@ report with PU metrics, audit metrics, and selection evidence.
 ## Next steps
 
 - [Class-prior and propensity sensitivity](sensitivity_analysis.md).
-- [Exact API contracts](../reference/api.md) (currently Chinese).
+- [Exact API contracts](../reference/api.md).

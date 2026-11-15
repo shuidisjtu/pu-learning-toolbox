@@ -157,4 +157,4 @@ and are recorded as null values.
 ## Next steps
 
 - Check generated data quality and assumption evidence: [data profiling](data_profiling.md).
-- Look up exact parameter contracts: [API reference](../reference/api.md) (currently Chinese).
+- Look up exact parameter contracts: [API reference](../reference/api.md).

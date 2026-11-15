@@ -1,61 +1,67 @@
-# API 参考索引
+# API reference index
 
-> 公共 API 的入口索引，按模块分组快速定位。每个符号的**签名、参数、返回契约**见
-> [api.md](api.md)（本页只做导航，不重复契约）；行为真相源是 docstring（ADR-0013）。
+Find public APIs by module. [api.md](api.md) defines signatures, parameters, and return
+contracts; this page provides navigation. Docstrings are the behavioral source of truth
+under ADR-0013.
 
-## 分类器与估计器
+## Classifiers and prior estimators
 
-→ [api.md §分类器与估计器](api.md#分类器与估计器)
+See [classifiers and estimators](api.md#classifiers-and-estimators) for the registry table,
+method-specific contracts, and prior estimators. Discover the current registered names with
+`pu-toolbox list-methods`; the reference also covers standalone research interfaces.
 
-- **类先验估计**：`class_prior_estimation`、`recpe`、`km1`/`km2`（`KernelMeanPriorEstimator`）
-- **经典**：`elkan_noto`
-- **风险估计**：`upu`、`nnpu`、`pnu`、`puet`、`centroid_pu`、`kldce`、`llsvm`、`dist_pu`、`vpu`、`pulda`
-- **Bias-Aware**：`pusb`、`pusb_kernel`、`lbe`
-- **深度**：`gradpu`、`robust_pu`、`split_pu`、`lagam`、`self_pu`、`infomax_pu`、`weighted_contrastive_pu`、`dgpu`
+- **Class-prior estimation:** `class_prior_estimation`, `recpe`, and the `km1` / `km2`
+  variants of `KernelMeanPriorEstimator`.
+- **Classifiers:** classic, risk-estimation, bias-aware, and deep methods, with explicit
+  input, prior, support-data, and architecture requirements.
+- **Standalone mixture estimation:** `BBEMixtureEstimator` and `best_bin_estimate`.
 
-## 流水线与编排
+## Pipelines and orchestration
 
-- [`PUPipeline`](api.md#pupipeline) — 一键式端到端 PU 分析
-- [`PUTuner`](api.md#putuner) — PU-aware 网格调参
-- [`PUModelComparator`](api.md#pumodelcomparator) — 多模型比较
-- [进度与取消](api.md#进度与取消) — `ProgressUpdate` / `CancellationToken`
+- [`PUPipeline`](api.md#pupipeline): end-to-end PU analysis.
+- [`PUTuner`](api.md#putuner): PU-aware parameter search.
+- [`PUModelComparator`](api.md#pumodelcomparator): compare models.
+- [Progress and cancellation](api.md#progress-and-cancellation): `ProgressUpdate` and
+  `CancellationToken`.
+- [`build_encoder`](api.md#build_encoder): shared image encoder construction.
 
-## 分布漂移
+## Distribution shift
 
-→ [api.md §分布漂移 API](api.md#分布漂移-api)
+See the [distribution-shift APIs](api.md#distribution-shift-api):
 
-- `analyze_pu_shift`、`ShiftAwarePUPipeline`、`PUShiftMonitor`
-- `analyze_domain_assumptions`、`analyze_pu_uncertainty`
+- `analyze_pu_shift`, `ShiftAwarePUPipeline`, and `PUShiftMonitor`.
+- `analyze_domain_assumptions` and `analyze_pu_uncertainty`.
+- Research-only joint-shift classifiers and their interpretation limits.
 
-## 数据画像与推荐
+## Data profiling and recommendations
 
-- [`profile_pu_data`](api.md#profile_pu_data) — 数据画像
-- [`recommend_methods` / `recommend_from_profile`](api.md#recommend_methods--recommend_from_profile) — 算法推荐
+- [`profile_pu_data`](api.md#profile_pu_data): data-quality and assumption evidence.
+- [`recommend_methods` / `recommend_from_profile`](api.md#recommend_methods--recommend_from_profile):
+  method recommendations.
 
-## 诊断与评估
+## Diagnostics and evaluation
 
-- [`analyze_pu_sensitivity`](api.md#analyze_pu_sensitivity) — 先验/标记倾向敏感性
-- [`build_diagnostic_report`](api.md#build_diagnostic_report) — 结构化诊断报告
+- [`analyze_pu_sensitivity`](api.md#analyze_pu_sensitivity): class-prior and labeling-propensity
+  sensitivity.
+- [`build_diagnostic_report`](api.md#build_diagnostic_report): structured diagnostic reports.
 
-## 实验层（研究者与实验用户）
+## Research experiments
 
-→ [api.md §实验层](api.md#实验层experiment)
+See the [experiment layer](api.md#experiment-layer-experiment) for `ExperimentRunner`,
+`DatasetBundle` / `DatasetPart`, SCAR/SAR generators, PA/OA selection, trainers, support-data
+adapters, checkpoints, and result/reporting interfaces. Start with the
+[custom experiment guide](../howto/custom_experiments.md) for a complete workflow.
 
-上手与扩展示例见 [DIY 实验教程](../howto/custom_experiments.md)。
+## Data generation
 
-- `ExperimentRunner`、`DatasetBundle`/`DatasetPart`、SCAR/SAR 生成器、PA/OA 选模协议、
-  训练器、`prepare_survey_dataset` 等 34+ 符号
+See [data generation](api.md#data-generation):
 
-## 数据生成
+- `make_sar_propensity`, `make_sar_labels`, `make_sar_dataset`, and `make_scar_dataset`.
+- `make_fixed_count_labels`, `make_pu_labels`, and `make_gaussian_case_control_data`
+  for same-pool labeling and independent TS sampling.
 
-→ [api.md §数据生成](api.md#数据生成)
+## Errors and exceptions
 
-- `make_sar_propensity`、`make_sar_labels`、`make_sar_dataset`、`make_scar_dataset`
-- `make_fixed_count_labels`、`make_pu_labels`、`make_gaussian_case_control_data`：同池定额与独立 TS
-
-## 错误与异常
-
-→ [api.md §错误与异常](api.md#错误与异常)
-
-- `PULearningError`、`ValidationError`、`NotFittedError`、`RegistryError`、
-  `PipelineError`、`RunCancelledError`
+See [errors and exceptions](api.md#errors-and-exceptions) for `PULearningError`,
+`ValidationError`, `NotFittedError`, `RegistryError`, `PipelineError`, and
+`RunCancelledError`.

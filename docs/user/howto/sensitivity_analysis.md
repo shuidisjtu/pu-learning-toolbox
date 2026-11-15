@@ -69,4 +69,4 @@ uv run python examples/minimal/09_sensitivity_analysis.py
 ## Next steps
 
 - Choose another task from the [user documentation](../README.md).
-- [Exact API contracts](../reference/api.md) (currently Chinese).
+- [Exact API contracts](../reference/api.md).

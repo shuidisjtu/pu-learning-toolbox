@@ -1,71 +1,77 @@
-# API 参考
+# API reference
 
-> **定位**：本文档是公共 API 的**权威契约参考**——每个入口自含签名、参数表、
-> 返回结构与最小示例。需要理解原理与完整走查时，从这里**单向**跳转：
-> 术语与整体设计见 [concepts](../concepts/)，操作教程见 [howto](../howto/)，
-> 完整示例见 [examples/minimal](../../../examples/minimal/)。
-> 反向不会发生：查参数契约不需要离开本页。
+> **Scope:** this is the authoritative public API contract reference. Each entry contains its
+> signature, parameter table, return structure, and minimal example. For concepts and complete
+> walkthroughs, follow links to [concepts](../concepts/), task-oriented [guides](../howto/),
+> and [examples/minimal](../../../examples/minimal/). Looking up a parameter contract does not
+> require following those links.
 >
-> **版本**：与 `pyproject.toml` 同步的 **v1.11.0**（随包发布更新；变更记录见
-> [dev/release_process.md](../../dev/release_process.md)）。
-> **防漂移**：`scripts/check_api_docs.py` 门禁校验本页覆盖每个公共导出与注册算法名，
-> 新增公共 API 必须登记本页，否则门禁失败。
+> **Version:** **v1.11.0**, matching `pyproject.toml`; updated with package releases. The
+> [release process](../../dev/release_process.md) is optional Chinese maintenance background.
+> **Coverage:** `scripts/check_api_docs.py` checks that this page mentions every public export
+> and registered algorithm name. New public APIs must be added here for the gate to pass.
 
-## 阅读指引
+## Reading guide
 
-| 你想做什么 | 去哪儿 |
+| Task | Location |
 |---|---|
-| 5 分钟跑通第一个实验 | [快速开始](../quickstart.md) |
-| 理解 PU 设定 / SCAR-SAR / 选型原理 | [concepts](../concepts/) |
-| 按任务走完整教程 | [howto](../howto/)（入口见 [README](../README.md)） |
-| **查某个 API 的签名 / 参数 / 返回** | **本页** |
-| 看运行示例脚本 | [examples/minimal/](../../../examples/minimal/) |
-| 算法原理、公式与复现状态 | [method cards](../../research/method_cards/) |
+| Run a first experiment in five minutes | [Quickstart](../quickstart.md) |
+| Understand PU settings, SCAR/SAR, and method selection | [Concepts](../concepts/) |
+| Follow a complete task workflow | [Guides](../howto/), starting from the [user index](../README.md) |
+| **Look up an API signature, parameters, or return contract** | **This page** |
+| Run an example script | [examples/minimal/](../../../examples/minimal/) |
+| Read algorithm derivations, formulas, and reproduction status | [Method cards](../../research/method_cards/) (optional Chinese research background) |
 
-> 信息分区：**参数契约**在本页；**行为细节**真相源是 docstring（ADR-0013）；
-> **走查示例**在 howto/examples；**算法研究内容**在 method card。每类信息
-> 只有一个权威位置，互以单向链接联系。
+> Parameter contracts live here; docstrings are the source of truth for behavioral details
+> under ADR-0013. Walkthroughs live in guides/examples, and algorithm research lives in method
+> cards. Each information category has one authoritative location, connected by links.
 
-## 符号快速索引
+## Symbol quick index
 
-| 模块 | 章节 |
+| Module | Section |
 |---|---|
-| 分类器与估计器（24 注册名 + 3 类先验） | [§分类器与估计器](#分类器与估计器) |
-| PUPipeline / PipelineReport | [§PUPipeline](#pupipeline) |
-| 分布漂移（审计 / 适配 / 监控 / 假设诊断） | [§分布漂移 API](#分布漂移-api) |
-| 实验层（survey 研究者） | [§实验层](#实验层experiment) |
-| 调参与比较 | [§PUTuner](#putuner) · [§PUModelComparator](#pumodelcomparator) |
-| 工具函数 | [§build_encoder](#build_encoder) · [§profile_pu_data](#profile_pu_data) · [§recommend](#recommend_methods--recommend_from_profile) · [§analyze_pu_sensitivity](#analyze_pu_sensitivity) · [§build_diagnostic_report](#build_diagnostic_report) |
-| 数据生成（SCAR/SAR 模拟器） | [§数据生成](#数据生成) |
-| 错误与异常 | [§错误与异常](#错误与异常) |
+| Classifiers and prior estimators; the current set is defined by the registry | [Classifiers and estimators](#classifiers-and-estimators) |
+| PUPipeline / PipelineReport | [PUPipeline](#pupipeline) |
+| Distribution shift: auditing, adaptation, monitoring, and assumption diagnostics | [Distribution-shift API](#distribution-shift-api) |
+| Experiment layer for research workflows | [Experiment layer](#experiment-layer-experiment) |
+| Tuning and comparison | [PUTuner](#putuner) · [PUModelComparator](#pumodelcomparator) |
+| Utilities | [build_encoder](#build_encoder) · [profile_pu_data](#profile_pu_data) · [recommend](#recommend_methods--recommend_from_profile) · [analyze_pu_sensitivity](#analyze_pu_sensitivity) · [build_diagnostic_report](#build_diagnostic_report) |
+| Data generation: SCAR/SAR simulation | [Data generation](#data-generation) |
+| Errors and exceptions | [Errors and exceptions](#errors-and-exceptions) |
 
-## 分类器与估计器
+## Classifiers and estimators
 
-### 独立 BBE 混合比例入口（不注册为总体先验）
+### Standalone BBE mixture proportion estimation
 
-`from pu_toolbox.prior import BBEMixtureEstimator, BBEResult, best_bin_estimate`。
-此组件估计 **α_U**，不是 OS 工作流的总体 π，不提供自动先验注册名。
+`from pu_toolbox.prior import BBEMixtureEstimator, BBEResult, best_bin_estimate`.
+This component estimates **α_U**, rather than the OS workflow's population π. It has no
+registered name for automatic population-prior estimation.
 
 `BBEMixtureEstimator(*, input_sampling=None, holdout_fraction=0.2, delta=0.1,
-gamma=0.01, classifier=None, random_state=None)`：调用前必须显式设
-`input_sampling="ts"`，自行保证独立 P 与边缘 U 的采样设计。`fit(X, y_pu,
-*, sample_ids=None)` 接受密集二维特征与一维观察角色（1=P、0=U），内部按角色
-随机留出指定比例（向上取整，训练/留出每个角色都须非空）。默认 train-only
-StandardScaler + balanced LogisticRegression(max_iter=1000)；注入 classifier
-须可 clone，提供 `fit`/`predict_proba` 与 `classes_={0,1}`。
-可选 sample_ids 为逐行唯一非空字符串；跨来源、分组及外部角色的隔离须另行核对。
-返回 self；`estimate_unlabeled_prior()` 返回 float α_U；未拟合抛 NotFittedError。
-失败 refit 清除旧估计。`train_indices_`、`holdout_indices_` 与 `provenance_`
-可审计内部隔离，不接受 clean U 标签。
+gamma=0.01, classifier=None, random_state=None)` requires an explicit
+`input_sampling="ts"`; the caller must ensure independent P and marginal-U sampling.
+`fit(X, y_pu, *, sample_ids=None)` accepts dense two-dimensional features and one-dimensional
+observed roles (1=P, 0=U). It randomly holds out the specified fraction within each role,
+rounding upward; both roles must remain nonempty in both training and holdout partitions.
+The default is a train-only StandardScaler and balanced LogisticRegression(max_iter=1000).
+An injected classifier must be cloneable and provide `fit`/`predict_proba` with `classes_={0,1}`.
+Optional `sample_ids` must be unique nonempty strings aligned to rows; isolation across sources,
+groups, and external roles requires separate verification. `fit` returns self;
+`estimate_unlabeled_prior()` returns float α_U and raises `NotFittedError` before fitting.
+A failed refit clears the previous estimate. `train_indices_`, `holdout_indices_`, and
+`provenance_` expose the internal split for auditing. Clean U labels are not accepted.
 
 `best_bin_estimate(positive_scores, unlabeled_scores, *, delta=0.1, gamma=0.01)`
-返回不可变 `BBEResult`。输入均为非空一维有限 [0,1] 分数，高分表示正类；
-评分器须独立于这些留出样本。delta/gamma 严格在 (0,1)。按论文完整经验上尾
-与上界准则选阈值，返回原始比值、不夹紧；同准则取最低阈值。
-结果含 `alpha_u`、`threshold`、`selected_index`、`thresholds`、`positive_counts`、
-`unlabeled_counts`、`ratios`、`selection_upper_bounds`、`n_positive`、`n_unlabeled`、
-`delta`、`gamma`。选择上界不等于任意输入下 α_U 的置信区间，0/1 估计不自动
-改写为 CVIR 可用内点。非有限/形状/概率/采样模式错误抛 ValueError。
+returns an immutable `BBEResult`. Both inputs must be nonempty one-dimensional finite scores
+in [0,1], with higher scores indicating positives; the scorer must be independent of these
+held-out samples. `delta` and `gamma` are strictly in (0,1). Threshold selection uses the paper's
+complete empirical upper tails and upper-bound criterion. It returns the raw, unclipped ratio
+and chooses the lowest threshold when criteria tie. Result fields are `alpha_u`, `threshold`,
+`selected_index`, `thresholds`, `positive_counts`, `unlabeled_counts`, `ratios`,
+`selection_upper_bounds`, `n_positive`, `n_unlabeled`, `delta`, and `gamma`. The selection upper
+bound is not an α_U confidence interval for arbitrary inputs. Estimates of 0 or 1 are not
+automatically moved to an interior value acceptable to CVIR. Invalid finite-value, shape,
+probability, or sampling-design inputs raise `ValueError`.
 
 ```python
 from pu_toolbox.prior import BBEMixtureEstimator
@@ -74,92 +80,114 @@ model = BBEMixtureEstimator(input_sampling="ts", random_state=42).fit(X, y_pu)
 alpha_u = model.estimate_unlabeled_prior()
 ```
 
-本 BBE 组件只补独立二维工程路径；不含 TEDⁿ 分类器、原深度配方、TS-compatible 校准、自动写入总体 π
-或正式数值准入。来源差异与可辨识性前提见 [BBE 方法卡](../../research/method_cards/BBE.md)。
+This BBE component supplies a standalone two-dimensional engineering path. It does not include
+the TEDⁿ classifier, the original deep recipe, TS-compatible calibration, automatic assignment
+to population π, or formal numerical qualification. The [BBE method card](../../research/method_cards/BBE.md)
+provides optional Chinese background on source differences and identifiability assumptions.
 
-### P3Mix 分类器（实验级注册；原生 OS）
+### P3MixClassifier: experimental registration, native OS
 
-`from pu_toolbox import P3MixClassifier`。`P3MixClassifier(*, variant="base",
+`from pu_toolbox import P3MixClassifier`. `P3MixClassifier(*, variant="base",
 hidden_dim=128, max_epochs=100, batch_size=128, batching_policy="role_balanced",
 learning_rate=0.001, beta=1.0,
 gamma=0.9, pool_size=100, mixup_alpha=1.0, early_learning_weight=1.0,
-teacher_decay=0.99, model=None, encoder=None, random_state=0, device=None)`。
-`variant` 可选 `base`、`e`、`c`，分别对应 P3Mix、P3Mix-E、P3Mix-C；E 与 C 是互斥变体。
-`fit(X, y_pu, *, class_prior=None, sample_weight=None, epoch_callback=None, os_or_ts="os")`
-只实现论文 OS 训练视图，显式 TS 会拒绝；`class_prior` 经校验但不参与训练，外部
-`sample_weight` 不支持。默认仅接受二维特征；图像使用时须注入可训练 encoder，形状为
-NCHW。所有未由论文指定的模型/训练默认值都是工程选择，不是论文 recipe。
-数值参数要求有限实数并拒绝 bool/字符串：`gamma∈[0.5,1]`、`teacher_decay∈[0,1)`、
-`early_learning_weight≥0`（E 变体须 `>0`），`learning_rate`、`beta`、`mixup_alpha>0`。
-`hidden_dim`、`max_epochs`、`batch_size`、`pool_size` 须为正整数，bool 不接受。
-完整来源、参数边界及文献结果见 [P3Mix 方法卡](../../research/method_cards/P3MIX.md)。
+teacher_decay=0.99, model=None, encoder=None, random_state=0, device=None)`.
+`variant` accepts `base`, `e`, and `c` for P3Mix, P3Mix-E, and P3Mix-C; E and C are mutually
+exclusive variants. `fit(X, y_pu, *, class_prior=None, sample_weight=None, epoch_callback=None, os_or_ts="os")`
+implements only the paper's OS training view and rejects explicit TS. `class_prior` is validated
+but unused in training; external `sample_weight` is unsupported. The default input is
+two-dimensional features. NCHW images require an injected trainable encoder. Model and training
+defaults unspecified by the paper are engineering choices, not a paper recipe.
+Numeric parameters must be finite real numbers and reject booleans/strings: `gamma∈[0.5,1]`,
+`teacher_decay∈[0,1)`, `early_learning_weight≥0` (strictly positive for E), and strictly positive
+`learning_rate`, `beta`, and `mixup_alpha`. `hidden_dim`, `max_epochs`, `batch_size`, and `pool_size`
+must be positive integers, excluding booleans. The [P3Mix method card](../../research/method_cards/P3MIX.md)
+provides optional Chinese background on sources, parameter bounds, and literature results.
 
-`batching_policy="role_balanced"` 保持旧行为：`batch_size` 为每角色上限，较短角色循环。
-显式 `"merged_shuffle"` 按论文 Algorithm 1 合并打乱、总批大小为 `batch_size`，每轮主样本只用一次。
-单角色批次的缺失组损失贡献为零（论文未说明的工程约定）。
+`batching_policy="role_balanced"` preserves the existing behavior: `batch_size` caps each role,
+and the shorter role cycles. Explicit `"merged_shuffle"` merges and shuffles roles according to
+Algorithm 1, uses `batch_size` as the total batch size, and visits each primary sample once per
+epoch. A missing role in a single-role batch contributes zero loss, an engineering convention
+not specified in the paper.
 
-独立图像执行：`python scripts/run_candidate_image_experiment.py --method p3mix`，
-输入为 `train/pu_val/clean_val/test.npz` 四份互不重叠的 NCHW 数据（各含 `X/y/indices`）。
-`--parameters` JSON 必须显式提供 `variant`、`hidden_dim`、`max_epochs`、`batch_size`、
-`batching_policy`、`learning_rate`、`beta`、`gamma`、`pool_size`、`mixup_alpha`、
-`early_learning_weight`、`teacher_decay`、`device`；其他必填参数见 `--help`。
-默认只生成计划；`--execute --out-dir <新目录>` 才训练。入口使用原生 OS、训练集统计的
-共享 ResNet-18（不是论文 backbone），独立 PA/OA 选择 student 快照并回收未选中权重；
-选择先验不进入训练，E 的 teacher 不参与选模。
+Standalone image execution uses `python scripts/run_candidate_image_experiment.py --method p3mix`
+with four disjoint NCHW files, `train/pu_val/clean_val/test.npz`, each containing `X/y/indices`.
+The `--parameters` JSON must explicitly supply `variant`, `hidden_dim`, `max_epochs`, `batch_size`,
+`batching_policy`, `learning_rate`, `beta`, `gamma`, `pool_size`, `mixup_alpha`,
+`early_learning_weight`, `teacher_decay`, and `device`; see `--help` for other required arguments.
+The default generates a plan. Training requires `--execute --out-dir <new-directory>`.
+This entry uses native OS and a shared ResNet-18 with training-set normalization statistics,
+rather than the paper backbone. PA/OA independently select student snapshots, and unselected
+weights are reclaimed. The selection prior does not enter training, and E's teacher is not
+used for model selection.
 
-同一图像 CLI 的 `--method cvir --view os/ts` 支持 CVIR 工程候选；显式 JSON 字段为
-`hidden_dim/warm_start_epochs/max_epochs/batch_size/learning_rate/data_device_policy/input_sampling/device`。
-必须用 `input_sampling="os"`、`data_device_policy="cpu_stream"`；总体先验按观测 P 数换算
-实际风险池先验，不能在参数文件预置 `unlabeled_positive_prior/prior_source`。
-两阶段均记录成本并可供 PA/OA 选择；仅当训练 BN 每通道总共只有一个值时提前拒绝。
-单图空间维度足够时允许单样本批次；形状探针使用私有 CPU/eval 副本，不修改训练数据、原 BN 或 RNG。
-Python 可用 `CandidateImageCheckpointTrainer(..., population_prior_source="已声明来源")`；
-CVIR 图像不能通过无先验绑定的 `fit_candidate_image_classifier` 直接训练。正式配方/资源仍未批准。
+The same image CLI supports the CVIR engineering candidate through `--method cvir --view os/ts`.
+Explicit JSON fields are
+`hidden_dim/warm_start_epochs/max_epochs/batch_size/learning_rate/data_device_policy/input_sampling/device`.
+Use `input_sampling="os"` and `data_device_policy="cpu_stream"`. The population prior is converted
+to the actual risk-pool prior using observed P counts; the parameter file cannot preset
+`unlabeled_positive_prior/prior_source`. Both stages record costs and are available for PA/OA
+selection. Batch normalization is rejected early only when training provides one value per
+channel overall; single-image batches are allowed when spatial dimensions suffice. Shape probes
+use a private CPU/eval copy and do not change training data, original BN state, or RNG state.
+Python callers can use `CandidateImageCheckpointTrainer(..., population_prior_source="declared-source")`.
+CVIR images cannot be trained directly with `fit_candidate_image_classifier`, which does not bind
+a prior. Formal recipe and resource approval remain outstanding.
 
-### 独立 TEDⁿ 分类器（实验级注册；原生 TS）
+### TEDnClassifier: standalone experimental registration, native TS
 
-`from pu_toolbox import TEDnClassifier`，亦可从 `pu_toolbox.estimators.deep` 导入。
+`from pu_toolbox import TEDnClassifier`, also exported from `pu_toolbox.estimators.deep`.
 
-`TEDnClassifier(*, input_sampling="ts", holdout_fraction=0.2, delta=0.1,
+`TEDnClassifier(*, input_sampling, holdout_fraction=0.2, delta=0.1,
 gamma=0.01, hidden_dim=64, warm_start_epochs=5, max_epochs=20, batch_size=128,
 learning_rate=0.001, convergence_tol=0.0001, convergence_patience=5,
-random_state=None, device=None, encoder=None)`。
+random_state=None, device=None, encoder=None)`.
 
-构造时必须显式设 `input_sampling="ts"`，由调用方提供独立 P 与边缘 U；没有 OS 校准入口。
-CLI 可用 `--classifier tedn --classifier-param input_sampling=ts`；UI 会将其标为 case-control
-并要求显式配置该参数。该声明不会自动验证数据采样设计。
+Construction requires explicit `input_sampling="ts"`; the caller supplies independent P and
+marginal U. There is no OS calibration entry. The CLI accepts
+`--classifier tedn --classifier-param input_sampling=ts`; the UI labels this method case-control
+and requires this parameter explicitly. Declaring it does not validate the sampling design.
 `fit(X, y_pu, *, class_prior=None, sample_weight=None, sample_ids=None,
-epoch_callback=None)` 返回 self，支持二维密集特征；注入可训练 encoder 时也支持
-四维 NCHW。观察 PU 角色沿用核心标准化（1=P，0 或 -1=U），不是真负标签。
-holdout_fraction、delta、gamma 严格在 (0,1)，按观察角色 ceil 留出；训练/留出均非空。
-hidden_dim、max_epochs、batch_size、convergence_patience 为正整数，warm_start_epochs
-为非负整数，learning_rate 有限且正，convergence_tol 有限且非负。
-sample_ids 为可选逐行唯一非空字符串；encoder 深拷贝后联合训练，输出二维特征。
-不新增拟合输入预处理器，外部预处理和跨组/外部角色隔离仍需独立核查。
+epoch_callback=None)` returns self and supports dense two-dimensional features; injecting a
+trainable encoder also supports four-dimensional NCHW. Observed PU roles follow core
+normalization (1=P, 0 or -1=U), rather than true negative labels. `holdout_fraction`, `delta`,
+and `gamma` are strictly in (0,1). Holdouts are rounded upward by observed role, leaving both
+training and holdout nonempty. `hidden_dim`, `max_epochs`, `batch_size`, and
+`convergence_patience` are positive integers; `warm_start_epochs` is a nonnegative integer.
+`learning_rate` is finite and positive; `convergence_tol` is finite and nonnegative.
+Optional `sample_ids` are unique nonempty strings aligned to rows. The encoder is deep-copied
+and jointly trained, producing two-dimensional features. No fitted input preprocessor is added;
+external preprocessing and isolation across groups/external roles require separate verification.
 
-每个 TEDⁿ round 在更新前用内部留出分数 BBE 估 α_U，然后仅排序训练 U、
-丢弃 floor(α_U*n_U_train)，用 P/保留U平均 BCE 的**未加权和**训练一轮。
-α_U=0 保留全部；α_U=1 抛 ValueError，使 fit 无效，不夹紧或强留一行。
-warm-start 后每轮更新后的训练错分率和（P 错分率+保留U负类错分率）用于停止：
-连续 convergence_patience 次绝对变化≤convergence_tol，或达到 max_epochs。
-此停止阈值是工程选择，不等价于正式收敛证明或选模许可。
+Before each TEDⁿ update, BBE estimates α_U from internal holdout scores. The round then ranks
+only training U, discards `floor(α_U*n_U_train)`, and trains for one epoch using the **unweighted
+sum** of mean P BCE and mean retained-U BCE. α_U=0 retains all U; α_U=1 raises `ValueError` and
+invalidates the fit, without clipping or forcibly retaining a row. After warm-start, stopping
+uses the post-update sum of training error rates (P error + retained-U negative-class error):
+stop after `convergence_patience` consecutive absolute changes ≤ `convergence_tol`, or at
+`max_epochs`. This tolerance is an engineering choice, not a convergence proof or model-selection
+authorization.
 
-`predict` 在 logit 0 切分，`decision_function` 高分表示正类；不提供校准 predict_proba。
-`estimate_unlabeled_prior()` 返回最后一轮更新前的 α_U，非最终模型新估计。
-拟合前、失败后或尚无 TEDn round 的 warm-start 回调中读取先验抛 NotFittedError。
-class_prior 非空抛 ValueError，sample_weight 非空抛 NotImplementedError；
-核心输入校验可能抛 ValidationError，其余参数/形状/概率错误抛 ValueError/TypeError。
-fit 内部校验/训练或 callback 抛出 Exception 时不裸重试，并使拟合状态无效。
+`predict` splits logits at 0; larger `decision_function` scores indicate positives. There is no
+calibrated `predict_proba`. `estimate_unlabeled_prior()` returns the final round's pre-update
+α_U, not a new estimate from the final model. Reading it before fitting, after failure, or in
+a warm-start callback before any TEDn round raises `NotFittedError`. Non-`None` `class_prior`
+raises `ValueError`; non-`None` `sample_weight` raises `NotImplementedError`. Core input checks
+may raise `ValidationError`; other parameter/shape/probability errors raise `ValueError` or
+`TypeError`. Exceptions from internal validation, training, or callbacks are not retried blindly
+and invalidate the fitted state.
 
-可审计属性：`train_positive_indices_`、`train_unlabeled_indices_`、
-`holdout_positive_indices_`、`holdout_unlabeled_indices_`、`selected_negative_indices_`、
-`history_`、`bbe_history_`、`training_provenance_`、`epoch_provenance_`、
-`optimizer_steps_`、`n_iter_`（TEDn轮数）、`epochs_completed_`、`converged_`、`stop_reason_`。
-`history_` 含 warm_start_loss/tedn_loss/alpha_u/selected_negative_count/training_error；
-`bbe_history_` 每轮含更新前累计步、α_U、阈值、两尾部计数、上界、留出数量和δ/γ。
-`checkpoint_epoch_count=warm_start_epochs+max_epochs` 仅为上限；每个实际完成 epoch
-回调 `(从0开始的累计epoch, self)`，stages 为 warm_start/tedn，推理快照不支持续训。
-CPU 保存完整输入；train P/N 合并 forward 最多2*batch_size，eval/predict 最多batch_size。
+Auditable attributes are `train_positive_indices_`, `train_unlabeled_indices_`,
+`holdout_positive_indices_`, `holdout_unlabeled_indices_`, `selected_negative_indices_`,
+`history_`, `bbe_history_`, `training_provenance_`, `epoch_provenance_`, `optimizer_steps_`,
+`n_iter_` (TEDn rounds), `epochs_completed_`, `converged_`, and `stop_reason_`.
+`history_` contains warm_start_loss/tedn_loss/alpha_u/selected_negative_count/training_error.
+Each `bbe_history_` round records pre-update cumulative steps, α_U, threshold, both tail counts,
+upper bound, holdout counts, and δ/γ. `checkpoint_epoch_count=warm_start_epochs+max_epochs` is
+an upper bound only. Every completed epoch calls back with `(zero-based cumulative epoch, self)`;
+stages are warm_start/tedn, and inference snapshots do not support resumed training. Complete
+input stays on CPU. Combined train P/N forward passes use at most 2*batch_size rows;
+evaluation/prediction uses at most batch_size.
 
 ```python
 from pu_toolbox.estimators.deep import TEDnClassifier
@@ -168,128 +196,140 @@ model = TEDnClassifier(input_sampling="ts", random_state=42, device="cpu").fit(X
 scores = model.decision_function(X_new)
 ```
 
-这是独立 native-TS 工程实现，不替换现有 CVIR/总体先验，不进入冻结矩阵或正式准入。
-α 在重复使用的留出集上参与反馈更新。
-原配方、真实数值、GPU 多seed和负责人准入仍待验收，见 [TEDn 方法卡](../../research/method_cards/TEDn.md)。
+This is a standalone native-TS engineering implementation. It does not replace CVIR or population
+prior estimation and is outside the frozen matrix and formal qualification. α participates in
+feedback updates on a repeatedly reused holdout. The original recipe, numerical results,
+multi-seed GPU runs, and owner qualification remain pending. The [TEDn method card](../../research/method_cards/TEDn.md)
+provides optional Chinese research background.
 
-所有分类器遵守统一契约：`fit(X, y)` + `predict(X)` + `decision_function(X)` +
-`get_params()`/`set_params()`；类先验估计器实现 `fit` + `estimate()`。
+Classifiers follow the shared `fit(X, y)` + `predict(X)` + `decision_function(X)` +
+`get_params()`/`set_params()` contract; class-prior estimators implement `fit` + `estimate()`.
 
-注册分类器必须显式声明 `label_semantics`：`"pu"` 的 `0` 是未标记，`"pn"` 的
-`0` 是真实负类，`"pnu"` 接受正/负/未标记三值主输入。第三方未声明估计器在
-experiment runner 和 PU 工作流中按 `"pu"` 保守处理；监督 oracle 必须显式声明 `"pn"`。
-runner按生成视图检查，`PUPipeline`固定要求主输入PU，并在构造、运行入口及实际clone/构造后
-检查；比较、调优和CLI/UI执行复用此门禁，CLI敏感性分析直接fit也检查。
-PNU直接三值fit保持可用，但不能用PNU模型绕过PU工作流的语义要求。
-数值集合相同不能证明标签含义相同，见[标签语义契约](../../dev/label_semantics_plan.md)。
+Registered classifiers must declare `label_semantics`: for `"pu"`, 0 is unlabeled; for `"pn"`,
+0 is a true negative; `"pnu"` accepts three main-input roles, positive/negative/unlabeled.
+The experiment runner and PU workflows conservatively treat undeclared third-party estimators
+as `"pu"`; supervised oracles must explicitly declare `"pn"`. The runner checks the generated
+view. `PUPipeline` requires PU main inputs and checks at construction, run entry, and after
+actual cloning/construction. Comparison, tuning, and CLI/UI execution reuse this gate; CLI
+sensitivity checks it before direct fitting too. Direct three-role PNU fitting remains available,
+but a PNU model cannot bypass the PU workflow semantics gate. Equal numeric label sets do not
+establish equal meaning. The [label-semantics design](../../dev/label_semantics_plan.md) is
+optional Chinese implementation background.
 
-### 注册表索引
+### Registry index
 
-下表是注册表索引（快速导航与别名提示）；**每个方法的完整签名、参数表与
-返回行为见下方按族划分的分组小节**（参数契约的权威位置在本页，方法卡
-不再重复参数契约）。
+This table provides quick navigation and aliases. Complete signatures, parameter tables, and
+return behavior are documented in the family sections below. This page owns parameter contracts;
+method cards provide optional Chinese research background.
 
-| 注册名（别名） | 类 | 族 | 核心构造参数摘要 | Method Card |
+| Registered name (aliases) | Class | Family | Main constructor parameters | Method card (Chinese) |
 |---|---|---|---|---|
-| `class_prior_estimation`（`cpe`, `pen_l1`） | `ClassPriorEstimator` | class-prior | `sigma` / `reg_lambda` / `theta_grid` / `n_centers` | [class_prior_estimation](../../research/method_cards/class_prior_estimation.md) |
-| `recpe`（`re_cpe`） | `ReCPEEstimator` | class-prior | `copy_fraction` / `base_estimator` | [ReCPE](../../research/method_cards/ReCPE.md) |
-| `elkan_noto`（`en`） | `ElkanNotoClassifier` | classic | `base_estimator` / `calibration_method` / `n_cv_folds` / `eps` | [Elkan_Noto](../../research/method_cards/Elkan_Noto.md) |
-| `upu`（`convex_pu`） | `UPUClassifier` | risk | `class_prior` / `loss` / `reg_lambda` | [Convex uPU](../../research/method_cards/Convex_Formulation_for_PU_DATA_Learning.md) |
-| `nnpu`（`nn-pu`） | `NonNegativePUClassifier` | risk | `model` / `encoder` / `class_prior` / `loss` / `optimizer` | [nnPU](../../research/method_cards/nnpu.md) |
+| `class_prior_estimation` (`cpe`, `pen_l1`) | `ClassPriorEstimator` | class-prior | `sigma` / `reg_lambda` / `theta_grid` / `n_centers` | [class_prior_estimation](../../research/method_cards/class_prior_estimation.md) |
+| `recpe` (`re_cpe`) | `ReCPEEstimator` | class-prior | `copy_fraction` / `base_estimator` | [ReCPE](../../research/method_cards/ReCPE.md) |
+| `elkan_noto` (`en`) | `ElkanNotoClassifier` | classic | `base_estimator` / `calibration_method` / `n_cv_folds` / `eps` | [Elkan_Noto](../../research/method_cards/Elkan_Noto.md) |
+| `upu` (`convex_pu`) | `UPUClassifier` | risk | `class_prior` / `loss` / `reg_lambda` | [Convex uPU](../../research/method_cards/Convex_Formulation_for_PU_DATA_Learning.md) |
+| `nnpu` (`nn-pu`) | `NonNegativePUClassifier` | risk | `model` / `encoder` / `class_prior` / `loss` / `optimizer` | [nnPU](../../research/method_cards/nnpu.md) |
 | `pnu` | `PNUClassifier` | risk | `class_prior` / `eta` / `reg_lambda` | [PNU](../../research/method_cards/PNU.md) |
-| `puet`（`pu_extra_trees`） | `PUExtraTreesClassifier` | risk | `class_prior` / `n_estimators` / `max_features` / `max_candidates` | [PUET](../../research/method_cards/PUET.md) |
-| `centroid_pu`（`ldce`） | `LDCEClassifier` | risk | `flip_probability` / `reg_strength` / `centroid_radius` | [LDCE](../../research/method_cards/LDCE.md) |
-| `kldce`（`kernelized_ldce`） | `KLDCEClassifier` | risk | `flip_probability` / `sigma` / `reg_strength` | [KLDCE](../../research/method_cards/KLDCE.md) |
+| `puet` (`pu_extra_trees`) | `PUExtraTreesClassifier` | risk | `class_prior` / `n_estimators` / `max_features` / `max_candidates` | [PUET](../../research/method_cards/PUET.md) |
+| `centroid_pu` (`ldce`) | `LDCEClassifier` | risk | `flip_probability` / `reg_strength` / `centroid_radius` | [LDCE](../../research/method_cards/LDCE.md) |
+| `kldce` (`kernelized_ldce`) | `KLDCEClassifier` | risk | `flip_probability` / `sigma` / `reg_strength` | [KLDCE](../../research/method_cards/KLDCE.md) |
 | `llsvm` | `LLSVMClassifier` | risk | `alpha` / `beta` / `gamma` / `reg_lambda` / `max_epochs` | [LLSVM](../../research/method_cards/LLSVM.md) |
-| `dist_pu`（`distpu`） | `DistPUClassifier` | risk | `class_prior` / `hidden_dim` / `epochs` / `learning_rate` / `distribution_loss` | [Dist-PU](../../research/method_cards/Dist-PU.md) |
-| `vpu`（`variational_pu`） | `VPUClassifier` | risk | `hidden_dim` / `max_epochs` / `regularization_weight` / `mixup_alpha` | [VPU](../../research/method_cards/VPU.md) |
-| `pulda`（`label_distribution_alignment`） | `PULDAClassifier` | risk | `class_prior` / `warmup_epochs` / `pu_epochs` / `margin` / `mixup_weight` | [PULDA](../../research/method_cards/PULDA.md) |
-| `cvir`（`conditional_value_ignoring_risk`） | `CVIRClassifier` | risk | `unlabeled_positive_prior`（U 内比例）/ `hidden_dim` / `max_epochs` / `warm_start_epochs` | [CVIR](../../research/method_cards/CVIR.md) |
-| `pusb`（`biased_pu`） | `PUSBClassifier` | bias-aware | `threshold` / `C` / `max_iter` | [PUSB](../../research/method_cards/PUSB.md) |
-| `pusb_kernel`（`kernelized_pusb`） | `PUSBKernelClassifier` | bias-aware | `n_basis` / `cv` / `sigma_grid` / `reg_grid` | [PUSB §7.3](../../research/method_cards/PUSB.md) |
+| `dist_pu` (`distpu`) | `DistPUClassifier` | risk | `class_prior` / `hidden_dim` / `epochs` / `learning_rate` / `distribution_loss` | [Dist-PU](../../research/method_cards/Dist-PU.md) |
+| `vpu` (`variational_pu`) | `VPUClassifier` | risk | `hidden_dim` / `max_epochs` / `regularization_weight` / `mixup_alpha` | [VPU](../../research/method_cards/VPU.md) |
+| `pulda` (`label_distribution_alignment`) | `PULDAClassifier` | risk | `class_prior` / `warmup_epochs` / `pu_epochs` / `margin` / `mixup_weight` | [PULDA](../../research/method_cards/PULDA.md) |
+| `cvir` (`conditional_value_ignoring_risk`) | `CVIRClassifier` | risk | `unlabeled_positive_prior` (U proportion) / `hidden_dim` / `max_epochs` / `warm_start_epochs` | [CVIR](../../research/method_cards/CVIR.md) |
+| `pusb` (`biased_pu`) | `PUSBClassifier` | bias-aware | `threshold` / `C` / `max_iter` | [PUSB](../../research/method_cards/PUSB.md) |
+| `pusb_kernel` (`kernelized_pusb`) | `PUSBKernelClassifier` | bias-aware | `n_basis` / `cv` / `sigma_grid` / `reg_grid` | [PUSB §7.3](../../research/method_cards/PUSB.md) |
 | `lbe` | `LBEClassifier` | bias-aware | `max_iter` / `n_em_iter` / `C` | [LBE](../../research/method_cards/LBE.md) |
-| `lbe_neural`（`neural_lbe`） | `NeuralLBEClassifier` | bias-aware / torch | `pretrain_steps` / `n_em_iter` / `m_steps` / `encoder` | [LBE §10](../../research/method_cards/LBE.md#10-2026-10-14-独立神经网络变体) |
-| `gradpu`（`grad_pu`） | `GradPUClassifier` | deep | `alpha` / `beta_max` / `model` / `max_epochs` | [GradPU](../../research/method_cards/GradPU.md) |
-| `robust_pu`（`robust-pu`） | `RobustPUClassifier` | deep | `class_prior` / `pretrain_epochs` / `episodes` / `spl_type` | [Robust-PU](../../research/method_cards/Robust-PU.md) |
-| `split_pu`（`split-pu`） | `SplitPUClassifier` | deep | `class_prior` / `teacher_epochs` / `split_epochs` / `student_epochs` | [Split-PU](../../research/method_cards/Split-PU.md) |
-| `tedn`（`transform_estimate_discard`） | `TEDnClassifier` | risk / torch | `input_sampling="ts"`（必填）/ `holdout_fraction` / `warm_start_epochs` / `max_epochs` | [TEDⁿ](../../research/method_cards/TEDn.md) |
-| `lagam`（`la_gam`） | `LaGAMClassifier` | deep | `support_data`（fit 必传）/ `warmup_epochs` / `num_clusters` | [LaGAM](../../research/method_cards/LaGAM.md) |
-| `pan`（`predictive_adversarial_pu`） | `PANClassifier` | deep | `encoder` / `model` / `discriminator` / `adversarial_weight` / `max_epochs` | [PAN](../../research/method_cards/PAN.md) |
-| `genpu`（`gen_pu`） | `GenPUClassifier` | deep | `class_prior` / `latent_dim` / `max_epochs` / `classifier_epochs` | [GEN-PU](../../research/method_cards/GEN-PU.md) |
-| `holistic_pu`（`holisticpu`） | `HolisticPUClassifier` | deep | `encoder` / `warmup_epochs` / `trend_scale` / `max_epochs` | [Holistic-PU](../../research/method_cards/Holistic-PU.md) |
-| `rp`（`rank_pruning`） | `RankPruningClassifier` | classic | `base_estimator` / `n_cv_folds` / `frac_pos2neg` / `min_retained` | [RP](../../research/method_cards/RP.md) |
-| `pulns`（`negative_selector_pu`） | `PULNSClassifier` | deep | `support_data`（fit 必传）/ `episodes` / `discount` / `terminal_weight` | [PULNS](../../research/method_cards/PULNS.md) |
+| `lbe_neural` (`neural_lbe`) | `NeuralLBEClassifier` | bias-aware / torch | `pretrain_steps` / `n_em_iter` / `m_steps` / `encoder` | [LBE §10](../../research/method_cards/LBE.md#10-2026-10-14-独立神经网络变体) |
+| `gradpu` (`grad_pu`) | `GradPUClassifier` | deep | `alpha` / `beta_max` / `model` / `max_epochs` | [GradPU](../../research/method_cards/GradPU.md) |
+| `robust_pu` (`robust-pu`) | `RobustPUClassifier` | deep | `class_prior` / `pretrain_epochs` / `episodes` / `spl_type` | [Robust-PU](../../research/method_cards/Robust-PU.md) |
+| `split_pu` (`split-pu`) | `SplitPUClassifier` | deep | `class_prior` / `teacher_epochs` / `split_epochs` / `student_epochs` | [Split-PU](../../research/method_cards/Split-PU.md) |
+| `tedn` (`transform_estimate_discard`) | `TEDnClassifier` | risk / torch | `input_sampling="ts"` (required) / `holdout_fraction` / `warm_start_epochs` / `max_epochs` | [TEDⁿ](../../research/method_cards/TEDn.md) |
+| `lagam` (`la_gam`) | `LaGAMClassifier` | deep | `support_data` (required by fit) / `warmup_epochs` / `num_clusters` | [LaGAM](../../research/method_cards/LaGAM.md) |
+| `pan` (`predictive_adversarial_pu`) | `PANClassifier` | deep | `encoder` / `model` / `discriminator` / `adversarial_weight` / `max_epochs` | [PAN](../../research/method_cards/PAN.md) |
+| `genpu` (`gen_pu`) | `GenPUClassifier` | deep | `class_prior` / `latent_dim` / `max_epochs` / `classifier_epochs` | [GEN-PU](../../research/method_cards/GEN-PU.md) |
+| `holistic_pu` (`holisticpu`) | `HolisticPUClassifier` | deep | `encoder` / `warmup_epochs` / `trend_scale` / `max_epochs` | [Holistic-PU](../../research/method_cards/Holistic-PU.md) |
+| `rp` (`rank_pruning`) | `RankPruningClassifier` | classic | `base_estimator` / `n_cv_folds` / `frac_pos2neg` / `min_retained` | [RP](../../research/method_cards/RP.md) |
+| `pulns` (`negative_selector_pu`) | `PULNSClassifier` | deep | `support_data` (required by fit) / `episodes` / `discount` / `terminal_weight` | [PULNS](../../research/method_cards/PULNS.md) |
 | `self_pu` | `SelfPUClassifier` | deep | `class_prior` / `backbone` / `warmup_epochs` / `self_paced_start` | [Self-PU](../../research/method_cards/Self-PU.md) |
-| `infomax_pu` | `InfoMaxPUClassifier` | deep | `class_prior` / `representation_*` / `classifier_*`（详见下方深度分类器小节） | [InfoMax-PU](../../research/method_cards/InfoMax-PU.md) |
-| `weighted_contrastive_pu`（`wconpu`） | `WeightedContrastivePUClassifier` | deep | `class_prior` / `encoder` / `hidden_dim` / `embedding_dim` | [WConPU](../../research/method_cards/WConPU.md) |
+| `infomax_pu` | `InfoMaxPUClassifier` | deep | `class_prior` / `representation_*` / `classifier_*` (see the deep-classifier section below) | [InfoMax-PU](../../research/method_cards/InfoMax-PU.md) |
+| `weighted_contrastive_pu` (`wconpu`) | `WeightedContrastivePUClassifier` | deep | `class_prior` / `encoder` / `hidden_dim` / `embedding_dim` | [WConPU](../../research/method_cards/WConPU.md) |
 | `p3mix` | `P3MixClassifier` | deep | `variant` / `beta` / `gamma` / `pool_size` / `encoder` | [P3MIX](../../research/method_cards/P3MIX.md) |
 | `dgpu` | `DGPUClassifier` | deep | `class_prior` / `generator` / `model` / `hidden_dim` | [DGPU](../../research/method_cards/DGPU.md) |
-| —（`km1` / `km2` variant） | `KernelMeanPriorEstimator` | class-prior | `variant="km1"/"km2"` 等（Kernel-mean 类先验，`PUPipeline` 的 `prior_estimator` 支持） | [Kernel_Mean](../../research/method_cards/Kernel_Mean_Class_Prior.md) |
+| — (`km1` / `km2` variant) | `KernelMeanPriorEstimator` | class-prior | `variant="km1"/"km2"` and other kernel-mean settings; supported by `PUPipeline.prior_estimator` | [Kernel_Mean](../../research/method_cards/Kernel_Mean_Class_Prior.md) |
 
-> 注册名可直接用于 `PUPipeline(classifier="...")` 与 CLI `--classifier`；别名大小写不敏感。
-> 族列为友好简称；CLI 与 JSON 输出使用枚举值：`class_prior_estimation` / `classic_calibration` / `risk_estimation` / `bias_aware` / `deep_pu`。
-> 构造器有必填非 `class_prior` 参数的方法可用 `classifier_params` 补齐；需要 Python 对象协议的参数也可直接传配置好的实例。
-> 旧类先验别名 `pe` 仍可解析，但会发出 `FutureWarning`；请迁移到 `class_prior_estimation` 或 `cpe`。
+> Registered classifier names work in `PUPipeline(classifier="...")` and CLI `--classifier`;
+> aliases are case-insensitive. The family column uses friendly abbreviations. CLI and JSON use
+> enum values `class_prior_estimation` / `classic_calibration` / `risk_estimation` / `bias_aware` /
+> `deep_pu`. Use `classifier_params` for required constructor arguments other than `class_prior`;
+> a configured instance can supply Python-object protocol dependencies. The old prior alias `pe`
+> still resolves but emits `FutureWarning`; migrate to `class_prior_estimation` or `cpe`.
 
-### `sample_weight` 三档语义
+### sample_weight support levels
 
-所有分类器都保留统一的 `fit(..., sample_weight=None)` 签名，并通过
-`get_pu_metadata()["sample_weight_support"]` 明确声明行为：
+Classifiers retain the common `fit(..., sample_weight=None)` signature and declare behavior
+through `get_pu_metadata()["sample_weight_support"]`:
 
-| 值 | 行为 | 当前分类器 |
+| Value | Behavior | Classifiers (examples) |
 |---|---|---|
-| `supported` | 权重进入训练目标 | `elkan_noto`, `nnpu`, `pusb`, `infomax_pu`, `weighted_contrastive_pu`, `dgpu` |
-| `ignored` | 为 sklearn API 兼容而接受，但不参与训练 | `llsvm`, `upu`, `pnu`, `centroid_pu`, `kldce`, `dist_pu`, `lbe` |
-| `not_implemented` | 非 `None` 时抛出 `NotImplementedError` | `pusb_kernel`, `self_pu`, `gradpu`, `puet`, `vpu`, `pulda` |
+| `supported` | Weights enter the training objective | `elkan_noto`, `nnpu`, `pusb`, `infomax_pu`, `weighted_contrastive_pu`, `dgpu` |
+| `ignored` | Accepted for sklearn API compatibility, unused in training | `llsvm`, `upu`, `pnu`, `centroid_pu`, `kldce`, `dist_pu`, `lbe` |
+| `not_implemented` | Non-`None` values raise `NotImplementedError` | `pusb_kernel`, `self_pu`, `gradpu`, `puet`, `vpu`, `pulda` |
 
-依赖样本权重时，应在训练前检查该字段；`ignored` 不会把用户传入的权重误报为已生效。
+Check the field before fitting when weights are required. `ignored` does not claim supplied
+weights were applied; consult each method's current metadata for methods beyond these examples.
 
-### 类先验估计器
+### Class-prior estimators
 
-#### `ClassPriorEstimator`（注册名 `class_prior_estimation`，别名 `cpe` / `pen_l1`）
+#### ClassPriorEstimator (class_prior_estimation; aliases cpe / pen_l1)
 
-penL1（惩罚 L1 风险）类先验估计器；`sigma=None` 时自适应选择中位数尺度。
+penL1 (penalized L1 risk) class-prior estimator. With `sigma=None`, it selects a median-distance
+scale adaptively.
 
 ```python
 ClassPriorEstimator(*, sigma=None, reg_lambda=0.01, theta_grid=None, n_centers=200, standardize=True)
 ```
 
-| 参数 | 类型 | 默认 | 说明 |
+| Parameter | Type | Default | Description |
 |---|---|---|---|
-| `sigma` | `float \| None` | `None`（数据自适应中位数距离） | RBF 核宽；显式 `sigma` 保留历史固定尺度行为 |
-| `reg_lambda` | `float` | `0.01` | 惩罚系数 |
-| `theta_grid` | `np.ndarray \| None` | `None`（自动生成） | 搜索网格（θ 候选值） |
-| `n_centers` | `int \| None` | `200` | 子采样的中心数 |
-| `standardize` | `bool` | `True` | 训练前对 X 标准化 |
+| `sigma` | `float \| None` | `None` (adaptive median distance) | RBF width; explicit `sigma` retains the historical fixed-scale behavior |
+| `reg_lambda` | `float` | `0.01` | Penalty coefficient |
+| `theta_grid` | `np.ndarray \| None` | `None` (generated automatically) | Search grid of θ candidates |
+| `n_centers` | `int \| None` | `200` | Number of subsampled centers |
+| `standardize` | `bool` | `True` | Standardize X before training |
 
-- 实现 `fit(X, y_pu)` + `estimate()`；`estimate_target=estimation_pool="native_unlabeled"`。
-  旧别名 `pe` 已弃用（`FutureWarning`）。
-- 文档：[class_prior_estimation 方法卡](../../research/method_cards/class_prior_estimation.md) · 示例：[05_recpe_pipeline.py](../../../examples/minimal/05_recpe_pipeline.py)（经 `PUPipeline` 使用）
+- Implements `fit(X, y_pu)` + `estimate()`; `estimate_target=estimation_pool="native_unlabeled"`.
+  The old alias `pe` is deprecated (`FutureWarning`).
+- Optional Chinese research background: [class_prior_estimation method card](../../research/method_cards/class_prior_estimation.md).
+  Example: [05_recpe_pipeline.py](../../../examples/minimal/05_recpe_pipeline.py), through `PUPipeline`.
 
-#### `ReCPEEstimator`（注册名 `recpe`，别名 `re_cpe`）
+#### ReCPEEstimator (recpe; alias re_cpe)
 
-拷贝正例模型（Copy Positive Estimator，ReCPE）类先验估计器。
+Regrouping Copy Positive Estimator (ReCPE) for class-prior estimation.
 
 ```python
 ReCPEEstimator(copy_fraction=0.1, base_estimator=None, classifier=None, classifier_max_iter=1000)
 ```
 
-| 参数 | 类型 | 默认 | 说明 |
+| Parameter | Type | Default | Description |
 |---|---|---|---|
-| `copy_fraction` | `float` | `0.1` | 拷贝进正样本的未标记样例比例 |
-| `base_estimator` | estimator \| None | `None` | 实现 `estimate()` 的 CPE 估计器；`None` 使用 KM2 |
-| `classifier` | estimator \| None | `None` | 区分正例与未标记样本的二分类器；其正类概率用于排序未标记样本 |
-| `classifier_max_iter` | `int` | `1000` | 默认 logistic 分类器最大迭代数 |
+| `copy_fraction` | `float` | `0.1` | Fraction of unlabeled observations copied into the positive sample |
+| `base_estimator` | estimator \| None | `None` | CPE estimator implementing `estimate()`; `None` uses KM2 |
+| `classifier` | estimator \| None | `None` | Binary P-versus-U classifier; positive probabilities rank U |
+| `classifier_max_iter` | `int` | `1000` | Maximum iterations for the default logistic classifier |
 
-高分 U 行复制进 P，完整 U 仍为 mixture。`estimate_target=estimation_pool="native_unlabeled"`，
-标量输出为原生 U 先验的 regrouping 近似。`get_metadata()` 记录 `copy_policy`、
-`estimate_kind="regrouping_approximation"` 与 `auxiliary_target="regrouped_component_weight"`。
+High-scoring U rows are copied into P while the complete U remains the mixture.
+`estimate_target=estimation_pool="native_unlabeled"`; the scalar output is a regrouping
+approximation to the native-U prior. `get_metadata()` records `copy_policy`,
+`estimate_kind="regrouping_approximation"`, and `auxiliary_target="regrouped_component_weight"`.
 
-- 文档：[ReCPE 方法卡](../../research/method_cards/ReCPE.md) · 示例：[05_recpe_pipeline.py](../../../examples/minimal/05_recpe_pipeline.py)
+- Optional Chinese research background: [ReCPE method card](../../research/method_cards/ReCPE.md).
+  Example: [05_recpe_pipeline.py](../../../examples/minimal/05_recpe_pipeline.py).
 
-#### `KernelMeanPriorEstimator`（注册名 `km1` / `km2` 变体）
+#### KernelMeanPriorEstimator (km1 / km2 variants)
 
-核均值（Kernel-mean）类先验估计器（KM1 / KM2 算法）。
+Kernel-mean class-prior estimator implementing KM1 / KM2.
 
 ```python
 KernelMeanPriorEstimator(*, variant="km1", kernel_width=None, width_selection="relative",
@@ -299,60 +339,63 @@ KernelMeanPriorEstimator(*, variant="km1", kernel_width=None, width_selection="r
                          standardize=False, random_state=None)
 ```
 
-| 参数 | 类型 | 默认 | 说明 |
+| Parameter | Type | Default | Description |
 |---|---|---|---|
-| `variant` | `"km1"` / `"km2"` | `"km1"` | 算法变体 |
-| `kernel_width` | `float \| None` | `None` | 核宽；`None` 按 `width_selection` 选择 |
-| `width_selection` | `"relative"` / `"mmd_grid"` | `"relative"` | 核宽选择策略（相对启发式或 MMD 网格） |
-| `kernel_width_scale` | `float` | `0.1` | `relative` 策略的缩放系数 |
-| `width_factors` | `tuple[float, ...]` | 默认网格 | `mmd_grid` 的宽度因子网格 |
-| `epsilon` | `float` | `0.04` | KM2 松弛参数 |
-| `lambda_upper_bound` | `float` | `8.0` | 标度约束上界 |
-| `km2_final_slope_weight` | `float` | `0.2` | KM2 最终斜率权重 |
-| `max_qp_iter` / `qp_tolerance` | `int` / `float` | `2000` / `1e-7` | QP 求解迭代上限与容差 |
-| `max_samples_per_group` | `int \| None` | `None` | 每组最大样本数（`None` 不限制） |
-| `standardize` | `bool` | `False` | 训练前标准化 |
-| `random_state` | `int \| None` | `None` | 随机种子 |
+| `variant` | `"km1"` / `"km2"` | `"km1"` | Algorithm variant |
+| `kernel_width` | `float \| None` | `None` | Kernel width; `None` selects it through `width_selection` |
+| `width_selection` | `"relative"` / `"mmd_grid"` | `"relative"` | Relative heuristic or MMD-grid width selection |
+| `kernel_width_scale` | `float` | `0.1` | Scale for the `relative` strategy |
+| `width_factors` | `tuple[float, ...]` | Default grid | Width-factor grid for `mmd_grid` |
+| `epsilon` | `float` | `0.04` | KM2 relaxation parameter |
+| `lambda_upper_bound` | `float` | `8.0` | Upper scaling-constraint bound |
+| `km2_final_slope_weight` | `float` | `0.2` | KM2 final-slope weight |
+| `max_qp_iter` / `qp_tolerance` | `int` / `float` | `2000` / `1e-7` | QP iteration limit and tolerance |
+| `max_samples_per_group` | `int \| None` | `None` | Maximum samples per group; `None` imposes no cap |
+| `standardize` | `bool` | `False` | Standardize before training |
+| `random_state` | `int \| None` | `None` | Random seed |
 
-- `PUPipeline` 的 `prior_estimator="km1"/"km2"` 映射到本估计器。
-- `estimate_target=estimation_pool="native_unlabeled"`；返回 U 的 mixture proportion。
-- 文档：[Kernel_Mean 方法卡](../../research/method_cards/Kernel_Mean_Class_Prior.md)
+- `PUPipeline.prior_estimator="km1"/"km2"` maps to this estimator.
+- `estimate_target=estimation_pool="native_unlabeled"`; returns the U mixture proportion.
+- Optional Chinese research background: [Kernel_Mean method card](../../research/method_cards/Kernel_Mean_Class_Prior.md).
 
-#### 先验质量换算
+#### Prior probability-mass conversion
 
-`from pu_toolbox.prior import native_unlabeled_to_population, population_to_native_unlabeled`。
-两函数接受 `(class_prior, labeled_fraction, *, input_sampling="os")` 并返回 `float`。
-OS 分别使用 `q+(1-q)*pi_U` 与 `(pi-q)/(1-q)`；TS 返回输入先验。
-先验有效域为 `[0,1]`，P 占比为 `[0,1)`，OS 总体先验至少为 P 占比。
-非实数、布尔值、非有限值和越界值分别抛出 `TypeError` 或 `ValueError`。
+`from pu_toolbox.prior import native_unlabeled_to_population, population_to_native_unlabeled`.
+Both functions accept `(class_prior, labeled_fraction, *, input_sampling="os")` and return
+`float`. For OS, they use `q+(1-q)*pi_U` and `(pi-q)/(1-q)`, respectively. TS returns the input
+prior. Priors lie in `[0,1]`; the P fraction lies in `[0,1)`. An OS population prior must be at
+least the P fraction. Non-real, boolean, nonfinite, and out-of-range inputs raise `TypeError`
+or `ValueError` as appropriate.
 
-### 经典包装器
+### Classic wrappers
 
-#### `ElkanNotoClassifier`（注册名 `elkan_noto`，别名 `en`）
+#### ElkanNotoClassifier (elkan_noto; alias en)
 
-Elkan-Noto 经验估计包装：单模型校准 + 概率修正或加权重训。
+Elkan-Noto empirical-estimation wrapper: single-model calibration followed by probability
+correction or weighted retraining.
 
 ```python
 ElkanNotoClassifier(base_estimator=None, calibration_method="sigmoid", n_cv_folds=3,
                     eps=1e-12, mode="weighted_retraining", random_state=None)
 ```
 
-| 参数 | 类型 | 默认 | 说明 |
+| Parameter | Type | Default | Description |
 |---|---|---|---|
-| `base_estimator` | sklearn 估计器 | `None`（`LogisticRegression()`） | 基础二分类器；必须实现 `predict_proba` |
-| `calibration_method` | `"sigmoid"` / `"isotonic"` | `"sigmoid"` | 基估计器非线性概率输出时的校准方法（线性模型可有自然概率输出时不用） |
-| `n_cv_folds` | `int` | `3` | 估计 `c` 的 OOF 分层 CV 折数；须 ≥ 2 |
-| `eps` | `float` | `1e-12` | 权重计算中防除零的数值裁剪阈值 |
-| `mode` | `"probability_correction"` / `"weighted_retraining"` | `"weighted_retraining"` | 概率修正（`g(x)/c`）或加权重训；工具箱默认加权重训（ADR-0016） |
-| `random_state` | `int \| None` | `None` | K 折切分种子 |
+| `base_estimator` | sklearn estimator | `None` (`LogisticRegression()`) | Base binary classifier; must implement `predict_proba` |
+| `calibration_method` | `"sigmoid"` / `"isotonic"` | `"sigmoid"` | Calibration for base estimators other than LogisticRegression; LogisticRegression is used directly |
+| `n_cv_folds` | `int` | `3` | OOF stratified CV folds for estimating `c`; must be ≥ 2 |
+| `eps` | `float` | `1e-12` | Clipping threshold against division by zero in weights |
+| `mode` | `"probability_correction"` / `"weighted_retraining"` | `"weighted_retraining"` | Probability correction (`g(x)/c`) or weighted retraining; the toolbox defaults to weighted retraining (ADR-0016) |
+| `random_state` | `int \| None` | `None` | K-fold split seed |
 
-- 文档：[Elkan_Noto 方法卡](../../research/method_cards/Elkan_Noto.md) · 示例：[01_elkan_noto.py](../../../examples/minimal/01_elkan_noto.py)
+- Optional Chinese research background: [Elkan_Noto method card](../../research/method_cards/Elkan_Noto.md).
+  Example: [01_elkan_noto.py](../../../examples/minimal/01_elkan_noto.py).
 
-### 风险估计分类器
+### Risk-estimation classifiers
 
-#### `UPUClassifier`（注册名 `upu`，别名 `convex_pu`）
+#### UPUClassifier (upu; alias convex_pu)
 
-无偏 PU（uPU / convex PU）分类器：最小化凸 PU 风险。
+Unbiased PU (uPU / convex PU) classifier minimizing convex PU risk.
 
 ```python
 UPUClassifier(class_prior, *, loss="squared", reg_lambda=1e-3, basis="linear",
@@ -360,23 +403,24 @@ UPUClassifier(class_prior, *, loss="squared", reg_lambda=1e-3, basis="linear",
               max_iter=1000, tol=1e-6, random_state=None)
 ```
 
-| 参数 | 类型 | 默认 | 说明 |
+| Parameter | Type | Default | Description |
 |---|---|---|---|
-| `class_prior` | `float` | 必填 | 类先验 π=P(y=1)；可在 `fit` 经 `class_prior` kwarg 覆盖 |
-| `loss` | `"double_hinge"` / `"logistic"` / `"squared"` | `"squared"` | 边缘损失变体：C-DH（凸 QP，推荐主变体）/ C-LL（平滑凸，L-BFGS）/ squared（闭式解，最快但惩罚正确大边缘；工具箱默认，ADR-0016） |
-| `reg_lambda` | `float` | `1e-3` | α 的 ℓ₂ 正则系数；须 > 0；截距 *b* 不参与正则 |
-| `basis` | `"linear"` / `"rbf"` | `"linear"` | 基函数类型；`"rbf"` 用未标记数据子采样 *n_centers* 个中心 |
-| `kernel_width` | `float \| None` | `None` | RBF 核宽；`basis="rbf"` 时必填 |
-| `n_centers` | `int \| None` | `None`（`min(200, n_U)`） | RBF 中心数；`basis="linear"` 时忽略 |
-| `fit_intercept` | `bool` | `True` | 是否拟合截距 *b* |
-| `max_iter` / `tol` | `int` / `float` | `1000` / `1e-6` | 优化迭代上限与收敛容差 |
-| `random_state` | `int \| None` | `None` | 中心子采样种子 |
+| `class_prior` | `float` | Required | Prior for the training risk pool; the default direct view consumes native-U prior. Can be overridden by the `fit` kwarg `class_prior` |
+| `loss` | `"double_hinge"` / `"logistic"` / `"squared"` | `"squared"` | Margin loss: C-DH (convex QP, recommended main variant), C-LL (smooth convex, L-BFGS), or squared (closed-form and fastest, but penalizes large correct margins; toolbox default, ADR-0016) |
+| `reg_lambda` | `float` | `1e-3` | ℓ₂ regularization on α; strictly positive; intercept *b* is unregularized |
+| `basis` | `"linear"` / `"rbf"` | `"linear"` | Basis type; `"rbf"` subsamples *n_centers* centers from U |
+| `kernel_width` | `float \| None` | `None` | RBF width; required for `basis="rbf"` |
+| `n_centers` | `int \| None` | `None` (`min(200, n_U)`) | RBF center count; ignored for `basis="linear"` |
+| `fit_intercept` | `bool` | `True` | Fit intercept *b* |
+| `max_iter` / `tol` | `int` / `float` | `1000` / `1e-6` | Optimization iteration limit and convergence tolerance |
+| `random_state` | `int \| None` | `None` | Center-subsampling seed |
 
-- 文档：[Convex uPU 方法卡](../../research/method_cards/Convex_Formulation_for_PU_DATA_Learning.md) · 示例：[02_upu.py](../../../examples/minimal/02_upu.py)
+- Optional Chinese research background: [Convex uPU method card](../../research/method_cards/Convex_Formulation_for_PU_DATA_Learning.md).
+  Example: [02_upu.py](../../../examples/minimal/02_upu.py).
 
-#### `NonNegativePUClassifier`（注册名 `nnpu`，别名 `nn-pu`）
+#### NonNegativePUClassifier (nnpu; alias nn-pu)
 
-非负 PU（nnPU）分类器（深度网络，PyTorch）。
+Nonnegative PU (nnPU) classifier using PyTorch networks.
 
 ```python
 NonNegativePUClassifier(model=None, *, encoder=None, class_prior=None, loss="sigmoid",
@@ -384,45 +428,47 @@ NonNegativePUClassifier(model=None, *, encoder=None, class_prior=None, loss="sig
                         max_epochs=200, patience=20, random_state=None, device=None)
 ```
 
-| 参数 | 类型 | 默认 | 说明 |
+| Parameter | Type | Default | Description |
 |---|---|---|---|
-| `model` | `torch.nn.Module \| None` | `None`（`nn.Linear(d, 1)`） | 输出原始分数 g(x) 的 PyTorch 模型 |
-| `encoder` | `torch.nn.Module \| None` | `None` | 特征编码器替代默认原始输入模型；提供时 `model` 作为叠加的分数头，否则创建默认 `nn.Linear(rep_dim, 1)` 头。`None` 保持原行为 |
-| `class_prior` | `float \| None` | `None` | π∈(0,1)；也可经 `fit` 提供/覆盖 |
-| `loss` | `"sigmoid"` | `"sigmoid"` | 替代损失；MVP 仅支持 sigmoid |
-| `beta` | `float` | `0.0` | 非负阈值；须 ≥ 0 |
-| `gamma` | `float` | `1.0` | 校正分支步长折扣；∈[0,1] |
-| `optimizer` | `torch.optim.Optimizer \| None` | `None`（`Adam(lr=1e-3)`） | 优化器 |
-| `batch_size` | `int` | `256` | mini-batch 大小；P/U 批独立取 `min(batch_size, n_P/n_U)` |
-| `max_epochs` | `int` | `200` | 最大训练轮数 |
-| `patience` | `int` | `20` | 早停耐心（仅当 `fit` 传 `validation_data` 时生效） |
-| `random_state` / `device` | `int \| None` / `str \| None` | `None` / `None` | 种子与 torch 设备 |
+| `model` | `torch.nn.Module \| None` | `None` (`nn.Linear(d, 1)`) | PyTorch model producing raw scores g(x) |
+| `encoder` | `torch.nn.Module \| None` | `None` | Feature encoder replacing the default raw-input path; `model` becomes the score head, or a default `nn.Linear(rep_dim, 1)` head is created. `None` retains the existing path |
+| `class_prior` | `float \| None` | `None` | Prior in (0,1) for the training risk pool; the default direct view consumes native-U prior. May also be supplied/overridden through `fit` |
+| `loss` | `"sigmoid"` | `"sigmoid"` | Surrogate loss; currently only sigmoid is supported |
+| `beta` | `float` | `0.0` | Nonnegative threshold; must be ≥ 0 |
+| `gamma` | `float` | `1.0` | Correction-branch step discount in [0,1] |
+| `optimizer` | `torch.optim.Optimizer \| None` | `None` (`Adam(lr=1e-3)`) | Optimizer |
+| `batch_size` | `int` | `256` | P and U batches independently use `min(batch_size, n_P/n_U)` |
+| `max_epochs` | `int` | `200` | Maximum training epochs |
+| `patience` | `int` | `20` | Early-stopping patience, active only with `fit(validation_data=...)` |
+| `random_state` / `device` | `int \| None` / `str \| None` | `None` / `None` | Seed and torch device |
 
-- 文档：[nnPU 方法卡](../../research/method_cards/nnpu.md) · 示例：[03_nnpu.py](../../../examples/minimal/03_nnpu.py)
+- Optional Chinese research background: [nnPU method card](../../research/method_cards/nnpu.md).
+  Example: [03_nnpu.py](../../../examples/minimal/03_nnpu.py).
 
-#### `PNUClassifier`（注册名 `pnu`）
+#### PNUClassifier (pnu)
 
-PNU（positive-negative-unlabeled）风险分类器：统一插件式 λ 损失与正则项。
+Positive-negative-unlabeled (PNU) risk classifier with a common pluggable λ loss and regularizer.
 
 ```python
 PNUClassifier(class_prior, *, eta=0.0, reg_lambda=1e-3, basis="linear",
               kernel_width=None, n_centers=None, fit_intercept=True, random_state=None)
 ```
 
-| 参数 | 类型 | 默认 | 说明 |
+| Parameter | Type | Default | Description |
 |---|---|---|---|
-| `class_prior` | `float` | 必填 | 类先验 θ_P=P(y=1)；须 ∈(0,1) |
-| `eta` | `float` | `0.0` | PNU 权衡参数 ∈[-1,1]：`0`=PN（监督）、`+1`=PU、`-1`=NU |
-| `reg_lambda` | `float` | `1e-3` | ℓ₂ 正则系数；截距 *b* 不参与 |
-| `basis` / `kernel_width` / `n_centers` | 见 uPU | `"linear"` / `None` / `None` | 基函数与 RBF 参数（同 uPU 语义） |
-| `fit_intercept` | `bool` | `True` | 经由常数基列实现（pywsl 惯例） |
-| `random_state` | `int \| None` | `None` | 中心子采样种子 |
+| `class_prior` | `float` | Required | Positive-class prior θ_P=P(y=1), strictly in (0,1) |
+| `eta` | `float` | `0.0` | PNU tradeoff in [-1,1]: `0`=PN (supervised), `+1`=PU, `-1`=NU |
+| `reg_lambda` | `float` | `1e-3` | ℓ₂ regularization; intercept *b* is excluded |
+| `basis` / `kernel_width` / `n_centers` | See uPU | `"linear"` / `None` / `None` | Basis and RBF parameters follow uPU semantics |
+| `fit_intercept` | `bool` | `True` | Implemented with a constant basis column, following pywsl |
+| `random_state` | `int \| None` | `None` | Center-subsampling seed |
 
-- 文档：[PNU 方法卡](../../research/method_cards/PNU.md) · 示例：[04_pnu.py](../../../examples/minimal/04_pnu.py)
+- Optional Chinese research background: [PNU method card](../../research/method_cards/PNU.md).
+  Example: [04_pnu.py](../../../examples/minimal/04_pnu.py).
 
-#### `PUExtraTreesClassifier`（注册名 `puet`，别名 `pu_extra_trees`）
+#### PUExtraTreesClassifier (puet; alias pu_extra_trees)
 
-以 nnPU 二次风险下降训练的 PU Extra Trees；当前为二维表格/CPU 子集。
+PU Extra Trees trained by nnPU quadratic-risk descent; currently a two-dimensional tabular/CPU subset.
 
 ```python
 PUExtraTreesClassifier(class_prior, *, n_estimators=100, max_depth=None,
@@ -430,43 +476,54 @@ PUExtraTreesClassifier(class_prior, *, n_estimators=100, max_depth=None,
                        bootstrap=False, random_state=None)
 ```
 
-| 参数 | 类型 | 默认 | 说明 |
+| Parameter | Type | Default | Description |
 |---|---|---|---|
-| `class_prior` | `float` | 必填 | 总体正类先验 $\pi\in(0,1)$；可由 `fit(..., class_prior=...)` 覆盖 |
-| `n_estimators` / `max_depth` | `int` / `int \| None` | `100` / `None` | 树数 / 最大深度 |
-| `min_samples_leaf` | `int` | `1` | 每个子叶至少包含的 P/U 样本总数 |
-| `max_features` | `"sqrt" \| "all" \| int` | `"sqrt"` | 每节点候选特征数，`sqrt` 向上取整；正整数超出输入维数时截断到该维数，不修改构造参数；非作者等价行为 |
-| `max_candidates` | `int` | `1` | 每候选特征随机阈值数 |
-| `bootstrap` | `bool` | `False` | 是否分别对 P/U 进行有放回重采样；作者代码默认不重采样 |
-| `random_state` | `int \| None` | `None` | 森林随机种子 |
+| `class_prior` | `float` | Required | Positive prior $\pi\in(0,1)$ in the actual training risk pool; the default direct view consumes native-U prior. Can be overridden by `fit(..., class_prior=...)` |
+| `n_estimators` / `max_depth` | `int` / `int \| None` | `100` / `None` | Tree count and maximum depth |
+| `min_samples_leaf` | `int` | `1` | Minimum total P/U observations in each child leaf |
+| `max_features` | `"sqrt" \| "all" \| int` | `"sqrt"` | Candidate features per node; `sqrt` rounds upward. Positive integers above the input dimension are capped at that dimension without changing the constructor parameter; this is not author-equivalent behavior |
+| `max_candidates` | `int` | `1` | Random thresholds per candidate feature |
+| `bootstrap` | `bool` | `False` | Resample P/U separately with replacement; the author code defaults to no resampling |
+| `random_state` | `int \| None` | `None` | Forest seed |
 
-`decision_function` 为 $[-1,1]$ 投票边际，不是校准概率；零边际判负类。仅实现论文 nnPU/quadratic 变体，非完整论文基准。非空 `sample_weight` 报错。
+`decision_function` is a voting margin in $[-1,1]$, not a calibrated probability; zero margin
+predicts negative. Only the paper's nnPU/quadratic variant is implemented, not the full benchmark.
+Non-`None` `sample_weight` raises an error.
 
-`bootstrap=True` 对 P 抽 n_P 行，对实际 U 风险池抽该池大小的行（OS: n_U，TS:
-n_U+n_P），每树根风险质量 P=总体π、U=1；不把原 U 行数错误用于 TS 风险池。
-min_samples_leaf 同时约束两个子节点；阈值取完整 min/max 区间；仅接受 gain>1e-12。
+`bootstrap=True` draws n_P rows from P and draws as many rows as the actual U risk pool contains
+(OS: n_U; TS-compatible risk view: n_U+n_P). Each tree's root risk masses are P=the supplied
+risk-pool prior and U=1; original-U counts are not incorrectly reused for the TS-compatible pool.
+`min_samples_leaf` constrains both children. Thresholds span the complete min/max interval;
+only gain>1e-12 is accepted.
 
-- 文档：[PUET 方法卡](../../research/method_cards/PUET.md)
+- Optional Chinese research background: [PUET method card](../../research/method_cards/PUET.md).
 
-PUET/RP 可选用 `from pu_toolbox.experiment.classical_candidate import ClassicalCandidateTrainer`，
-在 `ExperimentRunner` 的 `config["trainer"]` 中注入实例，记录实际逐树或 OOF/refit 成本。
-`fit(estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None)` 返回无 epoch 的单模型轨迹；
-成功 `training_provenance_` 进入 candidate manifest，失败工作在 trainer 的 `last_receipt` 中保留；
-构造时可选 `receipt_dir`，将每次成功/失败成本收据独立持久化，重试不覆盖旧记录。
-`val_pu` 不用于训练，PA/OA 仍由 runner 独立执行；支持确切的 PUET/RP 类，不支持子类或实例树构建覆盖。
+For PUET/RP, optionally import
+`from pu_toolbox.experiment.classical_candidate import ClassicalCandidateTrainer`
+and inject an instance into `ExperimentRunner.config["trainer"]` to record actual per-tree or
+OOF/refit cost. `fit(estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None)` returns
+a single-model trajectory without epochs. Successful `training_provenance_` enters the candidate
+manifest; failed work is retained in the trainer's `last_receipt`. Optional constructor
+`receipt_dir` persists each success/failure cost receipt independently; retries do not overwrite
+earlier receipts. `val_pu` is unused for training; PA/OA remain independent runner operations.
+Only the exact PUET/RP classes are supported, excluding subclasses and instance tree-builder overrides.
 
-独立 CPU 入口 `python scripts/run_classical_candidate_experiment.py --help` 默认仅生成锁定计划，
-`--execute --out-dir <新目录>` 才拟合；输入四份互斥的二维 `X/y/indices` NPZ，结构与四角色契约一致。
-`--parameters` 必须完整指定 PUET 的 `n_estimators/max_depth/min_samples_leaf/max_features/max_candidates/bootstrap`，
-或 RP 的 `n_cv_folds/frac_pos2neg/min_retained`；种子、总体先验来源和 `--view` 单独指定。
-PUET 支持 OS/TS，RP 只支持 OS。入口不拟合/认证输入特征预处理。
-导出的 `selected_PA/OA.pkl` 使用同模块 `ClassicalSelectionPredictor(estimator, selection)` 封装
-验证集 affine 与所选阈值；`decision_function` 保留原始分数，`predict` 重放所选规则。
-原始非 epoch runner 的 `selected_models` 不自动携带这条规则，不能用 native `predict` 代替表中预测。
+The standalone CPU entry `python scripts/run_classical_candidate_experiment.py --help`
+generates a locked plan by default. Fitting requires `--execute --out-dir <new-directory>`.
+Inputs are four disjoint two-dimensional `X/y/indices` NPZ files following the four-role contract.
+`--parameters` must explicitly include all PUET
+`n_estimators/max_depth/min_samples_leaf/max_features/max_candidates/bootstrap` fields, or RP
+`n_cv_folds/frac_pos2neg/min_retained`. Seed, population-prior source, and `--view` are separate.
+PUET supports OS/TS risk views; RP supports only OS. The entry does not fit or certify input-feature
+preprocessing. Exported `selected_PA/OA.pkl` wrap the validation affine transform and selected
+threshold in the same module's `ClassicalSelectionPredictor(estimator, selection)`.
+`decision_function` retains raw scores; `predict` replays the selected rule. The ordinary
+non-epoch runner's `selected_models` do not automatically carry that rule; native `predict`
+cannot substitute for the predictions used in the report.
 
-#### `LDCEClassifier`（注册名 `centroid_pu`，别名 `ldce`）
+#### LDCEClassifier (centroid_pu; alias ldce)
 
-LDCE（Label Density Centroid Estimation）分类器。
+Label Density Centroid Estimation (LDCE) classifier.
 
 ```python
 LDCEClassifier(flip_probability, *, reg_strength=1.0, centroid_radius=0.1, mom_groups=10,
@@ -474,23 +531,23 @@ LDCEClassifier(flip_probability, *, reg_strength=1.0, centroid_radius=0.1, mom_g
                max_iter=10000, tol=1e-6, random_state=None)
 ```
 
-| 参数 | 类型 | 默认 | 说明 |
+| Parameter | Type | Default | Description |
 |---|---|---|---|
-| `flip_probability` | `float` | 必填 | 真正例被翻转为观测负例的概率 *h*（截尾率）；∈(0,1) |
-| `reg_strength` | `float` | `1.0` | 线性权重 ℓ₂ 正则系数 λ |
-| `centroid_radius` | `float` | `0.1` | 质心约束的椭球半径 *b*；工具箱默认 tuned（ADR-0016） |
-| `mom_groups` | `int` | `10` | 中位数质心估计的分组数 *g*；`1` 退化为普通均值 |
-| `covariance_ridge` | `float` | `1e-2` | 质心协方差对角脊；与 `centroid_radius` 强交互（ADR-0016） |
-| `learning_rate` | `float` | `0.01` | 次梯度下降初始步长 |
-| `n_inner_iter` | `int` | `50` | 每次外迭代的内层梯度步数 |
-| `max_iter` / `tol` | `int` / `float` | `10000` / `1e-6` | 交替优化上限与容差 |
-| `random_state` | `int \| None` | `None` | 种子 |
+| `flip_probability` | `float` | Required | Probability *h* that a true positive is flipped to an observed negative (censoring rate), strictly in (0,1) |
+| `reg_strength` | `float` | `1.0` | Linear-weight ℓ₂ regularization λ |
+| `centroid_radius` | `float` | `0.1` | Ellipsoid radius *b* for the centroid constraint; a tuned toolbox default (ADR-0016) |
+| `mom_groups` | `int` | `10` | Median-of-means centroid groups *g*; `1` reduces to the ordinary mean |
+| `covariance_ridge` | `float` | `1e-2` | Diagonal ridge on centroid covariance; strongly interacts with `centroid_radius` (ADR-0016) |
+| `learning_rate` | `float` | `0.01` | Initial subgradient-descent step size |
+| `n_inner_iter` | `int` | `50` | Inner gradient steps per outer iteration |
+| `max_iter` / `tol` | `int` / `float` | `10000` / `1e-6` | Alternating-optimization limit and tolerance |
+| `random_state` | `int \| None` | `None` | Seed |
 
-- 文档：[LDCE 方法卡](../../research/method_cards/LDCE.md)
+- Optional Chinese research background: [LDCE method card](../../research/method_cards/LDCE.md).
 
-#### `KLDCEClassifier`（注册名 `kldce`，别名 `kernelized_ldce`）
+#### KLDCEClassifier (kldce; alias kernelized_ldce)
 
-核化 LDCE（Kernelized LDCE，ACP 组合交替求解）。
+Kernelized LDCE with alternating optimization of the ACP formulation.
 
 ```python
 KLDCEClassifier(flip_probability, *, sigma="scale", reg_strength=1.0, centroid_radius=1.0,
@@ -498,31 +555,35 @@ KLDCEClassifier(flip_probability, *, sigma="scale", reg_strength=1.0, centroid_r
                 inner_tol=1e-6, tol=1e-6, random_state=None)
 ```
 
-| 参数 | 类型 | 默认 | 说明 |
+| Parameter | Type | Default | Description |
 |---|---|---|---|
-| `flip_probability` | `float` | 必填 | 截尾率 *h*；∈(0,1) |
-| `sigma` | `float \| "scale"` | `"scale"` | RBF 带宽；`"scale"` 用启发式 `σ = 1/sqrt(n_features)` |
-| `reg_strength` | `float` | `1.0` | ℓ₂ 正则系数 λ |
-| `centroid_radius` | `float` | `1.0` | 椭球半径 *b* |
-| `mom_groups` | `int` | `10` | 中位数质心分组数 |
-| `covariance_ridge` | `float` | `0.0` | 质心协方差对角脊；`0.0` 与论文一致，>0 为数值稳定化变体 |
-| `max_acs_iter` / `max_inner_iter` / `inner_tol` | `int` / `int` / `float` | `50` / `2000` / `1e-6` | ACS 外循环上限、内层 QP 对更新上限与 KKT 容差 |
-| `tol` / `random_state` | `float` / `int \| None` | `1e-6` / `None` | 收敛容差与种子 |
+| `flip_probability` | `float` | Required | Censoring rate *h*, strictly in (0,1) |
+| `sigma` | `float \| "scale"` | `"scale"` | RBF bandwidth; `"scale"` uses heuristic `σ = 1/sqrt(n_features)` |
+| `reg_strength` | `float` | `1.0` | ℓ₂ regularization λ |
+| `centroid_radius` | `float` | `1.0` | Ellipsoid radius *b* |
+| `mom_groups` | `int` | `10` | Median-of-means centroid group count |
+| `covariance_ridge` | `float` | `0.0` | Diagonal ridge on centroid covariance; `0.0` matches the paper, >0 is a numerical-stabilization variant |
+| `max_acs_iter` / `max_inner_iter` / `inner_tol` | `int` / `int` / `float` | `50` / `2000` / `1e-6` | ACS outer limit, inner QP pair-update limit, and KKT tolerance |
+| `tol` / `random_state` | `float` / `int \| None` | `1e-6` / `None` | Convergence tolerance and seed |
 
-- 文档：[KLDCE 方法卡](../../research/method_cards/KLDCE.md)
+- Optional Chinese research background: [KLDCE method card](../../research/method_cards/KLDCE.md).
 
-独立 CPU 执行 `python scripts/run_classical_candidate_experiment.py --method kldce --help`。
-显式设置 `--prior-policy derived/population_override`、`--kernel-payload-cap-bytes`，其余四角色/先验来源参数同 PUET/RP。
-JSON 完整指定 `sigma/reg_strength/centroid_radius/mom_groups/covariance_ridge/max_acs_iter/max_inner_iter/inner_tol/tol`；
-不接受手写 `flip_probability`，它由训练 SCAR 的 `1-c_realized` 绑定。只支持 OS，不作 TS 替换。
-`KLDCECandidateTrainer(prior_policy=..., kernel_payload_cap_bytes=..., receipt_dir=None)` 可注入非正式 runner；
-单独直接 fit 时 h 来自 estimator 参数，未调用生成校验则不声称 SCAR 绑定已验证。
-QP 盒约束无可行解或命名矩阵 payload 超帽均提前拒绝。
-ACS 历史不是 neural epoch，未观测的 rollback 总成本为 null，不用末次 QP 的迭代和冒充完整成本。
+Standalone CPU execution: `python scripts/run_classical_candidate_experiment.py --method kldce --help`.
+Explicitly set `--prior-policy derived/population_override` and `--kernel-payload-cap-bytes`;
+other four-role/prior-source arguments follow PUET/RP. JSON must supply all
+`sigma/reg_strength/centroid_radius/mom_groups/covariance_ridge/max_acs_iter/max_inner_iter/inner_tol/tol`
+fields. Manually supplied `flip_probability` is rejected; it is bound to training SCAR's
+`1-c_realized`. Only OS is supported; no TS substitution is made.
+`KLDCECandidateTrainer(prior_policy=..., kernel_payload_cap_bytes=..., receipt_dir=None)` can be
+injected into a nonformal runner. Direct standalone fit takes h from estimator parameters;
+without generation validation, it does not claim a verified SCAR binding. Infeasible QP box
+constraints or named-matrix payloads above the cap are rejected early. ACS history is not a
+neural epoch trajectory. Unobserved total rollback cost is null; the final QP iteration sum
+does not stand in for total cost.
 
-#### `LLSVMClassifier`（注册名 `llsvm`）
+#### LLSVMClassifier (llsvm)
 
-标签相关线性 SVM（LLSVM，LPSVM 变体）。
+Label-dependent linear SVM (LLSVM, LPSVM variant).
 
 ```python
 LLSVMClassifier(*, alpha=2.0, beta=1.0, gamma=10.0, squash_scale=10.0, reg_lambda=1.0,
@@ -531,27 +592,31 @@ LLSVMClassifier(*, alpha=2.0, beta=1.0, gamma=10.0, squash_scale=10.0, reg_lambd
                 patience=100, tol=5e-4, min_epochs=200)
 ```
 
-| 参数 | 类型 | 默认 | 说明 |
+| Parameter | Type | Default | Description |
 |---|---|---|---|
-| `alpha` | `float` | `2.0` | 正类平方铰链损失权重 |
-| `beta` | `float` | `1.0` | 未标记 hat 损失权重 |
-| `gamma` | `float` | `10.0` | 标签校准损失权重 |
-| `squash_scale` | `float` | `10.0` | squash 函数缩放参数 *A*（A/π·arctan(f)） |
-| `reg_lambda` | `float` | `1.0` | ℓ₂ 正则强度 |
-| `learning_rate` | `float` | `5e-6` | 固定 SGD 步长 |
-| `max_epochs` | `int` | `3000` | 最大训练轮数 |
-| `n_batches` | `int` | `20` | 每 epoch 的 mini-batch 数 |
-| `fit_intercept` / `intercept_scale` | `bool` / `float` | `True` / `10.0` | 常数特征增广实现截距及其值 |
-| `shuffle` | `bool` | `True` | 每 epoch 是否打乱 |
-| `random_state` | `int \| None` | `None` | 初始化与打乱种子 |
-| `early_stopping` / `patience` / `tol` / `min_epochs` | `bool`/`int`/`float`/`int` | `True` / `100` / `5e-4` / `200` | 全数据目标平台期早停（官方代码固定 3000 轮，故默认开启） |
+| `alpha` | `float` | `2.0` | Positive squared-hinge loss weight |
+| `beta` | `float` | `1.0` | Unlabeled hat-loss weight |
+| `gamma` | `float` | `10.0` | Label-calibration loss weight |
+| `squash_scale` | `float` | `10.0` | Squash scale *A* in A/π·arctan(f) |
+| `reg_lambda` | `float` | `1.0` | ℓ₂ regularization strength |
+| `learning_rate` | `float` | `5e-6` | Fixed SGD step size |
+| `max_epochs` | `int` | `3000` | Maximum training epochs |
+| `n_batches` | `int` | `20` | Mini-batches per epoch |
+| `fit_intercept` / `intercept_scale` | `bool` / `float` | `True` / `10.0` | Intercept through constant-feature augmentation and that feature's value |
+| `shuffle` | `bool` | `True` | Shuffle each epoch |
+| `random_state` | `int \| None` | `None` | Initialization and shuffling seed |
+| `early_stopping` / `patience` / `tol` / `min_epochs` | `bool`/`int`/`float`/`int` | `True` / `100` / `5e-4` / `200` | Early stopping on a plateau in the full-data objective; enabled by default as a toolbox choice, while the official code uses a fixed 3000 epochs |
 
-- `get_pu_metadata()["n_epochs"]` 反映实际停止轮数。
-- 文档：[LLSVM 方法卡](../../research/method_cards/LLSVM.md)
+- `get_pu_metadata()["n_epochs"]` reports the actual stopping epoch count.
+- Optional Chinese research background: [LLSVM method card](../../research/method_cards/LLSVM.md).
 
-#### `DistPUClassifier`（注册名 `dist_pu`，别名 `distpu`）
+#### DistPUClassifier (dist_pu; alias distpu)
 
-Dist-PU 默认保留 clean-room 单阶段全量 MLP；显式组合 `training_recipe="author_staged"` 与 `distribution_loss="author_histogram"` 可运行来源审计的两阶段 mini-batch 适配，并可注入可训练 encoder 处理四维图像。该适配不移植作者数据集/backbone/预处理，也不复制作者用 test accuracy 选模。
+Dist-PU defaults to a clean-room single-stage full-batch MLP. Explicitly combining
+`training_recipe="author_staged"` and `distribution_loss="author_histogram"` enables a source-audited
+two-stage mini-batch adaptation, including an injected trainable encoder for four-dimensional
+images. This adaptation does not port the author's datasets, backbone, or preprocessing, and
+does not copy selection by test accuracy.
 
 ```python
 DistPUClassifier(class_prior, *, hidden_dim=64, epochs=100, batch_size=256, learning_rate=1e-3,
@@ -565,32 +630,39 @@ DistPUClassifier(class_prior, *, hidden_dim=64, epochs=100, batch_size=256, lear
                  random_state=0, device=None, encoder=None)
 ```
 
-| 参数 | 类型 | 默认 | 说明 |
+| Parameter | Type | Default | Description |
 |---|---|---|---|
-| `class_prior` | `float` | 必填 | 类先验 |
-| `hidden_dim` | `int` | `64` | 隐藏层维度 |
-| `epochs` | `int` | `100` | 训练轮数 |
-| `batch_size` | `int` | `256` | `clean_room` 路径忽略；`author_staged` 路径用于两阶段 mini-batch |
-| `learning_rate` | `float` | `1e-3` | 学习率 |
-| `alignment_weight` | `float` | `1.0` | 分布对齐损失权重 |
-| `entropy_weight` | `float` | `0.05` | 熵损失权重 |
-| `mixup_weight` | `float` | `0.1` | Mixup 损失权重 |
-| `distribution_loss` | `str` | `"expectation"` | `"expectation"` 为默认 clean-room 均值平方对齐；`"author_histogram"` 使用锁定作者代码的 one-bin polar/L1 P/U histogram 目标；作者适配路径必须选此项 |
-| `training_recipe` | `str` | `"clean_room"` | `"clean_room"` 保留旧单阶段全量路径；`"author_staged"` opt-in 执行 warm-up + PU mini-batch 适配 |
-| `warmup_epochs` / `pu_epochs` | `int` | `60` / `60` | 作者适配路径的两阶段 epoch 数；scheduler 的 source cadence 分别为 epoch 与 batch |
-| `warmup_learning_rate` / `warmup_weight_decay` | `float` | `5e-4` / `5e-3` | warm-up Adam 参数 |
-| `pu_learning_rate` / `pu_weight_decay` | `float` | `5e-5` / `1e-3` | PU 阶段重建 Adam 后的参数 |
-| `warmup_entropy_weight` / `pu_entropy_weight` | `float` | `0.002` / `0.004` | warm-up 固定熵权重；PU 阶段按来源余弦公式从 0 增至上限 |
-| `mixup_alpha` / `mixup_entropy_weight` / `mixup_bce_weight` | `float` | `6.0` / `0.04` / `5.0` | PU 阶段 Beta mixup、混合输出熵项及双目标 BCE 权重 |
-| `random_state` / `device` | `int \| None` / `str \| None` | `0` / `None` | 种子与 torch 设备 |
-| `encoder` | `nn.Module \| None` | `None` | 仅 staged/histogram 路径支持；deepcopy 后端到端训练，须输出有限二维特征；图像输入必填，不作静默 flatten |
+| `class_prior` | `float` | Required | Prior for the training risk pool; the default direct view consumes native-U prior |
+| `hidden_dim` | `int` | `64` | Hidden dimension |
+| `epochs` | `int` | `100` | Training epochs |
+| `batch_size` | `int` | `256` | Ignored by `clean_room`; mini-batch size for both `author_staged` phases |
+| `learning_rate` | `float` | `1e-3` | Learning rate |
+| `alignment_weight` | `float` | `1.0` | Distribution-alignment loss weight |
+| `entropy_weight` | `float` | `0.05` | Entropy-loss weight |
+| `mixup_weight` | `float` | `0.1` | MixUp-loss weight |
+| `distribution_loss` | `str` | `"expectation"` | Default `"expectation"` is clean-room squared-mean alignment; `"author_histogram"` uses the locked author code's one-bin polar/L1 P/U histogram objective and is required for the author-adapted path |
+| `training_recipe` | `str` | `"clean_room"` | `"clean_room"` retains the single-stage full-batch path; opt-in `"author_staged"` runs warm-up and PU mini-batch adaptation |
+| `warmup_epochs` / `pu_epochs` | `int` | `60` / `60` | Stage epochs for author adaptation; source scheduler cadence is per epoch and per batch, respectively |
+| `warmup_learning_rate` / `warmup_weight_decay` | `float` | `5e-4` / `5e-3` | Warm-up Adam settings |
+| `pu_learning_rate` / `pu_weight_decay` | `float` | `5e-5` / `1e-3` | Settings after rebuilding Adam for the PU phase |
+| `warmup_entropy_weight` / `pu_entropy_weight` | `float` | `0.002` / `0.004` | Fixed warm-up entropy weight; the PU weight grows from zero to its limit using the source cosine formula |
+| `mixup_alpha` / `mixup_entropy_weight` / `mixup_bce_weight` | `float` | `6.0` / `0.04` / `5.0` | PU-phase Beta mixup, mixed-output entropy, and dual-target BCE weights |
+| `random_state` / `device` | `int \| None` / `str \| None` | `0` / `None` | Seed and torch device |
+| `encoder` | `nn.Module \| None` | `None` | Supported only by staged/histogram training; deep-copied and trained end-to-end, with finite two-dimensional output. Required for images; no silent flattening |
 
-- 注入 encoder 时输入/标签常驻 CPU、训练/推理分批；伪标签扫描 batch 为 `min(128,batch_size)`，单行尾批 BN 使用运行统计。普通 MLP 的扫描与默认训练保持原行为；评分恢复逐层模式，旧 pickle 补齐缺失可选参数。
-- `author_staged` 是与锁定 `train.py` 高层训练时序对齐的工程适配；冻结 Pilot 仍用原 fullbatch/feature-adapter，完整限制见 [Dist-PU 方法卡](../../research/method_cards/Dist-PU.md)。
+- With an encoder, inputs/labels stay on CPU and training/inference are batched. Pseudo-label
+  scans use `min(128,batch_size)` rows; single-row tail batches use BN running statistics.
+  Ordinary MLP scans and default training retain their behavior. Scoring restores each layer's
+  mode, and old pickles receive missing optional parameters.
+- `author_staged` is an engineering adaptation matching the high-level training sequence of
+  locked `train.py`. The frozen Pilot retains its original full-batch/feature-adapter path.
+  The [Dist-PU method card](../../research/method_cards/Dist-PU.md) provides optional Chinese
+  research background and full limitations.
 
-#### `VPUClassifier`（注册名 `vpu`，别名 `variational_pu`）
+#### VPUClassifier (vpu; alias variational_pu)
 
-无须类先验的变分 PU 分类器；支持稠密二维特征及注入可训练编码器的四维 NCHW 图像，网络为实验性工具箱适配。
+Variational PU classification without a class prior. Supports dense two-dimensional features and
+four-dimensional NCHW with an injected trainable encoder; the network is an experimental toolbox adaptation.
 
 ```python
 VPUClassifier(*, hidden_dim=64, depth=2, max_epochs=100, batch_size=128,
@@ -599,24 +671,41 @@ VPUClassifier(*, hidden_dim=64, depth=2, max_epochs=100, batch_size=128,
               iterations_per_epoch=None, encoder=None, data_device_policy="auto")
 ```
 
-| 参数 | 类型 | 默认 | 说明 |
+| Parameter | Type | Default | Description |
 |---|---|---|---|
-| `hidden_dim` / `depth` | `int` / `int` | `64` / `2` | MLP 隐层宽度与层数；`depth=0` 为线性头 |
-| `max_epochs` / `batch_size` | `int` / `int` | `100` / `128` | 训练轮数与批次大小 |
-| `learning_rate` | `float` | `3e-4` | Adam 学习率 |
-| `regularization_weight` | `float` | `0.03` | 对数 MixUp 一致性权重 |
-| `mixup_alpha` | `float` | `0.3` | Beta 插值分布的两个同值形状参数 |
-| `optimizer_schedule` | `str` | `"constant"` | 显式 `"source_reset_halving"` 在第20/40…轮训练前学习率减半并重建 Adam，清空动量，不是 StepLR |
-| `iterations_per_epoch` | `int \| None` | `None` | 正整数固定每轮更新数；None 保留数据量推导，作者脚本为30，但本项目不默认采用 |
-| `encoder` | `torch.nn.Module \| None` | `None` | 四维图像必填；deepcopy 后端到端训练，须输出有限的二维特征，后接上述 MLP 头；不修改用户模板 |
-| `data_device_policy` | `str` | `"auto"` | 无 encoder 时 auto 保留旧 resident；有 encoder 时 auto 强制 cpu_stream；可显式 cpu_stream，拒绝 encoder + resident |
-| `random_state` / `device` | `int \| None` / `str \| None` | `None` / `None` | 随机种子与 torch 设备 |
+| `hidden_dim` / `depth` | `int` / `int` | `64` / `2` | MLP hidden width and depth; `depth=0` gives a linear head |
+| `max_epochs` / `batch_size` | `int` / `int` | `100` / `128` | Training epochs and batch size |
+| `learning_rate` | `float` | `3e-4` | Adam learning rate |
+| `regularization_weight` | `float` | `0.03` | Log-MixUp consistency weight |
+| `mixup_alpha` | `float` | `0.3` | Equal shape parameters of the Beta interpolation distribution |
+| `optimizer_schedule` | `str` | `"constant"` | Explicit `"source_reset_halving"` halves the learning rate and rebuilds Adam before epochs 20/40/…, clearing momentum; this is not StepLR |
+| `iterations_per_epoch` | `int \| None` | `None` | Positive integer fixes updates per epoch; None retains data-derived counts. The author's script uses 30, which is not adopted by default |
+| `encoder` | `torch.nn.Module \| None` | `None` | Required for four-dimensional images; deep-copied and trained end-to-end with finite two-dimensional output followed by the MLP head. The supplied template is unchanged |
+| `data_device_policy` | `str` | `"auto"` | Without an encoder, auto retains resident behavior; with one, auto forces cpu_stream. Explicit cpu_stream is accepted; encoder + resident is rejected |
+| `random_state` / `device` | `int \| None` / `str \| None` | `None` / `None` | Seed and torch device |
 
-`fit(X, y_pu, *, class_prior=None, sample_weight=None, pu_validation_data=None, epoch_callback=None, os_or_ts="ts")`：`class_prior` 只做兼容性校验，绝不进入目标；`sample_weight` 非空时报错。`pu_validation_data` 可为 PU-view `DatasetPart` 或 `(X_val, y_pu_val)`，仅用于逐轮变分风险记录；不得传真实标签视图或作为 Survey PA/OA 准则。`decision_function` 返回以 0 为阈值的对数归一化分数；`predict_proba` 返回归一化、截断至 `[0,1]` 的 VPU 分数，**不是另行校准后的概率**。`history_` 新增 `learning_rate` / `optimizer_generation`；`optimizer_resets_` 记录实际 Adam 重建次数，`optimizer_steps_` 始终累计、不因重建清零。默认原有训练行为不变，失败重训会撤销 fitted 状态。详见 [VPU 方法卡](../../research/method_cards/VPU.md)。
+`fit(X, y_pu, *, class_prior=None, sample_weight=None, pu_validation_data=None, epoch_callback=None, os_or_ts="ts")`
+validates `class_prior` for compatibility only; it never enters the objective. Non-`None`
+`sample_weight` raises an error. `pu_validation_data` accepts a PU-view `DatasetPart` or
+`(X_val, y_pu_val)` solely to record per-epoch variational risk. Do not pass a true-label view or
+use this record as a Survey PA/OA criterion. `decision_function` returns log-normalized scores
+with threshold 0. `predict_proba` returns normalized VPU scores clipped to `[0,1]`, **not separately
+calibrated probabilities**. `history_` adds `learning_rate` / `optimizer_generation`;
+`optimizer_resets_` counts actual Adam rebuilds, while `optimizer_steps_` remains cumulative
+across rebuilds. Default training is unchanged. A failed refit invalidates the fitted state.
+The [VPU method card](../../research/method_cards/VPU.md) provides optional Chinese research background.
 
-`cpu_stream` 将完整训练/验证池留在 CPU，每次仅把不超过 `batch_size` 行送入设备；归一化扫描、诊断验证和预测同样分批。验证风险在 CPU 上以 float64 合并**全局** log-sum-exp 和正例均值，非各批风险平均，可能有浮点末位差异；旧 resident 归约保持不变。`data_device_policy_` / `training_data_device_` 记录实际策略/数据驻留设备。逐轮快照包含 encoder、分类头和归一化层，并记录推理批大小；不支持优化器续训。`PUPipeline(classifier="vpu", architecture="cnn", ...)` 可注入共享编码器。见 [VPU 方法卡](../../research/method_cards/VPU.md)。
+`cpu_stream` keeps full training/validation pools on CPU, sending at most `batch_size` rows to
+the device at once; normalization scans, diagnostic validation, and prediction are batched too.
+Validation risk combines the **global** log-sum-exp and positive mean in float64 on CPU, rather
+than averaging per-batch risks; last-digit floating-point differences are possible. Original
+resident reductions remain unchanged. `data_device_policy_` / `training_data_device_` record
+the actual policy and data residency. Per-epoch snapshots include encoder, head, normalization,
+and inference batch size; optimizer resumption is unsupported.
+`PUPipeline(classifier="vpu", architecture="cnn", ...)` can inject a shared encoder. Optional
+Chinese research background: [VPU method card](../../research/method_cards/VPU.md).
 
-#### `CVIRClassifier`（注册名 `cvir`，别名 `conditional_value_ignoring_risk`）
+#### CVIRClassifier (cvir; alias conditional_value_ignoring_risk)
 
 ```python
 CVIRClassifier(*, unlabeled_positive_prior=None, hidden_dim=64,
@@ -626,34 +715,48 @@ CVIRClassifier(*, unlabeled_positive_prior=None, hidden_dim=64,
                input_sampling="os", prior_source=None)
 ```
 
-`unlabeled_positive_prior` 必须显式给定 `(0,1)` 的风险池正类比例；默认 OS 和独立 native-TS
-输入均指 **原始 U 内的 α_U**。`fit(class_prior=...)` 始终拒绝，不自动换算总体 π。
-默认每轮对原始 U 的分数稳定排序，保留 `max(1,floor((1-α_U)*n_U))` 个临时负例，
-再最小化论文 α_U 加权 BCE。一轮 PvU warm-start、固定20轮 CVIR；不是收敛停机、BBE
-或 TEDⁿ。发布作者代码的 balanced CE/取整/loader/SGD/warm-start 时序不同，详见
-[来源复核](../../research/method_cards/CVIR.md)。
+`unlabeled_positive_prior` must explicitly give the risk-pool positive proportion in `(0,1)`.
+For default OS and independent native-TS inputs, this is **α_U in original U**.
+`fit(class_prior=...)` always rejects the value; it does not automatically convert population π.
+By default, each round stably sorts original-U scores, retains
+`max(1,floor((1-α_U)*n_U))` temporary negatives, and minimizes the paper's α_U-weighted BCE.
+Defaults are one PvU warm-start epoch and a fixed 20 CVIR rounds. This is neither convergence
+stopping, BBE, nor TEDⁿ. The published author code differs in balanced CE, rounding, loaders,
+SGD, and warm-start timing. The [source review](../../research/method_cards/CVIR.md) provides
+optional Chinese research background.
 
-二维特征可直接输入；四维 NCHW 必须注入输出有限二维特征的 `torch.nn.Module` encoder，deepcopy 后联合训练并接 MLP 头。`data_device_policy="auto"` 无 encoder 时保留旧 resident，有 encoder 时使用 cpu_stream；可显式 cpu_stream，拒绝 encoder + resident。CPU-stream 将全量数据留 CPU，只把不超过 batch_size 行送设备，排序/预测同样分批；仍需 O(n_U) CPU 排序空间，不是磁盘流式。`data_device_policy_` / `training_data_device_` 记录实际策略/驻留位置。
+Two-dimensional features can be used directly. Four-dimensional NCHW requires a
+`torch.nn.Module` encoder with finite two-dimensional output, deep-copied and jointly trained
+before an MLP head. `data_device_policy="auto"` retains resident behavior without an encoder and
+uses cpu_stream with one. Explicit cpu_stream is accepted; encoder + resident is rejected.
+CPU streaming retains complete data on CPU and sends at most batch_size rows to the device;
+ranking/prediction are batched too. Ranking still needs O(n_U) CPU storage; this is not disk
+streaming. `data_device_policy_` / `training_data_device_` record actual policy/residency.
 
-`fit(..., sample_weight=None, epoch_callback=None, os_or_ts="os")` 不接受非空 sample_weight。
-显式 `ts` 先把训练风险池替换为 `U∪P`（U 后 P），再全局排序/截断，P 正例项保留；
-warm-start 同步使用该池。此时显式先验对应恢复后的风险池 π，而非原始 U 的 α_U。
-验证/test 保持原视图；拒绝 native TS 输入再叠加校准。
-`optimizer_steps_` 计两阶段全部更新；`epoch_provenance_` 记录
-`stage / stage_epoch / round_index / optimizer_steps`，`checkpoint_epoch_count` 为两阶段轮数之和。
-推理快照含 encoder/头与阶段上下文，支持推理恢复，不支持优化器续训；
-fit 异常清除 fitted 标记。公共 pipeline 可注入 CNN 并显式提供先验。
+`fit(..., sample_weight=None, epoch_callback=None, os_or_ts="os")` rejects non-`None` sample_weight.
+Explicit `ts` first replaces the training risk pool with `U∪P` (U followed by P), then globally
+ranks/truncates it while retaining the positive P term. Warm-start uses this same pool.
+The supplied prior then targets the restored pool's π, rather than original-U α_U.
+Validation/test retain their original views. Applying this calibration on top of native TS input
+is rejected. `optimizer_steps_` counts both stages' updates; `epoch_provenance_` records
+`stage / stage_epoch / round_index / optimizer_steps`, and `checkpoint_epoch_count` is the sum
+of both stage lengths. Inference snapshots contain encoder/head and stage context. They support
+inference restoration, not optimizer resumption. Fit failures clear the fitted marker. The public
+Pipeline can inject a CNN and accept an explicitly supplied prior.
 
-`input_sampling="ts"` 只声明调用方已提供原生独立 P/边缘 U，必须同时提供非空
-`prior_source`；不执行 OS→TS 风险校准，不是 Survey 的 `os_or_ts="ts"`。
-学习率须为有限正实数（不接受 bool/字符串），回调必须可调用；特征必须为有限实数。
-encoder 的 probe/前向输入隔离，避免 in-place 网络改写训练或评分数组；公开评分保持
-各层原模式，前向或 eval 异常也恢复，空评分不触发网络。额外当前 batch 副本不是
-已测资源上界，正式内存/GPU 资源仍须独立验收。
+`input_sampling="ts"` only declares that the caller supplied independent native P/marginal U
+and requires nonempty `prior_source`. It performs no OS→TS risk calibration and is distinct from
+Survey's `os_or_ts="ts"`. Learning rate must be finite, positive, and real, excluding booleans
+and strings; callbacks must be callable, and features finite real values. Encoder probes and
+forward inputs are isolated so in-place networks cannot rewrite training/scoring arrays.
+Public scoring preserves each layer's mode even when forward/eval raises; empty scoring does
+not run the network. The extra current-batch copy is not a measured resource bound; formal
+memory/GPU qualification remains separate.
 
-#### `PULDAClassifier`（注册名 `pulda`，别名 `label_distribution_alignment`）
+#### PULDAClassifier (pulda; alias label_distribution_alignment)
 
-标签分布对齐 + 双向 margin + 伪标签 MixUp 的两阶段 PU 分类器，支持二维特征及注入 CNN 的四维图像。
+Two-stage PU classifier combining label-distribution alignment, bidirectional margin, and
+pseudo-label MixUp. Supports two-dimensional features and four-dimensional images with an injected CNN.
 
 ```python
 PULDAClassifier(class_prior, *, hidden_dim=64, depth=2, warmup_epochs=60,
@@ -665,26 +768,31 @@ PULDAClassifier(class_prior, *, hidden_dim=64, depth=2, warmup_epochs=60,
                 train_transform=None, random_state=0, device=None)
 ```
 
-| 参数 | 类型 | 默认 | 说明 |
+| Parameter | Type | Default | Description |
 |---|---|---|---|
-| `class_prior` | `float` | 必填 | 真实正类比例，须在 `(0,1)`；`fit(class_prior=...)` 可覆盖 |
-| `hidden_dim` / `depth` | `int` / `int` | `64` / `2` | 工具箱 MLP 的隐层宽度与层数 |
-| `encoder` | `torch.nn.Module \| None` | `None` | 可选特征编码器；四维图像必须提供，deepcopy 后端到端训练，后接上述 MLP 头 |
-| `train_transform` | `torch.nn.Module \| None` | `None` | 仅四维训练图像；deepcopy 后在两阶段每个 P/U 批次重新采样增强，随后做输入 MixUp，再由 encoder 内归一化；预测和伪标签扫描不调用 |
-| `warmup_epochs` / `pu_epochs` | `int` / `int` | `60` / `60` | 分布对齐预热与伪标签 MixUp 阶段轮数，二者不能同时为 0 |
-| `positive_batch_size` / `unlabeled_batch_size` | `int` / `int` | `16` / `128` | 每批 P/U 数量 |
-| `warmup_learning_rate` / `learning_rate` | `float` / `float` | `1e-4` / `1e-3` | 两阶段 Adam 初始学习率 |
-| `warmup_weight_decay` / `weight_decay` | `float` / `float` | `5e-4` / `1e-4` | 两阶段权重衰减 |
-| `temperature` | `float` | `3.5` | 标签分布 symmetric-softplus 温度；margin 项按作者代码固定为 1 |
-| `unlabeled_ema` / `margin_ema` | `float` / `float` | `0.85` / `0.5` | 未标记均值及 margin 矩的 EMA 系数，范围 `[0,1)` |
-| `margin` / `mixup_weight` / `mixup_alpha` | `float` | `0.6` / `4.2` / `11.0` | 双向 margin、MixUp BCE 权重及 Beta 形状参数 |
-| `random_state` / `device` | `int \| None` / `str \| None` | `0` / `None` | 随机种子与 torch 设备 |
+| `class_prior` | `float` | Required | Positive proportion in the training risk pool, strictly in `(0,1)`; the default direct view consumes native-U prior. Can be overridden by `fit(class_prior=...)` |
+| `hidden_dim` / `depth` | `int` / `int` | `64` / `2` | Toolbox MLP hidden width and depth |
+| `encoder` | `torch.nn.Module \| None` | `None` | Optional feature encoder, required for four-dimensional images; deep-copied and trained end-to-end, followed by the MLP head |
+| `train_transform` | `torch.nn.Module \| None` | `None` | Four-dimensional training images only; deep-copied and resamples augmentation for every P/U batch in both stages, before input MixUp and encoder normalization. Unused for prediction or pseudo-label scans |
+| `warmup_epochs` / `pu_epochs` | `int` / `int` | `60` / `60` | Distribution-alignment warm-up and pseudo-label MixUp epochs; cannot both be zero |
+| `positive_batch_size` / `unlabeled_batch_size` | `int` / `int` | `16` / `128` | P/U observations per batch |
+| `warmup_learning_rate` / `learning_rate` | `float` / `float` | `1e-4` / `1e-3` | Initial Adam learning rates for the two stages |
+| `warmup_weight_decay` / `weight_decay` | `float` / `float` | `5e-4` / `1e-4` | Stage-specific weight decay |
+| `temperature` | `float` | `3.5` | Label-distribution symmetric-softplus temperature; the margin term fixes it at 1, following author code |
+| `unlabeled_ema` / `margin_ema` | `float` / `float` | `0.85` / `0.5` | Unlabeled-mean and margin-moment EMA coefficients in `[0,1)` |
+| `margin` / `mixup_weight` / `mixup_alpha` | `float` | `0.6` / `4.2` / `11.0` | Bidirectional margin, MixUp BCE weight, and Beta shape parameter |
+| `random_state` / `device` | `int \| None` / `str \| None` | `0` / `None` | Seed and torch device |
 
-`fit(..., sample_weight=None, epoch_callback=None)`：非空 `sample_weight` 报错。`history_` 记录阶段、三个损失分量、总损失与累计更新数；`pseudo_labels_` 保存第二阶段末的训练伪标签。`predict_proba` 是 sigmoid 分数而非独立校准概率。详见 [PULDA 方法卡](../../research/method_cards/PULDA.md)。
+`fit(..., sample_weight=None, epoch_callback=None)` rejects non-`None` `sample_weight`.
+`history_` records stage, three loss components, total loss, and cumulative updates;
+`pseudo_labels_` stores training pseudo-labels from the end of stage two. `predict_proba` gives
+sigmoid scores, not independently calibrated probabilities. The [PULDA method card](../../research/method_cards/PULDA.md)
+provides optional Chinese research background.
 
-### 新增 PU 方法（实验预集成）
 
-#### `HolisticPUClassifier`（`holistic_pu`）
+### Additional PU methods (experimental integration)
+
+#### `HolisticPUClassifier` (`holistic_pu`)
 
 ```python
 HolisticPUClassifier(*, hidden_dim=64, warmup_epochs=30, max_epochs=100,
@@ -695,30 +803,45 @@ HolisticPUClassifier(*, hidden_dim=64, warmup_epochs=30, max_epochs=100,
                      random_state=0, device=None)
 ```
 
-`fit(X, y_pu, *, class_prior=None, sample_weight=None, os_or_ts="os", epoch_callback=None)`：平衡 P/U 重采样、
-预测轨迹、论文全时序 signed trend 与 variance 二分、伪标签监督训练。二维 MLP 或注入端到端 CNN。
-4-D NCHW 必须提供 `encoder`（输出 batch×feature_dim）；每次 fit deepcopy 并训练两阶段编码器，
-模板权重/BN 不共享；数据留 CPU，优化/轨迹扫描/预测分批，扫描和预测 eval 并恢复模式。
-单行尾批使用 BN 运行统计而不丢行。`pseudo_pn_initialization="continue"` 默认继续同一模型/Adam；
-`"reinitialize"` 后段新建整个网络和 Adam、随机重置 CNN/head 参数及 BN 运行统计，
-仅对齐补充 Algorithm 2 的初始化步骤；不是完整作者配方。自定义编码器参数所有者须有
-`reset_parameters`；legacy weight_norm 拒绝，不将复制预训练权重叫作重新初始化。
-固定预热不是论文 LZO 自动停止；`warmup_epochs>=2`；外部先验不使用，sample_weight / TS 请求拒绝。
-`warmup_selection="lzo_positive_loss"` 启用工程变体：仅训练 P 的固定类内 mixup，
-正例平均 CE 全预算 argmin，候选2..warmup，最早平局；默认 alpha0.5、大小 n_P。
-独立辅助随机流不推进训练流，验证 eval 保留 BN/torch RNG；全预算执行后裁剪趋势前缀，
-continue 恢复选中权重/Adam，两个初始化变体均恢复选中随机流。不是总体 accuracy、
-patience 提前退出、checkpoint 续训 API 或正式 PA/OA 准则；来源未明确的规则在 spec 中登记。
-`selected_warmup_epoch_` / `executed_warmup_epochs_` / `discarded_warmup_optimizer_steps_`、
-`lzo_losses_` / `lzo_mixup_indices_` / `lzo_mixup_weights_` / `lzo_selection_spec_` 可对账；
-`lzo_evaluated_rows_` / `lzo_forward_batches_` 计额外验证，训练累计成本不扣被舍弃的后缀。
-`prediction_trajectory_` / `pseudo_labels_` / `pseudo_label_indices_` / `breakpoint_` 可对账；
-`optimizer_steps_` 含两阶段且重初始化不清零；`stage_optimizer_steps_` 分阶段，
-`pseudo_pn_initialization_` / `pseudo_pn_optimizer_reset_` 可核实际路径；callback 每轮结束以连续零起始编号调用；
-`history_["phase"]` 标注 warmup / pseudo_pn；`checkpoint_epoch_count` 计两阶段存储峰值。
-快照只用于推断回放，正式 PA/OA 候选阶段需另行预注册。见[方法卡](../../research/method_cards/Holistic-PU.md)。
+`fit(X, y_pu, *, class_prior=None, sample_weight=None, os_or_ts="os", epoch_callback=None)`
+performs balanced P/U resampling, records prediction trajectories, partitions them using the
+paper's full-time-series signed trend and variance, then trains with pseudo-label supervision.
+It supports a 2-D MLP or an injected end-to-end CNN. 4-D NCHW input requires an `encoder`
+returning batch×feature_dim. Each fit deep-copies and trains the encoder in both stages;
+template weights and BN state are not shared. Data remain on CPU; optimization, trajectory
+scans, and prediction run in batches. Scanning and prediction use eval mode and restore modes.
+A singleton final batch uses BN running statistics without dropping rows.
+`pseudo_pn_initialization="continue"` continues the same model and Adam by default.
+`"reinitialize"` creates a new complete network and Adam for the second stage, randomly resetting
+CNN/head parameters and BN running statistics. This aligns only the initialization step in
+supplementary Algorithm 2, not the complete author recipe. Parameter-owning modules in custom
+encoders must expose `reset_parameters`; legacy weight_norm is rejected. Copying pretrained
+weights is not treated as reinitialization.
+Fixed warmup is not the paper's automatic LZO stopping rule; `warmup_epochs>=2`.
+External priors are unused; sample_weight and TS requests are rejected.
+`warmup_selection="lzo_positive_loss"` enables an engineering variant: fixed within-class mixup
+using train P only, minimizing mean positive CE over the complete budget. Candidates are epochs
+2..warmup, ties select the earliest, and defaults are alpha 0.5 and size n_P.
+An independent auxiliary random stream does not advance the training stream. Validation uses
+eval mode and preserves BN/torch RNG state. The complete budget runs before truncating the trend
+prefix; continue restores selected weights/Adam, and both initialization variants restore the
+selected random stream. This is not population accuracy, patience-based early exit, a checkpoint
+resume API, or a formal PA/OA criterion. Source-unspecified rules are recorded in the spec.
+`selected_warmup_epoch_` / `executed_warmup_epochs_` / `discarded_warmup_optimizer_steps_`,
+`lzo_losses_` / `lzo_mixup_indices_` / `lzo_mixup_weights_` / `lzo_selection_spec_` support auditing.
+`lzo_evaluated_rows_` / `lzo_forward_batches_` count extra validation; cumulative training cost
+does not subtract the discarded suffix.
+`prediction_trajectory_` / `pseudo_labels_` / `pseudo_label_indices_` / `breakpoint_` record the
+partition. `optimizer_steps_` includes both stages and is not reset by reinitialization;
+`stage_optimizer_steps_` separates stages. `pseudo_pn_initialization_` /
+`pseudo_pn_optimizer_reset_` record the actual path. The callback runs after each epoch with
+continuous zero-based numbering; `history_["phase"]` distinguishes warmup / pseudo_pn.
+`checkpoint_epoch_count` counts peak snapshot storage across both stages.
+Snapshots support inference replay only; formal PA/OA candidate stages require separate
+preregistration. The [method card](../../research/method_cards/Holistic-PU.md) provides optional
+Chinese research background.
 
-#### `GenPUClassifier`（`genpu`，别名 `gen_pu`）
+#### `GenPUClassifier` (registered as `genpu`, alias `gen_pu`)
 
 ```python
 GenPUClassifier(*, class_prior=None, hidden_dim=128, latent_dim=100,
@@ -728,19 +851,26 @@ GenPUClassifier(*, class_prior=None, hidden_dim=128, latent_dim=100,
                 random_state=0, device=None)
 ```
 
-`fit(X, y_pu, *, class_prior=None, sample_weight=None, os_or_ts="os", epoch_callback=None)`：总体先验必填，
-构造/fit 冲突拒绝。论文目标的两 generator / 三 discriminator，之后用合成流训练 PN classifier；
-只有 Du 真实池支持 TS 的 U∪P 替换。支持二维 MLP 和显式注入 CNN 的四维 NCHW；
-两个稠密像素 generator，三个独立可训练判别器编码器，新建独立 PN 编码器，不展平真实图像。
-`generator_output="identity"` 保留旧默认；`"tanh"` 要求 X 已处于 [-1,1]，不自动截断/重标定。
-G 步冻结 D 参数/BN/dropout 但保留输入梯度，原始数据留 CPU。
-`history_` / `optimizer_steps_` / `stage_optimizer_steps_` 记录 GAN+PN 全成本及六网络分项；
-`history_["optimizer_steps"]` 为 PN 轮末累计成本。callback 仅在合成 PN 分类器轮末调用，
-零起始编号；`checkpoint_epoch_count=classifier_epochs`，不把 GAN 网络冒充分类器快照。
-快照用于分类器推断回放，完整六模型状态另存可信 pickle；不支持训练恢复或正式准入。
-非空 sample_weight 报错；sigmoid 分数不保证独立概率校准。见[GEN-PU 方法卡](../../research/method_cards/GEN-PU.md)。
+`fit(X, y_pu, *, class_prior=None, sample_weight=None, os_or_ts="os", epoch_callback=None)`
+requires a population prior; conflicting constructor/fit values are rejected. The paper objective
+uses two generators and three discriminators, followed by a PN classifier trained on synthetic
+streams. Only Du's real-data pool supports the TS U∪P replacement. It supports 2-D MLP input or
+4-D NCHW with an explicitly injected CNN: two dense pixel generators, three independent trainable
+discriminator encoders, and a fresh independent PN encoder. Real images are not flattened.
+`generator_output="identity"` retains the original default; `"tanh"` requires X already in [-1,1],
+without automatic clipping or rescaling. G steps freeze D parameters/BN/dropout while preserving
+input gradients. Original data remain on CPU.
+`history_` / `optimizer_steps_` / `stage_optimizer_steps_` record complete GAN+PN cost and costs
+for all six networks. `history_["optimizer_steps"]` is cumulative cost at each PN epoch end.
+Callbacks run only after synthetic PN classifier epochs, with zero-based numbering;
+`checkpoint_epoch_count=classifier_epochs`. GAN networks are not classifier snapshots.
+Snapshots support classifier inference replay. Save the complete six-model state separately as
+a trusted pickle; training resume and formal admission are not supported.
+Non-None sample_weight raises an error; sigmoid scores do not guarantee independent probability
+calibration. The [GEN-PU method card](../../research/method_cards/GEN-PU.md) provides optional
+Chinese research background.
 
-#### `PULNSClassifier`（`pulns`）
+#### `PULNSClassifier` (`pulns`)
 
 ```python
 PULNSClassifier(*, hidden_dim=32, pretrain_epochs=10, episodes=20,
@@ -749,27 +879,38 @@ PULNSClassifier(*, hidden_dim=32, pretrain_epochs=10, episodes=20,
                 encoder=None, random_state=0, device=None)
 ```
 
-论文 RL 负例选择的实验适配；`fit(..., support_data=(X_support,y_clean),
-train_indices=None, support_indices=None, os_or_ts="os", epoch_callback=None)`。需独立真实正负 support，
-不能复用 clean_val/test；支持集为训练奖励，PA-ineligible。提供双方 IDs 时验证互斥，
-否则隔离状态未验证。拒绝 ts/非空 sample_weight。`history_` 记录 reward probe、实际 classifier
-accuracy、policy loss 和负例数，两个最优/基线分别存为 `best_support_accuracy_`、`reward_baseline_`。
-`epoch_callback(episode, fitted)` 每完成一个 RL episode 调用一次（0-based），记录当前
-classifier，早于最终按 support 选择的 best 恢复；不记录 pretrain/内部 classifier epochs，
-不改变原始默认选择。`checkpoint_epoch_count=episodes`，`checkpoint_stages=("episode",)`；
-weights-only 只含 classifier，不含 selector/optimizer，不能据此续训。
-二维 MLP 或显式注入 `encoder` 的4-D NCHW；不静默 flatten。每次 fit deepcopy 并解冻编码器，
-CNN 预训练、奖励 probe 和实际分类器均端到端更新；selector 状态来自最后 hidden_dim 隐层，
-状态/奖励停止梯度，policy 更新不反传编码器。CNN 状态分批提取、在 CPU 缓存，顺序 policy 图
-仍随 U 增长；不声称全 episode 常数显存。singleton BN 用运行统计，推理不更新 BN且恢复原模式。
-`stage_optimizer_steps_` 分 pretrain/reward_probe/policy/classifier，`optimizer_steps_` 和
-`history_["optimizer_steps"]` 计实际全部更新；返回较早最佳网络不扣成本。
-公共 Pipeline/CLI/Survey 尚无独立奖励集路由，
-仍需直接调用 estimator 并显式提供隔离 support，不能因为架构可选就复用测试/选模标签。
-UI 目录保留能力元数据但标记 ui_ready=false，不提供手动/比较选项；配置导入拒绝缺少
-独立support入口的方法并保留原widget状态，不据此开放 PA/OA训练。
+Experimental adaptation of the paper's RL negative selection.
+`fit(..., support_data=(X_support,y_clean), train_indices=None, support_indices=None,
+os_or_ts="os", epoch_callback=None)` requires independent support with true positives and
+negatives. Do not reuse clean_val/test; support supplies training rewards, making this ineligible
+for purely PU PA. When both sets of IDs are supplied, disjointness is checked; otherwise
+isolation is unverified. TS and non-None sample_weight are rejected. `history_` records reward
+probes, actual classifier accuracy, policy loss, and negative counts. Best support accuracy and
+the reward baseline are stored separately in `best_support_accuracy_` and `reward_baseline_`.
+`epoch_callback(episode, fitted)` runs once after each completed RL episode (zero-based),
+recording the current classifier before the final restoration of the support-selected best.
+It does not record pretraining/internal classifier epochs or change default selection.
+`checkpoint_epoch_count=episodes`, `checkpoint_stages=("episode",)`; weights-only snapshots
+contain the classifier, not selector/optimizer, and cannot resume training.
+Input is 2-D MLP data or 4-D NCHW with an explicitly injected `encoder`, without silent flattening.
+Each fit deep-copies and unfreezes the encoder. CNN pretraining, reward probes, and the actual
+classifier all update end to end. Selector state comes from the final hidden_dim hidden layer;
+state/reward gradients stop, and policy updates do not backpropagate into the encoder.
+CNN states are extracted in batches and cached on CPU, but the sequential policy graph still
+grows with U; constant GPU memory for an entire episode is not guaranteed. Singleton BN uses
+running statistics; inference preserves BN state and restores modes.
+`stage_optimizer_steps_` separates pretrain/reward_probe/policy/classifier;
+`optimizer_steps_` and `history_["optimizer_steps"]` count all actual updates. Returning an
+earlier best network does not subtract cost.
+The ordinary Pipeline/CLI has no independent reward-set input; direct calls require isolated
+support. Explicit research routes use `PULNSExtraSupportTrainer` or
+`PULNSCleanSupportCheckpointTrainer` and must record their extra supervision and compatible
+protocol. CNN eligibility does not authorize reuse of test/selection labels.
+The UI retains capability metadata but marks ui_ready=false and excludes manual/comparison
+choices. Importing a configuration requiring an unavailable independent-support input fails
+without changing existing widget state; it does not enable PA/OA training automatically.
 
-#### `PANClassifier`（`pan`）
+#### `PANClassifier` (`pan`)
 
 ```python
 PANClassifier(*, hidden_dim=128, max_epochs=100, batch_size=64,
@@ -777,46 +918,53 @@ PANClassifier(*, hidden_dim=128, max_epochs=100, batch_size=64,
               discriminator=None, encoder=None, random_state=0, device=None)
 ```
 
-PAN 式 (7) 的 MLP / 注入 CNN 实验适配：C/D 交替 Adam、C 负责预测，无外部先验；`fit` 支持
-`epoch_callback` 和 `os_or_ts="os"`，显式 ts 与非空外部 sample_weight 报错。仅推理 C 的 epoch
-snapshot 不支持训练续跑。`predict_proba` 是 sigmoid 分数，不承诺校准；正式 Survey 尚未准入。
-4-D NCHW 必须显式提供 `encoder`，两份独立副本均解冻并端到端训练，不修改原模板；
-此时 `model` / `discriminator` 是 score heads（默认 linear），encoder 必须输出有限 2-D 特征。
-Pipeline 可使用 `architecture="cnn"` 注入共享初始 backbone。
+Experimental MLP / injected-CNN adaptation of PAN Equation (7): alternating Adam updates for
+C/D, predictions from C, and no external prior. `fit` supports `epoch_callback` and
+`os_or_ts="os"`; explicit TS and non-None external sample_weight raise errors.
+C-only epoch snapshots support inference, not training resume. `predict_proba` returns sigmoid
+scores without a calibration guarantee; this is not admitted to the formal Survey matrix.
+4-D NCHW requires an explicit `encoder`. Two independent copies are unfrozen and trained end to
+end without modifying the template. Here `model` / `discriminator` are score heads (linear by
+default), and the encoder must return finite 2-D features. Pipeline can inject a shared initial
+backbone using `architecture="cnn"`.
 
-#### `RankPruningClassifier`（`rp`）
+#### `RankPruningClassifier` (`rp`)
 
 ```python
 RankPruningClassifier(*, base_estimator=None, n_cv_folds=3,
                       frac_pos2neg=None, min_retained=10, random_state=0)
 ```
 
-只支持无误标正例的 PU 特例。每候选 n_cv_folds 次 OOF + 1 次重权拟合，无需外部先验。
-`fit(os_or_ts="os")`；显式 ts/非空外部 sample_weight 报错。内部重权要求 base_estimator 的 fit
-支持 sample_weight。`rho1_`、`rho0_`、`pi0_`、`estimated_prior_`、`prior_diagnostic_`、OOF/保留索引
-为诊断，不是正式预算登记或独立概率校准。
+Supports only the PU special case without mislabeled positives. Each candidate runs n_cv_folds
+OOF fits plus one reweighted fit, without an external prior.
+`fit(os_or_ts="os")` rejects explicit TS and non-None external sample_weight. Internal weighting
+requires the base_estimator's fit to support sample_weight.
+`rho1_`, `rho0_`, `pi0_`, `estimated_prior_`, `prior_diagnostic_`, and OOF/retained indices are
+diagnostics, not formal budget registration or independent probability calibration.
 
-### Bias-Aware 分类器
+### Bias-aware classifiers
 
-#### `PUSBClassifier`（注册名 `pusb`，别名 `biased_pu`）
+#### `PUSBClassifier` (registered as `pusb`, alias `biased_pu`)
 
-Selection-bias 鲁棒后验排序（PUSB）分类器。
+A linear observed-P-vs-U logistic baseline for selection-biased PU data. This implementation
+does not implement the paper's partially identified PUSB scoring algorithm, and its sigmoid
+output is not a calibrated latent class posterior.
 
 ```python
 PUSBClassifier(*, threshold=0.5, C=1.0, max_iter=1000)
 ```
 
-| 参数 | 类型 | 默认 | 说明 |
+| Parameter | Type | Default | Description |
 |---|---|---|---|
-| `threshold` | `float` | `0.5` | 决策阈值（sigmoid 化概率阈值）；`predict` 冻结为先验分位数 `threshold_`（单样本稳定） |
-| `C` | `float` | `1.0` | 正则化强度 |
-| `max_iter` | `int` | `1000` | 优化最大迭代 |
+| `threshold` | `float` | `0.5` | Fixed threshold on observed-P-vs-U sigmoid output; `predict` uses this constructor value |
+| `C` | `float` | `1.0` | Inverse regularization strength |
+| `max_iter` | `int` | `1000` | Maximum optimizer iterations |
 
-- 文档：[PUSB 方法卡](../../research/method_cards/PUSB.md)
+- Optional Chinese research background: [PUSB method card](../../research/method_cards/PUSB.md).
 
-#### `PUSBKernelClassifier`（注册名 `pusb_kernel`，别名 `kernelized_pusb`）
+#### `PUSBKernelClassifier` (registered as `pusb_kernel`, alias `kernelized_pusb`)
 
-官方对齐的 RBF PUSB（确定性 CV）。
+RBF PUSB aligned with the released implementation, using deterministic CV.
 
 ```python
 PUSBKernelClassifier(*, n_basis=300, cv=5, sigma_grid=(0.01, 0.05, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 20.0),
@@ -824,41 +972,40 @@ PUSBKernelClassifier(*, n_basis=300, cv=5, sigma_grid=(0.01, 0.05, 0.1, 0.5, 1.0
                      random_state=2018, max_iter=200, tol=1e-5)
 ```
 
-| 参数 | 类型 | 默认 | 说明 |
+| Parameter | Type | Default | Description |
 |---|---|---|---|
-| `n_basis` | `int` | `300` | 核基函数数 |
-| `cv` | `int` | `5` | 确定性 CV 折数 |
-| `sigma_grid` | `Sequence[float]` | 官方网格 | RBF 带宽候选 |
-| `reg_grid` | `Sequence[float]` | 官方网格 | 正则候选 |
-| `random_state` | `int \| None` | `2018` | 种子（官方值） |
-| `max_iter` / `tol` | `int` / `float` | `200` / `1e-5` | 迭代上限与容差 |
+| `n_basis` | `int` | `300` | Number of kernel basis functions |
+| `cv` | `int` | `5` | Deterministic CV fold count |
+| `sigma_grid` | `Sequence[float]` | Released grid | RBF bandwidth candidates |
+| `reg_grid` | `Sequence[float]` | Released grid | Regularization candidates |
+| `random_state` | `int \| None` | `2018` | Seed used in the released implementation |
+| `max_iter` / `tol` | `int` / `float` | `200` / `1e-5` | Iteration limit and tolerance |
 
-- 正则梯度与官方释放实现一致（`0.5·reg_lambda·‖coef‖²`）。
-- 文档：[PUSB 方法卡 §7.3](../../research/method_cards/PUSB.md)
+- The regularization gradient matches the released implementation (`0.5·reg_lambda·‖coef‖²`).
+- Optional Chinese research background: [PUSB method card §7.3](../../research/method_cards/PUSB.md).
 
-#### `LBEClassifier`（注册名 `lbe`）
+#### `LBEClassifier` (registered as `lbe`)
 
-LBE（Label Bias Estimation）分类器：估计类后验与实例相关标记倾向。
+Label Bias Estimation classifier: estimates the class posterior and instance-dependent labeling propensity.
 
 ```python
 LBEClassifier(*, max_iter=1000, n_em_iter=20, C=1.0)
 ```
 
-| 参数 | 类型 | 默认 | 说明 |
+| Parameter | Type | Default | Description |
 |---|---|---|---|
-| `max_iter` | `int` | `1000` | 主优化最大迭代 |
-| `n_em_iter` | `int` | `20` | EM 迭代数 |
-| `C` | `float` | `1.0` | 正则化强度的倒数，须有限且大于 0 |
+| `max_iter` | `int` | `1000` | Maximum main-optimizer iterations |
+| `n_em_iter` | `int` | `20` | Number of EM iterations |
+| `C` | `float` | `1.0` | Inverse regularization strength; finite and greater than 0 |
 
-- 文档：[LBE 方法卡](../../research/method_cards/LBE.md)
-- 当前为线性 logistic EM，不是作者双 MLP/Adam；`fit(class_prior=...)` 仅影响 U 后验初始化。
-- 拟合后 `n_iter_` / `converged_` 记录实际 EM 轮数与后验停止条件；
-  `observed_log_likelihood_history_` 记录每轮观测对数似然之和，不是含正则项的优化目标，亦不保证单调。
-- `predict_proba` 返回类别概率，`predict_label_proba` 返回被标记概率；所有预测入口均要求先成功拟合。
+- Optional Chinese research background: [LBE method card](../../research/method_cards/LBE.md).
+- This is linear logistic EM, not the authors' dual-MLP/Adam implementation; `fit(class_prior=...)` affects U posterior initialization only.
+- After fitting, `n_iter_` / `converged_` record actual EM iterations and posterior stopping. `observed_log_likelihood_history_` records the sum of observed log likelihoods per iteration, not the regularized optimization objective, and is not guaranteed monotonic.
+- `predict_proba` returns class probabilities; `predict_label_proba` returns labeling probabilities. All prediction entry points require a successful fit.
 
-#### `NeuralLBEClassifier`（注册名 `lbe_neural`，别名 `neural_lbe`）
+#### `NeuralLBEClassifier` (registered as `lbe_neural`, alias `neural_lbe`)
 
-独立实验性双网络 generalized EM；**不替换 `lbe` 或冻结 Pilot**。
+Separate experimental dual-network generalized EM; **does not replace `lbe` or the frozen Pilot**.
 
 ```python
 NeuralLBEClassifier(model=None, *, propensity_model=None, encoder=None,
@@ -867,36 +1014,43 @@ NeuralLBEClassifier(model=None, *, propensity_model=None, encoder=None,
                     weight_decay=1e-3, random_state=0, device=None)
 ```
 
-| 参数 | 默认 | 契约 |
+| Parameter | Default | Contract |
 |---|---|---|
-| `model` / `propensity_model` | `None` | 各自输出每行一个 raw logit；默认独立 MLP100/tanh；deepcopy，不修改模板 |
-| `encoder` | `None` | 4-D 图像必须显式提供；分别为两个网络 deepcopy 成独立可训练 encoder，输出二维特征 |
-| `hidden_dim` | `100` | 默认头的隐藏宽度，正整数 |
-| `pretrain_steps` | `20` | 每个网络的预训练 Adam 更新数，非负整数；0 是显式无预训练适配 |
-| `n_em_iter` / `m_steps` | `20` / `40` | 正整数；每轮 E 后验停止梯度，在该轮全部 M 更新中保持固定 |
-| `sample_fraction` | `0.1` | `(0,1]`，每个 M 更新重新抽取 `max(1,floor(N*fraction))` 个训练行，不放回 |
-| `batch_size` | `256` | 正整数，设备前向/梯度累积/预测分批上限；不是额外的 Adam 更新轴 |
-| `learning_rate` / `weight_decay` | `0.001` / `0.001` | 有限实数，分别正 / 非负 |
-| `random_state` / `device` | `0` / `None` | 隔离 NumPy RNG、保留 CPU/所选 CUDA RNG，不重置其它 CUDA 生成器；仅支持 CPU/CUDA，auto 由公共解析器决定 |
+| `model` / `propensity_model` | `None` | Each outputs one raw logit per row; defaults are independent MLP100/tanh networks; deep-copied without changing templates |
+| `encoder` | `None` | Explicitly required for 4-D images; deep-copied into independent trainable encoders for both networks, returning 2-D features |
+| `hidden_dim` | `100` | Hidden width of default heads; positive integer |
+| `pretrain_steps` | `20` | Adam pretraining updates per network; nonnegative integer; 0 explicitly adapts the recipe without pretraining |
+| `n_em_iter` / `m_steps` | `20` / `40` | Positive integers; E-step posteriors stop gradients and remain fixed throughout that iteration's M updates |
+| `sample_fraction` | `0.1` | `(0,1]`; each M update resamples `max(1,floor(N*fraction))` training rows without replacement |
+| `batch_size` | `256` | Positive integer; maximum device batch for forward passes, gradient accumulation, and prediction, not an additional Adam-update axis |
+| `learning_rate` / `weight_decay` | `0.001` / `0.001` | Finite real values, positive / nonnegative respectively |
+| `random_state` / `device` | `0` / `None` | Isolated NumPy RNG; preserves CPU/selected CUDA RNG without resetting other CUDA generators; CPU/CUDA only, with auto resolved by the shared resolver |
 
-`fit(X, y_pu, *, class_prior=None, sample_weight=None, epoch_callback=None, os_or_ts="os")`：
-只接受训练 PU 观测标签，至少两条 labeled P 和一条 U；不读取验证、test 或隐藏 PN 真值。
-`class_prior` 非空时校验 `(0,1)` 实数但不影响源配方；非空 `sample_weight` 与非 OS 视图拒收。
-输入/后验留 CPU，逐批累积行数加权梯度后每个 M step 只更新一次 Adam。
-默认共 840 次 optimizer 更新；`checkpoint_epoch_count=20` 是 EM 轮数，不能误记为 840 个权重快照。
-`epoch_callback` 每个 EM 轮末调用，完整预训练/EM 成本由 `optimizer_steps_` 和阶段 provenance 记录。
+`fit(X, y_pu, *, class_prior=None, sample_weight=None, epoch_callback=None, os_or_ts="os")`
+accepts training PU observations only, with at least two labeled P and one U; it does not read
+validation, test, or hidden PN truth. A non-None `class_prior` is checked as a real value in
+`(0,1)` but does not affect the source recipe. Non-None `sample_weight` and non-OS views are rejected.
+Inputs/posteriors remain on CPU. Row-count-weighted gradients accumulate across batches, with
+one Adam update per M step. Defaults total 840 optimizer updates; `checkpoint_epoch_count=20`
+counts EM iterations, not 840 weight snapshots. `epoch_callback` runs after each EM iteration;
+`optimizer_steps_` and stage provenance record complete pretraining/EM cost.
 
-`predict_proba` 返回类后验，`predict_label_proba` 返回类后验×propensity，`decision_function` 为类别 raw logit。
-`history_` / `observed_log_likelihood_history_` 仅为训练诊断，不保证单调或可辨识性，不作为通用 PA/OA 准则。
-standalone pickle 保留双网络；runner 的 epoch checkpoint 仅供 classifier 推理，不恢复 propensity 或 optimizer 继续训练。
-默认配方取自单独登记的用户包 MLP 变体，稳定 logits/分批/CNN 为适配。
-来源、差异、校准边界和待复核项见[LBE 方法卡](../../research/method_cards/LBE.md)。
+`predict_proba` returns class posteriors, `predict_label_proba` returns posterior×propensity,
+and `decision_function` returns class raw logits. `history_` /
+`observed_log_likelihood_history_` are training diagnostics without monotonicity or identifiability
+guarantees; they are not general PA/OA criteria. Standalone pickle retains both networks;
+runner epoch checkpoints support classifier inference only, not propensity/optimizer training
+resume. Defaults come from the separately recorded user-package MLP variant; stable logits,
+batching, and CNN support are adaptations. The [LBE method card](../../research/method_cards/LBE.md)
+provides optional Chinese background on sources, differences, calibration limits, and open reviews.
 
-### 深度分类器
+### Deep classifiers
 
-#### `LaGAMClassifier`（注册名 `lagam`，别名 `la_gam`）
+#### `LaGAMClassifier` (registered as `lagam`, alias `la_gam`)
 
-潜在组对比学习和干净 support-set 元标签更新。**不适用于 PU-only PA 口径**；当前正式 Survey runner 不传 `support_data`，因此此方法仍为独立技术预集成。
+Latent-group contrastive learning and clean-support meta-label updates. **Not eligible for
+purely PU PA**: support supplies extra clean-label supervision. Use an explicitly configured
+clean-support trainer for research runs; the ordinary PU-only Pipeline does not supply support.
 
 ```python
 LaGAMClassifier(*, hidden_dim=128, warmup_epochs=2, max_epochs=20,
@@ -907,17 +1061,39 @@ LaGAMClassifier(*, hidden_dim=128, warmup_epochs=2, max_epochs=20,
                 encoder=None, data_device_policy="auto", meta_update_bias=True)
 ```
 
-`fit(X, y_pu, *, class_prior=None, sample_weight=None, support_data=(X_support, y_clean), epoch_callback=None)`；support set 必须独立、干净且包含两类，缺失时直接报错。非空 `sample_weight` 报错。详见 [LaGAM 方法卡](../../research/method_cards/LaGAM.md)。
+`fit(X, y_pu, *, class_prior=None, sample_weight=None, support_data=(X_support, y_clean), epoch_callback=None)`
+requires an independent clean support set containing both classes; missing support fails
+immediately. Non-None `sample_weight` raises an error. The [LaGAM method card](../../research/method_cards/LaGAM.md)
+provides optional Chinese research background.
 
-支持二维特征或注入可训练 encoder 的四维 NCHW，support 须同输入形状。encoder deepcopy 后接原 MLP，须输出有限二维特征；auto 无 encoder 时保留旧 resident，有 encoder 时强制 cpu_stream，也可显式 cpu_stream，拒绝 encoder+resident。CPU-stream 的输入、support、伪标签及组索引留 CPU，训练/聚类/推理每次 ≤batch_size 行、support ≤support_batch_size；全量聚类特征仍占 CPU 内存。
+Supports 2-D features or 4-D NCHW with an injected trainable encoder; support must have the same
+input shape. A deep-copied encoder precedes the original MLP and must return finite 2-D features.
+Auto preserves legacy resident storage without an encoder and forces cpu_stream with an encoder.
+Explicit cpu_stream is supported; encoder+resident is rejected. CPU-stream inputs, support,
+pseudo-labels, and group indices remain on CPU. Training/clustering/inference device batches
+contain at most batch_size rows, support batches at most support_batch_size; complete clustering
+features still occupy CPU memory.
 
-`meta_update_bias=True` 保留原虚拟 weight+bias；False 只对齐作者 classifier weight-only 范围。新 CNN 虚拟步以冻结 eval 提取特征、恢复逐模块模式，不改真实 BN/dropout；实际损失可训练 encoder。原硬观测元目标、稳定 BCE、rho 端点及 Gaussian 增强仍为适配，详见[来源复核](../../research/method_cards/LaGAM.md)。
+`meta_update_bias=True` retains virtual weight+bias updates; False aligns only the author's
+classifier weight-only scope. New CNN virtual steps extract frozen features in eval mode and
+restore each module's mode without changing actual BN/dropout; actual losses train the encoder.
+Hard observed meta-targets, stable BCE, rho endpoints, and Gaussian augmentation remain
+adaptations; the [source review](../../research/method_cards/LaGAM.md) is optional Chinese background.
 
-`max_epochs` 包含 warmup；`checkpoint_epoch_count=max_epochs`。`optimizer_steps_`、`virtual_steps_`、`clustering_passes_` 分别计真实更新、虚拟二阶步与聚类次数；`epoch_provenance_` 与快照上下文区分 warmup/meta。图像快照保留推理批大小，无优化器续训。fit 普通异常会撤销 fitted。数组别名重叠将拒绝；调用方须核对不同副本的角色索引。PU-only UI/推荐器及标准 trainer 需要独立提供 support。发布 OS split 与 registry TS 定位冲突待审，未新增 TS 接口。
+`max_epochs` includes warmup; `checkpoint_epoch_count=max_epochs`. `optimizer_steps_`,
+`virtual_steps_`, and `clustering_passes_` count actual updates, virtual second-order steps, and
+clustering passes. `epoch_provenance_` and snapshot context distinguish warmup/meta. Image
+snapshots retain inference batch size, without optimizer resume. Ordinary fit exceptions clear
+fitted state. Aliased overlapping arrays are rejected; callers must check role indices across
+distinct copies. PU-only UI/recommendation and ordinary trainers do not create independent
+support; use the explicit support adapters. The published OS split and registry TS positioning
+remain under review; no new TS interface is implied.
 
-#### `SplitPUClassifier`（注册名 `split_pu`，别名 `split-pu`）
+#### `SplitPUClassifier` (registered as `split_pu`, alias `split-pu`)
 
-nnPU teacher → 预测分歧划分 easy/hard U → easy JS 蒸馏与 hard 双源一致性。支持二维稠密输入或注入 CNN 的四维图像；未复现论文完整增强/SimSiam 配方。
+nnPU teacher → prediction-disagreement split into easy/hard U → easy JS distillation and
+hard dual-source consistency. Supports dense 2-D inputs or 4-D images with an injected CNN;
+the paper's complete augmentation/SimSiam recipe is not reproduced.
 
 ```python
 SplitPUClassifier(class_prior=None, *, encoder=None, encoder_feature_layer=None,
@@ -929,23 +1105,29 @@ SplitPUClassifier(class_prior=None, *, encoder=None, encoder_feature_layer=None,
                   noise_std=0.05, random_state=None, device=None)
 ```
 
-`fit(X, y_pu, *, class_prior=None, sample_weight=None, epoch_callback=None, os_or_ts="os")`；
-TS 下 class_prior 是总体 π（边缘 U 的正类比例）。TS 风险池替换只在 nnPU teacher，
-splitter、easy/hard 与 student 仍取原始 U。非空 sample_weight 报错。
-详见 [Split-PU 方法卡](../../research/method_cards/Split-PU.md)。
+`fit(X, y_pu, *, class_prior=None, sample_weight=None, epoch_callback=None, os_or_ts="os")`.
+In the TS risk view, class_prior is population π (the positive proportion in marginal U).
+The TS risk-pool replacement applies only to the nnPU teacher; splitter, easy/hard partitioning,
+and student still use original U. Non-None sample_weight raises an error.
+The [Split-PU method card](../../research/method_cards/Split-PU.md) provides optional Chinese background.
 
-`checkpoint_epoch_count=teacher_epochs+split_epochs+rounds*student_epochs` 是快照数量上界，
-splitter 早停会减少实际快照；`optimizer_steps_` 累计三个阶段/全部 student rounds 的真实更新。
-回收只减少最终留存，不降低训练时峰值；此上界不是正式候选预算。
-数据池及冻结教师目标留在 CPU，训练与预测分批上设备；预测恢复模型模式。
-原始 U 至少两条，以保证 easy/hard 两分支非空；空预测返回空数组。
-encoder 各阶段独立 deepcopy/训练，四维输入缺 encoder 拒绝。低层 MSE 用指定编码器
-模块（默认首个 MaxPool，否则 Conv/Linear），高层余弦用最终编码特征；不是官方 SimSiam。
-单行组的 BN 暂用运行统计且保留梯度，较大组照常更新。
+`checkpoint_epoch_count=teacher_epochs+split_epochs+rounds*student_epochs` bounds snapshot count;
+splitter early stopping reduces actual snapshots. `optimizer_steps_` counts actual updates
+across all three stages and student rounds. Reclamation reduces final retained snapshots, not
+peak training storage; this upper bound is not a formal candidate budget.
+Data pools and frozen teacher targets remain on CPU; training/prediction transfer batches to
+the device, and prediction restores model modes. Original U needs at least two rows so both
+easy/hard branches are nonempty; empty prediction input returns an empty array.
+Each stage independently deep-copies/trains the encoder; 4-D input without an encoder is rejected.
+Low-level MSE uses the selected encoder module (first MaxPool by default, otherwise Conv/Linear);
+high-level cosine uses final encoded features. This is not official SimSiam.
+Singleton groups temporarily use BN running statistics while preserving gradients; larger
+groups update normally.
 
-#### `RobustPUClassifier`（注册名 `robust_pu`，别名 `robust-pu`）
+#### `RobustPUClassifier` (registered as `robust_pu`, alias `robust-pu`)
 
-nnPU 预训练后对 P/U 分别计算自步权重，再做候选负例加权训练。支持二维特征或注入 CNN 的四维图像，输出 raw logit。
+nnPU pretraining, separate self-paced P/U weights, then weighted candidate-negative training.
+Supports 2-D features or 4-D images with an injected CNN, returning raw logits.
 
 ```python
 RobustPUClassifier(class_prior=None, *, model=None, encoder=None, hidden_dim=100,
@@ -957,53 +1139,66 @@ RobustPUClassifier(class_prior=None, *, model=None, encoder=None, hidden_dim=100
                    random_state=None, device=None)
 ```
 
-`fit(X, y_pu, *, class_prior=None, sample_weight=None, epoch_callback=None, os_or_ts="os")`；
-TS 风险池替换仅在 nnPU 预训练，后续伪负例仍取原始 U；跳过预训练时明确拒绝 TS。
-非空 sample_weight 报错。当前为表格版技术预集成，尚未进入正式 Survey 实验矩阵。
-详见 [Robust-PU 方法卡](../../research/method_cards/Robust-PU.md)。
+`fit(X, y_pu, *, class_prior=None, sample_weight=None, epoch_callback=None, os_or_ts="os")`.
+The TS risk-pool replacement applies only to nnPU pretraining; subsequent pseudo-negatives
+still come from original U. TS is explicitly rejected when pretraining is skipped.
+Non-None sample_weight raises an error. This is experimental technical integration, outside
+the formal Survey matrix. The [Robust-PU method card](../../research/method_cards/Robust-PU.md)
+provides optional Chinese research background.
 
-`checkpoint_epoch_count=pretrain_epochs+episodes`，每个 episode 仅输出一份快照；
-`inner_epochs` 全部计入 `optimizer_steps_`，不重复计为快照。重新 fit 会重置更新计数。
+`checkpoint_epoch_count=pretrain_epochs+episodes`, with one snapshot per episode.
+All `inner_epochs` contribute to `optimizer_steps_` without adding snapshots. Refit resets
+update counts. The encoder is deep-copied and unfrozen; 4-D images require it. A default MLP
+or the supplied model's raw-score head follows it. Images, labels, and original-row self-paced
+weights remain on CPU; only training batches move to the device. Prediction batches use eval
+mode and restore modes.
 
-`encoder` deepcopy 后解冻训练，四维图像必须提供；其后接默认 MLP 或 model 原始分数头。
-CPU 保存图像/标签/原行自步权重，仅训练批次移到设备；预测分批 eval 并恢复模式。
+#### `GradPUClassifier` (registered as `gradpu`, alias `grad_pu`)
 
-#### `GradPUClassifier`（注册名 `gradpu`，别名 `grad_pu`）
-
-基于输入梯度惩罚与困难正样本加权的 PU 分类器，支持二维特征或无 BatchNorm encoder 的四维图像。
+PU classifier with input-gradient penalties and hard-positive weighting, supporting 2-D
+features or 4-D images with a BatchNorm-free encoder.
 
 ```python
 GradPUClassifier(model=None, *, hidden_dim=128, alpha=0.1, beta_max=1.0,
                  batch_size=256, max_epochs=200, learning_rate=1e-3,
                  lr_schedule="constant", lr_final_ratio=0.1,
-                 weight_decay=5e-4, encoder=None, random_state=None, device=None)
+                 weight_decay=5e-4, encoder=None, activation_memory="device",
+                 backward_mode="joint", gp_chunk_size=None, random_state=None, device=None)
 ```
 
-| 参数 | 类型 | 默认 | 说明 |
+| Parameter | Type | Default | Description |
 |---|---|---|---|
-| `model` | `torch.nn.Module \| None` | `None` | 输出每行一个原始分数的网络；默认单隐层 MLP；不支持 BatchNorm |
-| `hidden_dim` | `int` | `128` | 默认 MLP 隐藏宽度 |
-| `encoder` | `torch.nn.Module \| None` | `None` | 四维图像必填；无 BatchNorm，deepcopy 后端到端训练；model 若同时提供则作为原始分数头 |
-| `alpha` / `beta_max` | `float` | `0.1` / `1.0` | 输入梯度惩罚强度 / 正样本加权上限 |
-| `batch_size` / `max_epochs` | `int` | `256` / `200` | 每组批大小 / 训练轮数 |
-| `learning_rate` / `weight_decay` | `float` | `1e-3` / `5e-4` | Adam 优化参数 |
-| `lr_schedule` / `lr_final_ratio` | `str` / `float` | `"constant"` / `0.1` | 显式选 `linear` / `cosine`，按epoch衰减至初值乘 `(0,1]` 终值比例；默认常量不变，单epoch始终用初值；曲线是工具箱选项，不是论文给定曲线 |
-| `random_state` / `device` | `int \| None` / `str \| None` | `None` / `None` | 随机种子 / PyTorch 设备 |
+| `model` | `torch.nn.Module \| None` | `None` | Network returning one raw score per row; defaults to a single-hidden-layer MLP; BatchNorm unsupported |
+| `hidden_dim` | `int` | `128` | Default MLP hidden width |
+| `encoder` | `torch.nn.Module \| None` | `None` | Required for 4-D images; BatchNorm-free, deep-copied and trained end to end; a supplied model serves as raw-score head |
+| `alpha` / `beta_max` | `float` | `0.1` / `1.0` | Input-gradient penalty strength / maximum positive weight |
+| `batch_size` / `max_epochs` | `int` | `256` / `200` | Per-group batch size / training epochs |
+| `learning_rate` / `weight_decay` | `float` | `1e-3` / `5e-4` | Adam settings |
+| `lr_schedule` / `lr_final_ratio` | `str` / `float` | `"constant"` / `0.1` | Explicit `linear` / `cosine` decays by epoch to the initial rate times a ratio in `(0,1]`; default stays constant and a single epoch uses the initial rate. Curves are toolbox options, not paper-specified schedules |
+| `activation_memory` | `{"device", "cpu_offload"}` | `"device"` | Opt-in CPU storage of autograd saved tensors, including second-order penalty graphs; preserves full batches/precision/RNG order at the cost of transfers and host RAM, without guaranteeing every batch fits |
+| `backward_mode` | `{"joint", "split"}` | `"joint"` | Joint loss backward or separate PU/gradient-penalty backward before one optimizer update |
+| `gp_chunk_size` | `int \| None` | `None` | Positive chunk size for gradient-penalty backward; requires split mode. With active penalty, injected modules must be deterministic and sample-independent; known stochastic layers are rejected |
+| `random_state` / `device` | `int \| None` / `str \| None` | `None` / `None` | Seed / PyTorch device |
 
-`fit(X, y_pu, *, class_prior=None, sample_weight=None, epoch_callback=None, os_or_ts="os")` 接受先验以适配统一接口，但论文目标不使用它；非 `None` 的 `sample_weight` 报错。`decision_function` 是 $[-1,1]$ 分数而非校准概率，预测阈值为 0。支持二维特征/无BN注入图像路径，尚未进入正式 Survey 实验矩阵。
+`fit(X, y_pu, *, class_prior=None, sample_weight=None, epoch_callback=None, os_or_ts="os")`
+accepts a prior for interface compatibility, but the paper objective does not use it.
+Non-None `sample_weight` raises an error. `decision_function` returns $[-1,1]$ scores, not
+calibrated probabilities; the prediction threshold is 0. The 2-D and BatchNorm-free injected
+image paths remain outside the formal Survey matrix.
 
-`batch_size` 为 P、原始U各自上限，短分支按批次循环；每轮更新数为
-`max(ceil(n_P/B),ceil(n_U/B))`。OS物理行数最多2B；TS的U风险最多2B，
-加P项累计前向最多3B，GP插值最多2B，不是物理训练集扩为3B。
-`history_["learning_rate"]` 记录实际epoch使用值；`training_provenance_` 记录策略、
-实际batch最大值、更新数及TS/SAR边界，runner自动保存至
-`candidate_runs[].training_provenance`。
+`batch_size` caps each of P and original U; the shorter branch cycles by batch.
+Updates per epoch are `max(ceil(n_P/B),ceil(n_U/B))`. OS uses at most 2B physical rows;
+TS U risk uses at most 2B and the additional P term gives at most 3B cumulative forward rows.
+GP interpolation uses at most 2B; the physical training set is not expanded to 3B.
+`history_["learning_rate"]` records actual epoch rates. `training_provenance_` records policy,
+actual maximum batch sizes, update counts, and TS/SAR boundaries; the runner saves it in
+`candidate_runs[].training_provenance`.
 
-- 文档：[GradPU 方法卡](../../research/method_cards/GradPU.md)
+- Optional Chinese research background: [GradPU method card](../../research/method_cards/GradPU.md).
 
-#### `SelfPUClassifier`（注册名 `self_pu`）
+#### `SelfPUClassifier` (registered as `self_pu`)
 
-Self-PU 分类器（概率重加权 / 蒸馏 / 高置信度标记）。
+Self-PU classifier with probability reweighting, distillation, and a dynamic trusted set.
 
 ```python
 SelfPUClassifier(class_prior, *, backbone=None, hidden_dim=128, warmup_epochs=10,
@@ -1016,40 +1211,37 @@ SelfPUClassifier(class_prior, *, backbone=None, hidden_dim=128, warmup_epochs=10
                  require_validation=False, random_state=None, device=None)
 ```
 
-| 参数 | 类型 | 默认 | 说明 |
+| Parameter | Type | Default | Description |
 |---|---|---|---|
-| `class_prior` | `float` | 必填 | 类先验 |
-| `backbone` | `Any \| None` | `None`（内置 MLP） | 特征骨干（表格 MLP；数据画像特征维度由 fit 推断） |
-| `hidden_dim` | `int` | `128` | 隐藏层维度 |
-| `warmup_epochs` | `int` | `10` | 预热轮数 |
-| `self_paced_start` / `self_paced_end` | `int` | `10` / `50` | 自步长标定轮数区间 |
-| `distill_start` | `int` | `50` | 蒸馏开始轮数 |
-| `max_epochs` | `int` | `200` | 最大训练轮数 |
-| `max_trust_ratio` | `float` | `0.25` | 最大可信比例 |
-| `pace_1` / `pace_2` | `float` | `0.20` / `0.30` | 自步进阈值 |
-| `meta_step_size` | `float` | `1e-3` | 元学习步长 |
-| `reweight_gamma` | `float` | `1/16` | 重加权折扣 |
-| `distillation_alpha` | `float` | `10.0` | 蒸馏损失权重 |
-| `ema_decay` | `float` | `0.99` | 教师模型 EMA 衰减 |
-| `student_loss_weight` / `teacher_loss_weight` | `float` | `1.0` / `1.0` | 学生/教师损失权重 |
-| `distillation_scope` | `{"untrusted_u", "paper_population"}` | `"untrusted_u"` | 一致性损失覆盖范围；独立 clean-support full-meta adapter 自动使用论文总体范围，历史 Pilot 默认不变 |
-| `batch_size` / `learning_rate` / `weight_decay` | `int` / `float` / `float` | `256` / `1e-3` / `0.0` | 训练设置 |
-| `threshold` | `float` | `0.5` | 决策阈值（未调谐，见方法卡） |
-| `require_validation` | `bool` | `False` | 是否要求 `fit` 传 `validation_data`（教师选择需要） |
-| `random_state` / `device` | `int \| None` / `str \| None` | `None` / `None` | 种子与设备 |
+| `class_prior` | `float` | Required | Prior for the selected risk view; the direct default declares `class_prior_target="native_unlabeled"`, requiring OS population-to-U conversion |
+| `backbone` | `Any \| None` | `None` (built-in MLP) | Score backbone; default tabular MLP dimensions are inferred by fit; custom backbones are separate from Pipeline encoder injection |
+| `hidden_dim` | `int` | `128` | Hidden dimension |
+| `warmup_epochs` | `int` | `10` | Warmup epochs |
+| `self_paced_start` / `self_paced_end` | `int` | `10` / `50` | Self-paced calibration epoch interval |
+| `distill_start` | `int` | `50` | Distillation start epoch |
+| `max_epochs` | `int` | `200` | Maximum training epochs |
+| `max_trust_ratio` | `float` | `0.25` | Maximum trusted fraction |
+| `pace_1` / `pace_2` | `float` | `0.20` / `0.30` | Final student paces, capped by max_trust_ratio |
+| `meta_step_size` | `float` | `1e-3` | Meta-learning step size |
+| `reweight_gamma` | `float` | `1/16` | Fraction limit for CE reweighting |
+| `distillation_alpha` | `float` | `10.0` | Distillation loss weight |
+| `ema_decay` | `float` | `0.99` | Teacher EMA decay |
+| `student_loss_weight` / `teacher_loss_weight` | `float` | `1.0` / `1.0` | Student/teacher loss weights |
+| `distillation_scope` | `{"untrusted_u", "paper_population"}` | `"untrusted_u"` | Consistency-loss scope; the independent clean-support full-meta adapter uses paper-population scope, preserving the historical Pilot default |
+| `batch_size` / `learning_rate` / `weight_decay` | `int` / `float` / `float` | `256` / `1e-3` / `0.0` | Training settings |
+| `threshold` | `float` | `0.5` | Decision threshold, untuned; see method card |
+| `require_validation` | `bool` | `False` | Require clean `validation_data` in fit for full-meta training; missing data fail instead of entering ablation |
+| `random_state` / `device` | `int \| None` / `str \| None` | `None` / `None` | Seed and device |
 
-- `fit(..., validation_data=...)` 提供 clean validation 时启用元重加权与验证基教师选择。
-- `fit(..., pu_validation_data=...)` 只接收 P/U 标签，逐 epoch 记录两个 teacher 的 nnPU risk，
-  并恢复 PU 验证风险最低的 teacher checkpoint；它不启用需要真实标签的元重加权。
-- 实数参数要求有限标量，拒绝 bool、字符串、数组、复数及 NaN/Inf；预算/阶段参数要求整数，
-  `require_validation` 为布尔值，`random_state` 为 None 或 `[0,2**32-1]` 整数，支持 NumPy 标量。
-  非法设置在随机种子与模型构造前抛 `ValueError`；失败重训后须重新成功拟合才能评分。
-- 文档：[Self-PU 方法卡](../../research/method_cards/Self-PU.md) · 示例：[10_self_pu.py](../../../examples/minimal/10_self_pu.py)
+- `fit(..., validation_data=...)` enables meta reweighting and clean-validation teacher selection. Keep this role independent from train/test.
+- `fit(..., pu_validation_data=...)` accepts P/U labels only, records both teachers' nnPU risks each epoch, and restores the lowest-PU-validation-risk teacher checkpoint. It does not enable meta reweighting requiring true labels. Without either validation input and with `require_validation=False`, ablation selects using training nnPU risk.
+- Real-valued parameters require finite scalars, rejecting bool, strings, arrays, complex values, and NaN/Inf. Budgets/stages require integers; `require_validation` is boolean; `random_state` is None or an integer in `[0,2**32-1]`. NumPy scalars are supported. Invalid settings raise `ValueError` before seed/model construction; failed refit requires a new successful fit before scoring.
+- Optional Chinese background: [Self-PU method card](../../research/method_cards/Self-PU.md). Example: [10_self_pu.py](../../../examples/minimal/10_self_pu.py); its illustrative prior needs the OS conversion explained in the [guide](../howto/self_pu.md).
 
-#### `InfoMaxPUClassifier`（注册名 `infomax_pu`）
+#### `InfoMaxPUClassifier` (registered as `infomax_pu`)
 
-深度 PU 分类器（PURL 表示学习 → 类先验估计 → nnPU 分类）；构造参数较多，
-需要细粒度控制时直接传实例给 `PUPipeline`。
+Deep PU classifier: PURL representation learning → prior estimation → nnPU classification.
+For fine-grained control of its many constructor parameters, pass an instance to `PUPipeline`.
 
 ```python
 InfoMaxPUClassifier(*, class_prior=None, representation_dim=20, hidden_dim=60,
@@ -1064,22 +1256,22 @@ InfoMaxPUClassifier(*, class_prior=None, representation_dim=20, hidden_dim=60,
                     random_state=None, encoder=None, device=None)
 ```
 
-| 参数 | 类型 | 默认 | 说明 |
+| Parameter | Type | Default | Description |
 |---|---|---|---|
-| `class_prior` | `float \| None` | `None` | 类先验；`None` 时用 `prior_estimator` 估计 |
-| `representation_*` | 组合 | 见签名 | 表示学习阶段：`representation_dim`（表示维度）/ `representation_epochs` / `representation_ratio_steps` / `representation_encoder_steps` / `representation_weight_decay` / `representation_batch_norm` / `representation_activation` / `representation_batch_size` / `representation_gradient_noise` |
-| `classifier_*` | 组合 | 见签名 | nnPU 分类器阶段：`classifier_hidden_dims` / `classifier_batch_norm` / `classifier_optimizer`（`"adam"` / `"adagrad"`）/ `classifier_learning_rate` / `classifier_weight_decay` / `classifier_batch_size` |
-| `prior_estimator` | `BaseEstimator \| None` | `None` | `class_prior=None` 时的先验估计器 |
-| `encoder` | `torch.nn.Module \| None` | `None` | 外置编码器（如 `build_encoder("cnn", ...)`）；`None` → 内置 MLP 编码器（向后兼容） |
-| `device` | `str \| None` | `None` | torch 设备（`None`/`"auto"` 自动检测） |
-| `random_state` / `hidden_dim` / `learning_rate` | — | — | 共用种子、隐藏维度与学习率 |
+| `class_prior` | `float \| None` | `None` | Class prior; None estimates through prior_estimator |
+| `representation_*` | Mixed | See signature | Representation stage: `representation_dim` (dimension) / `representation_epochs` / `representation_ratio_steps` / `representation_encoder_steps` / `representation_weight_decay` / `representation_batch_norm` / `representation_activation` / `representation_batch_size` / `representation_gradient_noise` |
+| `classifier_*` | Mixed | See signature | nnPU stage: `classifier_hidden_dims` / `classifier_batch_norm` / `classifier_optimizer` (`"adam"` / `"adagrad"`) / `classifier_learning_rate` / `classifier_weight_decay` / `classifier_batch_size` |
+| `prior_estimator` | `BaseEstimator \| None` | `None` | Prior estimator when class_prior=None |
+| `encoder` | `torch.nn.Module \| None` | `None` | External encoder, e.g. `build_encoder("cnn", ...)`; None uses the built-in MLP for backward compatibility |
+| `device` | `str \| None` | `None` | Torch device; None/"auto" detects automatically |
+| `random_state` / `hidden_dim` / `learning_rate` | — | — | Shared seed, hidden dimension, and learning rate |
 
-- 传入外置 `encoder` 时替代内部 `nn.Sequential(Linear...)` 编码部分，`ratio_head_` 接在编码器特征之后；`fit` 放行 4-D NCHW 图像输入。
-- 文档：[InfoMax-PU 方法卡](../../research/method_cards/InfoMax-PU.md)
+- An external encoder replaces the internal `nn.Sequential(Linear...)` encoding component; `ratio_head_` follows its features, and fit accepts 4-D NCHW images.
+- Optional Chinese research background: [InfoMax-PU method card](../../research/method_cards/InfoMax-PU.md).
 
-#### `WeightedContrastivePUClassifier`（注册名 `weighted_contrastive_pu`，别名 `wconpu`）
+#### `WeightedContrastivePUClassifier` (registered as `weighted_contrastive_pu`, alias `wconpu`)
 
-加权对比学习 PU 分类器（对比损失 + 分布匹配）。
+Weighted contrastive PU classifier with contrastive loss and distribution matching.
 
 ```python
 WeightedContrastivePUClassifier(class_prior, *, encoder=None, hidden_dim=128, embedding_dim=128,
@@ -1091,25 +1283,25 @@ WeightedContrastivePUClassifier(class_prior, *, encoder=None, hidden_dim=128, em
                                 scheduler="none", random_state=None, device=None)
 ```
 
-| 参数 | 类型 | 默认 | 说明 |
+| Parameter | Type | Default | Description |
 |---|---|---|---|
-| `class_prior` | `float` | 必填 | 类先验 |
-| `encoder` | `torch.nn.Module \| None` | `None` | 特征编码器（图像用 `build_encoder("cnn", ...)`） |
-| `hidden_dim` / `embedding_dim` | `int` | `128` / `128` | 隐藏层与嵌入维度 |
-| `queue_size` / `temperature` / `momentum` | `int` / `float` / `float` | `8192` / `0.07` / `0.999` | 对比队列、温度与队列动量 |
-| `pseudo_label_momentum` | `float` | `0.9` | 伪标签动量 |
-| `contrastive_weight` / `distribution_weight` | `float` | `0.1` / `0.1` | 对比/分布损失权重 |
-| `hard_negative_quantile` | `float` | `0.25` | 难负例分位数 |
-| `weak_augmentation` / `strong_augmentation` | callable \| None | `None` | 弱/强增强变换（None 用默认） |
-| `batch_size` / `max_epochs` / `learning_rate` / `optimizer_momentum` | — | `256` / `100` / `1e-2` / `0.9` | 训练设置 |
-| `scheduler` | `"none"` / `"cosine_annealing"` | `"none"` | 学习率调度 |
-| `random_state` / `device` | — | `None` / `None` | 种子与设备 |
+| `class_prior` | `float` | Required | Class prior |
+| `encoder` | `torch.nn.Module \| None` | `None` | Feature encoder; images can use `build_encoder("cnn", ...)` |
+| `hidden_dim` / `embedding_dim` | `int` | `128` / `128` | Hidden and embedding dimensions |
+| `queue_size` / `temperature` / `momentum` | `int` / `float` / `float` | `8192` / `0.07` / `0.999` | Contrastive queue, temperature, and queue momentum |
+| `pseudo_label_momentum` | `float` | `0.9` | Pseudo-label momentum |
+| `contrastive_weight` / `distribution_weight` | `float` | `0.1` / `0.1` | Contrastive/distribution loss weights |
+| `hard_negative_quantile` | `float` | `0.25` | Hard-negative quantile |
+| `weak_augmentation` / `strong_augmentation` | callable \| None | `None` | Weak/strong augmentation transforms; None uses defaults |
+| `batch_size` / `max_epochs` / `learning_rate` / `optimizer_momentum` | — | `256` / `100` / `1e-2` / `0.9` | Training settings |
+| `scheduler` | `"none"` / `"cosine_annealing"` | `"none"` | Learning-rate schedule |
+| `random_state` / `device` | — | `None` / `None` | Seed and device |
 
-- 文档：[WConPU 方法卡](../../research/method_cards/WConPU.md)
+- Optional Chinese research background: [WConPU method card](../../research/method_cards/WConPU.md).
 
-#### `DGPUClassifier`（注册名 `dgpu`）
+#### `DGPUClassifier` (registered as `dgpu`)
 
-深度生成式 PU 分类器（GAN 判别器 + 伪标签迭代）。
+Deep generative PU classifier combining a GAN discriminator and iterative pseudo-labeling.
 
 ```python
 DGPUClassifier(class_prior, generator, *, model=None, hidden_dim=128, rounds=3,
@@ -1119,222 +1311,221 @@ DGPUClassifier(class_prior, generator, *, model=None, hidden_dim=128, rounds=3,
                weak_augmentation=None, strong_augmentation=None, random_state=None, device=None)
 ```
 
-| 参数 | 类型 | 默认 | 说明 |
+| Parameter | Type | Default | Description |
 |---|---|---|---|
-| `class_prior` | `float` | 必填 | 类先验 |
-| `generator` | torch 模型 | 必填 | 数据生成器（如 GAN generator） |
-| `model` | `torch.nn.Module \| None` | `None` | 判别器/分类器模型（None 内置） |
-| `hidden_dim` | `int` | `128` | 隐藏维度 |
-| `rounds` | `int` | `3` | 伪标签迭代轮数 |
-| `initialization_epochs` / `annotation_epochs` | `int` | `100` / `100` | 初始化与标注轮数 |
-| `generated_samples` | `int` | `5000` | 生成样本数 |
-| `pseudo_label_fraction` | `float` | `0.1` | 伪标签比例 |
-| `confidence_threshold` | `float` | `0.95` | 伪标签置信阈值 |
-| `debias_strength` | `float` | `0.8` | 去偏强度 |
-| `distribution_momentum` | `float` | `0.999` | 分布动量 |
-| `batch_size` / `learning_rate` | — | `256` / `1e-4` | 训练设置 |
-| `weak_augmentation` / `strong_augmentation` | callable \| None | `None` | 弱/强增强 |
-| `random_state` / `device` | — | `None` / `None` | 种子与设备 |
+| `class_prior` | `float` | Required | Class prior |
+| `generator` | Torch model | Required | Data generator, e.g. a GAN generator |
+| `model` | `torch.nn.Module \| None` | `None` | Discriminator/classifier model; None uses the built-in model |
+| `hidden_dim` | `int` | `128` | Hidden dimension |
+| `rounds` | `int` | `3` | Pseudo-labeling rounds |
+| `initialization_epochs` / `annotation_epochs` | `int` | `100` / `100` | Initialization and annotation epochs |
+| `generated_samples` | `int` | `5000` | Number of generated samples |
+| `pseudo_label_fraction` | `float` | `0.1` | Pseudo-label fraction |
+| `confidence_threshold` | `float` | `0.95` | Pseudo-label confidence threshold |
+| `debias_strength` | `float` | `0.8` | Debiasing strength |
+| `distribution_momentum` | `float` | `0.999` | Distribution momentum |
+| `batch_size` / `learning_rate` | — | `256` / `1e-4` | Training settings |
+| `weak_augmentation` / `strong_augmentation` | callable \| None | `None` | Weak/strong augmentation |
+| `random_state` / `device` | — | `None` / `None` | Seed and device |
 
-- 文档：[DGPU 方法卡](../../research/method_cards/DGPU.md) · 示例：[10_self_pu.py](../../../examples/minimal/10_self_pu.py)
+- Optional Chinese research background: [DGPU method card](../../research/method_cards/DGPU.md).
 
 ## PUPipeline
 
-用法见 [howto/pipeline.md](../howto/pipeline.md)；运行示例见
-[05_recpe_pipeline.py](../../../examples/minimal/05_recpe_pipeline.py)（先验估计 + 全流程）。
+Usage: [pipeline guide](../howto/pipeline.md). Complete manual prior-estimation workflow:
+[05_recpe_pipeline.py](../../../examples/minimal/05_recpe_pipeline.py).
 
 ```python
 pipe = PUPipeline(
-    classifier="auto",          # 注册方法名 / "auto"（推荐器选算法）/ 分类器实例
-    classifier_params=None,      # 显式注册名的构造参数；auto/实例模式不可用
-    prior_estimator="pen_l1",   # "pen_l1"/"recpe"/"km1"/"km2"（后两者映射到
-                                # KernelMeanPriorEstimator）/ 估计器实例 / None
-    prior_params=None,          # 字符串名 prior_estimator 的构造参数（如 {"variant": "km2"}）；不能与 prior 实例组合
-    cv=5,                       # PU 分层 CV 折数，或自定义 splitter
-                                # （默认 cv=None → 解析为 5 折 PUStratifiedKFold）
-    metrics=DEFAULT_METRICS,    # 指标名元组，见下方指标表
-                                # （默认 metrics=None → DEFAULT_METRICS）
+    classifier="auto",          # Registry name / "auto" recommendation / classifier instance.
+    classifier_params=None,      # Constructor args for explicit names; unavailable for auto/instances.
+    prior_estimator="pen_l1",   # "pen_l1"/"recpe"/"km1"/"km2" (the last two map to
+                                # KernelMeanPriorEstimator), estimator instance, or None.
+    prior_params=None,          # Args for a named prior estimator, e.g. {"variant": "km2"}; not an instance.
+    cv=5,                       # PU-stratified folds or custom splitter.
+                                # The actual default cv=None resolves to 5-fold PUStratifiedKFold.
+    metrics=DEFAULT_METRICS,    # Metric names from the table below.
+                                # The actual default metrics=None resolves to DEFAULT_METRICS.
     random_state=42,
-    architecture="mlp",         # 深度算法架构："mlp"（表格）/ "cnn"（4-D NCHW 图像，需显式 wconpu/infomax_pu/nnpu）
-    backbone="cnn13",           # CNN 骨架：cnn13/cnn13_no_bn/resnet18/resnet50（仅 cnn 有效）
-    device=None,                # 深度分类器 torch 设备：None/"auto" 自动检测（有 GPU 用 CUDA）
-    max_epochs=None,            # 注入到构造签名接受 max_epochs 的深度方法（wconpu/self_pu/nnpu）的训练 epoch 上限
-    input_sampling="os",       # "os" 单一来源池 / "ts" 独立 P 与总体 U
+    architecture="mlp",         # "mlp" tables / "cnn" 4-D NCHW with an explicit compatible method.
+    backbone="cnn13",           # cnn13/cnn13_no_bn/resnet18/resnet50; used for CNN.
+    device=None,                # Torch device; None/"auto" selects CUDA when available, otherwise CPU.
+    max_epochs=None,            # Epoch cap forwarded to named constructors accepting max_epochs.
+    input_sampling="os",       # "os" one source pool / "ts" independent P and population U.
 )
 report = pipe.fit_evaluate(
     X,
     y_pu,
     y_true=None,
     class_prior=None,
-    sample_weight=None,         # 可选；逐 CV 训练折切片并传给最终 refit
+    sample_weight=None,         # Sliced per CV training fold and passed to final refit.
     refit=True,
-    progress_callback=None,     # 进度回调（关键阶段调用）
-    cancellation_token=None,    # 取消令牌（raise_if_cancelled 中断）
+    progress_callback=None,     # Called at workflow boundaries.
+    cancellation_token=None,    # Interrupted by raise_if_cancelled.
 )
 ```
 
-| 构造参数 | 类型 | 默认 | 说明 |
+| Constructor parameter | Type | Default | Description |
 |---|---|---|---|
-| `classifier` | `str \| BasePUClassifier` | `"auto"` | 注册名 / `"auto"`（推荐器）/ 实例 |
-| `classifier_params` | `dict \| None` | `None` | 显式注册名的构造参数（auto/实例不可用） |
-| `prior_estimator` | `str \| 实例 \| None` | `"pen_l1"` | 先验估计器（优先级见下） |
-| `prior_params` | `dict \| None` | `None` | 字符串先验名的构造参数 |
-| `cv` | `int \| splitter \| None` | `None`（→5 折） | PU 分层 CV |
-| `metrics` | `Sequence[str] \| None` | `None`（→DEFAULT_METRICS） | 指标名 |
-| `random_state` | `int \| None` | `42` | 随机种子 |
+| `classifier` | `str \| BasePUClassifier` | `"auto"` | Registry name / automatic recommendation / instance |
+| `classifier_params` | `dict \| None` | `None` | Explicit named classifier's constructor arguments; unavailable for auto/instances |
+| `prior_estimator` | `str \| instance \| None` | `"pen_l1"` | Prior estimator; see precedence below |
+| `prior_params` | `dict \| None` | `None` | Named prior estimator's constructor arguments |
+| `cv` | `int \| splitter \| None` | `None` (→5 folds) | PU-stratified CV |
+| `metrics` | `Sequence[str] \| None` | `None` (→DEFAULT_METRICS) | Metric names |
+| `random_state` | `int \| None` | `42` | Random seed |
 | `architecture` | `str` | `"mlp"` | `"mlp"` / `"cnn"` |
 | `backbone` | `str` | `"cnn13"` | `cnn13`/`cnn13_no_bn`/`resnet18`/`resnet50` |
-| `device` | `str \| None` | `None`（auto） | torch 设备 |
-| `max_epochs` | `int \| None` | `None` | 深度方法训练 epoch 上限 |
-| `input_sampling` | `str` | `"os"` | 输入采样设计：`"os"` / `"ts"` |
+| `device` | `str \| None` | `None` (auto) | Torch device |
+| `max_epochs` | `int \| None` | `None` | Epoch cap for compatible named deep methods |
+| `input_sampling` | `str` | `"os"` | Input sampling design: `"os"` / `"ts"` |
 
-`refit=False` 只计算交叉验证指标，跳过全量模型重训与模型诊断；此时
-`report.final_model` 和 `report.diagnostic` 为 `None`。该模式主要供参数搜索使用。
+`refit=False` computes CV metrics only, skipping full-data refit and model diagnostics;
+`report.final_model` and `report.diagnostic` are then None. This mode primarily supports search.
 
-`sample_weight` 必须是一维、有限、非负且至少有一个正值。非 `None` 时，pipeline 在模型
-解析后检查 `SampleWeightSupport`：只有 `supported` 能继续，`ignored` 与
-`not_implemented` 均抛 `PipelineError`。报告的
-`provenance["sample_weight"]` 保存是否提供、范围、均值和 ESS，不保存整列权重。
+`sample_weight` must be one-dimensional, finite, nonnegative, and have at least one positive
+entry. After resolving the classifier, a non-None value triggers the `SampleWeightSupport`
+check: only `supported` proceeds; `ignored` and `not_implemented` raise `PipelineError`.
+`provenance["sample_weight"]` records presence, range, mean, and ESS, not the complete vector.
 
-`provenance["architecture"]` 为 `"native_mlp"` / `"native_cnn"`；
-`provenance["backbone"]` 为 CNN 骨架名（MLP 为 `None`）；`provenance["device"]`
-保存 `{"requested", "resolved"}` 两键；`provenance["encoder"]` 为注入 encoder 的
-构造摘要（`{"backbone", "in_channels"}`，MLP 无注入时为 `None`）。
+`provenance["architecture"]` is `"native_mlp"` / `"native_cnn"`.
+`provenance["backbone"]` stores the CNN backbone name (None for MLP);
+`provenance["device"]` stores `{"requested", "resolved"}`.
+`provenance["encoder"]` summarizes the injected encoder as `{"backbone", "in_channels"}`
+(None without injection in MLP mode).
 
-### 类先验解析优先级
+### Class-prior resolution precedence
 
-| 优先级 | 来源 | 报告中的 source |
+| Priority | Source | Report source |
 |---|---|---|
-| 1 | `fit_evaluate(class_prior=...)` 显式传入 | `user` |
-| 2 | 分类器实例构造参数 `class_prior=...` | `constructor` |
-| 3 | `prior_estimator` 自动估计（默认 `"pen_l1"`） | `estimated` |
-| 4 | 方法不需要先验 | `none` |
+| 1 | Explicit `fit_evaluate(class_prior=...)` | `user` |
+| 2 | Classifier instance constructor `class_prior=...` | `constructor` |
+| 3 | Automatic `prior_estimator` estimation, default `"pen_l1"` | `estimated` |
+| 4 | Method does not need a prior | `none` |
 
-调用时的 `class_prior` 指总体先验，构造值按分类器的 `class_prior_target` 解释。
-先验估计器通过 `estimate_target` 与 `estimation_pool` 声明其标量；第三方默认目标为
-`population`。原生 U 估计按输入采样设计换算为总体值。
-训练时按分类器默认视图的目标逐折换算，目标可为 `population`、`native_unlabeled`
-或 `training_table`。PUSBKernel 另外接受 `fit(..., risk_class_prior=...)`，用于独立指定
-原生 U 风险的先验；`class_prior` 用于拼接训练表分位阈值。直接调用省略
-`risk_class_prior` 时，两个消费点沿用同一个值。
+Call-level `class_prior` targets the population; constructor values follow the classifier's
+`class_prior_target`. Prior estimators declare their scalar through `estimate_target` and
+`estimation_pool`; the default target for third-party estimators is `population`.
+Native-U estimates are converted to the population according to the input sampling design.
+Estimation runs once on the complete supplied PU data and is shared across folds; training
+converts it per fold for the classifier's default-view target: `population`, `native_unlabeled`,
+or `training_table`. This is not fold-nested prior estimation.
+PUSBKernel also accepts `fit(..., risk_class_prior=...)` to specify the native-U risk prior
+separately; `class_prior` supplies the concatenated training-table quantile threshold.
+A direct call omitting `risk_class_prior` uses the same value at both consumption points.
 
-`PriorInfo` 保留原有字段，并增加以下记录：
+`PipelineReport` JSON uses `schema_version="1.1"` for target-aware resolution and consumption.
+`PriorInfo` retains its original fields and records:
 
-本版 `PipelineReport` JSON 使用 `schema_version="1.1"`，标识带目标的先验解析与消费记录。
-
-| 字段 | 含义 |
+| Field | Meaning |
 |---|---|
-| `target` / `value` | `population` 及解析后的总体值 |
-| `input_value` / `input_target` | 原始输入或估计值及其目标 |
-| `estimation_pool` / `estimation_details` | 估计池与估计器诊断；ReCPE 含近似身份 |
-| `input_sampling` / `conversion` | OS/TS 输入设计与转换名称 |
-| `training_consumption` | 各 CV 折与 refit 的 stage/fold、P 占比及各参数的 target/value |
+| `target` / `value` | `population` and resolved population value |
+| `input_value` / `input_target` | Original input/estimate and its target |
+| `estimation_pool` / `estimation_details` | Estimation pool and diagnostics; ReCPE includes approximation identity |
+| `input_sampling` / `conversion` | OS/TS input design and conversion name |
+| `training_consumption` | CV/refit stage/fold, P fraction, and parameter target/value records |
 
-分类器构造器声明 `input_sampling` 时接收工作流的采样设计；实例携带的声明需与工作流一致。
+Constructors declaring `input_sampling` receive the workflow's design; a supplied instance's
+declaration must agree with the workflow.
 
-- `prior_estimator=None` 且方法需要先验且未提供 → 抛出 `PipelineError`。
-- 画像模块审计"先验 < 标注正样本比例"的不一致（`inconsistent_class_prior`）。
-- auto 模式先验估计失败不中断流程：降级为无先验推荐（`report.prior.degraded`）。
+- `prior_estimator=None` with a required but missing prior raises `PipelineError` for an explicit classifier. Auto can fall back to methods not requiring an external prior.
+- Default OS profiling audits a population prior below the labeled-positive fraction (`inconsistent_class_prior`); independent TS records its extra-P fraction separately.
+- In auto mode, prior-estimation failure falls back to prior-free recommendations (`report.prior.degraded`) rather than aborting.
 
-### 指标
+### Metrics
 
-`DEFAULT_METRICS = ("pu_zero_one_risk", "pu_recall", "pu_estimated_precision", "pu_auc_roc")`。
-别名：`pu_risk`、`auc`/`roc_auc`、`recall`、`precision`、`accuracy`、`f1`、
-`negative_rate`、`ap`、`bacc`、`brier`、`ece`。
+`DEFAULT_METRICS = ("pu_zero_one_risk", "pu_recall", "pu_estimated_precision", "pu_auc_roc")`.
+Aliases: `pu_risk`, `auc`/`roc_auc`, `recall`, `precision`, `accuracy`, `f1`,
+`negative_rate`, `ap`, `bacc`, `brier`, `ece`.
 
-| 指标 | 需要 | basis |
+| Metric | Required inputs | basis |
 |---|---|---|
-| `pu_recall` / `pu_negative_rate` | 仅 `y_pu` + 预测 | `pu_observed` |
-| `pu_zero_one_risk` / `pu_estimated_precision` | 预测 + 类先验 | `class_prior_dependent` |
-| `pu_auc_roc` / `average_precision` | `y_true` + 连续分数 | `supervised_oracle` |
-| `pu_accuracy` / `pu_f1` / `balanced_accuracy` | `y_true` + 预测 | `supervised_oracle` |
-| `brier_score` / `expected_calibration_error` | `y_true` + 真实 `predict_proba` | `probability_calibration` |
+| `pu_recall` / `pu_negative_rate` | `y_pu` and predictions only | `pu_observed` |
+| `pu_zero_one_risk` / `pu_estimated_precision` | Predictions and class prior | `class_prior_dependent` |
+| `pu_auc_roc` / `average_precision` | `y_true` and continuous scores | `supervised_oracle` |
+| `pu_accuracy` / `pu_f1` / `balanced_accuracy` | `y_true` and predictions | `supervised_oracle` |
+| `brier_score` / `expected_calibration_error` | `y_true` and actual `predict_proba` | `probability_calibration` |
 
-这些指标函数（含 `calibration_bucket_stats`）均可从 `pu_toolbox.metrics` 直接导入。
-缺失输入（无 `y_true`、无连续分数、无 `predict_proba`、无先验）时对应指标跳过并记录原因
-（`CVMetric.available=False`），不中断流程；`CVMetric.n_computed` 给出已计算折数
-（序列化进 `to_json()`）。
+These functions, including `calibration_bucket_stats`, are directly importable from
+`pu_toolbox.metrics`. Missing inputs (truth, continuous scores, predict_proba, or prior) make
+the corresponding metric unavailable with a recorded reason (`CVMetric.available=False`),
+without aborting. `CVMetric.n_computed` reports computed folds and is serialized in `to_json()`.
 
-### classifier 选择语义
+### Classifier selection semantics
 
-以下入口只接受主输入声明 `label_semantics="pu"` 的分类器。显式PN/PNU错配在训练前失败，
-不通过标签数值猜测输入含义。`y_true`仅用于评价，不把主输入自动切换为PN。
+These workflows accept classifiers declaring main-input `label_semantics="pu"` only.
+Explicit PN/PNU mismatches fail before training; numeric label values do not determine semantics.
+`y_true` supplies evaluation labels without switching the main input to PN.
 
-| `classifier=` | 行为 |
+| `classifier=` | Behavior |
 |---|---|
-| `"auto"`（默认） | 先估先验 → `recommend_from_profile` 推荐 → 按 rank 扫描选中第一个**可自动实例化**的候选 |
-| `"nnpu"` / `"upu"` 等注册名 | 直接使用（大小写不敏感，支持别名），使用 `classifier_params` 配置构造参数，并自动注入 `class_prior` 与 `random_state` |
-| `UPUClassifier(...)` 实例 | 原样使用（`clone` 到每折），不注入任何参数 |
+| `"auto"` (default) | Resolve prior → recommend through `recommend_from_profile` → scan ranks for the first automatically instantiable candidate |
+| Registered name such as `"nnpu"` / `"upu"` | Resolve case-insensitively with aliases; configure through `classifier_params`; inject managed arguments when accepted by the constructor |
+| Instance such as `UPUClassifier(...)` | Clone per fold, convert/set a constructor prior when present, and inject a constructed CNN encoder when supported; retain the instance's other constructor settings |
 
-构造器有必填非 `class_prior` 参数的方法（如 `"ldce"` 需要 `flip_probability`）可在
-显式名称模式下用 `classifier_params` 补齐；`"auto"` 会跳过它们并在
-`report.provenance["skipped_candidates"]` 记录原因。`class_prior`、`random_state`、
-`encoder` 为流水线管理参数，不能通过 `classifier_params` 覆盖。
+Methods with required non-`class_prior` arguments, such as `"ldce"` requiring
+`flip_probability`, accept those through `classifier_params` in explicit-name mode.
+Auto skips these methods and records reasons in `report.provenance["skipped_candidates"]`.
+`class_prior`, `random_state`, and `encoder` are managed by the workflow and cannot be overridden
+through `classifier_params`.
 
-### 深度算法与架构选择
+### Deep methods and architecture selection
 
-`architecture` / `backbone` / `device` 参数契约：
+Contracts for `architecture` / `backbone` / `device`:
 
-| 参数 | 默认 | 取值 | 语义 |
+| Parameter | Default | Values | Semantics |
 |---|---|---|---|
-| `architecture` | `"mlp"` | `"mlp"` / `"cnn"` | `"cnn"` 需显式深度分类器且其构造签名声明 `encoder` 参数；候选方法由 registry 能力声明动态生成（当前 `wconpu` / `infomax_pu` / `nnpu`，见 `list-methods` 能力列）。未声明（如 `self_pu`）、`auto` 或非深度方法配 cnn 抛 `PipelineError`；4-D 图像配 `"mlp"` 同样抛 `PipelineError`（提示同源动态候选） |
-| `backbone` | `"cnn13"` | `"cnn13"` / `"cnn13_no_bn"` / `"resnet18"` / `"resnet50"` | 仅 `architecture="cnn"` 有效；非法值抛 `ValueError` |
-| `device` | `None`（auto） | `None`/`"auto"`/`"cpu"`/`"cuda"` 等 | 透传给深度分类器（`_fresh_estimator` 按签名注入）；`None`/`"auto"` 自动检测：torch + CUDA 可用则 `"cuda"`，否则 `"cpu"` |
+| `architecture` | `"mlp"` | `"mlp"` / `"cnn"` | CNN requires an explicit deep classifier with an encoder constructor parameter and matching registry capabilities. Candidates are discovered dynamically; nnPU, WConPU, and InfoMax PU are examples, not an exhaustive list. Unsupported methods such as Self-PU, auto, or nondeep classifiers with CNN raise `PipelineError`; 4-D input with MLP also raises `PipelineError` |
+| `backbone` | `"cnn13"` | `"cnn13"` / `"cnn13_no_bn"` / `"resnet18"` / `"resnet50"` | Used for `architecture="cnn"`; invalid values raise `ValueError` |
+| `device` | `None` (auto) | `None`/`"auto"`/`"cpu"`/`"cuda"`, etc. | Forwarded by signature for constructed deep classifiers; None/auto resolves to CUDA when torch+CUDA are available, otherwise CPU. Supplied instances retain their device setting |
 
-- 深度算法接入契约：要获得 `architecture="cnn"` 支持，分类器构造签名必须声明
-  `encoder` 参数（特征提取器形态，pipeline 注入 `build_encoder` 产物，
-  `_fresh_estimator` 按签名守卫注入）；未声明时配 cnn 在构造期即被拒绝
-- 显式 `wconpu` / `infomax_pu` / `nnpu`：放行必填参数检查，`class_prior` 按
-  「显式 > 估计」顺序注入；`architecture="cnn"` 时 encoder 由 pipeline 在
-  `fit_evaluate` 内懒构建（`build_encoder("cnn", backbone=..., in_channels=...)`）
-  并注入
-- 输入维度：4-D NCHW + 显式深度分类器 + cnn → 正常（prior 估计与数据画像在
-  展平视图上进行，CV splitter 按索引切分）；4-D + mlp 或非深度分类器 →
-  `PipelineError`；2-D + cnn → `PipelineError`
-- deep + `cv>1` 时打印训练成本警告（n_splits+1 次训练），建议减少折数（`cv` 最小为 2）
-- `auto` 行为：深度方法无 GPU（`device=None`/`"auto"` 解析为 CPU）或小数据时评分低，不会被实际选中；解析为 CUDA 且数据量大时可能被推荐（其适用场景），选中后 torch 播种与训练成本警告照常生效
+- CNN integration requires an `encoder` constructor parameter accepting a feature extractor and matching native CNN / 4-D / encoder capability declarations. The pipeline injects `build_encoder` output under signature guards; unsupported paths fail during construction.
+- Compatible explicit names pass required-argument checks when supplied appropriately. The prior follows explicit input before estimation. In CNN mode, `fit_evaluate` lazily builds `build_encoder("cnn", backbone=..., in_channels=...)` and injects it.
+- Input dimensions: 4-D NCHW + explicit compatible deep classifier + CNN is accepted. Prior estimation/profiling use a flattened view, and CV splits indices. 4-D with MLP or a nondeep classifier, and 2-D with CNN, raise `PipelineError`.
+- Deep methods with `cv>1` produce a training-cost warning (n_splits+1 fits with refit). Reduce folds when appropriate; minimum cv is 2.
+- Auto uses GPU availability and data size as recommendation scoring inputs. Lower CPU/small-data scores do not categorically exclude deep methods. A selected deep method still receives torch seeding and training-cost warnings.
 
-### 错误场景
+### Error cases
 
-| 场景 | 异常 |
+| Scenario | Exception |
 |---|---|
-| 无效 classifier / prior 名 | 构造时 `PipelineError`（fail-fast） |
-| `"ldce"` 等不可自动实例化 | 构造时 `PipelineError`（提示传实例） |
-| 无正样本 / 正样本 < `MIN_POSITIVE_SAMPLES` | `ValidationError` |
-| 正样本 < CV 折数 | `ValidationError`（提示减折数） |
-| 需要先验且最终缺失 | `PipelineError` |
-| 用户传入 `class_prior` ∉ (0, 1) | `ValueError`（与 cv/metrics/architecture 等构造参数一致） |
-| 先验估计值 ∉ (0, 1) | auto：降级为无先验推荐；显式：`PipelineError` |
-| 先验估计器异常 | auto：降级（`prior.degraded` 记录）；显式：`PipelineError` |
-| 未知指标名 / 非法 CV | 构造时 `ValueError` / `TypeError` |
-| `sample_weight` 形状/数值非法 | `ValueError` |
-| 分类器忽略或未实现 `sample_weight` | `PipelineError`（不会静默训练） |
+| Invalid classifier / prior name | `PipelineError` during construction |
+| Required constructor arguments missing, e.g. ldce without flip_probability | `PipelineError` during construction; supply classifier_params or a configured instance |
+| No positives / fewer than `MIN_POSITIVE_SAMPLES` | `ValidationError` |
+| Fewer positives than CV folds | `ValidationError` suggesting fewer folds |
+| Required prior ultimately unavailable | `PipelineError` |
+| User `class_prior` outside (0,1) | `ValueError`, as for invalid constructor settings such as cv/metrics/architecture |
+| Estimated prior outside (0,1) | Auto degrades to prior-free recommendations; explicit classifier raises `PipelineError` |
+| Prior-estimator exception | Auto degrades, recording prior.degraded; explicit classifier raises `PipelineError` |
+| Unknown metric / invalid CV | `ValueError` / `TypeError` during construction |
+| Invalid sample_weight shape/values | `ValueError` |
+| Classifier ignores or does not implement sample_weight | `PipelineError`, without silent weighted-training failure |
 
-### PipelineReport（返回对象）
+### PipelineReport (return object)
 
-`fit_evaluate` 返回的 `PipelineReport` 字段：
+`fit_evaluate` returns a `PipelineReport` with:
 
-| 字段 | 类型 | 说明 |
+| Field | Type | Description |
 |---|---|---|
-| `profile` | `PUDataProfile` | 数据画像 |
-| `recommendation` | `RecommendationResult \| None` | auto 模式的推荐结果（显式分类器时为 `None`） |
-| `prior` | `PriorInfo` | 类先验（value / source / estimator / auto_selected） |
-| `cv_metrics` | `dict[str, CVMetric]` | 各指标 CV 均值 / 标准差 / 可用性 |
-| `cv_provenance` | `dict` | CV 元数据（折数等） |
-| `final_model` | estimator \| None | 全量 refit 模型（`refit=False` 时为 `None`） |
-| `diagnostic` | `PUDiagnosticReport \| None` | 结构化诊断报告（`refit=False` 时为 `None`） |
-| `issues` | `tuple[ProfileIssue, ...]` | 问题清单（error / warning 级别） |
-| `provenance` | `dict` | 全程审计（classifier / class_prior / architecture / backbone / device / encoder / sample_weight 等） |
+| `profile` | `PUDataProfile` | Data profile |
+| `recommendation` | `RecommendationResult \| None` | Auto recommendation; None for explicit classifiers |
+| `prior` | `PriorInfo` | Prior value/source/estimator/auto_selected and target provenance |
+| `cv_metrics` | `dict[str, CVMetric]` | Metric CV means / standard deviations / availability |
+| `cv_provenance` | `dict` | CV metadata, including fold count |
+| `final_model` | estimator \| None | Full-data refit model; None with refit=False |
+| `diagnostic` | `PUDiagnosticReport \| None` | Structured diagnostics; None with refit=False |
+| `issues` | `tuple[ProfileIssue, ...]` | Error/warning issues |
+| `provenance` | `dict` | Workflow audit: classifier/prior/architecture/backbone/device/encoder/sample_weight, etc. |
 
-属性与方法：`has_errors` / `has_warnings`（是否含 error / warning 级 issue）；
-`summary()` 返回紧凑可读摘要（CV 指标均值±标准差 + issues + 假设提示）。
+`has_errors` / `has_warnings` indicate issue severity. `summary()` returns a compact readable
+summary with CV means±standard deviations, issues, and assumption notes.
 
-## 分布漂移 API
+## Distribution-shift API
 
-用法与解释见[分布漂移指南](../howto/distribution_shift.md)；示例脚本见
-[11_distribution_shift.py](../../../examples/minimal/11_distribution_shift.py)、
-[12_shift_decision_tools.py](../../../examples/minimal/12_shift_decision_tools.py) 与
-[13_dynamic_joint_shift.py](../../../examples/minimal/13_dynamic_joint_shift.py)。
+Usage and interpretation: [distribution-shift guide](../howto/distribution_shift.md).
+Examples: [11_distribution_shift.py](../../../examples/minimal/11_distribution_shift.py),
+[12_shift_decision_tools.py](../../../examples/minimal/12_shift_decision_tools.py), and
+[13_dynamic_joint_shift.py](../../../examples/minimal/13_dynamic_joint_shift.py).
 
 ### `analyze_pu_shift`
 
@@ -1356,32 +1547,33 @@ report = analyze_pu_shift(
 )
 ```
 
-返回 `PUShiftReport`：
+Returns `PUShiftReport`:
 
-| 字段 | 契约 |
+| Field | Contract |
 |---|---|
-| `domain_auc` | 分层 OOF 域分类 ROC AUC，方向对称化到 `[0.5, 1]` |
-| `severity` | `low` / `moderate` / `high`，默认分界 0.60/0.75 |
-| `sample_summary` | 两域样本量、展平特征数、已标记正例率和目标 PU 可用性 |
-| `weight_summary` | 归一化权重分位数、ESS、概率裁剪率、边界率与归一化前相对质量 |
-| `adaptation_ready` | 目标 PU 已提供，且 ESS、边界率、相对质量均通过默认覆盖门槛 |
-| `source_importance_weights` | 与源域行对应、均值为 1 的边际相对权重 |
-| `issues` | `ProfileIssue` 元组，含问题码、级别、解释和行动建议 |
+| `domain_auc` | Stratified OOF domain-classification ROC AUC, direction-symmetrized into `[0.5,1]` |
+| `severity` | low / moderate / high, default boundaries 0.60/0.75 |
+| `sample_summary` | Domain sizes, flattened feature count, labeled-positive fractions, and target PU availability |
+| `weight_summary` | Normalized weight quantiles, ESS, probability-clipping rate, boundary rate, and relative mass before normalization |
+| `adaptation_ready` | Target PU supplied and ESS/boundary/relative-mass coverage gates passed |
+| `source_importance_weights` | Source-row-aligned marginal relative weights, normalized to mean one |
+| `issues` | ProfileIssue tuple with codes, severities, explanations, and actions |
 
-`report.to_dict()` / `to_json()` 不内嵌全量权重；`save(.csv)` 单独导出权重。
-`save(.json/.md)` 保存结构化或人可读报告。权重估计范围固定为
-`marginal_covariate`，不代表 `p_target(x,y)/p_source(x,y)` 联合权重。
+`report.to_dict()` / `to_json()` omit the full weight vector; `save(.csv)` exports it separately.
+`save(.json/.md)` saves structured/readable reports. Weight-estimation scope is fixed to
+`marginal_covariate`: a bounded relative transform of the marginal density ratio, not joint
+`p_target(x,y)/p_source(x,y)` weights.
 
 ### `ShiftAwarePUPipeline`
 
 ```python
 workflow = ShiftAwarePUPipeline(
-    pipeline=None,               # 可传配置好的 PUPipeline
-    classifier="elkan_noto",    # pipeline=None 时生效
+    pipeline=None,               # Optional configured PUPipeline.
+    classifier="elkan_noto",    # Used when pipeline=None.
     alpha=0.1,
     shift_cv=5,
     allow_unstable=False,
-    cv=5,                        # 其余关键字传给 PUPipeline
+    cv=5,                        # Remaining keywords pass to PUPipeline.
     random_state=42,
 )
 result = workflow.fit_evaluate(
@@ -1398,29 +1590,32 @@ result = workflow.fit_evaluate(
 )
 ```
 
-`adapt=True` 必须提供目标 PU 标签，并把漂移报告的源域权重传给 `PUPipeline`；覆盖门禁
-失败时默认抛 `PipelineError`。`adapt=False` 执行审计和未加权源域基线。
-`ShiftAwarePipelineReport` 分开保存 `shift`、`source_pipeline` 与 `target_metrics`；目标
-真值指标仍标为 `supervised_oracle`。其 `guarantee` 固定为
-`covariate_shift_only`，目标 PU 标签当前作为适配安全门和目标评估输入，不参与边际域密度比。
+`adapt=True` requires target PU labels and passes the audit's source weights to `PUPipeline`;
+coverage-gate failure raises `PipelineError` by default. `adapt=False` runs the audit and an
+unweighted source baseline. `ShiftAwarePipelineReport` separately stores `shift`,
+`source_pipeline`, and `target_metrics`; target-truth metrics remain `supervised_oracle`.
+Its guarantee is fixed to `covariate_shift_only`. Target PU labels provide an adaptation safety
+gate and target evaluation input; they do not enter marginal domain-density-ratio estimation.
 
 ### `ShiftAwarePUPipeline.compare`
 
 ```python
 comparison = workflow.compare(
     X_source, y_source_pu, X_target,
-    y_target_pu=...,              # 必须提供
+    y_target_pu=...,              # Required.
     y_true_source=None, y_true_target=None,
     class_prior=None, target_class_prior=None,
-    primary_metric=None,          # 默认取第一个可用 oracle 指标
+    primary_metric=None,          # Defaults to first available oracle metric.
     min_improvement=0.0,
 )
 ```
 
-`compare(...)` 在同一目标集运行未加权和加权两臂并返回 `ShiftComparisonReport`。报告的
-`metric_deltas[*].improvement` 已统一方向：正数总表示加权臂更好（risk 会反号）。自动
-`recommendation` 只允许使用目标真值 oracle 指标或目标类先验依赖指标；仅有 PU-observed
-指标时为 `audit_only`，覆盖门禁失败且未 override 时为 `collect_target_data`。
+Runs unweighted and weighted arms on the same target set and returns `ShiftComparisonReport`.
+`metric_deltas[*].improvement` has unified direction: positive always favors weighting (risk
+differences are negated). Automatic `recommendation` uses only target-truth oracle metrics or
+target-prior-dependent metrics. With only PU-observed metrics it is `audit_only`; failed
+coverage without override yields `collect_target_data`. Oracle-guided arm selection requires
+a designated validation/audit set; keep final test truth independent of that decision.
 
 ### `PUShiftMonitor`
 
@@ -1439,15 +1634,16 @@ window, shift = monitor.update(
 monitor.save_history("history.json")
 ```
 
-`ShiftWindow` 保存当前值、相邻窗口 delta、`alert_level` 和 `alert_codes`。窗口 ID 不允许
-重复；`load_history` 要求持久化配置与当前监控器完全一致。
+`ShiftWindow` stores current values, neighboring-window deltas, `alert_level`, and `alert_codes`.
+Window IDs must be unique; `load_history` requires an exact match between saved configuration
+and the current monitor.
 
 ### `analyze_domain_assumptions`
 
 ```python
 report = analyze_domain_assumptions(
     X_source, y_source_pu, X_target, y_target_pu,
-    source_class_prior=None, target_class_prior=None,   # 缺失时各域独立估计
+    source_class_prior=None, target_class_prior=None,   # Estimate each domain independently if absent.
     prior_estimator="pen_l1",
     prior_shift_threshold=0.05, propensity_shift_threshold=0.05,
     sensitivity_radius=0.05, bootstrap_replicates=0,
@@ -1455,48 +1651,53 @@ report = analyze_domain_assumptions(
 )
 ```
 
-分别接收源/目标特征和 PU 标签，以及可选的两个域类先验。先验缺失时每个域独立估计。
-返回 `DomainAssumptionReport`，结论为 `stable`、`class_prior_shift`、
-`labeling_mechanism_shift`、`both_shift` 或 `inconclusive`。平均标记倾向不识别 SCAR/SAR。
+Accepts source/target features and PU labels with optional domain priors. Missing priors are
+estimated independently per domain. Returns `DomainAssumptionReport`, with conclusion
+`stable`, `class_prior_shift`, `labeling_mechanism_shift`, `both_shift`, or `inconclusive`.
+Mean labeling propensity does not identify SCAR/SAR.
 
-设置 `bootstrap_replicates>=2` 后，会分别对两个域做行级非参数重采样，每轮重新运行先验
-估计器，并把 percentile 区间传播到类先验、标记率、平均倾向及三类域差值。`uncertainty`
-记录请求、成功和失败 replicate；它反映采样和估计器变化，不覆盖识别假设偏差。
+With `bootstrap_replicates>=2`, each domain receives row-level nonparametric resampling and
+prior re-estimation per replicate. Percentile intervals propagate to priors, labeling rates,
+mean propensities, and the three domain differences. `uncertainty` records requested,
+successful, and failed replicates; this reflects sampling/estimator variation, not bias from
+identifiability assumptions.
 
 ### `analyze_pu_uncertainty`
 
-对已拟合模型构建选择性预测与主动人工复核计划（`PUUncertaintyReport`）。
+Builds a selective-prediction and active human-review plan for a fitted model.
 
 ```python
 report = analyze_pu_uncertainty(
-    estimator,                        # 已拟合模型（调用 predict/predict_proba）
+    estimator,                        # Fitted model; calls predict/predict_proba.
     X,
-    *,
-    y_pu=None,                        # 提供后，标记正例不进入查询候选
-    y_true=None,                      # 提供后启用真实标签监督指标
-    min_confidence=0.5,               # 选择性预测的置信度阈值
-    query_budget=0,                   # 查询数量上限（0 = 预算内全部候选）
-    query_strategy="uncertainty",     # "uncertainty" / "shift_weighted" / "diverse_uncertainty"
-    importance_weight=None,           # shift_weighted 必需（与行对齐的权重）
+    y_pu=None,                        # Supplied labeled positives are excluded from queries.
+    y_true=None,                      # Enables supervised truth metrics when supplied.
+    min_confidence=0.5,               # Selective-prediction confidence threshold.
+    query_budget=0,                   # Maximum query count; 0 requests no queries.
+    query_strategy="uncertainty",     # "uncertainty" / "shift_weighted" / "diverse_uncertainty".
+    importance_weight=None,           # Required for shift_weighted; aligned with X rows.
     random_state=42,
 )
 ```
 
-返回 `PUUncertaintyReport`（`pu_toolbox` 公共导出，dataclass）：
+Returns `PUUncertaintyReport`, a dataclass publicly exported from `pu_toolbox`:
 
-| 字段 | 内容 |
+| Field | Contents |
 |---|---|
-| `positive_probability` | 每样本的正类概率（与行对齐） |
-| `uncertainty` | 每样本的不确定性度量（概率边际） |
-| `selective_predictions` | 选择性预测集合（低于 `min_confidence` 的样本） |
-| `query_indices` | 推荐主动复核的样本索引（按 `query_strategy` 排序） |
-| `summary` | 样本数、选择策略、预算、拒绝预测统计的摘要键值 |
-| `provenance` | 调用参数与配置记录 |
+| `positive_probability` | Row-aligned positive probabilities or probability-like scores from the model |
+| `uncertainty` | Row-aligned probability-margin uncertainty |
+| `selective_predictions` | Row-aligned 0/1 predictions, with -1 for confidence below min_confidence |
+| `query_indices` | Recommended review indices, ordered by query_strategy |
+| `summary` | Sample/abstention counts, coverage, query candidate count, requested-query result count, and selective accuracy when truth is supplied |
+| `provenance` | Method, score source, confidence threshold, query strategy, and label-exclusion settings |
 
-与行对齐的逐项数值不内嵌 `to_json()`（只存 `summary`）；CSV 序列化保留逐行
-概率、不确定性、选择性预测与查询标记。
+`importance_weight` must be finite, nonnegative, nonzero, and aligned with the rows being
+reviewed; source-row audit weights cannot replace a target-row vector.
+Probability, uncertainty, and selective-prediction arrays are omitted from `to_json()`;
+`query_indices`, summary, artifact names, and provenance remain. CSV preserves per-row
+probabilities, uncertainty, selective predictions, and query flags.
 
-### `JointShiftPUClassifier`（research）
+### `JointShiftPUClassifier` (research)
 
 ```python
 clf = JointShiftPUClassifier(
@@ -1506,12 +1707,12 @@ clf = JointShiftPUClassifier(
 clf.fit(X, y_pu, X_target=..., y_target_pu=..., class_prior=..., target_class_prior=...)
 ```
 
-从 `pu_toolbox.estimators.research` 导入。`fit` 除源域 `X/y_pu` 外还必须显式传入
-`X_target`、`y_target_pu`、`class_prior` 和 `target_class_prior`。它不在稳定注册表和
-`PUPipeline` 自动选型中；`get_pu_metadata()["guarantee"]` 固定为
-`research_joint_shift_approximation`。
+Import from `pu_toolbox.estimators.research`. Besides source X/y_pu, fit requires explicit
+`X_target`, `y_target_pu`, `class_prior`, and `target_class_prior`. It is outside the stable
+registry and Pipeline auto selection. `get_pu_metadata()["guarantee"]` is fixed to
+`research_joint_shift_approximation`.
 
-### `DynamicJointShiftPUClassifier`（research）
+### `DynamicJointShiftPUClassifier` (research)
 
 ```python
 clf = DynamicJointShiftPUClassifier(
@@ -1522,51 +1723,56 @@ clf = DynamicJointShiftPUClassifier(
 )
 ```
 
-从 `pu_toolbox.estimators.research` 导入。Torch clean-room 路径实现 Kumagai 等人 AISTATS
-2025 的式 (13)、(19)–(23) 和 Algorithm 1：权重步骤固定共享特征，仅更新有界权重头；
-分类步骤固定当前权重，更新共享特征和分类头。`training_mode="two_step"`、两个 correction
-开关用于论文式消融。作者未公开源码，因此元数据是 `clean_room_paper_objective`，不是
-`official_exact`；该方法不进入稳定注册表和 `auto`。
+Import from `pu_toolbox.estimators.research`. This Torch clean-room path implements
+Kumagai et al., AISTATS 2025, Equations (13), (19)–(23), and Algorithm 1: weight steps freeze
+shared features and update bounded weight heads; classification steps freeze current weights
+and update shared features/classifier head. `training_mode="two_step"` and both correction
+switches support paper-style ablations. The authors have not released source; metadata is
+`clean_room_paper_objective`, not `official_exact`. It stays outside the stable registry/auto.
 
-`build_joint_shift_estimator(...)` 可构造 `dynamic`、`trpu`、`tepu`、`fine_tune`、`mmd`、
-`two_step` 及三种 correction 消融。所有神经对照共用特征/分类头规模和绝对值修正 PU risk。
+`build_joint_shift_estimator(...)` builds `dynamic`, `trpu`, `tepu`, `fine_tune`, `mmd`,
+`two_step`, and three correction ablations. Neural comparisons share feature/classifier-head
+sizes and absolute-value-corrected PU risk.
 
 ## PUTuner
 
 ```python
 tuner = PUTuner(
-    classifier="nnpu",          # 必须显式注册名（"auto" 报错）
-    param_grid={...},           # ParameterGrid 展开的每个组合
-    scoring="pu_zero_one_risk", # 选择指标
-    higher_is_better=None,      # 默认仅 pu_zero_one_risk 取最小
-    metrics=None,               # 报告的指标集
-    **pipeline_params,          # cv / prior_estimator / random_state / architecture 等
+    classifier="nnpu",          # Explicit registry name required; "auto" raises an error.
+    param_grid={...},           # Each combination expanded by ParameterGrid.
+    scoring="pu_zero_one_risk", # Selection metric.
+    higher_is_better=None,      # By default only pu_zero_one_risk is minimized.
+    metrics=None,               # Reported metrics.
+    **pipeline_params,          # cv / prior_estimator / random_state / architecture, etc.
 )
 result = tuner.fit(X, y_pu, y_true=None, class_prior=None)
 ```
 
-对 `sklearn.model_selection.ParameterGrid` 展开的每个组合运行完整 `PUPipeline`。
-`pipeline_params` 可包含 `cv`、`prior_estimator`、`random_state`、`architecture` 等。
+Runs PU-stratified Pipeline CV for each `sklearn.model_selection.ParameterGrid` combination.
+`pipeline_params` accepts `cv`, `prior_estimator`, `random_state`, `architecture`, and related
+workflow settings. Trials use `refit=False`; only the selected combination receives full-data
+refit and diagnostics.
 
-返回 `TuningResult`：
+Returns `TuningResult`:
 
-| 字段 | 含义 |
+| Field | Meaning |
 |---|---|
-| `best_params` / `best_score` | 最佳有效组合与 CV 均值 |
-| `best_report` | 最佳组合的完整 `PipelineReport`，含全量重训模型 |
-| `trials` | 全部 `TuningTrial`；状态为 `ok` / `unavailable` / `failed` |
-| `scoring` | 规范化后的指标名 |
-| `higher_is_better` | 选择方向；默认仅 `pu_zero_one_risk` 取最小 |
+| `best_params` / `best_score` | Best valid combination and CV mean |
+| `best_report` | Selected combination's complete PipelineReport with full-data refit model |
+| `trials` | Every TuningTrial with status ok / unavailable / failed |
+| `scoring` | Canonical metric name |
+| `higher_is_better` | Selection direction; by default only pu_zero_one_risk is minimized |
 
-所有 trial 都无法计算选择指标时抛 `PipelineError`。完整示例见
-[模型调整指南](../howto/model_tuning.md)。
+Raises `PipelineError` if no trial can compute the selection metric. Scoring with truth-based
+metrics uses clean-label supervision; provide only permitted validation truth, keeping final
+test truth separate. Full example: [model-tuning guide](../howto/model_tuning.md).
 
 ## PUModelComparator
 
 ```python
 cmp = PUModelComparator(
-    classifiers=["nnpu", "upu"], # 至少两个显式注册名（"auto" 报错）
-    classifier_params=None,      # {name: params} 逐模型构造参数
+    classifiers=["nnpu", "upu"], # At least two explicit registry names; "auto" raises an error.
+    classifier_params=None,      # Per-model constructor arguments: {name: params}.
     scoring="pu_zero_one_risk",
     higher_is_better=None,
     metrics=None,
@@ -1575,61 +1781,65 @@ cmp = PUModelComparator(
 result = cmp.fit(X, y_pu, y_true=None, class_prior=None)
 ```
 
-在相同的 PU-aware CV 设置下比较至少两个显式注册名。返回 `ModelComparisonResult`，
-包含 `best_classifier`、`best_score`、逐模型 `trials` 和已全量拟合的 `best_report`。
-失败模型被隔离记录，非最佳模型只执行 CV。
+Compares at least two explicit registry names under the same PU-aware CV settings. Returns
+`ModelComparisonResult` with `best_classifier`, `best_score`, per-model `trials`, and a
+full-data-fitted `best_report`. Failed models are isolated and recorded; nonwinning models run
+CV only.
 
-## 进度与取消
+## Progress and cancellation
 
-`PUPipeline.fit_evaluate`、`PUTuner.fit` 和 `PUModelComparator.fit` 均接受
-`progress_callback=` 与 `cancellation_token=`。
+`PUPipeline.fit_evaluate`, `PUTuner.fit`, and `PUModelComparator.fit` accept
+`progress_callback=` and `cancellation_token=`.
 
 ```python
 token = CancellationToken()
+
 def on_progress(update: ProgressUpdate):
-    print(update.stage, update.fraction)   # 字段 stage/completed/total/message/fraction
+    print(update.stage, update.fraction)   # Fields: stage/completed/total/message/fraction
 
 report = pipe.fit_evaluate(..., progress_callback=on_progress, cancellation_token=token)
-token.cancel()                             # 线程安全的协作式取消信号
+token.cancel()                             # Thread-safe cooperative cancellation signal
 ```
 
-`ProgressUpdate` 字段：`stage` / `completed` / `total` / `message` / `fraction`（property）。
-`CancellationToken.cancel()` 在下一个安全边界抛出 `RunCancelledError`；正在执行的单次
-模型 `fit` 不会被强制终止。
+`ProgressUpdate` fields are `stage` / `completed` / `total` / `message` / `fraction` (a property).
+`CancellationToken.cancel()` sets the signal; the next safe-boundary check raises
+`RunCancelledError`. An individual model `fit` already in progress is not forcibly interrupted.
 
 ## build_encoder
 
-深度分类器的统一编码器构建入口（`pu_toolbox/estimators/deep/vision.py`，
-亦从包根 `from pu_toolbox import build_encoder` 公共导出），PUPipeline 在
-`architecture="cnn"` 时内部调用；也可手动传给分类器。
+The shared encoder builder for deep classifiers is defined in
+`pu_toolbox/estimators/deep/vision.py` and publicly exported as
+`from pu_toolbox import build_encoder`. PUPipeline calls it internally for
+`architecture="cnn"`; callers can also pass its result to a compatible classifier.
 
 ```python
 encoder = build_encoder(
     architecture,             # "mlp" | "cnn"
     *,
-    backbone="cnn13",         # "cnn13" / "cnn13_no_bn" / "resnet18" / "resnet50"（仅 cnn）
-    in_channels,              # 图像通道数（如 RGB=3）
-    normalization_mean=None,  # 每通道均值；默认 0.5
-    normalization_std=None,   # 每通道标准差；默认 0.5
+    backbone="cnn13",         # "cnn13" / "cnn13_no_bn" / "resnet18" / "resnet50" (CNN only)
+    in_channels,              # Image channel count, e.g. RGB=3
+    normalization_mean=None,  # Per-channel means; default 0.5
+    normalization_std=None,   # Per-channel standard deviations; default 0.5
 )
 ```
 
-- `"mlp"` → 返回 `None`（分类器内置 MLP 路径，表格数据）
-- `"cnn"` → 返回 `build_wconpu_backbone(...)` 图像骨干（4-D NCHW 输入，
-  内嵌通道标准化）
-- 非法 `architecture` → `ValueError`
+- `"mlp"` returns `None`, selecting the classifier's built-in MLP path for tabular data.
+- `"cnn"` returns a `build_wconpu_backbone(...)` image backbone for 4-D NCHW input,
+  including channel normalization.
+- An invalid `architecture` raises `ValueError`.
 
 ## profile_pu_data
 
-用法见 [howto/data_profiling.md](../howto/data_profiling.md)；示例：
-[07_data_profiling.py](../../../examples/minimal/07_data_profiling.py)。
+Usage: [data profiling](../howto/data_profiling.md). Executable example:
+[07_data_profiling.py](../../../examples/minimal/07_data_profiling.py).
 
 ```python
 report = profile_pu_data(
     X,
     y_pu,
-    y_true=None,               # 提供后启用可识别的审计模式
+    y_true=None,               # Supplying truth enables identifying audit evidence.
     class_prior=None,
+    input_sampling="os",      # Same-pool OS or independent P/population-U TS.
     min_labeled_positives=30,
     max_unlabeled_to_positive=100.0,
     low_variance_threshold=1e-12,
@@ -1639,224 +1849,240 @@ report = profile_pu_data(
 )
 ```
 
-所有 `y_pu == 1` 的样本必须在 `y_true` 中也是正类，否则接口拒绝输入。
+Every observation with `y_pu == 1` must also be positive in supplied `y_true`;
+otherwise the interface rejects the input. `input_sampling="os"` selects same-pool OS
+semantics; `"ts"` selects independent P and
+population-mixture U. Only OS interprets the labeled fraction divided by the population
+`class_prior` as an implied labeling frequency. TS records the extra-P table fraction
+and sets `implied_label_frequency=None`.
 
-### 返回 PUDataProfile
+### Returned PUDataProfile
 
-| 字段 | 内容 |
+| Field | Contents |
 |---|---|
-| `summary` | 样本数、特征数、已标正例数、未标记数、PU 比例、稀疏性、类先验及隐含标记频率 |
-| `feature_statistics` | 缺失/无穷值数量、常数列和低方差列索引 |
-| `selection_diagnostic` | AUC、状态、证据来源、可识别性、实际折数和评估样本数 |
-| `issues` | 带稳定 `code`、严重级别、解释和行动建议的问题列表 |
-| `assumption_hints` | 对 SCAR/SAR、类先验依赖和结果边界的说明 |
+| `summary` | Sample and feature counts, labeled-positive and unlabeled counts, PU ratio, sparsity, class prior, and implied labeling frequency |
+| `feature_statistics` | Missing/infinite-value counts and indices of constant and low-variance columns |
+| `selection_diagnostic` | AUC, status, evidence source, identifiability, actual fold count, and evaluation sample count |
+| `issues` | Issues with stable `code`, severity, explanation, and suggested action |
+| `assumption_hints` | Notes on SCAR/SAR, prior dependence, and interpretation limits |
 
-辅助接口：`report.has_errors` / `report.has_warnings` / `report.format_text()` / `report.to_dict()`。
+Helpers: `report.has_errors` / `report.has_warnings` / `report.format_text()` / `report.to_dict()`.
 
-`selection_diagnostic["status"]` 取值：`plausible`（CV AUC 不高于阈值）、`at_risk`
-（AUC 高于阈值）、`inconclusive`（某一组少于两个样本，或存在非有限特征值）。
+`selection_diagnostic["status"]` is `plausible` when CV AUC does not exceed the threshold,
+`at_risk` when AUC exceeds it, or `inconclusive` when a group has fewer than two samples or
+features contain nonfinite values. Without audited truth, observed-mixture evidence does not
+identify SCAR versus SAR; `plausible` is not proof of SCAR.
 
-### 问题代码
+### Issue codes
 
-| Code | 级别 | 建议 |
+| Code | Severity | Suggested action |
 |---|---|---|
-| `no_labeled_positives` | error | 检查标签编码或收集可信正例 |
-| `no_unlabeled_samples` | error | 改用监督学习流程或补充未标记总体 |
-| `missing_features` / `infinite_features` | error | 在仅由训练折拟合的 pipeline 中清理或插补 |
-| `few_labeled_positives` | warning | 使用重复验证、置信区间并尽量补充正例 |
-| `extreme_pu_imbalance` | warning | 使用 PU 分层切分和抗不平衡指标 |
-| `constant_features` | warning | 在训练 pipeline 内删除常数列 |
-| `high_dimensional_data` | warning | 使用正则化模型，避免在全数据上预处理 |
-| `inconsistent_class_prior` | warning | 复核类先验、采样总体和标签定义 |
-| `sar_signal` | warning | 审计正例支持 SAR；优先评估 PUSB/LBE 并做敏感性分析 |
-| `observed_selection_signal` | info | 只有非识别性信号；补充审计或标记策略信息 |
-| `low_variance_features` | info | 复核特征缩放；低方差列可能不携带信号 |
-| `selection_diagnostic_inconclusive` | info | 评估组样本不足或特征非有限；补充审计或可信正例标签 |
+| `no_labeled_positives` | error | Check label encoding or collect trusted positives |
+| `no_unlabeled_samples` | error | Use supervised learning or add unlabeled population data |
+| `missing_features` / `infinite_features` | error | Clean or impute within a pipeline fitted only on the training fold |
+| `few_labeled_positives` | warning | Use repeated validation and confidence intervals; collect more positives where possible |
+| `extreme_pu_imbalance` | warning | Use PU-stratified splits and imbalance-aware metrics |
+| `constant_features` | warning | Remove constant columns within the training pipeline |
+| `high_dimensional_data` | warning | Use regularized models and avoid preprocessing on all data |
+| `inconsistent_class_prior` | warning | Review the prior, sampling population, and label definitions |
+| `sar_signal` | warning | Audited positives support SAR; prioritize PUSB/LBE evaluation and sensitivity analysis |
+| `observed_selection_signal` | info | Evidence is non-identifying; obtain an audit or labeling-policy information |
+| `low_variance_features` | info | Review feature scaling; low-variance columns may carry little signal |
+| `selection_diagnostic_inconclusive` | info | Evaluation groups are too small or features are nonfinite; obtain an audit or trusted positive labels |
 
 ## recommend_methods / recommend_from_profile
 
-用法与决策原理见 [concepts/method_selection.md](../concepts/method_selection.md)。
+Usage and selection rationale: [method selection](../concepts/method_selection.md).
 
 ```python
 result = recommend_methods(
     X, y_pu,
-    scenario=None,       # Scenario 或字符串，如 "case_control"
-    assumption=None,     # Assumption 或字符串，如 "scar"
-    class_prior=None,    # 已知 P(Y=1)；None 时排除需先验的方法
+    scenario=None,       # Scenario or a string, e.g. "case_control"
+    assumption=None,     # Assumption or a string, e.g. "scar"
+    class_prior=None,    # Known P(Y=1); None excludes methods requiring a prior.
     has_gpu=False,
     top_k=5,
     random_state=42,
-    config=None,         # ScoringConfig；默认 DEFAULT_CONFIG（从 pu_toolbox.advisor 导出）
+    config=None,         # ScoringConfig; defaults to DEFAULT_CONFIG exported by pu_toolbox.advisor.
 )
 
 result = recommend_from_profile(
-    profile,             # 已有 PUDataProfile，跳过重复 profiling
+    profile,             # Existing PUDataProfile; skips repeated profiling.
     scenario=None, assumption=None, class_prior=None,
-    class_prior_source=None,  # 先验来源说明（如 "user"/"estimated"），只影响 global-warning 措辞，不写入 provenance
+    class_prior_source=None,  # e.g. "user"/"estimated"; affects global-warning wording, not provenance.
     has_gpu=False, top_k=5, config=None,
 )
 ```
 
-返回 `RecommendationResult`：`candidates`（`MethodCandidate`：name/score/rank/reasons/warnings/metadata）、
-`filters_applied`、`global_warnings`、`provenance`。导出：`result.to_json()` / `to_markdown()` / `save(path)`。
+Returns `RecommendationResult` with `candidates` (`MethodCandidate` fields:
+name/score/rank/reasons/warnings/metadata), `filters_applied`, `global_warnings`, and
+`provenance`. Export with `result.to_json()` / `to_markdown()` / `save(path)`.
 
-### ScoringConfig（可定制评分权重）
+### ScoringConfig: configurable scoring weights
 
-`recommend_methods` / `recommend_from_profile` 的 `config` 参数（默认 `DEFAULT_CONFIG`）。
-7 个 `*_max` 是各维度的归一化锚点（`raw / max * 100` 的分母）：
+The `config` argument of `recommend_methods` / `recommend_from_profile` defaults to
+`DEFAULT_CONFIG`. The seven `*_max` fields are the scoring dimensions' anchors; their sum
+`max_raw_score` is the denominator in `raw / max_raw_score * 100`:
 
-| 字段 | 默认 | 说明 |
+| Field | Default | Meaning |
 |---|---|---|
-| `assumption_max` | `30.0` | 假设匹配维度上限 |
-| `maturity_max` | `20.0` | 成熟度维度上限 |
-| `source_max` | `15.0` | 源码状态维度上限 |
-| `scale_max` | `20.0` | 数据规模维度上限 |
-| `gpu_max` | `5.0` | GPU 可用性维度上限 |
-| `labeled_pos_max` | `10.0` | 标记正例充足度维度上限 |
-| `cost_max` | `10.0` | 训练成本维度上限 |
-| `maturity_scores` | `{stable:20, research:12, experimental:5}` | 成熟度分级得分 |
-| `source_scores` | `{official_exact:15, official_bundle:12, official_related:9, third_party_only:6, not_found:3, unknown:1}` | 源码状态分级得分 |
-| `small_data_threshold` | `1000` | 小数据规模阈值 |
-| `large_data_threshold` | `10000` | 大数据规模阈值 |
+| `assumption_max` | `30.0` | Maximum assumption-match score |
+| `maturity_max` | `20.0` | Maximum maturity score |
+| `source_max` | `15.0` | Maximum source-status score |
+| `scale_max` | `20.0` | Maximum data-scale score |
+| `gpu_max` | `5.0` | Maximum GPU-availability score |
+| `labeled_pos_max` | `10.0` | Maximum labeled-positive sufficiency score |
+| `cost_max` | `10.0` | Maximum training-cost score |
+| `maturity_scores` | `{stable:20, research:12, experimental:5}` | Scores by maturity level |
+| `source_scores` | `{official_exact:15, official_bundle:12, official_related:9, third_party_only:6, not_found:3, unknown:1}` | Scores by source status |
+| `small_data_threshold` | `1000` | Small-data threshold |
+| `large_data_threshold` | `10000` | Large-data threshold |
 
-`max_raw_score` = 7 个 `*_max` 之和；`__post_init__` 校验 `maturity_scores`/`source_scores`
-各值不超对应 `*_max`，防止评分越出 0-100 契约。
+`max_raw_score` is the sum of the seven `*_max` fields. `__post_init__` checks that
+`maturity_scores` / `source_scores` values do not exceed their corresponding maxima,
+keeping scores within the 0–100 contract.
 
-## 数据生成
+## Data generation
 
-从 `pu_toolbox.preprocessing` 导入下列入口。用法见
-[SCAR/SAR 模拟](../howto/sar_simulation.md)和 [OS/TS 采样](../howto/pu_sampling.md)；
-示例：[06](../../../examples/minimal/06_sar_simulation.py)、
-[15](../../../examples/minimal/15_pu_sampling.py)。
+Import these functions from `pu_toolbox.preprocessing`. Usage:
+[SCAR/SAR simulation](../howto/sar_simulation.md) and [OS/TS sampling](../howto/pu_sampling.md).
+Examples: [06](../../../examples/minimal/06_sar_simulation.py) and
+[15](../../../examples/minimal/15_pu_sampling.py).
 
-| 函数 | 签名与返回 |
+| Function | Signature and return value |
 |---|---|
-| `make_sar_propensity` | `(X, y_true, *, mechanism="linear", label_frequency=0.5, strength=1.0, feature_weights=None) -> propensity`：逐样本标记倾向 `P(S=1|Y,X)`，真实负类位置固定为 0 |
-| `make_sar_labels` | `(X, y_true, *, mechanism="linear", label_frequency=0.5, strength=1.0, feature_weights=None, ensure_labeled=True, random_state=None, return_propensity=False) -> y_pu`；`return_propensity=True` 时返回 `(y_pu, propensity)` |
+| `make_sar_propensity` | `(X, y_true, *, mechanism="linear", label_frequency=0.5, strength=1.0, feature_weights=None) -> propensity`: per-sample labeling propensity `P(S=1|Y,X)`; true-negative entries are fixed at 0 |
+| `make_sar_labels` | `(X, y_true, *, mechanism="linear", label_frequency=0.5, strength=1.0, feature_weights=None, ensure_labeled=True, random_state=None, return_propensity=False) -> y_pu`; returns `(y_pu, propensity)` when `return_propensity=True` |
 | `make_sar_dataset` | `(n_samples=1000, *, n_features=5, class_prior=0.3, separation=2.0, mechanism=None, label_frequency=0.5, strength=1.0, feature_weights=None, ensure_labeled=True, random_state=None) -> (X, y_pu, y_true, propensity)` |
-| `make_scar_labels` | `(y_true, c=0.5, random_state=None) -> y_pu`：同池正类定额均匀无放回，`max(1, round(c*n_pos))`；无正类时返回全 U |
-| `make_fixed_count_labels` | `(y_true, n_labeled, random_state=None) -> y_pu`：同池正类均匀无放回，保留全部输入行序 |
-| `make_pu_labels` | `(y_true, mechanism="scar", c=None, n_labeled=None, random_state=None) -> y_pu`：scar 用 c，fixed_count 用 n_labeled |
-| `make_case_control_labels` | `(y_true, n_labeled, random_state=None) -> y_pu`：定额标记兼容名字，发出 FutureWarning，计划 2.0 移除 |
-| `make_scar_dataset` | `(n=100, c=0.5, n_features=5, separation=4.0, random_state=None) -> (X, y_pu, y_true)`：每类 n 个样本，CLI `make-demo-data` 使用 |
-| `make_gaussian_case_control_data` | `(n_p=50, n_u=100, *, class_prior=0.5, n_features=5, separation=2.0, random_state=None) -> (X, y_pu, y_true, metadata)`：独立 TS 的高斯 P 与总体混合 U |
-| `make_gaussian_pu_data` | `(n_p=50, n_u=100, n_features=5, separation=2.0, random_state=None) -> (X, y_pu, class_prior)`：全部生成正类可见，U 来自负类；第三项为拼接表真实正类比例 |
+| `make_scar_labels` | `(y_true, c=0.5, random_state=None) -> y_pu`: same-pool fixed-count uniform sampling of positives without replacement, `max(1, round(c*n_pos))`; returns all U if there are no positives |
+| `make_fixed_count_labels` | `(y_true, n_labeled, random_state=None) -> y_pu`: same-pool uniform sampling of positives without replacement, preserving all input row order |
+| `make_pu_labels` | `(y_true, mechanism="scar", c=None, n_labeled=None, random_state=None) -> y_pu`: scar uses c; fixed_count uses n_labeled |
+| `make_case_control_labels` | `(y_true, n_labeled, random_state=None) -> y_pu`: compatibility name for fixed-count labeling; emits FutureWarning and is scheduled for removal in 2.0 |
+| `make_scar_dataset` | `(n=100, c=0.5, n_features=5, separation=4.0, random_state=None) -> (X, y_pu, y_true)`: n samples per class; used by CLI `make-demo-data` |
+| `make_gaussian_case_control_data` | `(n_p=50, n_u=100, *, class_prior=0.5, n_features=5, separation=2.0, random_state=None) -> (X, y_pu, y_true, metadata)`: independent TS Gaussian P and population-mixture U |
+| `make_gaussian_pu_data` | `(n_p=50, n_u=100, n_features=5, separation=2.0, random_state=None) -> (X, y_pu, class_prior)`: all generated positives are visible and U comes from negatives; the third value is the true positive proportion of the concatenated table |
 
-`make_fixed_count_labels` 接受一维真实二元标签；`n_labeled` 是 `[1,n_positive]` 内整数，
-接受 `numpy.integer`，拒绝 bool 和浮点数。全部为正类的输入也可定额标记。
-旧别名延续双类别输入校验；分派器中的 `mechanism="case_control"` 使用同一兼容入口。
+`make_fixed_count_labels` accepts one-dimensional true binary labels. `n_labeled` must be
+an integer in `[1,n_positive]`; `numpy.integer` is accepted, while bool and floating-point
+values are rejected. All-positive input can also receive fixed-count labeling.
+Legacy aliases retain two-class input validation; dispatcher `mechanism="case_control"`
+uses the same compatibility entry point.
 
-`make_gaussian_case_control_data` 中 `n_p/n_u/n_features` 为正整数，bool 除外；
-`class_prior` 是 `[0,1]` 内有限实数，`separation` 是非负有限实数，二者拒绝 bool 和字符串。
-每个 U 样本先独立抽取真实类别，再从对应高斯条件分布抽取特征。
-输出行序为 P 后 U；`y_true` 用于合成审计与评测。
-`metadata` 字段为 `input_sampling="ts"`、`sampling_policy="independent_generative"`、
-`population_class_prior`、`unlabeled_class_prior`、`training_class_prior`、
-`n_positive`、`n_unlabeled`、`source_distribution`、`sample_ids`、`random_state`。
-`source_distribution` 记录 family、positive_mean、negative_mean、identity covariance 与 n_features；
-`sample_ids` 为当前输出唯一的 `positive:i` / `population:i` 抽样事件身份。
-`random_state` 接受整数、RandomState 或 None；元数据仅在整数 seed 时记录该数值。
+For `make_gaussian_case_control_data`, `n_p/n_u/n_features` are positive integers excluding
+bool. `class_prior` is a finite real in `[0,1]`, and `separation` is a finite nonnegative real;
+both reject bool and strings. Each U sample's true class is drawn independently, then its
+features are drawn from the corresponding Gaussian conditional distribution.
+Output rows are ordered P then U; `y_true` supports synthetic audits and evaluation.
+`metadata` contains `input_sampling="ts"`, `sampling_policy="independent_generative"`,
+`population_class_prior`, `unlabeled_class_prior`, `training_class_prior`,
+`n_positive`, `n_unlabeled`, `source_distribution`, `sample_ids`, and `random_state`.
+`source_distribution` records family, positive_mean, negative_mean, identity covariance,
+and n_features. `sample_ids` are draw identities `positive:i` / `population:i`, unique within
+this output. `random_state` accepts an integer, RandomState, or None; metadata records a
+numeric seed only when an integer was supplied.
 
-- `mechanism`：`"scar"` / `"linear"` / `"nonlinear"`（定义见 [concepts/scar_sar.md](../concepts/scar_sar.md)）；
-  不传默认 `"linear"`（SAR，标记依赖特征）并发 `UserWarning`；类先验估计器假设 SCAR，
-  SCAR 场景需显式 `mechanism="scar"`。
-- `label_frequency`：正类 propensity 的目标均值（校准）；实际标记率由抽样结果计算。
-- `make_sar_labels` 默认 `ensure_labeled=True`：小样本抽样未选中任何正类时选
-  propensity 最高的真实正类，保证下游可训练。
-- CLI `make-demo-data` 的默认分离度为 1.0；直接调用 `make_scar_dataset` 的默认值为 4.0。
+- `make_sar_dataset` accepts `mechanism="scar"` / `"linear"` / `"nonlinear"`; see
+  [SCAR/SAR](../concepts/scar_sar.md) for definitions. Omitting it selects `"linear"`
+  (feature-dependent SAR) and emits `UserWarning`. Class-prior estimators assume SCAR;
+  explicitly use `mechanism="scar"` for that setting.
+- `label_frequency` is the calibrated target mean positive-class propensity; compute the
+  realized labeling rate from the sampled labels.
+- `make_sar_labels` defaults to `ensure_labeled=True`: if a small-sample draw labels no
+  positive, it labels the highest-propensity true positive so downstream training can proceed.
+- CLI `make-demo-data` defaults to separation 1.0; direct `make_scar_dataset` defaults to 4.0.
 
 ## analyze_pu_sensitivity
 
-用法见 [howto/sensitivity_analysis.md](../howto/sensitivity_analysis.md)；示例：
-[09_sensitivity_analysis.py](../../../examples/minimal/09_sensitivity_analysis.py)。
+Usage: [sensitivity analysis](../howto/sensitivity_analysis.md). Executable example:
+[09_sensitivity_analysis.py](../../../examples/minimal/09_sensitivity_analysis.py).
 
 ```python
 analysis = analyze_pu_sensitivity(
     y_valid,
-    y_pred,                              # 必须 {0,1}
-    scores=None,                         # 有限一维数组；0 为阈值计算 PU zero-one risk
-    class_priors=None,                   # 每项在 (0, 1)
-    label_propensities=None,             # 每项在 (0, 1]
+    y_pred,                              # Must use {0,1}.
+    scores=None,                         # Finite 1-D array; zero is the PU zero-one risk threshold.
+    class_priors=None,                   # Each value in (0, 1).
+    label_propensities=None,             # Each value in (0, 1].
 )
 ```
 
-`class_priors` 与 `label_propensities` 至少提供一个；`y_pu` 必须同时包含
-labeled-positive 和 unlabeled 组。返回 `PUSensitivityAnalysis`，每点含：
+Supply at least one of `class_priors` and `label_propensities`; `y_pu` must contain both
+labeled-positive and unlabeled groups. Returns `PUSensitivityAnalysis`, with each point containing:
 
-| 字段 | 含义 |
+| Field | Meaning |
 |---|---|
-| `axis`, `value` | 当前扫动的参数及其假定值 |
-| `class_prior` | 假定或由 `q/c̄` 推出的类先验 |
-| `label_propensity` | 假定或由 `q/π` 推出的平均 propensity |
-| `is_consistent` | 是否满足概率边界和观测恒等式 |
-| `consistency_reason` | 不一致时的直接原因 |
+| `axis`, `value` | Parameter being scanned and its assumed value |
+| `class_prior` | Assumed class prior or value implied by `q/c̄` |
+| `label_propensity` | Assumed mean propensity or value implied by `q/π` |
+| `is_consistent` | Whether probability bounds and the observational identity hold |
+| `consistency_reason` | Direct explanation of an inconsistency |
 | `pu_estimated_precision` | `min(π·Recall̂_P/P̂(Ŷ=1), 1)` |
-| `pu_zero_one_risk` | `2π·FNR̂_P + mean_all(score>0) − π`（OS） |
+| `pu_zero_one_risk` | `2π·FNR̂_P + mean_all(score>0) − π` (OS) |
 
-`metric_ranges` 仅汇总 `is_consistent=True` 且指标可用的点。导出：
-`analysis.to_frame(axis=...)` / `analysis.save(path)`（JSON 严格模式，无 NaN/Infinity）。
+`metric_ranges` summarizes only consistent points with available metrics. Export with
+`analysis.to_frame(axis=...)` / `analysis.save(path)` (strict JSON without NaN/Infinity).
 
 ## build_diagnostic_report
 
-用法见 [howto/diagnostic_reports.md](../howto/diagnostic_reports.md)；示例：
-[08_diagnostic_report.py](../../../examples/minimal/08_diagnostic_report.py)。三种模式：
+Usage: [diagnostic reports](../howto/diagnostic_reports.md). Executable example:
+[08_diagnostic_report.py](../../../examples/minimal/08_diagnostic_report.py). Three input modes:
 
-`input_sampling="os"`（默认）使用完整输入表评估总体风险与精度；`"ts"` 使用原生 U，
-oracle 指标也在 U 行上评估。`profile_pu_data` 同样接受 `input_sampling`，TS 的
-`implied_label_frequency` 为 `None`。
+`input_sampling="os"` (default) uses the complete input table for population risk and precision;
+`"ts"` uses native U, including for oracle metrics. `profile_pu_data` also accepts
+`input_sampling`; TS sets `implied_label_frequency` to `None`.
 
-直接调用 `pu_zero_one_risk(..., input_sampling="ts")` 保留原生 U 公式默认值；
-`pu_estimated_precision(..., input_sampling="os")` 保留完整输入表默认值。
-工作流与诊断显式传入同一采样设计。
+Direct `pu_zero_one_risk(..., input_sampling="ts")` retains its native-U default formula;
+`pu_estimated_precision(..., input_sampling="os")` retains its complete-table default.
+Workflows and diagnostics pass the same sampling design explicitly.
 
 ```python
-# 纯数据（只运行 profile_pu_data；预测类指标 basis=unavailable）
+# Data only: runs profile_pu_data; prediction-based metrics have basis=unavailable.
 report = build_diagnostic_report(X, y_pu, class_prior=0.30, random_state=42)
 
-# 已拟合 estimator（调用 predict，优先 decision_function，回退 predict_proba[:, 1]；
-# 不调用 fit；未拟合 estimator 抛 ValueError）
+# Fitted estimator: calls predict, preferring decision_function and falling back to predict_proba[:, 1].
+# Does not call fit; an unfitted estimator raises ValueError.
 report = build_diagnostic_report(X_valid, y_valid, estimator=classifier,
                                  class_prior=0.30)
 
-# 显式输出（estimator 与 y_pred/scores 互斥）
+# Explicit outputs: estimator and y_pred/scores are mutually exclusive.
 report = build_diagnostic_report(X_valid, y_valid, y_pred=predictions,
                                  scores=decision_scores, class_prior=0.30)
 ```
 
-`y_true`（可选）：启用可识别的 selection-dependence 检查并计算
-`accuracy`/`f1`/`roc_auc`（标为 `supervised_oracle`）；不会传给 estimator。
+Optional `y_true` enables identifying selection-dependence checks and computes
+`accuracy`/`f1`/`roc_auc`, labeled `supervised_oracle`. It is not passed to the estimator.
 
-### 指标证据级别
+### Metric evidence levels
 
-| `basis` | 指标来源 | 是否需要额外假设 |
+| `basis` | Metric inputs | Additional assumptions |
 |---|---|---|
-| `pu_observed` | PU 标签和模型预测 | 不需要真实标签 |
-| `class_prior_dependent` | PU 标签、预测和类先验 | 数值随类先验改变 |
-| `supervised_oracle` | 真实标签和预测/分数 | 仅用于有真值评价 |
-| `unavailable` | 输入不足或数值无效 | `reason` 解释缺失原因 |
+| `pu_observed` | PU labels and model predictions | No true labels required |
+| `class_prior_dependent` | PU labels, predictions, and class prior | Values change with the prior |
+| `supervised_oracle` | True labels and predictions/scores | Only for evaluation with truth |
+| `unavailable` | Insufficient inputs or invalid numeric values | `reason` explains the missing value |
 
-固定指标：`labeled_positive_recall` / `unlabeled_negative_rate` / `predicted_positive_rate`
-（`pu_observed`）；`pu_estimated_precision` / `pu_zero_one_risk`
-（`class_prior_dependent`）；`accuracy` / `f1` / `roc_auc`（`supervised_oracle`）。
+The fixed metrics are `labeled_positive_recall` / `unlabeled_negative_rate` /
+`predicted_positive_rate` (`pu_observed`); `pu_estimated_precision` / `pu_zero_one_risk`
+(`class_prior_dependent`); and `accuracy` / `f1` / `roc_auc` (`supervised_oracle`).
 
-### 报告问题代码（模型输出检查）
+### Report issue codes: model-output checks
 
-| Code | 级别 | 说明 |
+| Code | Severity | Meaning |
 |---|---|---|
-| `constant_predictions` | warning | 全部样本被预测为同一类；复核阈值、先验和收敛状态 |
-| `nonfinite_scores` | error | 分数包含 `NaN/inf`；监督 AUC 被标为不可用 |
-| `constant_scores` | warning | 模型没有提供排序信息；检查训练和特征变化 |
+| `constant_predictions` | warning | Every sample is assigned the same class; review the threshold, prior, and convergence |
+| `nonfinite_scores` | error | Scores contain `NaN/inf`; supervised AUC is marked unavailable |
+| `constant_scores` | warning | The model provides no ranking information; check training and feature variation |
 
-`PUDiagnosticReport` 顶层 `schema_version` 当前为 `1.0`；`save()` 按 `.json`/`.md` 后缀推断格式，
-JSON 严格编码（未定义值转 `null`）。
+`PUDiagnosticReport` currently has top-level `schema_version="1.0"`. `save()` infers format
+from `.json`/`.md` suffixes. JSON encoding is strict, converting undefined values to `null`.
 
-## 实验层（experiment）
+## Experiment layer (experiment)
 
-### 四角色运行与策略注入
+### Four-role execution and strategy injection
 
-上手流程与生成器、训练器、选模策略的扩展示例见
-[DIY 实验教程](../howto/custom_experiments.md)，可运行源码为
-[14_diy_experiment.py](../../../examples/minimal/14_diy_experiment.py)。
+For an introduction and examples extending generators, trainers, and selection strategies,
+see [custom experiments](../howto/custom_experiments.md) and the executable
+[14_diy_experiment.py](../../../examples/minimal/14_diy_experiment.py).
 
 ```python
 ExperimentRunner(
@@ -1866,227 +2092,287 @@ ExperimentRunner(
 runner.fit(model, train, pu_val, clean_val, test) -> RunResult
 ```
 
-`train`、`pu_val`、`clean_val`、`test` 均为 `view="clean"` 的 `DatasetPart`，
-输入真实 0/1 标签与互不重叠的全局样本索引；test 设置 `for_selection=False`。
-默认生成器为 `SCARGenerator()`，默认选模策略为 `[ProtocolPA(), ProtocolOA()]`。
-`generator` 和 `protocols` 接受策略实例；训练器经 `config["trainer"]` 注入实例，
-默认 `DeepFitTrainer()`。候选参数经 `config["candidates"]` 提供，默认 `[{}]`。
-总体先验由 `class_prior` 或 `config["split_ref"]["class_prior"]["population"]` 提供给 PA。
+`train`, `pu_val`, `clean_val`, and `test` are `DatasetPart` objects with `view="clean"`,
+true 0/1 labels, and disjoint global sample indices. Set `for_selection=False` for test.
+The default generator is `SCARGenerator()`; the default selectors are
+`[ProtocolPA(), ProtocolOA()]`. `generator` and `protocols` accept strategy instances.
+Inject a trainer instance through `config["trainer"]`; the default is `DeepFitTrainer()`.
+Supply candidate parameters through `config["candidates"]`, default `[{}]`.
+PA receives the population prior from `class_prior` or
+`config["split_ref"]["class_prior"]["population"]`.
 
-扩展策略接口从 `pu_toolbox.experiment.protocols` 导入 `Generator`、`Trainer`、
-`SelectionProtocol`；轨迹和选择记录从 `pu_toolbox.experiment.tracking` 导入
-`EpochRecord`、`RunTrajectory`、`SelectionArtifact`、`RunResult`。
-普通自定义 selector 接收生成后的 pu_val；继承 `ProtocolOA` 的 selector 接收 clean_val。
-返回的 `SelectionArtifact.protocol` 须与策略 `name` 一致。
+Import extension interfaces `Generator`, `Trainer`, and `SelectionProtocol` from
+`pu_toolbox.experiment.protocols`. Import trajectory/selection records `EpochRecord`,
+`RunTrajectory`, `SelectionArtifact`, and `RunResult` from `pu_toolbox.experiment.tracking`.
+An ordinary custom selector receives generated pu_val; one inheriting `ProtocolOA` receives
+clean_val. The returned `SelectionArtifact.protocol` must match the strategy's `name`.
 
-`RunResult` 提供 `selections`、`test_metrics`、`manifest`、`failures`、`resources` 与
-`selected_models`。经典模型后续预测须复用所选阈值及验证侧分数变换；
-示例的 `predict_selected` 展示了完整过程。
+`RunResult` provides `selections`, `test_metrics`, `manifest`, `failures`, `resources`, and
+`selected_models`. Continued prediction with a classical model must reuse the selected threshold
+and validation-side score transform; the example's `predict_selected` implements that process.
 
-### 方法专用训练适配器
+### Method-specific training adapters
 
-2026-10-17 独立探索适配器（不改变 frozen Survey/Pipeline/CLI）：
-`pu_toolbox.experiment.cvir_adapter.CVIRKnownPriorTrainer` 将 CVIR 的显式 α_U/来源
-与 PA 总体 π 分开，拒绝校准 TS/SAR；`CVIRClassifier.input_sampling="ts"` 只表示
-直接提供原生独立 P/边缘 U，不是 runner 风险校准。
-2026-10-22 新增 `CVIRPopulationPriorTrainer(population_prior_source=...)`，独立支持 SCAR
-OS/TS-compatible 工程双轨：构造 α_U/source 必须为空，由适配器按实际 PU 计数换算 OS
-风险先验，校准 TS 则绑定 π。总体 π 不传入 estimator 的 fit；实际先验/公式/计数/来源
-写 manifest，构造参数在 fit 后恢复。必须提供 checkpoint 字节上界，拒绝正式 Survey/SAR。
-详见[校准接线与边界](../../research/method_cards/CVIR.md)。
-`pu_toolbox.experiment.pulns_adapter.PULNSExtraSupportTrainer` 要求独立带标签支持集，
-训练前核实际四角色/先验估计/support IDs 及适用分组，显著记录额外监督，只允许终点 OA。
-还要求 support_origin/original_role_counts（carved 时）与 support_source_verified/receipt；
-逐角色记录 original/remaining/reduced 池效应，train 减少须与 support_removed_from_train
-一致，默认来源为未核实调用方声明。
-缺来源/预算/身份或 ADNI 组证据时拒绝；不隐式挪用验证/测试。
+The independent exploratory adapters do not modify the locked Survey/Pipeline/CLI contracts.
+`pu_toolbox.experiment.cvir_adapter.CVIRKnownPriorTrainer` keeps CVIR's explicit α_U and its
+source separate from PA's population π and rejects calibrated TS/SAR.
+`CVIRClassifier.input_sampling="ts"` means directly supplied native independent P and marginal U;
+it does not request runner risk calibration.
+`CVIRPopulationPriorTrainer(population_prior_source=...)` independently supports engineering
+SCAR OS and TS-compatible paths. Constructor α_U/source must be unset: the adapter converts
+the population prior using actual PU counts for OS risk, while calibrated TS binds π.
+It does not pass population π to estimator `fit`. Actual priors, formulas, counts, and sources
+enter the manifest; constructor parameters are restored after fitting. A checkpoint byte bound
+is mandatory; formal Survey/SAR runs are rejected. See the
+[CVIR method card](../../research/method_cards/CVIR.md) for optional Chinese background on
+calibration wiring and boundaries.
 
-`pu_toolbox.experiment.clean_support_adapters.SelfPUCleanSupportTrainer` 和
-`LaGAMCleanSupportTrainer` 复用相同六角色/分组/额外标签预算审计，显式接通现有
-Self-PU clean-meta 与 LaGAM 元标签路径。构造参数与上述 PULNS adapter 相同；
-Self-PU 的支持集只用于元重加权与内部 teacher 选择，外部 OA 仍用独立 clean_val。
-当前探索路径支持 SCAR OS 与终点 OA。
+`pu_toolbox.experiment.pulns_adapter.PULNSExtraSupportTrainer` requires independent labeled
+support. Before training it audits actual four-role, prior-estimation, and support IDs plus
+applicable grouping; it records the extra supervision and permits only terminal OA.
+It also requires support_origin/original_role_counts when carved, plus
+`support_source_verified` / `support_source_receipt`. Per-role original/remaining/reduced pool effects are recorded;
+train reduction must match support_removed_from_train. Source provenance defaults to an
+unverified caller declaration. Missing provenance, budgets, identities, or ADNI group evidence
+cause rejection; validation/test data are not silently repurposed.
 
-2026-10-22 新增显式 checkpoint 变体：
+`pu_toolbox.experiment.clean_support_adapters.SelfPUCleanSupportTrainer` and
+`LaGAMCleanSupportTrainer` reuse the same six-role, grouping, and extra-label-budget audits,
+explicitly connecting the existing Self-PU clean-meta and LaGAM meta-label paths. Their
+constructor arguments match the PULNS adapter above. Self-PU uses support only for meta
+reweighting and internal teacher selection; external OA still uses independent clean_val.
+The exploratory path supports SCAR OS and terminal OA.
+
+Explicit checkpoint variants are
 `pu_toolbox.experiment.support_checkpoints.SelfPUCleanSupportCheckpointTrainer` /
-`LaGAMCleanSupportCheckpointTrainer`，构造审计参数同旧 adapter。只用于 exploratory
-SCAR OS，要求 runner 配置正整数 `checkpoint_bytes_per_component`；选择协议为
-`pu_toolbox.experiment.strategies.ProtocolPACleanSupport`（输出 `PA+clean-support`）
-与/或 `ProtocolOA`，拒绝普通 PA。只记录完成 meta-active 的 epoch，Self-PU 同时保留
-两个 teacher 流供独立选择；不改旧 terminal OA 或 Self-PU 默认消融。CLI 显式
-`--selection-scope meta_checkpoints` 才启用，默认仍 terminal。
+`LaGAMCleanSupportCheckpointTrainer`, with the same constructor audit arguments as the
+terminal adapters. Their default risk view is SCAR OS, and they require a positive integer
+runner `checkpoint_bytes_per_component`. Selection uses
+`pu_toolbox.experiment.strategies.ProtocolPACleanSupport` (output `PA+clean-support`)
+and/or `ProtocolOA`; ordinary PA is rejected. Exploratory runs capture completed meta-active
+epochs. Versioned Survey runs also capture warmup snapshots according to their bound protocol;
+the adapter records the policy basis and does not grant formal admission. Self-PU retains both
+teacher streams for independent selection. Existing terminal OA and
+Self-PU's default ablation remain unchanged. The exploratory CLI enables this only through
+explicit `--selection-scope meta_checkpoints`; terminal selection remains the default.
 
-同日新增 `PULNSCleanSupportCheckpointTrainer`，复用相同审计与双轨选择，但候选为
-完成 episode 的 classifier（不含 reward probe），记录 `captured_episodes`；
-同一 CLI 的 `--method pulns --selection-scope meta_checkpoints` 显式启用。
+`SelfPUTSCleanSupportCheckpointTrainer` additionally exposes an explicit SCAR TS-compatible
+full-meta path. It requires `os_or_ts="ts"`, rejects bound Survey/recipe configurations, and
+retains native-U identity pools. Its calibration applies only to the negative-marginal row-mass
+blend; it does not verify population-mixture restoration or grant formal admission. The CPU/MLP
+entry point `scripts/run_clean_support_experiment.py` selects this trainer only for
+`--method self_pu --selection-scope meta_checkpoints --training-view ts`; other methods and
+the default OS/terminal path remain unchanged.
 
-`pu_toolbox.experiment.support_data.prepare_support_dataset` 从 reviewed 原始数组按显式预算
-准备独立支持集，重新拟合剩余 train 的预处理；`prepare_support_from_split` 从冻结四路 split
-直接 carve，供文本与 ADNI 使用（文本保留 pinned SBERT 特征，图像保留原始 uint8）。
-`save_support_dataset` 仅写新目录，`load_support_dataset` 核对五角色、抽样、文件和收据。
-支持全部八个数据集；`support_seed` 必须等于 split seed（`support_seed_policy` 显式记录）。
-ADNI 只接受 `group_policy="unverifiable"`，记录 `subject_isolation="not_checkable"`、
-已知风险和 owner approval；它不是已验证的 subject 隔离。原始来源真实性须由调用方保证。
+`PULNSCleanSupportCheckpointTrainer` reuses those audits and both selection paths. Its
+candidates are classifiers after completed episodes, excluding reward probes; it records
+`captured_episodes`. Enable it with the same CLI's
+`--method pulns --selection-scope meta_checkpoints`.
 
-制品另有 support_origin/完整原角色计数/未核验来源声明；实验入口按构造签名完整转发
-新审核分支的四个来源参数。旧 main 的制品层审计不冒充原生 adapter 审计，部分新契约拒绝。
+`pu_toolbox.experiment.support_data.prepare_support_dataset` prepares independent support
+from reviewed original arrays under an explicit budget and refits preprocessing on remaining
+train. `prepare_support_from_split` carves directly from a frozen four-role split for text
+and ADNI, retaining pinned SBERT text features and raw uint8 images.
+`save_support_dataset` writes only to a new directory. `load_support_dataset` validates
+the five roles, sampling, files, and receipt. All eight datasets are supported.
+`support_seed` must equal the split seed, recorded explicitly as `support_seed_policy`.
+ADNI accepts only `group_policy="unverifiable"`, recording
+`subject_isolation="not_checkable"`, known risks, and owner approval. This does not establish
+subject isolation; callers remain responsible for source authenticity.
 
-实验层承载 PU 调研实验的四路数据协议（从 `pu_toolbox.experiment` 导入，上层设计
-决策与数据划分协议见 [pu_survey_protocol.md](../../research/pu_survey/pu_survey_protocol.md)
-§2.3-§2.4 与 [experiment_layer.md](../../dev/experiment_layer.md) §1）。本表只登记公共符号与一句话用途；参数契约与行为细节的真相源是各
-docstring。
+Artifacts also retain support_origin, complete original-role counts, and any unverified
+source declaration. Experiment entry points forward all four provenance arguments according
+to trainer constructor signatures. Artifact-layer validation is distinct from native adapter
+validation; older adapters may reject newer provenance contracts.
 
-| 符号 | 用途 |
+The experiment layer exposes four-role PU research protocols through `pu_toolbox.experiment`.
+For the public Survey split protocol, see
+[pu_survey_protocol.md](../../research/pu_survey/pu_survey_protocol.md) §2.3–§2.4
+(currently Chinese). [experiment_layer.md](../../dev/experiment_layer.md) §1 is optional
+Chinese design background. The table lists public symbols and their purpose; docstrings
+define parameter contracts and behavior.
+
+| Symbol | Purpose |
 |---|---|
-| `ExperimentRunner` | 流程骨架（Template Method）：数据校验与模型能力门禁 → 生成 PU 视图 → 候选池训练 → PA/OA 离线选择 → 独立测试 → manifest 留痕；`config["architecture"]` 可显式声明 `"mlp"`/`"cnn"`，每个变动点注入策略 |
-| `DatasetBundle` | 四路数据合约：`train` / `pu_val` / `clean_val` / `test` |
-| `DatasetPart` | 一份划分 + 显式标签视图（`view="clean"` 真实标签 / `view="pu"` PU 视图）+ 全局样本索引 |
-| `validate_bundle` | 四路合约校验：视图、真实二元标签、索引不重叠、`test.for_selection=False` |
-| `SurveyDatasetSpec` | survey 数据集的模态、正负类映射和官方 test 策略只读规格 |
-| `survey_dataset_catalog` | 返回 MNIST/F-MNIST/CIFAR-10/ADNI/IMDB/20News/Spambase/Connect-4 锁定目录 |
-| `binaryize_survey_labels` | 按协议锁定映射生成真实二元标签，并拒绝目录外类别 |
-| `prepare_survey_dataset` | 从调用方提供的数组确定性生成 90% train/5% PU-val/5% clean-val 和官方或派生 test，返回 bundle + split manifest；索引参数可省略（`source_indices` 默认 `np.arange`；官方 test 数据集的 `test_indices` 默认接续序号），显式传入时须为与数据等长、互异的一维有限 JSON 标量数组（`None`/`bool`/`int`/`float`/`str`），否则拒绝；派生 test 的数据集（Spambase/Connect-4/ADNI）不接受 `test_indices`，其 test 索引继承 `source_indices` |
-| `fit_survey_image_preprocessing` | 仅用 train 图像拟合通道统计，锁定 NCHW/通道/缩放和 ResNet-18 配置，返回单位区间数组与可审计规格 |
-| `transform_survey_images` | 对验证/test 复用 train 阶段冻结的形状和缩放合约，拒绝跨分区缩放漂移 |
-| `build_survey_image_encoder` / `build_survey_image_augmentation` | 从冻结规格构造随机初始化 ResNet-18；增强只对 `train` 返回，PU/clean 验证与 test 固定为 `None` |
-| `SurveyImagePreprocessing` | 图像输入尺寸、首层、归一化、增强、训练数据与配置 SHA-256 的 JSON manifest 规格 |
-| `calibrate_ts_os_batch` | **survey 边界适配器**（角色构造委托 `pu_toolbox.core.training_views`）：按训练 batch 产出 OS 或 TS-compatible 损失视图；TS 时 P 同时进入正例与 U 损失输入；原生 TS 台账与 train-only 两条门禁**留在本层**，不随角色构造下沉到核心层 |
-| `TSOSBatchView` | TS-OS 转换后的 P/U 损失数组、原始索引、运行视图与校准 manifest；`run_view` 取 `"OS"` / `"TS-compatible"`，这套历史词表只存在于本层出口 |
-| `adapt_image_bundle_to_features` | 用固定或声明为仅 train 拟合的 CNN，在 eval/no-grad 下提取四路二维特征；校验 encoder 未变并记录权重/特征/split 哈希 |
-| `LeaderboardRunSpec` / `partition_fair_leaderboard_runs` | 校验同数据集 split、seed、epoch/batch/tuning 预算及同路径表征一致；按训练路径（`native_2d`、原生 CNN、`cnn_feature_adapter`）强制分组，adapter 强制标为 `benchmark-adapted` |
-| `encode_survey_texts` | 用固定 `all-MiniLM-L6-v2` 生成 384 维文本向量；强制记录 revision，以文本内容和归一化选项寻址缓存，并在复用前校验 SHA-256 |
-| `SBERT_MODEL_NAME` / `SBERT_EMBEDDING_DIMENSION` | survey 文本协议锁定的模型标识与输出维度常量 |
-| `SCARGenerator` | SCAR 标记：固定数量无放回均匀采样，`n_L = round(c·n₊)`，记录 `c_realized` |
-| `SARLBEAGenerator` | SAR-LBE-A：`p ∝ scores^k`（k=10）+ 0.9/0.1 平滑（PU-Bench 2d95a19） |
-| `SARLBEBGenerator` | SAR-LBE-B：`p ∝ (1.5 + shrink_coef − scores)^k`，负值截断、全零均匀兜底 |
-| `CleanLabelGenerator` | PN oracle 视图：真实标签原样透传（固定 `n_L = n₊`）、声明 `output_view="clean"`，PA 因视图校验结构性拒绝；`c` 记录但不生效（oracle 对 c 恒定） |
-| `ProtocolPA` | PA 选模：只用 PU 验证视图（真实标签结构性不可达），按 proxy accuracy（Wang et al. 2026 Def. 1 的 OS 分支，见表下小注的 `proxy_accuracy`）在 min-max 归一化的阈值网格上选 run/epoch/阈值；`class_prior` 必传，缺失即报错 |
-| `ProtocolOA` | OA 对照：min-max 归一化后，按真实标签验证集 accuracy 选阈值与 run |
-| `FitTrainer` | 经典（无 epoch）估计器单点训练；`class_prior` 仅在估计器接受时转发 |
-| `DeepFitTrainer` | 深度估计器：优先探测无真实标签泄漏的 `pu_validation_data`，否则探测 `validation_data`，并将 `history_` 转成选模轨迹；验证 fit 已成功但无 history 时只产生单点轨迹、不重复 fit |
-| `SupervisedTrainer` | PN oracle：在真实标签上训练的无偏监督基线（声明 `trains_on_real_labels=True`）。必须配合 `CleanLabelGenerator`（真实标签视图）与 `protocols=[ProtocolOA()]` 使用——runner 默认生成 PU 视图，单独使用本类会被 runner 在训练前拦截 |
-| `aggregate_resource_usage` | 汇总多个 seed manifest 的全部候选调参成本与全过程峰值显存 |
-| `select_threshold` | 阈值扫描：accuracy 最大化，平手取最低候选 |
+| `ExperimentRunner` | Template Method workflow: validate data and model capabilities → generate PU views → train candidates → offline PA/OA selection → independent test → manifest recording; `config["architecture"]` can explicitly declare `"mlp"`/`"cnn"`, with strategies injected at each extension point |
+| `DatasetBundle` | Four-role contract: `train` / `pu_val` / `clean_val` / `test` |
+| `DatasetPart` | One partition with explicit label view (`view="clean"` for true labels / `view="pu"` for PU observations) and global sample indices |
+| `validate_bundle` | Validate the four-role contract: views, true binary labels, disjoint indices, and `test.for_selection=False` |
+| `SurveyDatasetSpec` | Read-only Survey dataset specification for modality, positive/negative class mappings, and official-test policy |
+| `survey_dataset_catalog` | Return the locked MNIST/F-MNIST/CIFAR-10/ADNI/IMDB/20News/Spambase/Connect-4 catalog |
+| `binaryize_survey_labels` | Produce true binary labels using protocol-locked mappings and reject classes outside the catalog |
+| `prepare_survey_dataset` | Deterministically create 90% train/5% PU-val/5% clean-val plus official or derived test from caller-supplied arrays, returning a bundle and split manifest; optional `source_indices` defaults to `np.arange`, and official-test `test_indices` defaults to subsequent indices. Explicit indices must be a one-dimensional array of distinct finite JSON scalars (`None`/`bool`/`int`/`float`/`str`) matching the data length. Derived-test datasets (Spambase/Connect-4/ADNI) reject `test_indices`; test inherits `source_indices` |
+| `fit_survey_image_preprocessing` | Fit channel statistics only on train images; lock NCHW, channels, scaling, and ResNet-18 settings; return unit-interval arrays and auditable specifications |
+| `transform_survey_images` | Reuse train-frozen shape/scaling contracts for validation/test and reject cross-partition scaling drift |
+| `build_survey_image_encoder` / `build_survey_image_augmentation` | Build a randomly initialized ResNet-18 from frozen specifications; augmentation is returned only for `train`, with PU/clean validation and test fixed to `None` |
+| `SurveyImagePreprocessing` | JSON manifest specification for image size, first layer, normalization, augmentation, training data, and configuration SHA-256 |
+| `calibrate_ts_os_batch` | **Survey boundary adapter**, delegating role construction to `pu_toolbox.core.training_views`: produce OS or TS-compatible loss views for a training batch; TS includes P in both positive and U loss inputs. Native-TS ledger and train-only gates stay in this layer |
+| `TSOSBatchView` | Converted P/U loss arrays, original indices, run view, and calibration manifest; `run_view` is `"OS"` / `"TS-compatible"`, historical vocabulary confined to this layer's output |
+| `adapt_image_bundle_to_features` | Extract four-role 2-D features in eval/no-grad mode with a fixed CNN or one declared as train-only fitted; verify unchanged encoder state and record weight/feature/split hashes |
+| `LeaderboardRunSpec` / `partition_fair_leaderboard_runs` | Validate common dataset splits, seeds, epoch/batch/tuning budgets, and representations within a path; enforce grouping by training path (`native_2d`, native CNN, `cnn_feature_adapter`), marking adapter paths `benchmark-adapted` |
+| `encode_survey_texts` | Produce 384-D embeddings using fixed `all-MiniLM-L6-v2`; require a recorded revision, address the cache by text content and normalization options, and validate SHA-256 before reuse |
+| `SBERT_MODEL_NAME` / `SBERT_EMBEDDING_DIMENSION` | Model-identity and output-dimension constants locked by the Survey text protocol |
+| `SCARGenerator` | Fixed-count uniform positive labeling without replacement, `n_L = round(c·n₊)`, recording `c_realized` |
+| `SARLBEAGenerator` | SAR-LBE-A: `p ∝ scores^k` (k=10) with 0.9/0.1 smoothing (PU-Bench 2d95a19) |
+| `SARLBEBGenerator` | SAR-LBE-B: `p ∝ (1.5 + shrink_coef − scores)^k`, clipping negatives and using uniform fallback for all-zero weights |
+| `CleanLabelGenerator` | PN oracle view: pass true labels unchanged (`n_L = n₊`), declare `output_view="clean"`; PA is structurally rejected by view validation. Record `c` without applying it; oracle behavior is constant over c |
+| `ProtocolPA` | Select run/epoch/threshold using only PU validation, with true labels structurally inaccessible; maximize proxy accuracy (Wang et al. 2026 Def. 1, OS branch; see `proxy_accuracy` below) on a min-max-normalized threshold grid; missing required `class_prior` raises an error |
+| `ProtocolOA` | Oracle comparison: select run and threshold by true-label validation accuracy after min-max normalization |
+| `FitTrainer` | Single-point training for classical estimators without epochs; forward `class_prior` only if accepted |
+| `DeepFitTrainer` | Prefer `pu_validation_data` without true-label leakage, otherwise probe `validation_data`; convert `history_` into selection trajectories. Successful validation-aware fitting without history produces one point without fitting again |
+| `SupervisedTrainer` | PN oracle: supervised baseline trained on true labels, declaring `trains_on_real_labels=True`. Use with `CleanLabelGenerator` and `protocols=[ProtocolOA()]`; the runner's default PU generation rejects this trainer before training |
+| `aggregate_resource_usage` | Aggregate all candidate-tuning costs and the overall peak GPU memory across seed manifests |
+| `select_threshold` | Maximize accuracy over candidate thresholds; ties choose the lowest candidate |
 
-不在包级命名空间、故不入上表：`proxy_accuracy`（`pu_toolbox.experiment.strategies` 下，
-`ProtocolPA` 选模所用的 proxy accuracy，见 `pu_toolbox/experiment/strategies.py`）。
+`proxy_accuracy` is not exported at package level, so it is absent from the table. It is defined
+in `pu_toolbox.experiment.strategies` (`pu_toolbox/experiment/strategies.py`) and used by `ProtocolPA`.
 
-三个 PU 标记生成器（`SCARGenerator` / `SARLBEAGenerator` / `SARLBEBGenerator`）的生成元数据
-（落入 manifest 的 `generation.train` / `generation.pu_val`）共享同一审计词汇：`generator`
-（类名）、`mechanism`、`c_requested`（未夹紧的请求值）、`c_realized`（夹紧后实际比例）、
-`n_positive`、`n_labeled_requested`（协议公式 `round(c·n₊)`，**未经夹紧**）、`n_labeled`
-（实际标记数）、`generation_seed` 与 `label_view_sha256`（标签视图摘要）。
+The three PU labeling generators (`SCARGenerator` / `SARLBEAGenerator` / `SARLBEBGenerator`)
+share generation-metadata fields in manifest `generation.train` / `generation.pu_val`:
+`generator` (class name), `mechanism`, `c_requested` (unclamped request),
+`c_realized` (realized fraction after clamping), `n_positive`, `n_labeled_requested`
+(the **unclamped** protocol formula `round(c·n₊)`), `n_labeled` (actual count),
+`generation_seed`, and `label_view_sha256` (label-view digest).
 
-生成元数据还记录 `input_sampling="os"` 和 `sampling_policy`。SCAR 为
-`fixed_count_uniform_without_replacement`，LBE-A/B 为
-`fixed_count_weighted_without_replacement`。`CleanLabelGenerator` 记录
-`input_sampling="single_clean_pool"`、`sampling_policy="all_real_labels"`。
+Generation metadata also records `input_sampling="os"` and `sampling_policy`:
+`fixed_count_uniform_without_replacement` for SCAR and
+`fixed_count_weighted_without_replacement` for LBE-A/B. `CleanLabelGenerator` records
+`input_sampling="single_clean_pool"` and `sampling_policy="all_real_labels"`.
 
-其中请求值与实际值在小 `n₊` 或小 `c` 下**并不相等**——`_n_labeled` 有最小值 1 的夹紧
-（`round(c·n₊) == 0` 时仍标记一个正例），两个字段都记录才可审计该偏移。
+Requested and realized values can differ for small `n₊` or `c`: `_n_labeled` clamps to at
+least one, labeling a positive even when `round(c·n₊) == 0`. Both fields are needed to audit
+this difference.
 
-`label_view_sha256` 供复核协议 §2.4 第 4 条"同 seed、同 c 下所有方法共享相同 P/U 标记"。
-PN oracle 的 `CleanLabelGenerator` 维持既有字段（`mechanism` / `c_realized` / `n_labeled` /
-`c_requested`），是 c 恒定的另一类生成器。
+`label_view_sha256` supports checking protocol §2.4 item 4: all methods share identical P/U
+labels at the same seed and c. PN oracle `CleanLabelGenerator` retains its established fields
+(`mechanism` / `c_realized` / `n_labeled` / `c_requested`) as a separate c-independent generator.
 
-训练策略以 `trains_on_real_labels` 声明 `fit` 期望的标签语义：PU trainer 默认 `False`
-（label `0` 即未标记），PN oracle trainer 置 `True`（label `0` 是真实负类）。runner 在训练前
-要求声明与生成视图一致（两个方向都直接 `ValueError`），拒绝以类代替实例的 `config["trainer"]`，
-并要求生成器声明的视图与其上报的 `mechanism` 一致（`pn_oracle` 蕴含真实标签，即 clean 视图）。
+Training strategies declare expected `fit` label semantics with `trains_on_real_labels`:
+PU trainers default to `False` (0 means unlabeled); PN oracle trainers use `True` (0 means
+true negative). Before training, the runner requires that declaration to match the generated
+view, raising `ValueError` for either mismatch. It rejects a trainer class in place of an
+instance in `config["trainer"]`, and requires the generator's declared view to match its
+reported `mechanism` (`pn_oracle` implies true labels and therefore a clean view).
 
-此外 runner 还要求估计器主 `fit` 的 `label_semantics` 与生成视图一致：PU 视图要求
-`"pu"`，clean 视图要求 `"pn"`；`"pnu"` 不会被错误地当作二值 PU 放行。
-因此 `SupervisedTrainer` 配 PU 风险估计器会在训练前报错，裸 sklearn 分类器因未声明
-`"pn"` 也不能直接用作监督 oracle。版本化 pilot 的监督模型及普通脚本 `OracleMLP`
-已显式声明 `"pn"`；这仍不能从运行数据本身验证声明是否真实。
+The runner also requires estimator main-`fit` `label_semantics` to match the generated view:
+`"pu"` for PU, `"pn"` for clean. `"pnu"` is not treated as binary PU.
+Consequently `SupervisedTrainer` with a PU risk estimator fails before training. A bare sklearn
+classifier without a `"pn"` declaration cannot directly serve as a supervised oracle.
+Versioned pilot supervised models and the ordinary script's `OracleMLP` explicitly declare
+`"pn"`; runtime data alone cannot verify the truth of that declaration.
 
-`ExperimentRunner` 的每个测试协议结果固定包含 `accuracy`、`auc` 和
-`auc_unavailable_reason`；当测试真实标签只有一个类别时，`auc` 为 `NaN` 且原因字段为说明文本，
-正常可计算时原因字段为 `null`。模型 `decision_function` 或指标实现中的错误不会被转成 `NaN`。
+Each test-protocol result from `ExperimentRunner` contains `accuracy`, `auc`, and
+`auc_unavailable_reason`. With a single true test class, `auc` is `NaN` and the reason is text;
+when AUC is computable, the reason is `null`. Errors in model `decision_function` or metric
+implementations are not converted to `NaN`.
 
-候选训练异常、非有限 epoch 指标或非有限验证分数会以 fresh clone 和同一 seed 自动重试一次。
-首次失败后成功的候选标为 `recovered`；再次失败则标为 `excluded` 并从 PA/OA 选模池排除。
-manifest 的 `candidate_runs` 保存候选到有效 trajectory 的映射，`failures` 保存异常类型与消息；
+Candidate-training exceptions, nonfinite epoch metrics, or nonfinite validation scores trigger
+one automatic retry with a fresh clone and the same seed. A candidate succeeding on retry is
+`recovered`; one failing again is `excluded` from PA/OA selection. Manifest `candidate_runs`
+maps candidates to usable trajectories, and `failures` records exception types/messages.
 
-Survey 的版本化运行通过脚本 `--protocol survey-v2.0 --dataset ...` 启动
-（`survey-v1`/`survey-v1.1`/`survey-v1.2` 解析到冻结的 v1.2 矩阵，`survey-v2.0` 解析到当前矩阵；
-版本名与文件一一对应，实际版本写入 manifest）。
-`config["survey_protocol"]` 给出矩阵路径与执行单元，runner 强制重新消费并校验实际模型、
-预算参数、生成器/选模协议及图像表征；锁定的 backbone/budget/training_path 不接受运行态覆盖。
+Current versioned Survey execution uses script `--protocol survey-v3.2 --dataset ...`, resolving
+to the shipped `survey_protocol_v3_2.json` matrix. Retired version names are rejected by the
+current resolver; historical results retain the protocol identities in their own manifests.
+`config["survey_protocol"]` specifies the matrix path and execution unit. The runner reloads
+and validates the actual model, budget parameters, generator/selectors, and image representation.
+Locked backbone/budget/training_path fields cannot be overridden at runtime.
 
-配方绑定为显式 opt-in：版本化入口可传 `--recipe-registry <locked.json>`；
-runner 对应 `config["recipe_registry"]` 已加载对象及可选 `expected_recipe_registry_sha256`。
-运行前要求 registry/profile 都是 locked，检查协议/范围/候选/构造参数；draft 不放行。
-绑定身份写入 manifest 顶层、candidate_runs 与每项 selection。单次 CLI 增加
-`recipe_<registry摘要>/` 输出层，pilot 固定子进程摘要，并以完整预期身份判定续跑，不能借用 legacy 结果。
-v1 仅支持单外层候选（包括 PUSB 内部 CV）；不指定注册表则保留旧行为，不回填历史 manifest。
-批次审计/汇总采用 `survey-batch-roots-2` 外部白名单：每批显式声明 `recipe_policy`，
-绑定批次还须固定 registry 路径及 canonical 摘要；删除 manifest 所有绑定字段也不能降级 legacy。
-`recipe_audit` 为独立版本化扩展，不改历史 A01–A17；失败时不输出数值行，成功后仍执行原有门槛。
-同份报告不混合不同 registry 或 bound/legacy namespace；不同方法可在同一 registry 下使用不同 profile。
-JSON 行/成本及扩展 CSV 保留配方身份。独立旧聚合 CLI 遇到绑定结果会要求使用 v2 审计/汇总入口。
+Recipe binding is explicit opt-in: versioned entry points accept
+`--recipe-registry <locked.json>`. The runner receives loaded `config["recipe_registry"]` and
+optional `expected_recipe_registry_sha256`. Before execution it requires a locked registry/profile
+and checks protocol, scope, candidates, and constructor parameters; drafts are rejected.
+Binding identities enter the manifest root, candidate_runs, and every selection.
+Single-run CLI output gains a `recipe_<registry digest>/` level. Pilot subprocess digests are
+pinned, and resumption requires complete expected identities, so legacy results cannot be reused.
+Binding v1 supports only a single outer candidate, including PUSB internal CV. Omitting the
+registry retains legacy behavior and does not backfill historical manifests.
+Batch auditing/summary uses the external `survey-batch-roots-2` allowlist: every batch declares
+`recipe_policy`; bound batches also pin the registry path and canonical digest. Deleting all
+binding fields from a manifest cannot downgrade it to legacy.
+`recipe_audit` is a separately versioned extension, leaving historical A01–A17 unchanged.
+Failure produces no numeric rows; success still runs the original gates.
+A report does not mix registries or bound/legacy namespaces; methods within one registry may
+use different profiles. JSON rows/costs and extended CSV retain recipe identities. The standalone
+legacy aggregation CLI directs bound results to the v2 audit/summary entry point.
 
-显式配置 `recipe_binding_schema_version="survey-recipe-binding-2"` 或 CLI/pilot
-`--recipe-binding-schema-version survey-recipe-binding-2` 可记录候选池身份：
-运行根记录完整候选池，candidate/PA/OA 各记实际身份，并核对失败排除后的 trajectory 索引。
-输出目录为独立 `recipe_pool_<SHA256>/`；外部 batch 白名单必须同步声明相同 schema。
-池格式仍要求 locked registry，不允许参数级候选覆盖，不改变冻结 Pilot 的单候选预算。
-JSON/CSV 保留逐 seed、逐选择准则的候选身份，不把池或整行写成一个假定的统一已选候选。
+Explicit `recipe_binding_schema_version="survey-recipe-binding-2"` or CLI/pilot
+`--recipe-binding-schema-version survey-recipe-binding-2` records candidate-pool identities.
+The run root records the complete pool; candidate/PA/OA records retain their actual identities
+and validate trajectory indices after failed-candidate exclusion. Output uses the independent
+`recipe_pool_<SHA256>/` directory. The external batch allowlist must declare the same schema.
+Pool format still requires a locked registry, forbids parameter-level candidate overrides, and
+does not change the frozen Pilot's single-candidate budget. JSON/CSV retain candidate identities
+per seed and selection criterion, rather than attributing an assumed common selected candidate
+to the whole pool or row.
 
-额外留痕包括 `protocol_version`、`protocol_sha256`、`execution_unit`、`backbone`、`budget`、
-`representation`（包含 adapter manifest）、`comparability_group`、`protocol_deviation` 与
-`formal_eligible`/`formal_blockers`。协议声明 `review_items` 时，运行还记录
-`protocol_pending_review_items`（仍未通过合作者复核的条目 id；不改变正式资格判定）。
-无协议配置的 DIY 运行仍兼容，但标记 `technical_smoke`。
-`survey_protocol.validate_comparable_manifests` 默认拒绝非正式结果及路径/预算/表征/标记不一致。
-构造参数/候选覆盖锁定字段会在训练前失败；绑定运行的协议预检失败也写拒绝 manifest。
+Additional provenance includes `protocol_version`, `protocol_sha256`, `execution_unit`,
+`backbone`, `budget`, `representation` (including adapter manifest), `comparability_group`,
+`protocol_deviation`, and `formal_eligible`/`formal_blockers`. If the protocol declares
+`review_items`, the run also records `protocol_pending_review_items`: IDs still awaiting
+collaborator review, without changing formal-eligibility determination.
+DIY runs without protocol configuration remain supported and are marked `technical_smoke`.
+`survey_protocol.validate_comparable_manifests` defaults to rejecting non-formal results and
+inconsistent paths, budgets, representations, or labels. Constructor/candidate overrides of locked
+fields fail before training; bound-run protocol preflight failures also write refusal manifests.
 
-支持 `epoch_callback(epoch, self)` 的 nnPU/Dist-PU/Self-PU/PULDA/PAN/Holistic-PU/GEN-PU
-及 torch MLP/CNN oracle，经内置 runner
-默认使用逐 epoch 权重快照；`RunTrajectory.checkpoints` 记录 epoch/component，
-`SelectionArtifact.checkpoint_index` 指向选中权重，`RunResult.selected_models` 返回独立恢复的推理模型。
-配置了 `manifest_path` 时权重默认写入相邻 `checkpoints` 目录；可用 `config['checkpoint_dir']` 指定根目录，
-或 `config['capture_epoch_checkpoints']=False` 保留旧单点路径（仍阻断正式 checkpoint 验收）。
+Through the built-in runner, nnPU/Dist-PU/Self-PU/PULDA/PAN/Holistic-PU/GEN-PU and Torch MLP/CNN
+oracle models supporting `epoch_callback(epoch, self)` use per-epoch weight snapshots by default.
+`RunTrajectory.checkpoints` records epochs/components; `SelectionArtifact.checkpoint_index`
+identifies selected weights. `RunResult.selected_models` returns independently restored
+inference models. With `manifest_path`, weights default to the adjacent `checkpoints` directory;
+set `config['checkpoint_dir']` to choose a root or `config['capture_epoch_checkpoints']=False`
+to retain the legacy single-point path, which still cannot satisfy formal checkpoint acceptance.
 
-`checkpoints.load_selected_checkpoint(selection, template, device=...)` 校验权重摘要、
-以 weights-only 模式加载并恢复验证侧阈值；调用方须明确提供同架构 template。
-它不支持 optimizer/RNG 续训；无持久化时 manifest 不提供可复现的 checkpoint 文件路径。
-声明 `checkpoint_prediction_batch_size` 的估计器会把推理分批大小写入
-checkpoint reference 的 `prediction_batch_size`，恢复时沿用该值，避免改变 CNN
-运算形状造成 float32 舍入差异。PULDA 使用 `unlabeled_batch_size`，PAN、GradPU、
-Robust-PU、Split-PU、Holistic-PU、GenPU 使用 `batch_size`。
-旧 reference 缺少此字段时仍使用历史默认值 256，不重新解释已冻结的快照。
+`checkpoints.load_selected_checkpoint(selection, template, device=...)` verifies weight digests,
+loads in weights-only mode, and restores the validation-side threshold. Callers must explicitly
+supply a template with the same architecture. It does not restore optimizer/RNG state for
+continued training. Without persistence, the manifest cannot provide reproducible checkpoint
+file paths.
+Estimators declaring `checkpoint_prediction_batch_size` record it as `prediction_batch_size`
+in checkpoint references. Restoration retains it to avoid float32 rounding changes caused by
+different CNN operation shapes. PULDA uses `unlabeled_batch_size`; PAN, GradPU, Robust-PU,
+Split-PU, Holistic-PU, and GenPU use `batch_size`. Older references lacking this field retain
+the historical default 256; frozen snapshots are not reinterpreted.
 
-当前单元属于工程级 `benchmark-adapted`；PA 分离度代理与正式 Accuracy/阈值准则仍不一致，
-完整选模协议仍待验收。
+The versioned runner records `adaptation_level="benchmark-adapted"`; formal eligibility is
+determined separately from current protocol checks and recorded blockers. Built-in PA uses proxy accuracy as described
+above. Passing these engineering checks does not establish numerical reproduction of paper results.
 
-若全部候选均失败，runner 会先写 manifest（配置了路径时），再抛出 `RuntimeError`。
+If every candidate fails, the runner writes a manifest when a path is configured, then raises
+`RuntimeError`.
 
-manifest 的必填 `resources` 使用三类互不混淆的成本口径：`single_configuration_costs` 逐候选
-列出每次尝试、成功尝试和候选总耗时；`tuning` 是当前 runner seed 下全部候选（含失败重试）的
-总耗时，跨 seed 汇总时应将各 manifest 的该值相加；`peak_gpu_memory_bytes` 是全过程最大 CUDA
-allocated memory。
+Required manifest `resources` keeps three cost definitions separate:
+`single_configuration_costs` lists every attempt, successful attempt, and total candidate time;
+`tuning` is total time for all candidates, including failed retries, within the runner seed
+(sum it across seed manifests); `peak_gpu_memory_bytes` is maximum CUDA allocated memory over
+the whole process.
 
-PU 标签生成时间单列，runner 不执行的共享预处理显式标为 scope 外；`environment` 记录 Python、
-NumPy、scikit-learn、PyTorch、CUDA/cuDNN、GPU 与驱动信息。`aggregate_resource_usage(manifests)`
-将多 seed artifact 汇总为协议要求的完整调参总成本。
+PU-label generation time is separate. Shared preprocessing not performed by the runner is
+explicitly outside its scope. `environment` records Python, NumPy, scikit-learn, PyTorch,
+CUDA/cuDNN, GPU, and driver information. `aggregate_resource_usage(manifests)` combines
+multi-seed artifacts into the protocol's complete tuning cost.
 
-### 训练视图（`pu_toolbox.core.training_views`）
+### Training views (`pu_toolbox.core.training_views`)
 
-角色构造放在**中立核心层**，因为它由 estimator 导入，而 estimator 不得依赖 Survey 实验层
-（依赖方向固定为 `estimators → core`，反向禁止；由 `tests/unit/core/test_training_view_contract.py`
-的子进程导入边界测试守住）。本层不认识方法台账、方法名与 manifest——「这个方法能不能用校准视图」
-由实验层的台账门禁与 `resolve_training_view` 裁决，再把结果传进来。
+Role construction lives in the neutral core because estimators import it and cannot depend
+on the Survey experiment layer. Dependency direction is `estimators → core`; the reverse is
+forbidden and checked by subprocess import-boundary tests in
+`tests/unit/core/test_training_view_contract.py`. Core knows neither method ledgers/names nor
+manifests. The experiment layer's ledger gates and `resolve_training_view` decide whether a
+method may use calibration, then pass the resolved choice to core.
 
-| 符号 | 用途 |
+| Symbol | Purpose |
 |---|---|
-| `TrainingView` | 一次训练分区上的三个角色（`positive` / `native_unlabeled` / `loss_unlabeled`）及来源索引；**每个角色都非空**（它描述的是训练分区）；自有数组（三组 positions、`source_indices`）只读，大数组（features/labels）借用——**视图只在申请它的那一步训练内有效**，不得跨重排、原地归一化或重标注复用 |
-| `build_training_view` | 纯构造器：只收**已裁决的** `requested_view`（`"os"`/`"ts"`）与 `role`；TS 下损失无标签角色为 `D_U ∪ D_P`（原始 U 在前、正例在后），OS 下即 `D_U`；**P 与 U 均非空对所有 `role` 强制**（非 train 角色出现在签名里，只是为了让“校准仅限 train”这条能被具名拒绝，不是用来描述验证/测试分区）；校准仅限 train 角色 |
+| `TrainingView` | Three roles (`positive` / `native_unlabeled` / `loss_unlabeled`) and source indices for one training partition; every role is nonempty. Owned arrays (three position arrays and `source_indices`) are read-only; large feature/label arrays are borrowed. A view is valid only during the training step requesting it and cannot be reused after reordering, in-place normalization, or relabeling |
+| `build_training_view` | Pure constructor receiving an already resolved `requested_view` (`"os"`/`"ts"`) and `role`. TS loss-unlabeled is `D_U ∪ D_P`, native U first and positives second; OS uses `D_U`. P and U must both be nonempty for every `role`. Non-train roles exist in the signature to permit explicit rejection of train-only calibration, not to model validation/test partitions; calibration is restricted to train |
 
-### 结果读取、统计与导出（`results` / `reporting`）
+### Result reading, statistics, and export (`results` / `reporting`)
 
-结果接口直接读取调用者给出的 manifest 文件或结果目录，不依赖实验阶段文档、审批正文、
-批次名称、队列、历史执行配置或比较矩阵。文件只读，生成的报告写入独立输出目录。
+Result APIs read caller-supplied manifest files or result directories directly. They do not
+depend on experiment-stage documents, approval text, batch names, queues, historical execution
+configurations, or comparison matrices. Inputs are read-only; generated reports go to a separate
+output directory.
 
 ```python
 from pu_toolbox.experiment.results import build_summary
@@ -2102,77 +2388,87 @@ write_summary(report, "reports/current")
 export(report, "reports/current")
 ```
 
-| 符号 | 用途 |
+| Symbol | Purpose |
 |---|---|
-| `results.build_summary(manifest_paths, *, expected_seeds, excluded_paths, pending_paths)` | 读取明确范围，校验运行和选择身份，按可比配置形成五 seed 汇总；显式待审核/排除输入保留为来源状态，不当观测 |
-| `reporting.write_summary(report, out_dir)` | 写 `summary.json/md/csv`、`coverage.csv`、`refusals.json` |
-| `reporting.export(report, out_dir, *, literature=(), native_view=None)` | 写含四组结果页的 `survey_results.xlsx`、诊断卡和 `conclusions.md/json`；需要 `report` extra；文献与方法事实是可选输入 |
+| `results.build_summary(manifest_paths, *, expected_seeds=(0, 1, 2, 3, 4), excluded_paths=(), pending_paths=())` | Read an explicit scope, validate run/selection identities, and summarize comparable configurations over the specified seeds; explicit pending/excluded inputs retain source status and are not observations |
+| `reporting.write_summary(report, out_dir)` | Write `summary.json/md/csv`, `coverage.csv`, and `refusals.json` |
+| `reporting.export(report, out_dir, *, literature=(), native_view=None)` | Write `survey_results.xlsx` with four result-sheet groups, diagnostic cards, and `conclusions.md/json`; requires the `report` extra; literature/method facts are optional inputs |
 
-新运行在生成与训练契约校验后记录 `manifest['research_settings']`，schema 为 `1.0`。
-全部候选训练失败时，保存的 manifest 同样携带该设置。
+New runs record `manifest['research_settings']`, schema `1.0`, after validating generation
+and training contracts. Saved manifests also retain it when all candidates fail training.
 
-| 设置字段 | 记录内容 |
+| Setting field | Recorded content |
 |---|---|
-| `sampling` | 生成器声明的 `input_sampling` 与 `split_ref` |
-| `labeling` | train/pu_val 的完整生成元数据，包括请求/实际计数、机制参数和评分来源 |
-| `risk` | 请求的 `os_or_ts`、estimator 默认值和对应损失池；具体算法定义的池记作 `estimator_defined` |
-| `prior` | 基础先验输入与目标声明，逐候选有效输入及实际训练留痕，选择使用的总体先验 |
-| `supervision` | 训练标签视图、Trainer、各选择策略实际取得的验证角色和额外监督 |
-| `representation` | 输入维度、记录的训练路径与表征身份，以及 adapter/image 元数据 |
-| `summary` | 串联上述设置的可读字符串 |
+| `sampling` | Generator-declared `input_sampling` and `split_ref` |
+| `labeling` | Complete train/pu_val generation metadata, including requested/realized counts, mechanism parameters, and score sources |
+| `risk` | Requested `os_or_ts`, estimator default, and corresponding loss pool; algorithm-specific pools use `estimator_defined` |
+| `prior` | Base prior input/target declaration, effective candidate inputs and actual training provenance, and selection's population prior |
+| `supervision` | Training label view, Trainer, actual validation role for every selector, and extra supervision |
+| `representation` | Input dimensionality, recorded training path/representation identity, and adapter/image metadata |
+| `summary` | Readable string combining these settings |
 
-`prior.training.value` 优先采用 runner 提供的参数，其次读取 estimator 的 `class_prior`。
-`declared_target` 保留 estimator 的目标声明；声明为 `native_unlabeled` 且使用 `ts`
-风险视图时，`target` 为 `risk_pool`。候选参数覆盖保存在 `prior.candidate_parameters`，
-逐候选有效输入保存在 `prior.candidates`；`prior.candidate_training` 保存已有的实际训练留痕。
-专用 Trainer 的换算与 CVIR 风险池先验通过该留痕及摘要展示。
-自定义生成器通过返回元数据声明采样及抽样政策；缺省字段显示为 `unspecified`。
+`prior.training.value` takes the runner-supplied argument first, then estimator `class_prior`.
+`declared_target` retains the estimator declaration. For `native_unlabeled` under a `ts` risk
+view, `target` is `risk_pool`. Candidate overrides are in `prior.candidate_parameters`, effective
+inputs in `prior.candidates`, and existing actual-training provenance in
+`prior.candidate_training`. That provenance and summary expose specialized Trainer conversions
+and CVIR risk-pool priors. Custom generators declare sampling design/policy through returned
+metadata; missing fields display as `unspecified`.
 
-汇总行以 `research_settings_by_seed` 保留每个 seed 的原设置，以
-`research_settings_summaries` 提供去重摘要。CSV、Markdown、工作簿与诊断卡展示该摘要。
-历史结果缺少此字段时显示“历史记录：按原 manifest 设置读取”，其设置值保留为 `null`。
-结果身份、协议版本、seed 统计及成本沿用原记录。
+Summary rows retain original per-seed settings as `research_settings_by_seed` and deduplicated
+text as `research_settings_summaries`. CSV, Markdown, workbooks, and diagnostic cards display
+that text. Historical results lacking the field are identified as historical records read
+according to their original manifest settings; setting values remain `null`. Result identity,
+protocol version, seed statistics, and costs retain their original meanings.
 
-分组保留 dataset、method/profile、训练路径、实际视图、mechanism、c、selector 和配方身份。
-PN oracle 为 c-independent；`PA+clean-support` 不并入纯 PU PA。相同实验的 PA/OA 共享一个
-`cost_id`，fit 成本只记一次；树、fold、多阶段与 epoch 的实际工作口径保留。
+Grouping preserves dataset, method/profile, training path, actual view, mechanism, c, selector,
+and recipe identity. PN oracle is c-independent; `PA+clean-support` is separate from purely PU PA.
+PA/OA for the same experiment share a `cost_id`, counting fit cost once. Actual tree, fold,
+multi-stage, and epoch work units are retained.
 
-同配置按明确的期望 seed 计算均值与样本标准差（n−1）；缺 seed、缺指标、失败或数值风险
-显式展示，单 seed 不伪造标准差。无法重算的 recipe pool、未知候选、选择记录与 checkpoint
-摘要不一致等证据损坏会拒绝读取；审核状态按原始记录保留。
-期望范围涵盖本次输入中的行。
+For each configuration, compute mean and sample standard deviation (n−1) over explicit expected
+seeds. Missing seeds/metrics, failures, and numeric risks remain visible; no standard deviation
+is invented for a single seed. Corrupted evidence is rejected, including an unreconstructible
+recipe pool, unknown candidates, or disagreement between selection records and checkpoint
+digests. Review status follows the original record. Expected scope covers rows in the current
+inputs.
 
-底层 `survey_summary` 保留 `aggregate_metric`、`sample_std`、`summarize_costs`、
-selector/c token 规范化等统计工具。`SummaryError` 表示结果结构、身份或统计输入不满足契约。
-诊断与结论区分文献事实、实验观测和推断；缺少证据时保留原因，不以解释替代观测。
-复现命令与输出结构见[运行指南](../../research/pu_survey/runbook.md)。
+Underlying `survey_summary` retains statistical tools including `aggregate_metric`, `sample_std`,
+`summarize_costs`, and selector/c-token normalization. `SummaryError` means result structure,
+identity, or statistical inputs violate the contract. Diagnostics and conclusions distinguish
+literature facts, experimental observations, and inference. Missing evidence retains its reason;
+interpretation does not replace observation. For reproduction commands and output structure,
+see the [runbook](../../research/pu_survey/runbook.md) (currently Chinese).
 
-## 错误与异常
+## Errors and exceptions
 
-**所有权**：所有工具箱异常都继承自 `PULearningError`（`pu_toolbox.core.exceptions`），
-调用方用 `except PULearningError` 即可统一捕获。异常消息的权威文本在代码中定义
-（单一真相源）；本表只回答"什么场景抛什么异常、怎么处置"。
+The core toolbox exceptions below inherit from `PULearningError`
+(`pu_toolbox.core.exceptions`) and can be caught together with `except PULearningError`.
+Other APIs can also raise standard Python errors, including `ValueError` subclasses such as
+`SummaryError`. Code defines authoritative exception-message text; this table maps scenarios
+to the core exception types.
 
-| 异常 | 定义位置 | 触发场景（示例） |
+| Exception | Defined in | Example trigger |
 |---|---|---|
-| `PULearningError` | `core/exceptions.py` | 基类，所有工具箱异常父类；不作一次性抛出的单个类型使用 |
-| `ValidationError` | `core/exceptions.py` | 输入校验失败：`y` 编码非法、无正样本、正样本 < `MIN_POSITIVE_SAMPLES`、正样本少于 CV 折数、`sample_weight` 形状/数值非法 |
-| `NotFittedError` | `core/exceptions.py` | 未 `fit` 即调用 `predict`/`decision_function`/`score_samples`（与 sklearn 兼容） |
-| `RegistryError` | `core/exceptions.py` | 注册名或别名不存在、重复注册、参数校验失败（如先验语义不一致） |
-| `PipelineError` | `core/exceptions.py` | 流水线层组合错误：无效 classifier/prior 名、方法不可自动实例化、需要先验但最终缺失、`sample_weight` 被 `ignored`/`not_implemented`、`architecture="cnn"` 与方法不兼容等 |
-| `RunCancelledError` | `core/exceptions.py` | 协作式取消请求在下一个安全边界被抛出 |
+| `PULearningError` | `core/exceptions.py` | Base class for core toolbox exceptions; use for catching rather than as a one-off error type |
+| `ValidationError` | `core/exceptions.py` | Invalid `y` encoding, no positives, fewer positives than `MIN_POSITIVE_SAMPLES` or CV folds, or invalid `sample_weight` shape/values |
+| `NotFittedError` | `core/exceptions.py` | `predict`/`decision_function`/`score_samples` before `fit`; compatible with sklearn |
+| `RegistryError` | `core/exceptions.py` | Unknown registered name/alias, duplicate registration, or invalid parameters such as inconsistent prior semantics |
+| `PipelineError` | `core/exceptions.py` | Workflow composition errors: invalid classifier/prior name, method unavailable for automatic construction, unresolved required prior, `sample_weight` declared `ignored`/`not_implemented`, or incompatible CNN method |
+| `RunCancelledError` | `core/exceptions.py` | Cooperative cancellation detected at the next safe boundary |
 
-> 全部异常定义统一于 `core/exceptions.py`（单一真相源）；`PipelineError` ／`RunCancelledError`
-> 在 `pu_toolbox.workflows`／`pu_toolbox.progress` 经再导出保留公共路径，对调用方无行为差异
-> ——统一捕获 `PULearningError` 即可。
+These exceptions are defined centrally in `core/exceptions.py`. `PipelineError` and
+`RunCancelledError` retain their public re-export paths through `pu_toolbox.workflows` and
+`pu_toolbox.progress`; this does not change behavior or their `PULearningError` base.
 
-**各 API 的错误与问题码索引**（详细表在各节内，此处导航）：
+API error/issue-code navigation:
 
-| API | 错误场景表 | 问题码表 |
+| API | Error scenarios | Issue codes |
 |---|---|---|
-| `PUPipeline` | [错误场景](#错误场景) | — |
-| `profile_pu_data` | 接口拒绝（如 `y_true` 不包含标记正例） | [问题代码](#问题代码)（`no_labeled_positives` / `sar_signal` / …） |
-| `build_diagnostic_report` | 未拟合 estimator 抛 `ValueError`；`estimator` 与 `y_pred`/`scores` 互斥 | 报告问题代码表（本节内上方，`constant_predictions` / …） |
-| `PUTuner` / 漂移管线 | 无法计算任何选择指标时抛 `PipelineError`；覆盖门禁失败抛 `PipelineError` | — |
+| `PUPipeline` | [Error scenarios](#error-cases) | — |
+| `profile_pu_data` | Input rejection, e.g. truth missing labeled positives | [Issue codes](#issue-codes): `no_labeled_positives` / `sar_signal` / … |
+| `build_diagnostic_report` | An unfitted estimator raises `ValueError`; `estimator` and `y_pred`/`scores` are mutually exclusive | Model-output issue codes above: `constant_predictions` / … |
+| `PUTuner` / shift workflows | No usable selection metric or a failed coverage gate raises `PipelineError` | — |
 
-> 环境/安装类问题（版本矩阵、CI 职责、Python 支持）见 [dev/compatibility.md](../../dev/compatibility.md)。
+For environment/installation matters, version matrices, CI responsibilities, and Python support,
+see [compatibility](../../dev/compatibility.md).

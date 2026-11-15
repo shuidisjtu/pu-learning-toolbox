@@ -116,4 +116,4 @@ Fixed parameters apply to every trial. A parameter cannot occur in both the fixe
 the search grid.
 
 Next: [model configuration and tuning](model_tuning.md) and the
-[API reference](../reference/api.md) (currently Chinese).
+[API reference](../reference/api.md).
