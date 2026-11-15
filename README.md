@@ -1,5 +1,3 @@
-[English](README.md) | [中文](README.zh-CN.md)
-
 # PU Learning Toolbox
 
 **Positive-Unlabeled learning in Python** -- registered PU algorithms, research joint-shift adaptation, SCAR & SAR support.
@@ -66,7 +64,10 @@ report = PUPipeline().fit_evaluate(X, y_pu, y_true=y_true)
 print(report.summary())
 ```
 
-Full docs (Chinese): [docs/README.md](docs/README.md). More runnable examples: [`examples/minimal/`](examples/minimal/).
+Documentation index: [docs/README.md](docs/README.md). The index and external contributor
+guides are in English; user tutorials, the API reference, and Survey reproduction documents
+are being migrated and currently remain in Chinese. More runnable examples:
+[`examples/minimal/`](examples/minimal/).
 
 `PUPipeline` uses OS input sampling by default; independent P and population U
 use `input_sampling="ts"`. A supplied `class_prior` targets the population;
@@ -112,9 +113,10 @@ Docs are split by audience; the full index is [`docs/README.md`](docs/README.md)
 | [`docs/user/concepts/`](docs/user/concepts/) | Sampling, SCAR/SAR, prior targets, PA/OA selection, representations, method choice |
 | [`docs/user/howto/`](docs/user/howto/) | Simulation, pipeline, DIY experiments, encoders, CLI, reports, sensitivity, distribution shift |
 | [`docs/user/reference/api.md`](docs/user/reference/api.md) | Precise API contract |
-| [`docs/dev/`](docs/dev/) | Contributor docs: architecture, structure, compatibility |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | English contribution guide: setup, branches, tests, shared helpers, and PR requirements |
+| [`docs/dev/architecture.md`](docs/dev/architecture.md) | English architecture guide; other English developer guides are listed in the documentation index |
 | [`docs/dev/project_structure.md`](docs/dev/project_structure.md) | Source/data boundaries, local artifact retention, and scripts grouped by task |
-| [`docs/research/method_cards/`](docs/research/method_cards/) | Per-paper research cards |
+| [`docs/research/method_cards/`](docs/research/method_cards/) | Per-paper research cards (Chinese) |
 
 ### Composable PU research
 

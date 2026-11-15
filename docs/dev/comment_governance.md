@@ -1,130 +1,152 @@
-# 注释治理
+# Source Comment Guidelines
 
-> 本文档回答「源码注释该写什么、不该写什么、门禁如何执行」。
-> 为什么这样取舍见 [ADR-0019](../adr/0019-comment-quality-gate.md)；
-> 更广的架构腐朽判定与维护实践见 [`architecture_principles.md`](architecture_principles.md)。
+> This document defines what belongs in source comments and how the gates enforce the rules.
+> Optional background in Chinese: [ADR-0019](../adr/0019-comment-quality-gate.md) explains the
+> tradeoffs; [architecture principles](architecture_principles.md) discuss broader maintenance
+> practices and signs of architectural decay.
 
-## 1. 判断标准
+## 1. Evaluation criteria
 
-注释的价值不取决于数量，而取决于它是否表达了**代码本身无法表达**的信息。
-代码优先通过命名、拆分、常量和低复杂度控制流做到自说明；能由代码直接表达的，
-不用注释复述。
+A comment's value depends on whether it conveys information that **the code cannot express**.
+Prefer descriptive names, decomposition, constants, and simple control flow. Avoid comments that
+repeat what the code already says.
 
-保留的注释分三类：
+Keep three kinds of comments:
 
-| 类别 | 说明 |
+| Kind | Purpose |
 |---|---|
-| 目的性 | 这段代码为何存在、服务于什么目标 |
-| 概述性 | 为长函数或模块交代整体结构 |
-| 不可由代码表达的信息 | 约束、取舍、来源、风险、数值稳定性、不变量 |
+| Intent | Why this code exists and what goal it serves |
+| Overview | The overall structure of a long function or module |
+| Information the code cannot express | Constraints, tradeoffs, sources, risks, numerical stability, and invariants |
 
-不以注释承载的内容按权威位置分流：
+Put other information in its authoritative location:
 
-| 信息类型 | 权威位置 |
+| Information | Authority |
 |---|---|
-| 模块分层、依赖方向、数据流 | [`architecture.md`](architecture.md) |
-| 文件与目录职责 | [`project_structure.md`](project_structure.md) |
-| 公共 API 签名与语义 | [`api.md`](../user/reference/api.md) |
-| 论文公式、来源与复现状态 | [research/method_cards/](../research/method_cards/) |
-| 设计取舍与替代方案 | [docs/adr/](../adr/README.md) |
+| Module layers, dependency directions, data flow | [Architecture](architecture.md) |
+| File and directory responsibilities | [Project structure](project_structure.md) |
+| Public API signatures and semantics | [API reference](../user/reference/api.md) |
+| Paper formulas, sources, reproduction status | [Method cards](../research/method_cards/) (Chinese research background) |
+| Design tradeoffs and alternatives | [ADRs](../adr/README.md) (Chinese historical background) |
 
-## 2. 机械门禁
+## 2. Mechanical gates
 
-| 门禁 | 检查 | 默认级别 |
+| Gate | Checks | Default severity |
 |---|---|---|
-| `scripts/check_comment_quality.py` | 遗留标记、裸 TBD、行尾注释 | error / error / advisory |
-| `scripts/check_doc_links.py`（Rule 1） | 反引号路径引用是否存在 | error |
+| `scripts/check_comment_quality.py` | Legacy markers, bare TBD, trailing comments | Error / error / advisory, with partition-specific trailing-comment errors |
+| Rule 1 of `scripts/check_doc_links.py` | Existence of paths enclosed in backticks | Error |
 
-`check_comment_quality.py` 另有一条 `scan-error`：无法解析的 Python 文件（语法、词法
-错误或非 UTF-8 编码）会产生 error 级 finding，而不是静默跳过。扫描到 **0 个文件**时它
-**拒绝通过**（exit 1）：路径不存在或扫描集为空都不算「通过」，旧行为打印
-`passed: scanned 0 file(s)` 并 exit 0 是实测到的假绿。
+The comment gate also reports `scan-error`: a Python file that cannot be scanned because of
+syntax, tokenization, or non-UTF-8 encoding errors produces an error finding. Scanning zero files
+fails with exit code 1. A nonexistent path or empty scan set cannot count as a successful check.
 
-### 2.1 遗留标记
+### 2.1 Legacy markers
 
-未完成工作统一写 `TBD`，不使用 `TODO`、`FIXME`、`XXX`、`HACK`。
-判定为词边界匹配、大小写不敏感。
+Use `TBD` for unfinished work instead of `TODO`, `FIXME`, `XXX`, or `HACK`.
+Legacy-marker matching uses word boundaries and is case-insensitive.
 
-### 2.2 裸 TBD
+### 2.2 Bare TBD
 
-`TBD` 之后必须出现 `:` 或 `(`（中间允许空白），即 `TBD: ...`、`TBD : ...`
-或 `TBD(#123) ...`。
+A `TBD` marker must be followed by `:` or `(`, allowing whitespace in between:
+`TBD: ...`, `TBD : ...`, or `TBD(#123) ...`.
 
-该规则只是「必须带可追踪上下文」的**语法代理**，证明不了上下文真的可追踪——
-上下文是否充分仍是评审责任。`TBD` 大小写敏感：小写 `tbd` 视为普通散文，
-不作为标记认领。
+This syntax is only a proxy for traceable context. Reviewers must still assess whether the
+context is sufficient. `TBD` matching is case-sensitive; lowercase `tbd` is ordinary prose
+and does not claim to be a marker.
 
-### 2.3 行尾注释
+### 2.3 Trailing comments
 
-行尾注释默认不鼓励，仅以下工具链指令豁免：`noqa`、`pragma:`、`type:`、
-`fmt:`、`ruff:`、`isort:`。其余行尾注释产生 advisory，不阻断。
-按目录迁移时用 `--strict-inline` 局部提升为阻断。
+Trailing comments are discouraged. Tooling directives are exempt: `noqa`, `pragma:`,
+`type:`, `fmt:`, `ruff:`, and `isort:`. Other trailing comments produce advisories
+unless the applicable policy makes them errors. During a directory migration,
+`--strict-inline` promotes them to blocking findings.
 
-行尾注释的 strict 判定按**分区**生效：`scripts/check_comment_quality.py` 内的
-分区清单是**单一源**，CI 的默认运行即按它执行（`--strict-inline` 保留为手动迁移开关）。
-已迁移的分区行尾注释为 error；未迁移的分区仍为 advisory，并在门禁通过时**自报**清单，
-故这里的存量数字不写进文档。新增顶层模块若不归入任一分区，覆盖断言会让门禁变红——
-即新模块出生时必须显式选择分区。
+The default strictness is defined **by partition** in `scripts/check_comment_quality.py`,
+the single source of truth for this policy. CI uses these partitions automatically;
+`--strict-inline` remains a manual migration switch. Trailing comments in migrated partitions
+are errors; those in pending partitions remain advisory. A passing run reports the pending
+partitions, so this document does not pin their changing counts.
 
-**剩余边界（如实登记）**：工具链指令**前缀**之后的散文（如 `# type: 业务理由`）在机制上
-无法与真指令区分；未 `git add` 的顶层目录不在覆盖断言内（覆盖集读自 git 索引）；显式传
-路径会整体关闭分区严格性（该次扫描只按 `--strict-inline` 或全 advisory 处理）。
+A coverage assertion rejects a new tracked top-level package entry that belongs to no partition.
+Each new entry must therefore be classified explicitly.
 
-### 2.4 引用存在性
+**Known boundaries:**
 
-以反引号包裹、以根目录白名单（`pu_toolbox`、`tests`、`scripts`、`examples`、
-`docs`、`external`）之一开头、以 `.py` 或 `.md` 结尾的路径必须存在。白名单之外的
-顶层目录（如 `benchmarks`、`.github`）不在检查范围内。
+- Prose following a tooling-directive prefix, such as `# type: business rationale`, cannot
+  reliably be distinguished from a real directive by this mechanism.
+- The coverage set comes from the Git index. A new top-level directory is outside the assertion
+  until it is staged with `git add`.
+- Passing explicit paths disables partition strictness for that run. Those paths receive
+  advisories unless `--strict-inline` is supplied, which makes the entire scan strict.
 
-源文件按**整文件文本**扫描，因此普通字符串字面量里的反引号路径同样会被检查，
-不只是注释与 docstring——这是该规则已知的暴露面（当前仓库 0 例触发）。
+### 2.4 Path existence
 
-被门禁指出时按情况处理：修正路径，或去掉反引号——后者适用于该处并非对仓库
-文件作出声明的情形。
+A path enclosed in backticks must exist if it starts with an allowlisted root
+(`pu_toolbox`, `tests`, `scripts`, `examples`, `docs`, or `external`) and ends in
+`.py` or `.md`. Other roots, including `benchmarks` and `.github`, are outside this check.
 
-两处刻意跳过：
+Source files are scanned as complete text. Backtick paths in ordinary string literals are
+therefore checked too, alongside comments and docstrings; this is a known boundary of the rule.
 
-- 含 `{`、`}`、`*`、`?` 的简写 token 不是单文件声明；
-- `tests/` 不在扫描语料内——该目录中的失效路径是本门禁的负向测试夹具。
+Resolve a finding by correcting the path, or remove backticks when the text is not asserting
+the existence of a repository file.
 
-## 3. 已裁决的保留项
+Two deliberate exclusions apply:
 
-以下注释**刻意保留行尾形式**：它们表达的信息无法由命名或类型承载，且短注解贴行比
-块前更易逐行对照。清理存量时不要把它们当冗余删除——删掉即丢失该信息。
+- Shorthand tokens containing `{`, `}`, `*`, or `?` do not claim to identify one file.
+- `tests/` is excluded from the scanned corpus because invalid paths there are negative
+  fixtures for the gate.
 
-| 位置 | 保留内容 | 为何不能由代码表达 |
+## 3. Comments deliberately retained
+
+The following comments deliberately remain inline. They carry information that names or types
+cannot express, and placing a short annotation beside its line makes it easier to compare.
+Do not delete them as redundant during cleanup.
+
+| Location | Retained information | Why code alone is insufficient |
 |---|---|---|
-| `pu_toolbox/core/config.py` | 两个 clip eps 的区间 | 区间端点与开闭；两者刻意一开一半开（`(0, 1)` 与 `(0, 1]`） |
-| `pu_toolbox/core/config.py` | `MAX_PU_RATIO` 的 warn 语义 | 严重性：`validation.py` 只 `warnings.warn`，不阻断 |
-| `pu_toolbox/core/config.py` | `MIN_POSITIVE_SAMPLES` 的 raise 语义 | 严重性：`validation.py` 直接 `raise`，与上一行形成对照 |
-| `pu_toolbox/core/tags.py` | `SCAR`、`SAR` 的概率定义式 | 公式即定义；删除后该值在全仓库无处可寻 |
-| `pu_toolbox/core/tags.py` | `TrainingCost` 四档的判据与数值界 | 判据（闭式 / 有界迭代 / 固定轮次非凸 / 未分类中性计分）与 `~1000 epochs` 界 |
-| `pu_toolbox/core/tags.py` | `API_ONLY`、`NATIVE` 的语义 | 前者是「无训练逻辑」的实现状态契约，后者是来源与法务语义 |
-| `pu_toolbox/losses/llsvm.py` | 13 处 shape 注解 | 签名用裸 `np.ndarray`，不携带形状；本库未引入 shape 类型标注 |
+| `pu_toolbox/core/config.py` | Intervals for both clipping epsilons | Endpoint inclusion differs intentionally: `(0, 1)` and `(0, 1]` |
+| `pu_toolbox/core/config.py` | Warning semantics of `MAX_PU_RATIO` | Severity: `validation.py` uses `warnings.warn` rather than blocking |
+| `pu_toolbox/core/config.py` | Raising semantics of `MIN_POSITIVE_SAMPLES` | Severity: `validation.py` raises immediately |
+| `pu_toolbox/core/tags.py` | Probability definitions of `SCAR` and `SAR` | The formulas define these values |
+| `pu_toolbox/core/tags.py` | Criteria and numerical boundary for all four `TrainingCost` levels | Closed-form/convex, bounded iteration, fixed-epoch nonconvex, and unclassified neutral scoring; the boundary is approximately 1000 epochs |
+| `pu_toolbox/core/tags.py` | Meanings of `API_ONLY` and `NATIVE` | The former means no training logic; the latter identifies a clean-room implementation |
+| `pu_toolbox/losses/llsvm.py` | Thirteen shape annotations | Plain `np.ndarray` signatures carry no shape information; the project does not use shape type annotations |
 
-§3 保留项合计 25 行（**机械锚点**：`tests/unit/scripts/test_check_comment_quality.py`
-按它比对下列文件**当前实际**的行尾注释数，不一致即红）：`pu_toolbox/core/config.py` 4、
-`pu_toolbox/core/tags.py` 8、`pu_toolbox/losses/llsvm.py` 13。
+Section 3 retains 25 lines (**machine-checked anchor**:
+`tests/unit/scripts/test_check_comment_quality.py` compares the current trailing-comment counts
+with these values): `pu_toolbox/core/config.py` 4,
+`pu_toolbox/core/tags.py` 8, `pu_toolbox/losses/llsvm.py` 13.
 
-判定为**系统性风格问题、另议**（不在注释清理批次内处理）：
+A separate repository-wide style decision is needed for the following:
 
-- `pu_toolbox/core/tags.py` 的 9 条 `# ── X ──` 分段标题与紧随其后的类名重复
-  （9 条中 4 条逐字相同，其余仅大小写或空格有别），按 §1 标准应删；但该风格在本库
-  源码中普遍使用、跨多个模块，只在单文件删除会造成文件间不一致，属全库风格决策。
+- The nine `# ── X ──` section headings in `pu_toolbox/core/tags.py` repeat the class names
+  immediately below them (four match exactly; the others differ only in case or spacing).
+  The criteria in section 1 would remove them, but this style is widespread across modules.
+  Changing one file alone would make the repository inconsistent, so this is outside a
+  comment-cleanup batch.
 
-## 4. 迁移策略
+## 4. Migration strategy
 
-1. 先让门禁可失败，再清理存量；
-2. 存量行尾注释按模块分批处理，每次一个模块，用 `--strict-inline` 锁定已迁移目录；
-3. 删除注释前先判定类别：可由代码表达的直接删，其余改写为块前意图注释；
-4. 任何注释改动不得改变代码行为、随机序列、序列化字段或公共 API；
-5. 门禁误报必须有最小复现测试，修门禁而不加永久豁免。
-6. `core/` 与 `losses/` 暂不迁移：两目录的行尾注释里，§3 已裁定保留的 25 行与门禁的
-   strict 判定直接冲突，整目录 strict 会把这批保留项判成 error。在两目录之间做取舍
-   （保留项例外表 / 改写为块前注释 / 维持 advisory）是独立裁定，不在本批。
+1. First make the gate capable of failing, then clean existing comments.
+2. Migrate trailing comments one module at a time; use `--strict-inline` to check the directory
+   being migrated.
+3. Classify a comment before deleting it. Remove information already expressed by code;
+   move other information into an intent comment before the block.
+4. Comment edits must not change behavior, random sequences, serialized fields, or public APIs.
+5. A false positive requires a minimal reproduction test. Fix the gate rather than adding a
+   permanent exemption.
+6. Keep `core/` and `losses/` pending for now. Whole-directory strictness would reject the
+   25 deliberately retained comments in section 3. Choosing a retention-exception table,
+   rewriting them as preceding comments, or retaining advisory severity is a separate decision.
 
-## 5. 语言
+## 5. Language
 
-- 源码注释使用英文；
-- 面向用户与维护者的 Markdown 使用中文；
-- 公式、协议名、类名、字段名与文档路径保持原始英文标识。
+The current policy is [ADR-0022](../adr/0022-public-documentation-language.md).
+
+- Use English for source comments and docstrings.
+- Public user documentation, required external-contributor documentation, and public PU Survey
+  reproduction documentation use English, maintained at their existing paths.
+- Internal plans, research notes, and historical ADRs may remain in Chinese; localized
+  interpretation resources retain their intended language.
+- Preserve original identifiers for formulas, protocols, classes, fields, and document paths.

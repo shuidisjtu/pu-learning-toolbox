@@ -1,49 +1,66 @@
 # Contributing
 
-本文档定义 PU Learning Toolbox 的代码、论文方法、benchmark 和项目状态管理流程。
+This guide covers code contributions, paper implementations, benchmarks, and project status.
+External contributors can add algorithms and core features; the maintenance team leads core
+architecture decisions.
 
-## 1. 权威来源
+## 1. Sources of authority
 
-发生冲突时按以下顺序处理：
+Use each source for its own subject:
 
-1. `pyproject.toml`：Python、运行依赖、可选依赖和工具配置。
-2. `docs/dev/process_checklist.md`：当前任务完成状态。
-3. `docs/dev/project_structure.md`：目录结构。
-4. `docs/dev/architecture.md`：公共 API、依赖方向和数据流。
-5. `uv.lock`：跨平台复现锁文件（CI 与本地共用；依赖权威仍是 `pyproject.toml`）。
-6. `docs/adr/`：架构与流程决策记录（决策的权威来源；版本/进度状态见
-   `docs/dev/process_checklist.md` 与 `docs/dev/release_process.md`）。
+| Subject | Source |
+|---|---|
+| Python, dependencies, extras, and tool configuration | [`pyproject.toml`](pyproject.toml) |
+| Reproducible resolution for CI and local development | `uv.lock`; dependency declarations remain in `pyproject.toml` |
+| Public signatures, parameters, returns, and errors | [API reference](docs/user/reference/api.md) |
+| Module boundaries, dependency directions, and data flow | [Architecture](docs/dev/architecture.md) |
+| File layout and workspace asset boundaries | [Project structure](docs/dev/project_structure.md) |
+| Supported environments and CI responsibilities | [Compatibility](docs/dev/compatibility.md) |
+| Algorithm interfaces, registration, and capability declarations | [New algorithm template](docs/dev/new_algorithm_template.md) |
+| Source comments and their quality gates | [Comment governance](docs/dev/comment_governance.md) |
 
-Method Card 描述论文、公式、实现边界和复现规格，但不能单独证明算法或论文复现已经完成。
+The five developer guides above and this guide are in English. During migration, user tutorials,
+the API reference, and Survey reproduction documents may still be in Chinese. Internal plans and
+historical decisions may remain in Chinese; they are optional background for ordinary contributions.
+The English developer guides state the required contribution rules. Describe new architectural
+tradeoffs in the PR for maintainers to resolve.
 
-## 2. 开发环境
+Maintainers record task and release status in
+[`process_checklist.md`](docs/dev/process_checklist.md) and
+[`release_process.md`](docs/dev/release_process.md) (Chinese). The
+[ADR archive](docs/adr/README.md) (primarily Chinese) records decisions; the current
+[language policy](docs/adr/0022-public-documentation-language.md) supersedes its historical
+language rule. Method cards describe papers, formulas, implementation boundaries, and reproduction
+specifications; a completed card alone does not establish implementation or numerical reproduction.
 
-项目支持 Python 3.10、3.11 和 3.12，推荐使用 3.11。
+## 2. Development environment
+
+CI covers Python 3.10, 3.11, and 3.12. Python 3.11 is recommended.
 
 ```bash
 uv venv --python 3.11
 uv sync --python 3.11 --extra dev --extra torch
 ```
 
-不使用 uv 时：
+Without uv, create and activate a virtual environment, then install the editable package:
 
 ```bash
 python -m venv .venv
+# POSIX shells:
 source .venv/bin/activate
+# Windows PowerShell: .venv\Scripts\Activate.ps1
 python -m pip install -e ".[dev,torch]"
 ```
 
-依赖策略：
+Maintain installable dependencies only in `pyproject.toml`. PR CI uses the committed `uv.lock` for
+deterministic resolution; nightly CI runs `uv sync --upgrade` in its temporary checkout to check
+the newest resolvable versions within the declared ranges. `uv.lock` replaces the former
+`requirements.txt`; do not reintroduce a parallel list. Add development tools to `dev` and runtime
+dependencies to the appropriate extra.
 
-- 可安装依赖只在 `pyproject.toml` 维护。
-- 本项目是 library：PR 快层 CI 使用已提交的 `uv.lock` 保证确定性；nightly 用
-  `uv sync --upgrade` 重新解析最新依赖，验证声明范围内的最新可解析性（仅更新 CI 临时 checkout 的锁文件）。
-- `requirements.txt` 已由 `uv.lock` 取代（2026-09-08 删除），不再维护。
-- 新增仅开发期工具放入 `dev`；模型运行依赖放入对应 runtime extra。
+## 3. Branches and commits
 
-## 3. 分支与提交
-
-不要直接在 `main` 上开发。每个独立变更使用一个分支：
+Develop each independent change on a feature or fix branch:
 
 ```bash
 git switch main
@@ -51,151 +68,207 @@ git pull --ff-only origin main
 git switch -c feature/<short-name>
 ```
 
-推荐提交前缀：`feat:`、`fix:`、`test:`、`docs:`、`ci:`、`refactor:`、`chore:`。
+Use prefixes `feat:`, `fix:`, `test:`, `docs:`, `ci:`, `refactor:`, or `chore:`. Keep each PR focused
+on one concern. Exclude unrelated refactors, generated files, and local configuration. Never
+commit private keys, tokens, `.env` files, or data access credentials.
 
-一个 PR 应只处理一个清晰主题。不要混入无关重构、生成文件或本地配置；不得提交 SSH 私钥、token、`.env` 或数据访问凭据。
+For complex changes or changes spanning modules, push a feature branch and open a PR before
+merging through the quality gates. Squash merging is recommended to give `main` one clear record
+per task. The PR must explain the deliverable and validation without requiring a review of every
+intermediate commit. If the client cannot create PRs, retain the pushed branch and provide a PR
+creation link; do not push the change directly to `main`.
 
-复杂或跨模块任务必须先推功能分支、创建 PR，再经门禁合并；推荐 squash merge，
-让 main 按完整任务留一个清晰记录。PR 要能让合作者直接看懂交付与验证，不要求逐条翻阅
-中间 commit。若当前客户端无 PR 授权，保留已推送分支并提供创建链接，不回退为直接推 main。
+## 4. Public API rules
 
-## 4. 公共 API 规则
+- Normalize and validate labels through shared public interfaces. Public PU labels use `{1, 0}`:
+  positive and unlabeled, respectively.
+- Classifiers implement `BasePUClassifier`; prior estimators implement `BasePriorEstimator`.
+- Register new methods and declare assumption, scenario, backend, source status, implementation
+  status, and capabilities as required by the [algorithm template](docs/dev/new_algorithm_template.md).
+- Keep optional imports lazy so base imports work without extras. Missing dependencies must
+  produce an actionable error when the feature is used.
+- An `api_only` entry must not claim to be trainable. A clean-room implementation must not claim
+  official numerical reproduction.
+- Document and test public behavior. Breaking API changes require corresponding updates to
+  architecture, examples, tests, and version notes.
+- Follow the module boundaries and dependency directions in the English architecture guide.
 
-- 标签必须通过公共规范化/校验接口处理，PU 公共表示为 `{1, 0}`。
-- 分类器遵循 `BasePUClassifier`；类先验估计器遵循 `BasePriorEstimator`。
-- 新增方法必须登记 registry metadata，并明确 assumption、scenario、backend、source status 和 implementation status。
-- 可选依赖不得让基础包导入失败；缺少依赖时应延迟导入并给出可行动错误。
-- `api_only` 不得伪装成可训练实现；clean-room 核心不得标为官方数值复现。
-- 破坏性 API 修改必须更新架构、示例、测试和版本说明。
+## 5. Tests and quality gates
 
-## 5. 测试与质量门禁
-
-提交前运行：
+Run focused tests while developing. Add a regression test before fixing a bug and cover relevant
+boundaries. Run the applicable checks before submitting; CI covers the complete platform matrix:
 
 ```bash
-python -m pytest -q
-python scripts/check_format.py       # ruff check + ruff format --check（全目录）
-python scripts/check_test_quality.py
-python scripts/check_doc_links.py
-python scripts/check_project_metadata.py
-python scripts/check_math_rendering.py
-python scripts/check_skill_sync.py
+uv run pytest tests/ -m "not slow and not e2e"
+uv run python scripts/check_format.py
+uv run python scripts/check_test_quality.py
+uv run python scripts/check_doc_links.py
+uv run python scripts/check_api_docs.py
+uv run python scripts/check_project_metadata.py
+uv run python scripts/check_math_rendering.py
+uv run python scripts/check_skill_sync.py
+uv run python scripts/check_baseline_configs.py
+uv run python scripts/check_survey_recipe_registry.py --require-present --require-locked
+uv run python scripts/check_comment_quality.py
+uv run python scripts/generate_structure.py --check
+uv run python scripts/generate_layer_deps.py --check
 uv build
 git diff --check
 ```
 
-测试应按风险选择 marker：
+| Marker | Purpose |
+|---|---|
+| `unit` | Local behavior, parameters, and boundaries |
+| `math` | Hand-computable formula golden tests |
+| `property` | Mathematical invariants |
+| `contract` | Shared API contracts for native estimators |
+| `integration` | Behavior across components |
+| `paper` | Reproduction using paper data, source, or configurations |
+| `slow` | Tests unsuitable for frequent local feedback |
+| `e2e` | Complete workflows, run in the appropriate suite |
+| `gpu` | Tests requiring suitable hardware |
 
-- `unit`：局部行为、参数和边界。
-- `math`：手工可计算的公式 golden test。
-- `property`：数学不变量。
-- `contract`：所有 native estimator 共享的 API 契约。
-- `paper`：依赖论文数据、源码或配置的复现实验。
-- `slow`：不适合每次本地反馈的测试。
+Ordinary test files have at most 15 test methods and cover basic, parameter, edge, and deterministic
+behavior. `scripts/check_test_quality.py` enforces these categories and documents explicit exemptions.
+Its strict default is shared by local checks and CI. Slow, paper, E2E, and GPU validation needs
+suitable data, time, or hardware; report what was actually run and any limits.
 
-每个普通测试文件最多 15 个测试方法，并覆盖 basic、param、edge、deterministic 全部四类（缺任一分类即门禁失败，严格模式为本地与 CI 共同默认）；具体规则由 `scripts/check_test_quality.py` 执行。
+### 5.1 Shared helpers: reuse required
 
-### 5.1 单源助手（必须复用）
+These helpers own concepts used across modules. Reuse them instead of introducing local copies.
 
-以下助手是跨模块的单一实现，新代码必须复用而非内联重写：
-
-| 助手 | 位置 | 用途 |
+| Helper | Location | Purpose |
 |---|---|---|
-| `canonical_hash` | `pu_toolbox/utils/serialization.py`（`benchmarks/_common.py` 为兼容 re-export） | **宽容** JSON 规范化哈希（`allow_nan` 默认）：报告与清单载荷 |
-| `strict_canonical_hash` | `pu_toolbox/utils/serialization.py` | **严格** JSON 规范化哈希（`allow_nan=False`）：拒绝非有限浮点——制品身份摘要不得把写不出去的数悄悄折进摘要 |
-| `json_safe` | `pu_toolbox/utils/serialization.py` | **宽容**转换（报告载荷）：NaN/Inf → `None`、`np.generic` → `item()`、`Path` → `str`；对常规载荷不抛错（边界见下方） |
-| `json_scalars` | `pu_toolbox/utils/serialization.py` | **严格**转换（清单索引）：拒绝非标量元素与非有限浮点——这些列表要进哈希，是制品身份的一部分 |
-| `array_hash` | `pu_toolbox/utils/serialization.py` | **数组内容**摘要（sha256）：`dtype` 串 + `json.dumps(shape)` + 连续字节；shape 取**调用方原数组**（`np.ascontiguousarray` 会把 0-d 提升为 `(1,)`，那是实现细节不是契约） |
-| `file_hash` | `pu_toolbox/utils/serialization.py` | **文件字节**摘要（sha256）：按 `_FILE_CHUNK_BYTES`（1 MiB）分块流式，无元数据前缀 |
-| `sigmoid_stable` | `pu_toolbox/utils/activations.py` | 数值稳定 sigmoid |
-| `rbf_weights` | `pu_toolbox/utils/basis.py` | RBF 核权重（六处收敛单源） |
-| `validate_true_binary_labels` | `pu_toolbox/core/validation.py` | y_true 值域校验 |
-| `check_scalar_in_range` | `pu_toolbox/core/validation.py` | 标量范围校验（`inclusive=False` 为开区间） |
-| `solve_prior_from_positive_fraction` / `stable_centroid_denominator` | `pu_toolbox/estimators/risk/_class_prior.py` | 类先验推导与质心项 1−2ph 稳定性检查 |
-| `git_worktree_dirty` | `benchmarks/_common.py` | git 脏状态检测（`exclude` 参数排除 runner 自身输出） |
+| `canonical_hash` | `pu_toolbox/utils/serialization.py`; compatibility re-export in `benchmarks/_common.py` | Permissive canonical JSON hash with the default `allow_nan`, for report and manifest payloads |
+| `strict_canonical_hash` | `pu_toolbox/utils/serialization.py` | Canonical JSON hash with `allow_nan=False`, rejecting non-finite values for artifact identities |
+| `json_safe` | `pu_toolbox/utils/serialization.py` | Permissive report conversion: NaN/Inf to `None`, NumPy scalars to `item()`, and `Path` to `str` |
+| `json_scalars` | `pu_toolbox/utils/serialization.py` | Strict manifest index conversion, rejecting non-scalars and non-finite floats before hashing |
+| `array_hash` | `pu_toolbox/utils/serialization.py` | SHA-256 of dtype string, `json.dumps(shape)`, and contiguous array bytes; shape comes from the caller's array |
+| `file_hash` | `pu_toolbox/utils/serialization.py` | SHA-256 of file bytes streamed in 1 MiB chunks, without a metadata prefix |
+| `sigmoid_stable` | `pu_toolbox/utils/activations.py` | Numerically stable sigmoid |
+| `rbf_weights` | `pu_toolbox/utils/basis.py` | Shared RBF kernel weights |
+| `validate_true_binary_labels` | `pu_toolbox/core/validation.py` | Validation of the `y_true` value domain |
+| `check_scalar_in_range` | `pu_toolbox/core/validation.py` | Scalar range validation; `inclusive=False` uses an open interval |
+| `solve_prior_from_positive_fraction` / `stable_centroid_denominator` | `pu_toolbox/estimators/risk/_class_prior.py` | Prior derivation and stability checks for centroid term 1−2ph |
+| `git_worktree_dirty` | `benchmarks/_common.py` | Dirty-worktree detection; `exclude` omits runner outputs |
 
-`json_safe` 与 `json_scalars` 是**一对对偶**，不是同一件事：**输出侧**用前者（报告要能写出去，NaN 变 `None` 是想要的），**身份侧**用后者（列表要进哈希，NaN 必须拒绝，否则摘要会在无人选择的情况下改变）。两者语义相反，**不得合并**。
+Use `json_safe` for report output, where replacing NaN with `None` is intended. Use `json_scalars`
+for index lists that enter artifact hashes, where invalid values must fail. Do not merge these
+helpers. Likewise, keep `canonical_hash` for permissive report/manifest payloads and
+`strict_canonical_hash` for identities such as `split_sha256`, `cache_key`, and `protocol_sha256`.
+Their treatment of non-finite input is deliberately different.
 
-`canonical_hash` 与 `strict_canonical_hash` 同样是**一对对偶**：**报告/清单载荷**用前者（写得出 `NaN` 是想要的），**制品身份摘要**用后者（`split_sha256`、`cache_key`、`protocol_sha256` 这类字段要先拒绝写不出去的数，否则摘要会在无人选择的情况下改变）。两者只差 `allow_nan`，但在非有限输入上分道扬镳，**不得合并**。
+Reuse `json_scalars` for array-to-JSON-scalar-list conversions that enter hashes. Two intentional
+exceptions remain: `label_view_sha256` in `pu_toolbox/experiment/strategies.py` hashes a label view
+already made integer with `.astype(int)`; report payloads in `pu_toolbox/diagnostics/uncertainty.py`
+need permissive output semantics.
 
-「数组 → JSON 标量列表 → 进哈希」这类清单索引转换必须复用 `json_scalars`，不得再内联复制 `.tolist()` 版本。目前仅两处**知情保留**：`pu_toolbox/experiment/strategies.py` 的 `label_view_sha256`（载荷是标签视图而非索引，`.astype(int)` 已保证整数，校验分支不会触发）与 `pu_toolbox/diagnostics/uncertainty.py` 的报告载荷（输出侧，宽容语义才正确）。
+`_json_sha256` in `pu_toolbox/experiment/text.py` has a separate, intentional encoding:
+`ensure_ascii=False`. Changing it changes non-ASCII corpus digests and cache filenames and is a
+breaking change.
 
-哈希助手另有一处**知情保留**：`pu_toolbox/experiment/text.py` 的 `_json_sha256` 是**第三种语义**——它多一个 `ensure_ascii=False`，含非 ASCII 码点的语料上摘要与 `canonical_hash` / `strict_canonical_hash` 都不同，且其产物 `cache_key` 直接是缓存文件名；改它会失效已记录的文本摘要与本地缓存，属破坏性变更。
+Keep `array_hash` and `file_hash` separate: the former describes an in-memory ndarray including
+dtype and shape; the latter streams file bytes. Uploaded in-memory byte buffers belong to neither
+interface. Existing public wrappers `survey_protocol.array_digest` and `split_archive.file_sha256`
+delegate to the helpers; new consumers should use the helpers directly.
 
-数组摘要与文件摘要是**两个正交概念**，不是一个带开关的概念，**不得合并**：输入类型（`np.ndarray` vs 路径）、编码（带 `dtype`/`shape` 元数据前缀 vs 纯字节流）、分块语义（只对文件存在，大文件不能一次读入）都不同。选择边界：**内存里的 ndarray** 用 `array_hash`；**磁盘上的文件**用 `file_hash`；内存里的字节块（如 Streamlit 上传的配置）既不是数组也不是文件路径，不在两者范围内。既有公开名 `survey_protocol.array_digest` 与 `split_archive.file_sha256` 是**委托包装**，保留名字供既有消费者使用；新增消费者直接复用 `array_hash` / `file_hash`，不得再内联复制。
+For a 0-d array, `array_hash` hashes shape `[]`, even though its internal contiguous copy has shape
+`(1,)`. This was a deliberate compatibility correction to `survey_protocol.array_digest`; it did
+not affect persisted artifacts. Coverage is in `tests/unit/utils/test_content_hashes.py`.
 
-`array_hash` 的 0-d 语义是一次**已裁定的兼容性变更**：摘要描述调用方交出的数组（0-d 的 shape 串是 `[]`），而不是内部连续化副本（那会得到 `[1]`）。三个旧实现里只有 `survey_protocol.array_digest` 取的是副本，故该入口的 0-d 行为在收敛时改变；这个输入当前不可达任何已落盘制品，守卫只在 `tests/unit/utils/test_content_hashes.py`（helper 与公开入口各一条）。
+Other benchmark hashes encode previously recorded benchmark identities. Do not consolidate them
+without freezing and validating their own compatibility boundary. The detailed inventory is
+optional Chinese background in the [single-source map](docs/dev/single_source_map.md).
 
-`benchmarks/` 下另有 **13 处** `hashlib.sha256(`（横跨 10 个模块）**未并**——它们的产物是基准配置身份（`runner_sha256` / `dataset_sha256`），收敛会改写已记录值，需各自的冻结与验收；清单见 [`docs/dev/single_source_map.md`](docs/dev/single_source_map.md)。
+`json_safe` does not guarantee arbitrary input becomes serializable: it does not detect cycles
+(which can raise `RecursionError`) and leaves unknown types such as `np.ndarray`, `set`, and `bytes`
+unchanged.
 
-`json_safe` 的宽容有边界，别当它保证输出可序列化：它**不检测自引用结构**（会 `RecursionError`），也不处理未识别的类型（`np.ndarray`、`set`、`bytes` 会**原样返回**）。
+Review incremental code for duplicated concepts. More than one single-source violation is a yellow
+threshold: the PR must include consolidation. Three or more violations, or a third split of the
+same concept, is a red threshold requiring a structural refactor assessment for that area. Public
+interfaces need documentation and tests; refactors need covering tests and should address one issue
+at a time. Record material design tradeoffs when making the decision. Historical audits are optional
+Chinese background in [architecture principles](docs/dev/architecture_principles.md) and
+[ADR-0001](docs/adr/0001-architecture-governance.md).
 
-**代谢率红线**：PR 评审时对增量代码做单源检查——发现 **>1 处单源违规为黄线**（该 PR 必须包含收敛治理）；**≥3 处或同一概念第 3 次分裂为红线**，触发该区域的结构性重构评估。历史治理记录见 `docs/dev/architecture_principles.md` §5 与 `docs/adr/0001-architecture-governance.md`。
+### 5.2 Comment rules
 
-### 5.2 注释规则
+The English [comment governance guide](docs/dev/comment_governance.md) defines the full criteria,
+gate behavior, and migration policy. In particular:
 
-源码注释的判定标准、门禁规则与迁移策略见
-[`docs/dev/comment_governance.md`](docs/dev/comment_governance.md)。贡献者需要知道的三条：
+- Use contextual `TBD: ...` or `TBD(#123) ...` for unfinished work. Do not introduce `TODO`, `FIXME`,
+  `XXX`, or `HACK` markers.
+- Trailing comments are errors in migrated partitions under the default gate and discouraged
+  advisories elsewhere. The gate script owns the partition list. `--strict-inline` is a manual
+  migration switch. Tool directives such as `noqa`, `pragma:`, and `type:` are exempt.
+- Repository paths referenced in comments, docstrings, and string literals must exist.
+- Write comments and docstrings in English; legitimate localized runtime strings and test data
+  can remain in their original language.
 
-- 未完成事项写 `TBD`，且必须带上下文（`TBD: ...` 或 `TBD(#123) ...`）；
-  不新增 `TODO`、`FIXME`、`XXX`、`HACK`；
-- 行尾注释：默认运行下**已迁移分区**（清单在门禁脚本内，单一源）为 error，未迁移分区仍为不鼓励的 advisory；`--strict-inline` 是手动迁移开关。工具链指令（`noqa`、`pragma:`、`type:` 等）除外；
-- 注释、docstring 与字符串字面量中引用的仓库内文件路径必须真实存在。
+Run `uv run python scripts/check_comment_quality.py` (default scope: `pu_toolbox/`) and
+`uv run python scripts/check_doc_links.py` (also checks source path references).
 
-机械门禁：`uv run python scripts/check_comment_quality.py`（默认扫 `pu_toolbox/`）
-与 `uv run python scripts/check_doc_links.py`（含源码注释的路径引用）。
+## 6. Paper methods and benchmarks
 
-## 6. 论文方法和 benchmark
+| Status | Meaning |
+|---|---|
+| Method card complete | Paper content and interface specifications are documented |
+| Native/clean-room complete | An independent implementation runs and passes code tests |
+| Paper-like complete | Experiments follow paper specifications but may use substitute data or a modern environment |
+| Official reproduction complete | Official data, source/configuration, historical environment, and statistical protocol are locked and have actually been run |
 
-状态必须严格区分：
+Update benchmark runners, configurations, provenance locks, and results together. Submitted result
+CSVs and manifests must be regenerable using repository configurations and commands. Document seed
+counts, data sources, and environment limits in the relevant README.
 
-- **Method Card 完成**：论文内容和接口规格已整理。
-- **native/clean-room 完成**：本项目独立实现可运行，并通过代码测试。
-- **paper-like 完成**：按论文规格设计实验，但可能使用替代数据或现代环境。
-- **官方复现完成**：官方数据、源码/配置、历史环境和统计协议均已锁定并实际运行。
+Never use test-set truth to select class priors, thresholds, or hyperparameters. Synthetic `y_true`
+and propensity are for evaluation or explicitly labeled oracle sensitivity only.
 
-Benchmark runner、配置、来源锁和结果应一起更新。提交结果 CSV/manifest 时必须能够由仓库内配置和命令重新生成，并在 README 中说明 seed 数、数据来源和环境限制。
+For departures from the paper or locked source, explain source behavior, project treatment, reason,
+validation, and limits. Document supported engineering choices with the implementation. Passing
+tests alone does not establish paper numerical reproduction. Request collaborator decisions for
+unresolved methodological, protocol/budget, or evidence conflicts; do not sign off historical
+reviews or bypass existing formal admission rules.
 
-禁止使用测试集真值选择类先验、阈值或超参数。合成数据中的 `y_true` 和 propensity 只用于评价或明确标记的 oracle sensitivity。
+## 7. Documentation and project status
 
-算法处理若不同于论文或锁定源码，简述“来源行为 → 本项目处理 → 原因 → 验证及边界”。
-已有适当对照支持的工程选择写在实现说明中，不再重复列为待 review 问题；仅测试通过
-不能代替论文数值复现。需合作者确认的内容限于真正未决的方法学、协议/预算或证据冲突，
-不因此代签历史复核或绕过既有正式准入要求。
+### Workspace assets and cleanup
 
-## 7. 文档与进度
+Keep source separate from local experimental assets; the English
+[project structure](docs/dev/project_structure.md) defines storage and script categories. Place new
+uploads under the appropriate local `data/incoming/user-uploads/` category and deliverable tables
+and notes under dated `data/outgoing/` directories. These local directories can be created as needed
+and are not distributed by a clone. Do not stage large archives, private originals, or unverified
+results with `git add -A`.
 
-### 工作区资产与清理
+Before cleanup, inspect running jobs and references. Old protocols, comparison matrices, and
+research evidence in source control are not caches. Preserve original hashes when archiving.
+Provide a compatibility entry point or an explicit migration plan for changed paths. Delete only
+verified reproducible artifacts with no unique evidence, list exact targets, and retain an operation
+receipt. Never bulk-empty `data/`, `results/`, `tmp/`, or virtual environments. Use the experiment's
+own reclamation mechanism for checkpoints.
 
-源代码与本机实验资产分离，存放约定及脚本分类见
-[目录结构 §1.1 / §6](docs/dev/project_structure.md)。新上传文件放在本地
-`data/incoming/user-uploads/` 的对应分类，交付表格与说明放在 `data/outgoing/` 的日期目录；
-不要把大型压缩包、私有原件或未经核对的结果随 `git add -A` 提交。
-这些本地目录可以按需创建，并不随 clone 分发。
+### Status updates
 
-清理前核对运行任务与引用关系；源码中的旧版本协议、比较矩阵和研究证据不是缓存。
-归档要保留原件哈希，引用路径改变时提供兼容入口或明确迁移方案。删除仅限已核实
-可重建且无独有证据的产物，列出精确目标并保存操作收据；禁止对 `data/`、`results/`、
-`tmp/` 或虚拟环境一键清空。需要回收 checkpoint 时使用相应实验的回收机制。
+Check user entry points and test counts in `README.md`, the `docs/README.md` index, API/module
+boundaries in `docs/dev/architecture.md`, and the real layout in `docs/dev/project_structure.md`.
+Check relevant task and release records in `docs/dev/process_checklist.md` (Chinese; maintainers
+can update these from the evidence in your PR).
 
-### 状态更新
+Mark a task complete only when its code, tests, documentation, and required experiments are complete.
+Do not mark unrelated tasks done. Maintain public documentation in English at its existing paths
+under the [language policy](docs/adr/0022-public-documentation-language.md); do not create parallel
+language copies. During migration, state the completed scope accurately.
 
-完成任务时至少检查：
+## 8. Pull requests
 
-- `README.md` 的用户入口和测试数量。
-- `docs/README.md` 的文档索引。
-- `docs/dev/architecture.md` 的 API 和依赖方向。
-- `docs/dev/project_structure.md` 的真实文件结构。
-- `docs/dev/process_checklist.md` 的勾选与发布状态。
-
-不要一次性把所有待办标记完成。只有代码、测试、文档和要求的实际实验都完成后才能勾选对应任务。
-
-## 8. Pull Request
-
-推送功能分支后创建 PR：
+Push the feature branch, then open a PR:
 
 ```bash
 git push -u origin feature/<short-name>
 ```
 
-PR 描述应包含问题、实现边界、验证命令、实验产物和未解决风险。CI 的 Python 矩阵、静态质量门禁及 wheel 安装冒烟全部通过后再合并。
+Describe the problem, implementation boundary, validation commands/results, experiment artifacts,
+and unresolved risks. Follow the English [PR template](.github/pull_request_template.md). Merge only
+after the Python CI matrix, static quality gates, and installed-wheel smoke tests pass.

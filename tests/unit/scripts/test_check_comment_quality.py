@@ -134,9 +134,9 @@ def test_edge_unparsable_file_reports_scan_error(tmp_path):
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 GOVERNANCE_MD = PROJECT_ROOT / "docs" / "dev" / "comment_governance.md"
 # The anchor paragraph under §3's table, e.g.
-# "§3 保留项合计 25 行(...)：`pu_toolbox/core/config.py` 4、..." -- the counts
+# "Section 3 retains 25 lines(...): `pu_toolbox/core/config.py` 4, ..." -- the counts
 # are the part a human ruling cannot otherwise be checked against.
-_ANCHOR_TOTAL_RE = re.compile(r"保留项合计\s+(\d+)\s+行")
+_ANCHOR_TOTAL_RE = re.compile(r"Section 3 retains\s+(\d+)\s+lines")
 _ANCHOR_PAIR_RE = re.compile(r"`(pu_toolbox/[^`]+\.py)`\s+(\d+)")
 
 

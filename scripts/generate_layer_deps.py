@@ -287,8 +287,8 @@ def measure_edges(
 
 
 def _display(layer: str, layers: Mapping[str, tuple[str, ...]]) -> str:
-    roots = "、".join(f"`{Path(r).name}/`" for r in layers[layer])
-    return f"{layer}（{roots}）"
+    roots = ", ".join(f"`{Path(r).name}/`" for r in layers[layer])
+    return f"{layer} ({roots})"
 
 
 def _targets(
@@ -300,9 +300,9 @@ def _targets(
     order = list(layers)
     parts = []
     for target in sorted(row, key=order.index):
-        suffix = "（仅函数内）" if row[target] == "function" else ""
+        suffix = " (function-local only)" if row[target] == "function" else ""
         parts.append(f"{target}{suffix}")
-    return "、".join(parts)
+    return ", ".join(parts)
 
 
 def render_block(
@@ -313,9 +313,10 @@ def render_block(
     """Render the generated markdown block, markers included."""
     lines = [
         BEGIN_MARK,
-        "**层间调用方向**（指向被依赖方；由代码实测生成，勿手改）：",
+        "**Cross-layer dependencies** "
+        "(targets are dependencies; generated from code, do not edit):",
         "",
-        "| 层 | 使用/调用 |",
+        "| Layer | Uses/calls |",
         "|---|---|",
     ]
     lines.extend(

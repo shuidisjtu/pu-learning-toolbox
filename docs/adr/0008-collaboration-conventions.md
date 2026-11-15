@@ -16,6 +16,8 @@
    project_management/(过程)分层,参考 scikit-learn 受众分离;docs 全中文、
    根 README 双语。
    > 2026-08-13 修订:project_management/ 层解散并入 dev/,见 ADR-0013。
+   > 2026-11-15 修订:语言条款由 [ADR-0022](0022-public-documentation-language.md)
+   > 取代：对外文档原地英语化、单源维护；内部中文记录与历史决策保留。原决策文字留作历史。
 3. **论文分工**:shuidisjtu 负责基础 6 篇(Elkan-Noto/uPU/nnPU/PNU/Centroid/
    LLSVM),HENG958 负责扩展 6+3 篇(penL1/ReCPE/Dist-PU/PUSB/LBE/Self-PU
    + InfoMax/WConPU/DGPU)。

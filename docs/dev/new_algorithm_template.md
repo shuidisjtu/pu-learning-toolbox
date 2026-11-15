@@ -1,76 +1,124 @@
-# 新算法接入模板
+# New Algorithm Contribution Template
 
-## 1. 必做声明
+## 1. Required declarations
 
-新算法必须：
+A new algorithm must:
 
-1. 实现 API 契约（fit/predict/decision_function/get_params/set_params）；显式声明
-   `label_semantics`（`"pu"`、`"pnu"` 或监督目标的 `"pn"`），说明主 `fit(X, y)` 的
-   标签**含义**，不能仅靠 `{0, 1}` 取值校验区分 PU 与 PN；
-2. 在类属性块声明 4 个架构能力字段（`BasePUClassifier` 有 tabular 默认值，
-   深度算法必须显式声明）：
+1. Implement the API contract (`fit`, `predict`, `decision_function`, `get_params`,
+   `set_params`). Explicitly declare `label_semantics` as `"pu"`, `"pnu"`, or `"pn"`
+   for a supervised target. This describes the **meaning** of labels in the main `fit(X, y)`;
+   validating the values `{0, 1}` alone cannot distinguish PU from PN labels.
 
-   | 字段 | 合法值 | 说明 |
+   Subclass `BasePUClassifier` and implement `fit(X, y_pu, *, class_prior=None,
+   sample_weight=None)`, `_predict(X)`, and `_decision_function(X)`. `fit` returns `self`.
+   Use the inherited public prediction wrappers so calls before fitting raise `NotFittedError`.
+   `predict` returns an integer array of shape `(n_samples,)` containing only `{0, 1}`;
+   `decision_function` returns finite scores of shape `(n_samples,)`, with higher scores
+   indicating the positive class. Preserve sklearn-compatible parameter discovery and cloning
+   through `get_params` and `set_params`. Declare `sample_weight_support` consistently with
+   whether non-`None` weights are used, ignored, or rejected with `NotImplementedError`.
+2. Declare the four architecture-capability fields as class attributes.
+   `BasePUClassifier` supplies tabular defaults; deep algorithms must declare them explicitly:
+
+   | Field | Legal values | Meaning |
    |---|---|---|
-   | native_architectures | ⊆ {"mlp","cnn"} | 原生架构路径；∅ = tabular_only（派生） |
-   | input_ndims | ⊆ {2,4}，非空 | 支持输入维度 |
-   | encoder_parameter | None 或构造函数参数名 | 接收注入 encoder 的构造函数参数名（声明性元数据；Pipeline 依构造函数签名经该参数注入 encoder，不以本字段驱动注入） |
-   | trains_encoder | bool | 是否端到端训练注入的 encoder |
+   | `native_architectures` | Subset of `{"mlp", "cnn"}` | Native architecture paths; the empty set derives `is_tabular_only=True` |
+   | `input_ndims` | Nonempty subset of `{2, 4}` | Supported input dimensionalities |
+   | `encoder_parameter` | `None` or a constructor parameter name | Parameter receiving an injected encoder; declarative metadata. Pipeline injection follows the constructor signature, rather than reading this field |
+   | `trains_encoder` | `bool` | Whether the injected encoder is trained end to end |
 
-3. 在 registry/builtin_methods.py 注册 AlgorithmMetadata（`implementation_status` 取
-   NATIVE 仅当有真实训练逻辑；未实现必须 API_ONLY；写在哪一栏见第 5 条）；
-4. 声明只在注册表字面量里写的那些字段：`aliases` / `deprecated_aliases` / `paper` /
-   `supports_sparse` / `supports_gpu` / `upstream_url` / `license` / `training_cost`；
-   若方法依赖额外干净真值 support set，置 `requires_clean_support=True`，并使缺失支持集时的
-   `fit` 直接报错。
-5. 那 8 个条目字段（`family` / `assumption` / `scenario` / `requires_class_prior` /
-   `implementation_status` / `source_status` / `backend` / `maturity`）写在哪一栏，**逐字段**由
-   「你的类是否声明该字段」决定，与条目是否绑定无关：类属性块声明了的，注册时同步进 registry，
-   `AlgorithmMetadata(...)` 里就**不得**再写（写了也会被覆盖）；**类没声明的**必须写在字面量里，
-   否则只能落到 dataclass 默认值。所以「已绑定」不等于「一律不写」：`class_prior_estimation`
-   是已绑定条目，但它的类一个字段都不声明，8 个全写在字面量；`pusb` / `lbe` 的
-   `requires_class_prior` 同理（基类默认值不算「类声明」）。未实现（`api_only`）的方法没有可绑定的
-   类，这 8 个字段全写在字面量里。两种情况都由 `tests/test_builtin_methods.py` 的
-   `test_static_entries_do_not_redeclare_class_fields` 守住。**已知边界**：那 5 个仅类字段
-   （4 个架构能力字段与 `label_semantics`）不允许出现在任何条目字面量里，`api_only` 方法因此只能
-   取 dataclass 默认值——见 `docs/dev/single_source_map.md` 的登记。
+3. Register `AlgorithmMetadata` in `pu_toolbox/registry/builtin_methods.py`.
+   Set `implementation_status` to `NATIVE` only when real training logic exists;
+   unimplemented methods must use `API_ONLY`. Item 5 explains where to declare this field.
+4. Declare the registry-only fields in the entry literal: `aliases`, `deprecated_aliases`,
+   `paper`, `supports_sparse`, `supports_gpu`, `upstream_url`, `license`, and
+   `training_cost`. If a method requires an additional support set with clean labels, set
+   `requires_clean_support=True` and make `fit` fail immediately when that support set is absent.
+5. Choose the source of each of these eight entry fields **individually**:
+   `family`, `assumption`, `scenario`, `requires_class_prior`, `implementation_status`,
+   `source_status`, `backend`, and `maturity`.
 
-## 2. 自动门禁（无需手写）
+   If the estimator class declares the field, registration synchronizes it into the registry;
+   do not repeat it in `AlgorithmMetadata(...)`, where it would be overwritten.
+   If the class does not declare it, write it in the entry literal or the dataclass default
+   will apply. A declaration inherited from a concrete estimator class also counts; defaults
+   inherited from `BasePUClassifier` or `BasePriorEstimator` do not.
 
-- 契约测试 tests/contract/test_capability_declarations.py：声明合法性、
-  注册表同步、tabular_only 派生、签名一致性，且注册分类器必须在类自身显式声明
-  `label_semantics`——新算法漏声明直接失败；
-- tests/contract/test_classifier_baseline.py：API 契约 + 基线行为；
-- check_doc_links Rule 1：文档引用路径必须真实存在。
+   Binding a class therefore does not mean omitting every field. For example,
+   `class_prior_estimation` has a bound class that declares none of these fields, so all eight
+   belong in its literal. The same rule puts `requires_class_prior` in the `pusb` and `lbe`
+   literals. An unimplemented (`api_only`) method has no bound class and must put all eight
+   fields in its literal.
 
-## 3. 若声明支持 CNN（native_architectures 含 "cnn"）
+   `test_static_entries_do_not_redeclare_class_fields` in `tests/test_builtin_methods.py`
+   enforces both cases. **Known boundary:** class-only fields must never appear in entry
+   literals. These are the four architecture fields, `label_semantics`,
+   `class_prior_target`, and `risk_class_prior_target`; an `api_only` method consequently
+   uses their dataclass defaults. The internal [single-source map](single_source_map.md)
+   records background in Chinese; the rules above are sufficient for external contributors.
+6. If the method consumes a class prior, declare its target distribution consistently with the
+   default fit risk view. `class_prior_target` accepts `"population"`,
+   `"native_unlabeled"`, or `"training_table"`. An independent `risk_class_prior`
+   parameter uses `risk_class_prior_target`, accepting `None`, `"population"`, or
+   `"native_unlabeled"`. Here `population` means the positive proportion in the target
+   population, `native_unlabeled` means the proportion in the original input U pool, and
+   `training_table` means the proportion in the concatenated P/U training table. Declare
+   the distribution actually consumed by the algorithm, rather than assuming these proportions
+   are equal. The Pipeline resolves a population prior and converts it for each training fold;
+   direct estimator calls must supply the prior required by that estimator's risk view.
+   Further explanations and API details are in [prior semantics](../user/concepts/class_prior_semantics.md)
+   and the [API contract](../user/reference/api.md), scheduled for the user-documentation migration.
 
-必须提供：
+## 2. Existing automated gates
 
-- CNN smoke training 测试；
-- 输入/输出形状测试（encoder 输出经 validate_encoder_features 校验）；
-- CV fold 隔离测试（fold 间权重不泄漏）；
-- 固定 seed 测试；
-- GPU 执行级测试：挂 `gpu` pytest marker（pyproject 已注册，无 CUDA 自动 skip，
-  验收环境 `pytest -m gpu` 真执行；先例 `tests/unit/estimators/test_nnpu_gpu.py`）；
-- save/load/predict round-trip 测试；
-- 不支持架构的 fail-fast 测试（PUPipeline architecture 校验）。
+These shared checks already exist; a contributor does not need to recreate them:
 
-## 4. 最小示例
+- `tests/contract/test_capability_declarations.py`: declaration legality, registry
+  synchronization, derivation of `is_tabular_only`, and constructor-signature consistency.
+  Registered classifiers must explicitly declare `label_semantics` on the class itself;
+  omission fails the contract test.
+- `tests/contract/test_classifier_baseline.py`: API contract and baseline behavior.
+- Rule 1 of `scripts/check_doc_links.py`: referenced repository paths must exist.
 
-深度算法类属性块（假设 MLP+CNN 双架构）：
+Add algorithm-specific tests as well as satisfying the shared contracts.
+Register a small estimator factory in `tests/estimator_factories.py` so the baseline suite
+can construct the new trainable method; its coverage guard checks that every trainable
+registered method has a factory.
 
-    native_architectures = frozenset({"mlp", "cnn"})
-    input_ndims = frozenset({2, 4})
-    encoder_parameter = "encoder"
-    trains_encoder = True
-    label_semantics = "pu"
+## 3. Declaring CNN support
 
-fit 内 probe（若 encoder 非 None）：
+If `native_architectures` includes `"cnn"`, provide:
 
-    representation_dim = validate_encoder_features(
-        probe.flatten(start_dim=1), encoder_param_name="encoder"
-    )
+- A CNN training smoke test.
+- Input/output shape tests; validate encoder output with `validate_encoder_features`.
+- CV-fold isolation tests to prevent weights leaking between folds.
+- A fixed-seed test.
+- GPU execution tests using the registered `gpu` pytest marker. They skip automatically
+  without CUDA; run `pytest -m gpu` in the acceptance environment. See
+  `tests/unit/estimators/test_nnpu_gpu.py`.
+- A save/load/predict round-trip test.
+- Fail-fast tests for unsupported architectures using `PUPipeline` architecture validation.
 
-传统表格算法：可继承架构能力的 tabular 默认，但注册方法仍须显式声明
-`label_semantics = "pu"`；三值 PNU 方法声明 `"pnu"`。监督 oracle 声明 `"pn"`。
+## 4. Minimal declarations
+
+Class attributes for a deep algorithm with native MLP and CNN paths:
+
+```python
+native_architectures = frozenset({"mlp", "cnn"})
+input_ndims = frozenset({2, 4})
+encoder_parameter = "encoder"
+trains_encoder = True
+label_semantics = "pu"
+```
+
+Probe validation inside `fit` when the encoder is not `None`:
+
+```python
+representation_dim = validate_encoder_features(
+    probe.flatten(start_dim=1), encoder_param_name="encoder"
+)
+```
+
+A traditional tabular algorithm may inherit the tabular architecture defaults, but a registered
+classifier must still explicitly declare `label_semantics = "pu"`. A three-way PNU method
+declares `"pnu"`; a supervised oracle declares `"pn"`.

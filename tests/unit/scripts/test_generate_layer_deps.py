@@ -52,7 +52,7 @@ def test_basic_layer_with_no_outgoing_import_renders_a_dash(tmp_path):
     _write(tmp_path, "pkg/high/a.py", "value = 1\n")
     edges = gld.measure_edges(tmp_path, _TWO_LAYERS)
     block = gld.render_block(edges, _TWO_LAYERS)
-    assert "| High（`high/`） | — |" in block
+    assert "| High (`high/`) | — |" in block
 
 
 def test_basic_stale_document_makes_check_mode_fail(tmp_path, monkeypatch, capsys):
@@ -75,7 +75,7 @@ def test_basic_stale_document_makes_check_mode_fail(tmp_path, monkeypatch, capsy
     # The patched layer map is the one that took effect.  A default argument
     # bound at import time would silently keep the real map, and the row below
     # would never appear.
-    assert "| High（`high/`） | Low |" in doc.read_text(encoding="utf-8")
+    assert "| High (`high/`) | Low |" in doc.read_text(encoding="utf-8")
 
 
 @pytest.mark.parametrize(
