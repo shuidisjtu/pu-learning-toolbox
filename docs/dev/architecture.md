@@ -287,7 +287,7 @@ Independent test evaluation + manifest               [runner → manifest]
   resample. During training they apply TS-OS calibration per mini-batch,
   `D_U^k ∪ D_P^k`: the positive batch joins the unlabeled loss input. This applies
   only to train; validation and test remain OS. See
-  [protocol §2.3](../research/pu_survey/pu_survey_protocol.md#23-pu-数据集生成).
+  [protocol §2.3](../research/pu_survey/pu_survey_protocol.md#23-pu-data-generation).
 - **Selection**: PA and OA are independent. PA uses proxy accuracy's OS branch
   with required π; OA uses true Accuracy on `clean_val`. Both search checkpoints
   and a threshold grid, breaking ties in favor of the earliest candidate as
@@ -350,7 +350,7 @@ into the run directory as `method_ledger_entry.json`. Overlapping fields
 (the four capabilities, `source_status`, and
 `requires_class_prior` ↔ `prior_semantics`) must mirror the registry, enforced by
 `tests/contract/test_ledger_registry_consistency.py`.
-See [protocol §4](../research/pu_survey/pu_survey_protocol.md#4-需实现的算法)
+See [protocol §4](../research/pu_survey/pu_survey_protocol.md#4-target-algorithms)
 for semantics and [the ledger](../../pu_toolbox/experiment/method_ledger.json)
 for current fields.
 

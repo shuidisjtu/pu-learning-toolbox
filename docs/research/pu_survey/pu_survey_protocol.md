@@ -1,373 +1,475 @@
-# PU 调研实验协议
+# PU Survey Experiment Protocol
 
-> 本协议为**实验方案要求纲要**：规定实验目标、数据与划分、选模协议、结果分组与交付验收，
-> 具有长期参考价值。
+> This protocol outlines the experiment requirements: objectives, data and splits,
+> model-selection protocols, result grouping, and delivery acceptance. It is a lasting
+> reference for the study design.
 >
-> 相关文档：实验层设计与实现现状见 [experiment_layer.md](../../dev/experiment_layer.md)；
-> 当前能力边界见 [README](README.md)，命令见 [runbook](runbook.md)；
-> 与双架构计划的关系见 [dual_architecture_plan.md §7](../../dev/dual_architecture_plan.md)；
-> 算法方法实现状态与台账见 [METHOD_CARDS](../method_cards/)。
+> Related documents: [experiment_layer.md](../../dev/experiment_layer.md) provides optional
+> Chinese design and implementation background. See the [README](README.md) for current
+> capability boundaries and the [runbook](runbook.md) for commands.
+> [dual_architecture_plan.md, section 7](../../dev/dual_architecture_plan.md) provides optional Chinese
+> background on architecture planning; [method cards](../method_cards/) provide optional
+> Chinese research background on individual implementations and their limitations.
 
-> **修订记录 2026-10-21**：Q1–Q3 与训练期 clean support（§2.4）定稿；新增采样假设
-> 判定顺序（论文优先）与“校准不适用”类别；明确先验规范定义与视图换算；
-> clean support 统一按 `PA+clean-support` 同表另列；明确架构例外判定标准与配方登记。
-> 见 §1.2、§2.3、§2.4、§2.5、§3、§4、§5。
+> **Revision, 2026-10-21:** Q1–Q3 and training-time clean support (section 2.4) were finalized.
+> This revision adds paper-first adjudication of sampling assumptions and the
+> “calibration not applicable” category; defines the canonical prior and view conversion;
+> lists clean-support runs separately as `PA+clean-support` in the same table; and states
+> architecture-exception criteria and recipe registration. See sections 1.2, 2.3, 2.4, 2.5,
+> 3, 4, and 5.
 >
-> **修订记录 2026-11-08**：clean-support 覆盖扩展到全部 8 个数据集；IMDB/20News 从冻结
-> split 的 SBERT 特征 carve，ADNI 从冻结 split 的原始图像 carve；ADNI 只允许
-> `group_policy="unverifiable"`，记录不可核验的 subject 隔离与 owner approval
-> `approved_by_protocol_owner_20261108`；support_seed 明确等于 split seed 且在查看标签前
-> 预先声明。执行矩阵仍为 `survey-v3.2`，revision 为
-> `2026-11-08-clean-support-coverage`；配方注册表升至 `survey-recipes-v1.3`。
+> **Revision, 2026-11-08:** clean support covers all eight datasets. IMDB/20News support is
+> carved from frozen-split SBERT features; ADNI support is carved from frozen-split raw images.
+> ADNI permits only `group_policy="unverifiable"`, recording unverifiable subject isolation
+> and owner approval `approved_by_protocol_owner_20261108`. The support seed must equal
+> the split seed and be declared before inspecting labels. The execution matrix remains
+> `survey-v3.2`, revision `2026-11-08-clean-support-coverage`; the recipe registry is
+> `survey-recipes-v1.3`.
 >
-> 新运行使用 `survey-v3.2`（含上述 revision）和 `survey-recipes-v1.3`。既有 v3 结果按
-> 原始记录只读消费，历史协议与过程材料从清理前提交 `7d11f2c4` 查阅；不将历史结果改标为
-> 新版本。
+> New runs use `survey-v3.2` with that revision and `survey-recipes-v1.3`. Existing v3
+> results are consumed read-only under their original records. Historical protocols and
+> process records are available before cleanup at commit `7d11f2c4`; historical results
+> are not relabeled as the new version.
 
-## 0. 参考文献
+## 0. References
 
 1. *Accessible, Realistic, and Fair Evaluation of Positive-Unlabeled Learning Algorithms*
-   （Wang et al., ICLR 2026）
-   对应源码仓库：https://github.com/wu-dd/PUBench
-2. *PU-Bench: A Unified Benchmark for Rigorous and Reproducible PU Learning*（Chen et al., 2026）
-   对应源码仓库：https://github.com/XiXiphus/PU-Bench
+   (Wang et al., ICLR 2026).
+   Source repository: https://github.com/wu-dd/PUBench
+2. *PU-Bench: A Unified Benchmark for Rigorous and Reproducible PU Learning*
+   (Chen et al., 2026).
+   Source repository: https://github.com/XiXiphus/PU-Bench
 
-## 1. 实验目标
+## 1. Experiment objectives
 
-本协议选择具体的研究条件：OS 输入、SCAR 或具名 LBE-A/B 定额标记、按方法配置的
-原生 U 或 TS-compatible 风险池、split 记录的总体先验、独立 PA/OA 和指定表征。
-公式与适用条件见公共[采样概念](../../user/concepts/pu_sampling.md)、
-[标记机制](../../user/concepts/scar_sar.md)、
-[先验语义](../../user/concepts/class_prior_semantics.md)、
-[选模原理](../../user/concepts/pu_model_selection.md)与
-[表征概念](../../user/concepts/representations.md)。
-新运行通过 `research_settings` 留存这些维度；报告按 seed 保留原设置并展示可读摘要。
+This protocol chooses specific research conditions: OS input, SCAR or named LBE-A/B fixed-count
+labeling, method-configured native-U or TS-compatible risk pools, the split-recorded population
+prior, independent PA/OA selection, and specified representations.
+For formulas and applicability conditions, see the public concepts on
+[sampling](../../user/concepts/pu_sampling.md),
+[labeling mechanisms](../../user/concepts/scar_sar.md),
+[prior semantics](../../user/concepts/class_prior_semantics.md),
+[model selection](../../user/concepts/pu_model_selection.md), and
+[representations](../../user/concepts/representations.md).
+New runs retain these dimensions in `research_settings`; reports preserve the original settings
+per seed and display readable summaries.
 
-### 1.1 目标概述
+### 1.1 Overview
 
-1. 不同类别的 PU 学习方法，各有什么优势？在什么特定情况下，哪些方法好？
-2. 不同标记频率下，各 PU 学习方法的稳定性如何？
-3. 和全监督学习相比，还相差多少，有何提升方向？
+1. What advantages do the different PU method categories offer, and under which conditions?
+2. How stable are PU methods at different labeling frequencies?
+3. How large is the gap to fully supervised learning, and where can methods improve?
 
-### 1.2 补充说明
+### 1.2 Clarifications
 
-- 目标 1 中的不同类别使用 Survey 的分类体系：A. data inspired methods、
-  B. objective inspired methods、C. optimization inspired methods；此外效仿参考文献 2 的
-  设计，在这三类算法之外额外设置全监督学习基准结果 oracle 上界。
-- 目标 1 中"算法具有优势"通过两套**独立**的模型选择协议评判：PA（主 PU 协议）与 OA
-  （使用真实验证标签的 oracle 对照）。每套协议分别选择超参数和 checkpoint，再在独立真实
-   标签测试集上汇报 Accuracy 的五次重复均值与标准差。AUC、F1 score、Precision、Recall
-   仅作为最终测试阶段的附加指标记录在 run manifest 并汇总；它们不参与超参数或 checkpoint
-   选择，也不与 PA/OA 合成为单一分数。F1/Precision/Recall 以正类标签 `1` 计算；某指标在
-   测试标签或预测退化时无定义，记录 `null` 及原因，不填零或丢弃该次运行。
-  PA 与 OA 的候选超参数、checkpoint 与阈值必须分别来自各自的协议：PA 结果只能使用在
-  `pu_val` 上选出的配置，OA 结果使用在 `clean_val` 上选出的配置；不得用 OA 选出的配置
-  报告 PA 结果。
-- 目标 1 中"特定情况"指原始数据集本身、数据抽样方式、backbone、测试指标、class prior、
-  标注概率、以及其它相关参数：例如参考文献 2 中研究的训练时间和峰值 GPU 内存。
-- 目标 2 中的"标记频率"是指真实正例中被标注为正例标签的平均比例，即参考文献 1、2 中的
-  **label ratio / label frequency**：$`c=P(S=1\mid Y=1)`$。它不是类先验；类先验单独记为
-  $`\pi=P(Y=1)`$。
+- Objective 1 uses the Survey taxonomy: A. data inspired methods, B. objective inspired
+  methods, and C. optimization inspired methods. Following reference 2, add a fully
+  supervised oracle comparison outside these three categories as a reference upper bound;
+  it is not a guaranteed empirical upper bound for every finite run.
+- Assess an “advantage” through two **independent** model-selection protocols: PA, the main
+  PU protocol, and OA, the oracle comparison using true validation labels. Each protocol
+  separately selects hyperparameters and checkpoints, then reports independent true-label
+  test Accuracy as the mean and standard deviation over five repetitions. AUC, F1 score,
+  Precision, and Recall are additional final-test metrics recorded in run manifests and
+  summaries. They do not select hyperparameters or checkpoints and are not combined with
+  PA/OA into one score. F1/Precision/Recall use positive label `1`. When a metric is undefined
+  because of degenerate test labels or predictions, record `null` and a reason, rather than
+  inserting zero or discarding the run.
+  Each protocol must select its own hyperparameters, checkpoint, and threshold: PA results
+  use configurations selected on `pu_val`; OA results use configurations selected on
+  `clean_val`. An OA-selected configuration cannot stand in for PA results.
+- “Conditions” include the original dataset, sampling design, backbone, test metrics,
+  class prior, labeling probability, and related parameters, including training time and peak
+  GPU memory studied in reference 2.
+- Objective 2 uses **label ratio / label frequency** for the mean proportion of true positives
+  observed as labeled positives, as in references 1 and 2: $`c=P(S=1\mid Y=1)`$.
+  It is distinct from the class prior, written separately as $`\pi=P(Y=1)`$.
 
-## 2. 数据集
+## 2. Datasets
 
-### 2.1 原始数据集选择
+### 2.1 Dataset selection
 
-选用 8 个数据集，涉及图片、文本、表格三类模态（参考文献 1、2）：
+Use eight datasets spanning images, text, and tables (references 1 and 2):
 
-- 文本数据集：IMDB，20News
-- 图片数据集：CIFAR-10，ADNI，MNIST，F-MNIST
-- 表格数据集：Spambase，Connect-4
+- Text: IMDB and 20News.
+- Images: CIFAR-10, the ADNI slot, MNIST, and F-MNIST.
+- Tables: Spambase and Connect-4.
 
-> 处理路线参考 PU-Bench 的实际做法：文本先用固定的 `all-MiniLM-L6-v2` 生成 384 维 SBERT
-> 向量，再作为二维数值特征输入 MLP；表格输入 MLP；图像使用 CNN。PU-Bench 并未对文本进行
-> 端到端 Transformer 训练。
+> Follow PU-Bench's processing approach: fixed `all-MiniLM-L6-v2` produces 384-dimensional
+> SBERT vectors for text, which enter an MLP as two-dimensional numeric features.
+> Tables use an MLP and images use a CNN. PU-Bench does not train an end-to-end Transformer
+> for these text tasks.
 
-### 2.2 原始数据集基本信息及正负样本划分原则
+### 2.2 Dataset properties and binary class definitions
 
-![原始数据集基本信息](assets/Dataset.png)
-![原始数据集正负样本划分](assets/Dateset_PU.png)
+![Original dataset properties](assets/Dataset.png)
+![Positive and negative class definitions](assets/Dateset_PU.png)
 
-二元化映射锁定为：20News `0,1,2,3 vs 4,5,6`，IMDb `1 vs 0`，MNIST 偶数 vs 奇数，
-F-MNIST `0,2,3,4,6 vs 1,5,7,8,9`，CIFAR-10 `0,1,8,9 vs 2--7`，ADNI `0 vs 1,2,3`，
-Connect-4 Win vs Loss/Draw，Spambase Spam vs Not Spam（映射依据：论文 2 Table B.2，
-即上文 `assets/Dateset_PU.png`）。数据版本或标签编码发生变化时，必须提供映射转换审计记录；
+Lock binary mappings as follows: 20News `0,1,2,3 vs 4,5,6`; IMDb `1 vs 0`; MNIST even vs odd;
+F-MNIST `0,2,3,4,6 vs 1,5,7,8,9`; CIFAR-10 `0,1,8,9 vs 2--7`; the ADNI slot `0 vs 1,2,3`;
+Connect-4 Win vs Loss/Draw; Spambase Spam vs Not Spam. These mappings follow reference 2,
+Table B.2, reproduced in `assets/Dateset_PU.png` above. A change in data version or label
+encoding requires an auditable mapping conversion.
 
-**P1.4-R 输入编码口径（2026-10-14，运行前确定）**：
+**P1.4-R input encoding policy (2026-10-14, determined before execution):**
 
-- MNIST/F-MNIST 保留官方 train/test 边界及原始 uint8 像素，输入为单通道 `N×1×28×28`；不调整图像尺寸，通道统计只从 `train` 角色拟合。
-- 20News 使用 `bydate` 版本，按新闻组名称的首段前缀映射为 Alt(0)、Comp(1)、Misc(2)、Rec(3)、Sci(4)、Soc(5)、Talk(6)，依据 Table B.1（`assets/Dataset.png`）。目录和文件名稳定排序，`latin-1` 解码，不额外删除头部、页脚或引用；沿用 PU-Bench `data/News20_PU.py` 的 `remove=()` 口径，之后使用固定 revision 的 SBERT。
-- Connect-4 保留 `win/loss/draw` 标签语义，42 格按 `a1,a2,…,a6,b1,…,g6` 排列；每格固定 `b,o,x` 三列独热编码为 126 维。划分后仅以 `train` 拟合逐列 z-score，其余三角色复用参数，常量列使用零方差保护。这一步标准化是shuidisjtu确定的统一表格处理口径，与所核查 PU-Bench 加载器仅独热编码的路径有差异，不声明特征完全等价。
+- MNIST/F-MNIST retain official train/test boundaries and raw uint8 pixels as single-channel
+  `N×1×28×28`, without resizing. Fit channel statistics only on the `train` role.
+- 20News uses the `bydate` version, mapping newsgroup-name prefixes to Alt(0), Comp(1),
+  Misc(2), Rec(3), Sci(4), Soc(5), and Talk(6), following Table B.1
+  (`assets/Dataset.png`). Sort directories and filenames stably, decode with `latin-1`,
+  and retain headers, footers, and quotations, following PU-Bench
+  `data/News20_PU.py` with `remove=()`. Then use the pinned SBERT revision.
+- Connect-4 retains win/loss/draw semantics. Order its 42 cells as
+  `a1,a2,…,a6,b1,…,g6`, with three fixed `b,o,x` one-hot columns per cell, giving 126
+  features. After splitting, fit per-column z-scores on `train` only; reuse them for the
+  other three roles with zero-variance protection. This standardization is the maintainer's
+  shared tabular policy. It differs from the reviewed PU-Bench loader's one-hot-only path,
+  so feature equivalence is not claimed.
 
-以上规定输入读取与 split 预处理；执行配方、可运行范围与正式资格以所用 v3.x 协议及其绑定为准。
+These rules govern input reading and split preprocessing. The selected v3.x protocol and its
+bindings determine execution recipes, supported scope, and formal eligibility.
 
-> **ADNI 槽位说明（2026-10-12）**：论文 2 的 Table B.1 把该数据集称为 Alzheimer MRI，类别编号为 NonDemented 0、VeryMildDemented 1、ModerateDemented 2、MildDemented 3，故 `0 vs 1,2,3` 即 NonDemented 为正类（先验 0.5）。本项目实际使用的是 Kaggle 4 类集的转存（共 6400 张），**不是 ADNI 官方数据**，见[替代数据记录](data/adni_substitute_receipt_20261012.json)。PU-Bench 的加载器以 Moderate+Mild 为正类，与本协议不同，这里只借用其读取与预处理（灰度、缩放到 128×128），类别定义与切分按本协议。
+> **ADNI slot clarification (2026-10-12):** reference 2, Table B.1 calls this dataset Alzheimer
+> MRI, with NonDemented 0, VeryMildDemented 1, ModerateDemented 2, and MildDemented 3.
+> Thus `0 vs 1,2,3` treats NonDemented as positive, with prior 0.5. This project actually
+> uses a mirror of the four-class Kaggle dataset, totaling 6400 images; it is **not official
+> ADNI data**. See the [substitute-data receipt](data/adni_substitute_receipt_20261012.json)
+> and [data-source and license boundaries](data/README.md). PU-Bench's loader treats
+> Moderate+Mild as positive, unlike this protocol. Only its reading/preprocessing approach
+> is reused (grayscale, resizing to 128×128); class definitions and splits follow this protocol.
 
-### 2.3 PU 数据集生成
+### 2.3 PU data generation
 
-1. 统一采用 OS 数据生成方式，保证基础训练数据的一致性。`os_or_ts` 表示算法使用的
-   **训练数据视图**：`os` 表示原始 OS 视图；`ts` 表示对原生 TS 方法启用 TS-OS 校准后的
-   TS-compatible 视图。基础数据始终是 OS，而不是在 `ts` 时重新独立抽样 TS 数据。
+1. Use OS generation throughout so methods share the same underlying training data.
+   `os_or_ts` identifies the algorithm's **training view**: `os` is the original OS view;
+   `ts` enables TS-OS calibration for native-TS methods, producing a TS-compatible view.
+   The underlying data remain OS; `ts` does not independently resample TS data.
 
-   > TS-OS 校准是在训练期间对每个 mini-batch 执行
-   > $`D_{U}^{k} \leftarrow D_{U}^{k}\cup D_{P}^{k}`$：正例批次仍用于正例损失，同时被并入 TS 方法的
-   > 未标记损失输入。验证集和测试集保持原始 OS 协议，不进行该合并。默认 `os_or_ts=os`；
-   > 仅对已经在方法台账中标注为原生 TS、且训练接口允许替换未标记损失输入的方法设置
-   > `os_or_ts=ts` 并启用校准。该参数不得被解释为重新生成严格独立抽样的 TS 数据。
+   > TS-OS calibration applies
+   > $`D_{U}^{k} \leftarrow D_{U}^{k}\cup D_{P}^{k}`$
+   > during each training mini-batch: the positive batch still supplies positive loss and also
+   > joins the TS method's unlabeled-loss input. Validation and test retain the original OS
+   > protocol without this merge. The default is `os_or_ts=os`. Use `os_or_ts=ts` only
+   > for methods whose ledger declares a native-TS assumption and whose training interface
+   > allows replacement of the unlabeled-loss input. This argument does not generate strictly
+   > independently sampled TS data.
 
-   > **适用范围**：「验证集和测试集保持原始 OS 协议」约束的是**参与选参或裁决**的验证/测试视图。
-   > 若某方法的上游实现把某个验证量定义在合并边缘池上（例如 VPU 的验证变分风险，其上游
-   > `val_x_loader` 取整个验证分区），该量**可以**作为 source diagnostic 计算、记录并作视图对照，
-   > 但**不得**充当 PA/OA 选模准则；确需以其选模时，必须改用符合本条的 OS 视图并单独成文。
-   > 该量在方法 card 中因此须同时记录其上游定义与本条限制。
+   > **Scope:** retaining OS validation/test views constrains views used for selection or
+   > adjudication. If an upstream implementation defines a validation quantity on a merged
+   > marginal pool, such as VPU validation variational risk whose upstream `val_x_loader`
+   > covers the full validation partition, that quantity **may** be computed and recorded as a
+   > source diagnostic or view comparison. It **must not** act as a PA/OA selection criterion.
+   > Selecting with it would require a compliant OS view and separate documentation.
+   > The method card must record both the upstream definition and this restriction.
 
-   > **校准的通用表述**：「训练期未标记风险项的作用集合为 $`D_U \cup D_P`$」是本协议对
-   > 校准的操作定义。非 mini-batch 方法的等价实现也视为校准，例如 PUET 树模型在 TS 视图下
-   > 把正例行同时复制为未标记风险角色（“逐树根”实现）；协议不要求形式上的 mini-batch。
+   > **General calibration definition:** the unlabeled training-risk term operates on
+   > $`D_U \cup D_P`$. Equivalent implementations for non-mini-batch methods also count,
+   > such as PUET duplicating positive rows into the unlabeled-risk role at each tree root
+   > under TS. A literal mini-batch is not required.
    >
-   > **校准不适用**：原生 TS、但不存在可替换未标记风险项的方法（如 PULNS 的奖励式训练、
-   > PUSB 的秩选择训练），可以 `os` 视图运行；须在方法卡与台账论证“为何不存在可替换的
-   > 未标记风险项”并登记，与“应校准而未校准”区分。未标记风险项可替换的原生 TS 方法必须
-   > 校准（CVIR 据此重新裁决，除非另有论证）。
+   > **Calibration not applicable:** a native-TS method without a replaceable unlabeled-risk
+   > term, such as PULNS reward-based training, may run with an `os` view. Its method card
+   > and ledger must justify and register why the term is not replaceable, distinguishing it
+   > from missing required calibration. The registered linear `pusb` baseline likewise has
+   > no such replacement hook; it is distinct from the calibrated `pusb_kernel` path.
+   > Native-TS methods with a replaceable term must be calibrated; this rule also governs
+   > CVIR unless a separate justification is registered.
    >
-   > **共性近似（在此统一登记，不在各方法卡重复）**：
-   > - 校准视图下 $`D_P \subset D_U'`$，P 与 U 不独立，与严格 case-control 有差异；
-   > - mini-batch 均衡抽样下 $`U \cup P`$ 不精确等于总体混合比例（见 #122 表征）。
+   > **Shared approximations, recorded here rather than repeated in each method card:**
+   > - The calibrated view has $`D_P \subset D_U'`$, so P and U are not independent,
+   >   unlike strict case-control sampling.
+   > - Balanced mini-batch sampling makes $`U \cup P`$ differ from exact population-mixture
+   >   proportions; see the representation discussion in issue #122.
 
-   > **采样假设判定顺序**：方法原生假设（`native_sampling_assumption`）以原始论文为准；
-   > 论文与参考代码不一致时仍以论文为准，并在方法卡/台账登记差异；论文未明确时以参考
-   > 代码为准，并登记“论文未声明、按代码判定”。该顺序只用于采样假设判定，不自动适用于
-   > 损失公式、超参数等其他论文/代码差异（后者逐案裁决）。
+   > **Sampling-assumption adjudication:** determine `native_sampling_assumption` from the
+   > original paper first. If paper and reference code disagree, retain the paper's assumption
+   > and record the difference in the method card/ledger. If the paper is silent, use the
+   > reference code and record “paper unspecified; classified from code.” This order governs
+   > sampling assumptions only. Other paper/code differences, including losses and
+   > hyperparameters, require case-specific adjudication.
 
-2. 原始数据集生成 PU 数据集时，对正标签的观测采用标记频率 **label ratio / label frequency**
-   $`c\in\{0.1,0.3,0.5\}`$。研究 $`c`$ 时固定同一数据集的总体类先验 $`\pi`$、数据划分、标注机制及
-   其余实验参数；具体 OS 标记方式见参考文献 1。SCAR 以 $`n_{L}=\mathrm{round}(c n_{+})`$ 为
-   固定抽样数，从全部正例中均匀无放回抽取，并记录 $`c_{\mathrm{realized}}=n_{L}/n_{+}`$；不采用
-   逐样本 Bernoulli 标注。
+2. Observe positive labels at **label ratio / label frequency**
+   $`c\in\{0.1,0.3,0.5\}`$. When studying $`c`$, hold the dataset population prior
+   $`\pi`$, split, labeling mechanism, and other settings fixed. Reference 1 describes the
+   OS labeling design. SCAR requests a fixed count $`n_{L}=\mathrm{round}(c n_{+})`$
+   sampled uniformly without replacement from true positives, recording
+   $`c_{\mathrm{realized}}=n_{L}/n_{+}`$. It does not use per-row Bernoulli labeling.
+   The implementation clamps the requested count to the available positives and labels at
+   least one when positives exist; manifests retain requested and actual counts when they differ.
 
-   > SCAR（instance independent）为主实验。SAR 为独立压力测试：
-   > - 仅取 $`c\in\{0.05,0.5\}`$，并须与 PU-Bench 的 SAR 设定保持一致（实现锁定细节见
-   >   [`strategies.py`](../../../pu_toolbox/experiment/strategies.py)）；
-   > - 保持固定 $`n_{L}`$；每次保存请求与实际标记数、权重/score 版本和生成 seed 一并记录；
-   > - SAR 下 PA 仅可作为诊断日志，正式模型选择及结论只使用 OA；
-   > - 所有算法可在通过输入/训练门禁后参加 SAR OA 测试，但须按其原生假设是否匹配 SAR
-   >   标为"原生适用"或"假设违背鲁棒性"。
-   > - **本轮实现口径**：上述许可是原则性的；当前 v3.2 以
-   >   `method_profiles[*].labeling_mechanisms` 实际绑定机制，未声明该字段的方法才展开 SAR
-   >   轴。`kldce`、`lagam`、`pulns`、`self_pu_full_meta` 钉在 `["scar"]`，本轮未进入
-   >   SAR；实际参加 SAR--OA 的是其余 18 个方法（`pn_oracle` 为 oracle 基线，不占机制轴，
-   >   原生标注为 SAR 的是 `lbe`、`pusb_kernel` 与 `gradpu`）。
+   > SCAR (instance-independent labeling) is the main experiment. SAR is a separate stress test:
+   > - Use only $`c\in\{0.05,0.5\}`$, aligned with PU-Bench's SAR setting. Locked
+   >   implementation details are in [strategies.py](../../../pu_toolbox/experiment/strategies.py).
+   > - Keep a fixed $`n_{L}`$ and save requested/actual counts, weight/score versions, and
+   >   generation seeds.
+   > - Under SAR, PA may appear only as diagnostic logging; formal selection and conclusions
+   >   use OA alone.
+   > - Any algorithm passing input/training gates may participate in SAR OA, labeled either
+   >   “natively applicable” or “robustness under violated assumptions” according to its assumptions.
+   > - **Current execution scope:** this permission is a design principle. v3.2 binds mechanisms
+   >   through `method_profiles[*].labeling_mechanisms`; only methods without that field expand
+   >   the SAR axis. `kldce`, `lagam`, `pulns`, and `self_pu_full_meta` are pinned to
+   >   `["scar"]` and do not enter SAR in this matrix. The remaining 18 methods participate
+   >   in SAR–OA; `pn_oracle` is a separate oracle baseline without a mechanism axis.
+   >   The native-SAR entries are `lbe`, `pusb_kernel`, and `gradpu`.
 
-### 2.4 训练集、验证集、测试集划分
+### 2.4 Training, validation, and test splits
 
-按数据角色、切分规则、流程与任务要求四部分列出，条目编号全章节连续。
+The numbered requirements continue across four groups: roles, splitting, workflow, and delivery.
 
-**（一）四份数据的角色与用途**
+**(A) Data roles and uses**
 
-1. `train` 仅含 PU 标签，用于训练；`pu_val` 仅含标记正例与未标记样本，供 PA 选模；
-   `clean_val` 含真实标签，仅供 OA oracle 对照；`test` 含真实标签，但不得参与模型选择。
-2. PA 执行不得向模型或回调暴露 `clean_val`/`test`，OA 才注入 `clean_val`。算法显式声明
-   训练期需要 clean 标签时，按“真实标签知悉最小化”原则提供所需 clean support，并在
-   方法卡/台账备注来源与规模；这类方法最终须同时报告 PA 与 OA 两种选模协议下的结果，其 PA 结果
-   标注为 `PA + 训练期 clean support`（建议标签 `PA+clean-support`），与纯 PU 的 PA
-   同表另列，不参与纯 PU 的 PA 优势比较。clean support 与 train、pu_val、clean_val、
-   test 的角色成员互斥；本轮从四路 split 后的 train 中均匀抽取并从 train 移除，
-   登记为 benchmark-adapted 而非原文复现；规模为 Spambase 100、其余 500；
-   support 正负标签均计入训练期真实标签预算
-   （`budget_approval=approved_by_protocol_owner_20261021`）。覆盖全部 8 个数据集：
-   IMDB、20News 从冻结 split 的 SBERT 特征 carve，ADNI 从冻结 split 的原始图像 carve；
-   support_seed 必须等于 split seed，并在查看标签前预先声明
-   （`support_seed_policy="support_seed equals split_seed, predeclared before label inspection"`）。
-   ADNI 替代数据没有 subject ID，因此只允许 `group_policy="unverifiable"`，记录
-   `subject_isolation="not_checkable"`、已知风险与 owner approval
-   `approved_by_protocol_owner_20261108`；该豁免不构成 subject 隔离已验证，ADNI 结果
-   仍按 benchmark-adapted 报告。`PA+clean-support`
-   的执行路径必须分别记录选模结果，不把 OA 冒充 PA。PA 运行下
-   不得复用 `clean_val`/`test` 作为 clean support。
+1. `train` exposes only PU labels for fitting; `pu_val` exposes labeled positives and U
+   for PA selection; `clean_val` has true labels for OA oracle comparison; `test` has true
+   labels but cannot participate in model selection.
+2. PA must not expose `clean_val` or `test` to models or callbacks; OA receives
+   `clean_val`. When an algorithm explicitly requires training-time clean labels, provide
+   the minimum necessary clean support and record its source and size in the method
+   card/ledger. Report both PA and OA selections for these methods; label the PA variant
+   `PA + training-time clean support`, preferably `PA+clean-support`. List it separately
+   in the same table as purely PU PA and exclude it from pure-PU PA advantage comparisons.
+   Clean support must be disjoint from train, pu_val, clean_val, and test. This study draws
+   it uniformly from the already split train partition and removes those rows from train.
+   Record this as benchmark-adapted, rather than original-paper reproduction. Use 100 support
+   rows for Spambase and 500 for each other dataset, charging both positive and negative labels
+   to the training-time true-label budget
+   (`budget_approval=approved_by_protocol_owner_20261021`).
+   Coverage includes all eight datasets: IMDB/20News support is carved from frozen-split
+   SBERT features and ADNI support from frozen-split raw images. The support seed must equal
+   the split seed and be declared before label inspection
+   (`support_seed_policy="support_seed equals split_seed, predeclared before label inspection"`).
+   The ADNI substitute has no subject IDs, so only `group_policy="unverifiable"` is permitted.
+   Record `subject_isolation="not_checkable"`, known risks, and owner approval
+   `approved_by_protocol_owner_20261108`. This exception does not verify subject isolation;
+   ADNI results remain benchmark-adapted. The `PA+clean-support` route must retain separate
+   selection results and cannot substitute OA for PA. PA runs cannot reuse `clean_val` or
+   `test` as support.
 
-**（二）切分与重生成规则**
+**(B) Splitting and label regeneration**
 
-3. 对本次实验而言，研究团队作为工具箱用户，按参考文献 1、2 的划分思想和数据集约束自行准备
-   训练集、PU 验证集、真实标签验证集与测试集，并将其传入接口。保留 PU-Bench 的独立测试集；
-   从原始训练源分层留出 10% 验证池，等分为 5% `pu_val` 和 5% `clean_val`，其余 90% 为
-   `train`。`pu_val` 与 `clean_val` 必须不重叠，`clean_val` 和 `test` 保持自然类先验。
-   此处"准备"指**切分与预处理**由用户完成；用户提供的是切分后的**真实标签**四路分区，
-   `train`/`pu_val` 的 PU 标签视图（`{+1, 0}` 形式）由工具箱的生成函数（第 8 条）在 split
-   之后生成并记录 `c_realized`；`clean_val`/`test` 保持真实标签。
+3. The research team, acting as toolbox users, prepares train, PU validation, clean validation,
+   and test according to references 1 and 2 and dataset constraints. Retain PU-Bench's independent
+   test set. Stratify the original training source, holding out 10% for validation: 5% pu_val
+   and 5% clean_val, leaving 90% train. The validation roles must be disjoint; clean_val and
+   test retain natural class priors. Here user preparation means **splitting and preprocessing**.
+   Supply four partitions with **true labels**; after splitting, the toolbox generator
+   (item 8) creates the `{+1, 0}` PU views for train/pu_val and records `c_realized`.
+   Clean_val/test retain their true labels.
 
-   > **PU-Bench test 来源对照（commit `2d95a19`，已核实）**：自带官方测试集的数据集为
-   > MNIST、F-MNIST、CIFAR-10、IMDB、20News；Spambase、Connect-4、ADNI 无自带测试集，
-   > 从全量 `train_test_split(test_size=0.2, stratify=y)` 留出 20% 固定为 test。验证池沿用
-   > PU-Bench 做法：在源 train 内、PU 采样**之前**按真实标签分层切出（策略名
-   > `split_source_before_pu_sampling`，防止 case-control 重复抽到跨边界样本），本实验据此切
-   > 10%（seed 驱动）；PU-Bench 各 `param_sweep_*.yaml` 统一 `val_ratio: 0.01`，本实验为
-   > 5%+5%（见第 3 条）。
+   > **PU-Bench test-source audit (commit `2d95a19`, verified):** MNIST, F-MNIST,
+   > CIFAR-10, IMDB, and 20News provide official test sets. Spambase, Connect-4, and the
+   > ADNI slot do not; hold out 20% using `train_test_split(test_size=0.2, stratify=y)`.
+   > Following PU-Bench, stratify validation within source train **before** PU sampling
+   > (`split_source_before_pu_sampling`), preventing case-control duplicates across boundaries.
+   > This study uses a seed-driven 10% validation pool. PU-Bench's `param_sweep_*.yaml`
+   > uses `val_ratio: 0.01`; this study uses 5%+5% as specified in item 3.
 
-4. 五个实验 seed 共同决定原始 split、SCAR/SAR 标记和训练随机性；同一 seed 下所有方法、
-   PA/OA、PN oracle 及所有 $`c`$ 共享同一底层 split，同一 $`c`$ 共享相同 P/U 标记结果。扫描 $`c`$
-   时仅重生成 $`S`$ 标签，不改变样本、split 或 $`\pi_{population}`$。
+4. Five experiment seeds jointly determine the original split, SCAR/SAR labeling, and training
+   randomness. Within one seed, all methods, PA/OA, PN oracle, and all $`c`$ values share
+   the same underlying split. Within one $`c`$, they share the same P/U labels. Scanning
+   $`c`$ regenerates only $`S`$ labels, without changing samples, splits, or
+   $`\pi_{population}`$.
 
-**（三）训练、选模与评测流程**
+**(C) Training, selection, and evaluation**
 
-5. 每个候选配置以固定 epoch 预算完整训练一次，记录所有 epoch 的 PA、OA 与 checkpoint；随后
-   **离线独立**选择 PA 与 OA 各自最优的"超参数 + checkpoint + 阈值"。选中 checkpoint 直接在
-   独立 `test` 评测，不与验证集重新合并训练。
-6. PA 与 OA 必须分别保存选择 artifact、checkpoint 和测试结果，不能用 OA 选择的模型替代 PA
-   协议的结果。
+5. Train each candidate once through its fixed epoch budget, recording epoch-level PA/OA
+   values and checkpoints. Then independently select each protocol's best
+   “hyperparameters + checkpoint + threshold” **offline**. Evaluate the selected checkpoint
+   directly on independent test; do not combine training and validation for retraining.
+6. Save each protocol's selection artifact, checkpoint, and test results separately.
+   An OA-selected model cannot replace a PA selection.
 
-**（四）任务要求：接口、交付物与留痕**
+**(D) Interfaces, deliverables, and provenance**
 
-7. 本实验要求工具箱提供 `fit(model, train, pu_val, clean_val, test)` 或等价接口，并以已完成
-   split 和预处理的四路 `DatasetBundle` 作为输入；工具箱不负责切分原始数据，训练集、验证集和
-   测试集均由用户提供。
+7. Provide `fit(model, train, pu_val, clean_val, test)` or an equivalent interface accepting
+   an already split and preprocessed four-role `DatasetBundle`. The runner does not split raw
+   data; users supply training, validation, and test partitions.
 
-   > **"不负责切分"与切分脚本的澄清**：第 7 条的"不负责切分"指
-   > `ExperimentRunner.fit` 不切分原始数据、只接受切好的四路 `DatasetBundle`。工具箱另提供
-   > `scripts/prepare_survey_splits.py` 与 `datasets.py` 的 `prepare_survey_dataset`，作为第 3 条
-   > "研究团队自行准备"的执行工具（P1.4 据此生成 split 制品）；切分比例（90/5/5）、策略与 seed 由
-   > 第 3、4 条锁定，脚本只执行、不擅自决定。二者不矛盾：切分决定权与责任在协议/研究团队。
+   > **Split scripts and runner responsibility:** item 7 means `ExperimentRunner.fit`
+   > accepts prepared roles rather than splitting raw data. The toolbox also supplies
+   > `scripts/prepare_survey_splits.py` and `datasets.py:prepare_survey_dataset` as tools for
+   > the research team's preparation in item 3. Items 3 and 4 lock the 90/5/5 proportions,
+   > policy, and seeds; scripts execute those choices. Design responsibility remains with
+   > the protocol and research team.
 
-8. 工具箱必须具备"利用用户给的数据和模型要求，训练出模型"这一功能，故需要提供丰富的可 DIY
-   参数的接口：训练模型的函数、生成数据的函数等。DIY 接口是工具箱面向所有用户开放的能力；
-   本实验的候选配置与超参数由 §5.3 的中心注册表统一管理，实验榜单仅使用注册表登记的配置；
-9. 提供一个官方示例脚本：读取用户准备的四份数据，并利用工具箱函数完成完整 PU 学习、模型选择
-   和测试流程。
-10. PN oracle 在与 PU 运行相同的底层 `train` 分区使用完整真实 PN 标签，采用同一表征、
-    backbone、split、候选预算与五个 seed；它仅以 `clean_val` 的真实 Accuracy 选模，表中标为
-    `PN oracle (OA only)`，不得伪造 PA 结果。
-11. 应记录随机种子、样本索引和 split manifest；这是一项实验协议要求，不是工具箱的自动数据
-    划分职责。
+8. The toolbox must support training models with user-supplied data and requirements through
+   configurable training and generation APIs. These DIY interfaces serve all toolbox users.
+   This study centrally manages candidate configurations and hyperparameters in the registry
+   specified by section 5, item 3; leaderboard results use registered configurations only.
+9. Provide an official example script reading four user-prepared partitions and calling the
+   toolbox for the complete PU training, selection, and test workflow.
+10. PN oracle uses all true PN labels in the same underlying train partition as PU runs,
+    with the same representation, backbone, split, candidate budget, and five seeds.
+    It selects only by true-label clean_val Accuracy and appears as `PN oracle (OA only)`.
+    Do not fabricate PA results.
+11. Record random seeds, sample indices, and split manifests. This is a protocol requirement,
+    not an automatic splitting responsibility of the runner.
 
-> 上述要求的当前工具箱实现状态、`ExperimentRunner` 层结论与实现侧自动验证要求见
-> [实验层设计文档](../../dev/experiment_layer.md)。
+> [experiment_layer.md](../../dev/experiment_layer.md) provides optional Chinese implementation
+> background and automated-verification details for these requirements.
 
-### 2.5 特征提取框架（backbone）
+### 2.5 Feature representations and backbones
 
-**已确认协议：采用 PU-Bench 架构思路**——"同一数据集内统一表征、backbone、训练预算与调参
-预算"；跨数据集只比较趋势，不把不同模态的绝对指标合并为单一排名。这是按数据集统一，而不是
-要求所有模态或所有数据集使用同一个 backbone。
+**Confirmed policy, following PU-Bench's architecture approach:** use shared representation,
+backbone, training budget, and tuning budget **within one dataset**. Compare trends across
+datasets rather than combining absolute metrics across modalities into one ranking.
+This does not require the same backbone across all modalities or datasets.
 
-1. 图像数据集：采用 ResNet-18 作为 backbone（参考 PU-Bench 的数据集内统一训练与评估协议）。
-   若未来改用 PU-Bench 的数据集专用 backbone，须单独配置和报告，不覆盖本实验的 ResNet-18
-   主协议；
-2. 表格数据集：采用 MLP 作为 backbone；
-3. 文本数据集：采用固定的 `all-MiniLM-L6-v2` 生成 384 维 SBERT 向量，再输入 MLP；不将
-   端到端 Transformer 作为当前实验前提；
-4. 同一数据集内，所有进入同一榜单的方法必须使用相同图像表征和相同训练预算。oracle 与各 PU
-   方法必须使用同一份划分和同一表征/backbone；因 backbone 或输入表征不同而得到的结果应单列
-   报告，不得混入同一主榜单；
-5. 灰度与 RGB 的输入处理保持一致（具体实现口径见
-   [`image.py`](../../../pu_toolbox/experiment/image.py)）；输入尺寸、首层设置、归一化和增强
-   均须入 manifest。方法私有网络只能作为 `benchmark-adapted` 路径报告；
-6. 所有可学习预处理统计量仅在该 seed 的 `train` 拟合并冻结，图像增强仅用于训练。文本须记录
-   `all-MiniLM-L6-v2` 的模型 revision、384 维输出及 embedding cache hash。
+1. Images use ResNet-18. A future PU-Bench dataset-specific backbone must have its own
+   configuration and report, without replacing this study's main ResNet-18 protocol.
+2. Tables use an MLP.
+3. Text uses fixed `all-MiniLM-L6-v2` to generate 384-dimensional SBERT vectors for an MLP;
+   an end-to-end Transformer is not a prerequisite.
+4. Methods in the same dataset leaderboard must share image representations and training
+   budgets. Oracle and PU methods use the same split and representation/backbone.
+   Results from different backbones or representations must be reported separately.
+5. Apply consistent grayscale/RGB handling as defined in
+   [image.py](../../../pu_toolbox/experiment/image.py). Record input dimensions, first-layer
+   settings, normalization, and augmentation in manifests. Method-private networks are
+   reported only as `benchmark-adapted` paths.
+6. Fit learnable preprocessing statistics only on each seed's train partition, then freeze
+   them. Use image augmentation only for training. For text, record the
+   `all-MiniLM-L6-v2` revision, 384-dimensional output, and embedding-cache hash.
 
-**“算法本身有要求”的判定标准**：仅当论文把该架构/配方作为方法的一部分、或方法机制
-依赖它时，才构成统一架构的例外；仅为作者代码的实现选择（可替换的 backbone、优化器等）
-不构成例外，统一改用本协议 §2.5 的共享架构。构成例外的方法须在方法卡/台账登记论文
-依据与证据，并按第 4–5 条单列报告；应尽量（SHOULD，非准入硬门槛）另提供一份共享
-架构的运行结果作对照，未提供时在结果表/方法卡注明缺失原因。
+**Architecture exceptions:** an exception exists only when the paper makes an architecture/recipe
+part of the method or the method's mechanism depends on it. Replaceable author-code choices,
+such as a backbone or optimizer, do not qualify; use the shared architecture above.
+For exceptions, register paper evidence in the method card/ledger and report separately under
+items 4–5. A shared-architecture comparison **SHOULD** also be provided where feasible; this is
+a recommendation, not a hard admission gate. Otherwise explain its absence in the table/card.
 
-#### 与双架构扩展计划的关系
+#### Relationship to the dual-architecture plan
 
-双架构计划的结论：**双架构计划不是文本 SBERT 向量或表格 MLP 路径的前置条件；它是完成图像
-数据集公平比较的部分前置工作**；实施工作项与独立的后置工作项见
-[dual_architecture_plan.md](../../dev/dual_architecture_plan.md)（§5 实施阶段与 §7 公平性协议）。
+The dual-architecture plan is **not a prerequisite for text SBERT vectors or tabular MLP paths**.
+It supplies part of the work required for fair image comparisons. See the optional Chinese
+background in [dual_architecture_plan.md](../../dev/dual_architecture_plan.md),
+section 5 (implementation phases) and section 7 (fairness policy), for implementation and later
+independent work.
 
-## 3. class prior 以及相关参数设置
+## 3. Class priors and related parameters
 
-1. 本实验将类先验明确区分为：总体/测试分布类先验 $`\pi_{population}=P(Y=1)`$、构造后训练对象
-   的 $`\pi_{train}`$，以及未标记集内的 $`\pi_{U}`$。$`\pi_{population}`$ 定义为每个 seed 于同一
-   完整二元化数据池（分层划分前的完整池）的正例经验比例，故其为所有 seed 共享的常量；它是
-   数据生成 metadata，不从 PU 标签、`train`、`U` 或 `test` 子集反推。扫描标记频率 $`c`$ 时固定
-   每个数据集的 $`\pi_{population}`$，并在每次运行的 metadata 中记录三者及实际实现的 $`c`$；
+1. Distinguish the population/test-distribution prior $`\pi_{population}=P(Y=1)`$,
+   the constructed training object's $`\pi_{train}`$, and the native-U prior
+   $`\pi_{U}`$. Define $`\pi_{population}`$ as the empirical positive proportion in
+   the complete binarized source pool before stratified splitting, so it is constant across
+   seeds. It is generation metadata, not inferred from PU labels, train, U, or test subsets.
+   Hold $`c`$ scans at a fixed $`\pi_{population}`$ and record all three priors and
+   the realized $`c`$ in every run.
 
-   **规范先验**：以 $`\pi=\pi_{population}=P(Y=1)`$ 为唯一规范先验。需要未标记池先验的
-   方法按训练视图换算：
+   **Canonical prior:** use $`\pi=\pi_{population}=P(Y=1)`$ as the canonical input.
+   Convert for methods requiring an unlabeled-pool prior according to their training view:
 
-   | 视图 | 未标记池 | $`\pi_U`$ |
+   | View | Unlabeled risk pool | $`\pi_U`$ |
    |---|---|---|
-   | `ts`（校准后） | $`D_U \cup D_P`$，近似总体边缘 | $`\pi_U = \pi`$ |
-   | `os`（SCAR，标记频率 $`c`$） | 仅未标记部分 | $`\pi_U = \pi(1-c)/(1-\pi c)`$ |
+   | `ts` (calibrated) | $`D_U \cup D_P`$, approximating the population marginal | $`\pi_U = \pi`$ |
+   | `os` (SCAR, labeling frequency $`c`$) | Unlabeled subset only | $`\pi_U = \pi(1-c)/(1-\pi c)`$ |
 
-   本实验采用 $`n_L=\mathrm{round}(c n_+)`$ 固定抽样，可用
-   $`\pi_U = (\pi n - n_L)/(n - n_L)`$ 计算（$`n`$ 为 train 总样本数），与上式等价，
-   只依赖 known-prior 设定下的 $`\pi`$ 与 PU 标签计数。
+   For fixed-count sampling $`n_L=\mathrm{round}(c n_+)`$, the corresponding count-based
+   expression is $`\pi_U = (\pi n - n_L)/(n - n_L)`$, where $`n`$ is train size.
+   It uses the known population prior $`\pi`$ and observed PU counts. This matches the probability
+   expression when its labeling frequency corresponds to the observed labeled mass; finite-sample
+   class proportions and count rounding need not reproduce the population identity exactly.
 
-   Survey 实验层须保证每个方法实际训练所用视图与其先验匹配：`ts` 视图传 $`\pi`$，
-   `os` 视图下需要未标记池比例的方法传换算后的 $`\pi_U`$。调用方只提供 $`\pi`$；
-   视图与先验的对应关系由实验层记录到 run metadata。工具箱独立调用场景的 API 设计
-   推迟，不在本协议范围。先验估计器须在台账登记其输出量语义（如标记频率 $`c`$、
-   混合比例），并转换为 $`\pi`$ 后再进入下游。
+   The Survey layer must match each method's actual risk view and prior consumption: the
+   calibrated `ts` view consumes $`\pi`$, while an `os` method requiring a native-U
+   proportion consumes converted $`\pi_U`$. The caller supplies only $`\pi`$;
+   run metadata records the mapping. For standalone APIs and Pipeline's declared-target
+   conversion, see [prior semantics](../../user/concepts/class_prior_semantics.md) and the
+   [API reference](../../user/reference/api.md). Estimator output targets, such as labeling
+   frequency $`c`$ or mixture proportion, must be declared in their metadata and converted
+   to $`\pi`$ before downstream use where a population prior is required.
 
-2. 主实验可向需要总体类先验的算法和 PA 传入真实 $`\pi_{population}`$，但结果必须标注为
-   `known-prior`（oracle-prior）设定。不得将 $`\pi_{U}`$ 或 $`\pi_{train}`$ 不加区分地传入所有名为
-   `class_prior` 的参数；具体参数语义以算法原文和官方实现为准；
-3. 后续可单独开展 $`\pi`$ 估计器敏感性实验；该实验不得与使用真实 $`\pi_{population}`$ 的主结果
-   混合；
-4. PU 学习算法的参数选择参考文献 1、2、算法原文和官方代码，并记录候选参数池、选择指标、
-   随机种子和最终配置；
-5. 连续 score 的分类阈值是预注册候选配置的一部分，PA/OA 分别选择最佳"超参数 + checkpoint +
-   阈值"；仅输出硬标签的方法使用其原生规则并记录为不可调阈值。
+2. The main study may supply true $`\pi_{population}`$ to methods requiring a population
+   prior and to PA, but must label this as `known-prior` (oracle-prior). Do not pass
+   $`\pi_{U}`$ or $`\pi_{train}`$ indiscriminately to every parameter named
+   `class_prior`; each method's paper and implementation define its parameter semantics.
+3. Sensitivity to $`\pi`$ estimators may be studied separately. Do not combine it with main results
+   using true $`\pi_{population}`$.
+4. Choose method parameters using references 1 and 2, original papers, and official code.
+   Record candidate pools, selection criteria, random seeds, and final configurations.
+5. Classification thresholds for continuous scores belong to preregistered candidate settings.
+   PA and OA independently choose “hyperparameters + checkpoint + threshold.”
+   Methods returning only hard labels use their native rule, recorded as an untunable threshold.
 
-## 4. 需实现的算法
+## 4. Target algorithms
 
-- **A.** PAN、GEN-PU、PULNS、RP、CVIR、Holistic-PU、P3MIX
-- **B.** uPU、nnPU、KLDCE、VPU、Dist-PU、PULDA、PUSB、LBE
-- **C.** PUET、Grad-PU、Robust-PU、Split-PU、LAGAM、Self-PU
-- **oracle**：全监督学习基准结果上界（21 个 PU 方法 + 1 个 oracle，合计 22 个目标方法）
+- **A.** PAN, GEN-PU, PULNS, RP, CVIR, Holistic-PU, P3MIX.
+- **B.** uPU, nnPU, KLDCE, VPU, Dist-PU, PULDA, PUSB, LBE.
+- **C.** PUET, Grad-PU, Robust-PU, Split-PU, LAGAM, Self-PU.
+- **Oracle:** fully supervised reference upper bound, giving 21 PU methods plus one oracle,
+  or 22 target methods.
 
-每个方法还需维护**实现台账**：原始论文与代码版本、当前实现状态、`native_sampling_assumption`、
-`run_view`（OS/TS-compatible）、`calibration_applied`、`prior_semantics`、`adaptation_level`
-（`source-faithful`/`benchmark-adapted`）、支持模态与 backbone。
+Maintain method interpretation records for the original paper/code versions, implementation
+status, `native_sampling_assumption`, `run_view` (OS/TS-compatible), `calibration_applied`,
+`prior_semantics`, `adaptation_level` (`source-faithful`/`benchmark-adapted`), modalities,
+and backbones. Registry metadata owns implementation capability/source identity; method cards
+own research details, and the ledger retains routing semantics rather than review history.
 
-`native_sampling_assumption` 的判定依据按 §2.3 的判定顺序登记（论文 / 代码 / 论文未声明、
-按代码判定），并记录论文与代码的差异。`prior_semantics` 须写明参数语义是 $`\pi`$、
-$`\pi_U`$ 还是无需先验；`calibration_applied=false` 的原生 TS 方法须同时登记属于
-“校准不适用”还是“应校准而未校准”。
+Record sampling-assumption evidence using the order in section 2.3: paper, code, or paper unspecified
+and classified from code. Record paper/code differences. `prior_semantics` must identify
+$`\pi`$, $`\pi_U`$, or no required prior. A native-TS method with
+`calibration_applied=false` must be classified as “calibration not applicable” or
+“required calibration missing.”
 
-每个"数据集 × 方法"须通过可运行、先验语义确认、OS/TS 状态明确与 backbone 路径可比四项门禁后
-才能进入主榜；未通过者公开列出原因。完整主榜以 22 个目标方法全部通过相应门禁为发布条件；
-在此之前只可发布明确标为 `pilot / partial benchmark` 的部分结果。
+Each dataset×method cell must pass execution, prior-semantics, OS/TS-view, and
+backbone-comparability gates before joining the main leaderboard; list reasons for failures.
+Release of a complete main leaderboard requires all 22 target methods to pass their applicable
+gates. Until then, results must be explicitly labeled `pilot / partial benchmark`.
 
-> 实现能力和来源身份以算法注册表为准；公式、变体和局限见方法卡。
-> `method_ledger.json` 仅保存采样假设、校准接口与先验语义，不承载审核流水。
+> Capabilities and source identities come from the algorithm registry. Method cards document
+> formulas, variants, and limitations. `method_ledger.json` retains sampling assumptions,
+> calibration interfaces, and prior semantics, without an approval workflow.
 
-## 5. 结果、复现与交付验收
+## 5. Results, reproduction, and delivery acceptance
 
-1. 结果固定分为四组，且不混合排名：SCAR--PA 主榜、SCAR--OA oracle 对照、SAR--OA 压力测试
-   （LBE-A、LBE-B 分开）和 PN oracle。每组按数据集、训练路径（表格 `native_2d`／端到端 CNN／
-   feature-adapter）和原生假设分层；跨数据集只比较趋势，不生成总排名。
-   `PA+clean-support` 与纯 PU 的 PA 同表另列并显式标注，不参与纯 PU 的 PA 优势比较；
-   其 support 来源、规模与标签预算按 §2.4 第 2 条登记。ADNI 的 support 行还须标注
-   `subject isolation: not checkable` 与替代数据身份，不得读作已验证的 subject 隔离。
-2. "具有优势"仅在同一数据集、$`c`$、协议和训练路径内，以独立 `test` Accuracy 五次重复均值
-   比较；同步报告标准差、单配置训练成本、完整调参成本和峰值显存。暂不预设显著性检验门槛；
-3. 所有方法在同一数据集、$`c`$ 和协议下使用相同候选池、epoch 上限与早停规则；候选池按论文/
-   官方代码预注册并记录候选数。超参数通过中心注册表统一管理（设计参考参考文献 1 代码库
-   `core/hparams_registry.py`）；
-4. 同一数据集内统一最大 epoch、batch-size 候选范围、资源上限和调参预算；环境只规定 GPU/CPU、
-   显存等级和软件栈等大类，不将本机硬件写入方案。实际型号、驱动和资源限制写入 artifact。
-   单配置成本从模型初始化到最终 epoch，包含训练和每 epoch 验证，不含下载、SBERT 生成、split
-   和 PU 数据生成；共享预处理时间单列。总调参成本包含全部候选配置和五个 seed；峰值显存取该
-   全过程最大已分配 GPU memory；
-5. NaN、OOM、接口不兼容或超时仅允许以相同 seed 重试一次；仍失败则记录失败并从该条件排名
-   排除。修改参数后重跑视为新候选配置，须按同一条件对全部方法一致处理；
-6. 每个运行 artifact 必须固化：Python/PyTorch/CUDA/GPU 信息、方法和数据配置、中心超参数注册表
-   版本、seed、split/label manifest、选择 artifact 和结果 schema 版本；代码 commit 与依赖锁文件
-   可直接记录，也可由共享证据包承载（manifest 的 `batch` 块引用它，见
-   [runbook](runbook.md)）。缺失信息在结果来源与行原因中披露，导出不授予正式资格；
-   完整 seed × c 网格可由多次运行组成，但环境、划分和配置须可解释且一致。
-   历史 manifest 保持不变；已有汇总的审核结论继续作为原报告事实保留，不从新配置反推；
-7. 在上述条件满足后，再结合各方法局限性、可结合/改进点以及三类方法的优缺点分析实验结果。
-   任何解释必须区分"文献事实""本实验观测"和"推断"。
+1. Keep four result groups separate: SCAR–PA main results, SCAR–OA oracle comparisons,
+   SAR–OA stress tests with LBE-A/B separated, and PN oracle. Within each group, stratify
+   by dataset, training path (tabular `native_2d`, end-to-end CNN, feature adapter), and
+   native assumptions. Compare trends across datasets without an overall ranking.
+   List `PA+clean-support` separately in the SCAR–PA table and exclude it from pure-PU PA
+   advantage comparisons. Record support source, size, and label budget under section 2.4, item 2.
+   ADNI support rows must identify the substitute data and state
+   `subject isolation: not checkable`, without implying verified subject isolation.
+2. Compare an “advantage” only within the same dataset, $`c`$, protocol, and training
+   path using independent-test Accuracy averaged over five runs. Also report standard
+   deviation, single-configuration training cost, complete tuning cost, and peak GPU memory.
+   No significance-test threshold is prescribed yet.
+3. Under the same dataset, $`c`$, and protocol, fairness requires a consistently preregistered
+   candidate-pool policy, epoch cap, and early-stopping rules. Register each method's candidate
+   pool from its paper/official code and record candidate counts. Manage hyperparameters
+   centrally, following reference 1's `core/hparams_registry.py` design. These are comparison
+   requirements; actual execution follows each locked method profile and its registered budget.
+   Do not infer equal budgets across profiles from these requirements; record and explain differences.
+4. Within a dataset, align maximum epochs, batch-size candidate ranges, resource caps, and
+   tuning budgets. The protocol specifies GPU/CPU, memory class, and software-stack categories,
+   not one local machine. Record actual models, drivers, and limits in artifacts.
+   Single-configuration cost runs from initialization to the final epoch, including training
+   and per-epoch validation but excluding downloads, SBERT generation, splitting, and PU-label
+   generation. Record shared preprocessing separately. Complete tuning cost includes all
+   candidates and five seeds; peak memory is maximum GPU allocated memory over that process.
+5. Retry NaN, OOM, interface incompatibility, or timeout only once with the same seed.
+   If it fails again, retain the failure and exclude it from that condition's ranking.
+   A rerun with changed parameters is a new candidate and must follow consistent rules
+   across all methods in that condition.
+6. Every artifact must retain Python/PyTorch/CUDA/GPU information, method/data configuration,
+   central-registry version, seed, split/label manifests, selection artifacts, and result schema.
+   Record code commit and dependency-lock identity directly or through shared evidence referenced
+   by the manifest's `batch` block; see the [runbook](runbook.md). Disclose missing information
+   in source/row reasons. Export does not grant formal eligibility. Multiple runs may complete
+   a seed×c grid if their environments, splits, and settings remain explainable and consistent.
+   Historical manifests remain unchanged. Existing summary review conclusions remain facts
+   of the original report and are not inferred again from new configurations.
+7. Interpret results using method limitations, possible combinations/improvements, and the
+   advantages/disadvantages of the three categories. Distinguish “literature facts,”
+   “observations in this study,” and “inference.”
 
-> pilot 前的基础设施验收清单与技术实现见
-> [实验层设计文档](../../dev/experiment_layer.md)。
+> [experiment_layer.md](../../dev/experiment_layer.md) provides optional Chinese implementation
+> background and infrastructure acceptance checks.
 
-## 6. 实验过程中的注意点
+## 6. Considerations during the study
 
-1. 各个方法可能/实际存在的局限性、优越性；
-2. 各方法相对其他方法能够改进（结合）的地方；
-3. 各类方法的优缺点；
-4. 各类方法之间有什么能够改进（结合）的地方。
+1. Possible and observed limitations and strengths of each method.
+2. Improvements or combinations relative to other methods.
+3. Advantages and disadvantages of each method category.
+4. Improvements or combinations across categories.

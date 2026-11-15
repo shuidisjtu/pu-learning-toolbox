@@ -66,7 +66,7 @@ print(report.summary())
 
 Documentation index: [docs/README.md](docs/README.md). The index, contributor guides,
 user entry pages, quickstart, concepts, how-to guides, and API reference are in English.
-Survey reproduction documents currently remain in Chinese and are being migrated.
+The public Survey reproduction documents are also available in English.
 More runnable examples:
 [`examples/minimal/`](examples/minimal/).
 

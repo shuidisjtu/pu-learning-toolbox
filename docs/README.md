@@ -1,8 +1,7 @@
 # PU Learning Toolbox documentation
 
-The index, external contributor guides, and all user documentation, including the API reference,
-are in English. PU Survey reproduction documents currently remain in Chinese and will follow
-in the next batch. Other internal research and maintenance records may
+The index, external contributor guides, all user documentation, and public PU Survey
+reproduction documents are in English. Other internal research and maintenance records may
 continue in Chinese under the
 [language policy](adr/0022-public-documentation-language.md).
 
@@ -77,9 +76,9 @@ core architectural decisions. Required contribution rules are in the English gui
 | [research/traditional_pu/](research/traditional_pu/) | Traditional PU metric/baseline contracts, tuning, promotion rules, and artifacts |
 | [research/distribution_shift/](research/distribution_shift/) | Shift metrics, joint-shift protocol and claim boundaries, and metadata review |
 
-## PU Survey reproduction (currently Chinese)
+## PU Survey reproduction
 
-The public reproduction path will be migrated as a separate batch. Start at
+Start at
 [research/pu_survey/README.md](research/pu_survey/README.md), then read the
 [protocol](research/pu_survey/pu_survey_protocol.md), [runbook](research/pu_survey/runbook.md), and
 [data sources](research/pu_survey/data/README.md). These describe execution capabilities, data

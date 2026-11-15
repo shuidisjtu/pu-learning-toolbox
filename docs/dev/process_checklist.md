@@ -77,10 +77,27 @@ Phase 0-9 已闭环（框架 → 核心风险估计 → 机制 → 推荐诊断 
 - [x] 53 个代码/签名块完整保留，其中 3 块仅作上述契约修正；
   公式保留，38 处相关标题入链有效。导航、Skill 兼容性、文档/API、格式、数学渲染、
   测试质量、生成一致性门禁与构建通过，临时审计脚本及测试产物不提交。
-- [ ] 本批维护者技术审查与 PR 合并；下一批迁移 Survey 四份公开复现资料。
+- [x] [PR #178](https://github.com/shuidisjtu/pu-learning-toolbox/pull/178) 已合并，
+  远端与本地旧功能分支已删除；本地 main 已同步至合并提交。
 
-当前全部用户文档与贡献指南为英文；Survey 复现资料仍为中文。
-迁移不改变公共 API、算法行为、Skill 资源或已保存结果。
+### 未发布（对外文档英语化：Survey 复现资料）
+
+- [x] Survey 入口、实验协议、运行指南及数据来源页四份 Markdown 原地英语化；
+  删除失效的等待外部 GPU 训练说明，不新增替代进度公告。
+- [x] 保留协议/配方身份、历史 manifest、四角色与独立 clean support、PA/OA 及数据权利边界；
+  明确 ADNI 槽位为替代数据，受试者隔离不可核验，历史 owner approval 不构成通用授权。
+- [x] 按源码核对独立先验 API、PUSB 路径和固定标记数边界；区分公平比较要求与实际锁定预算。
+  49 个数学片段逐字保留，8 个命令块及实际参数保留，修复四处标题入链。
+- [x] 数据、协议、运行与报告四组定向测试累计 442 次通过，去重后 431 项，零失败或跳过。
+  合成 CPU 验证完成配方检查、uPU 单元运行、批次 dry-run、汇总及两种导出路径；
+  单 seed 产物保留 `formal_eligible=false`，不代表完整 GPU、多 seed 或论文数值复现。
+- [x] 整体验收覆盖计划中的 35 份 `docs/` 目标、贡献入口与 PR 模板；更新公开语言导航，
+  文档/API/Skill、格式、测试质量、数学渲染、生成一致性门禁与构建通过。
+  JSON、图像、配方、运行实现、已保存结果和双客户端 Skill 资源未修改。
+- [ ] 本批 PR 审核与合并；临时审计脚本及验证产物不提交。
+
+当前工作树中，计划内的全部用户、贡献者及 Survey 复现文档均为英文；Survey 批次尚待合并。
+内部中文记录和 Skill 中文解释资源保留；迁移不改变公共 API、算法行为或已保存结果。
 
 ### 未发布（AI workflow skill 更新，2026-11-13）
 
@@ -133,8 +150,7 @@ S1/S2 已按失败回归驱动完成实现；旧同池入口保留输出与随�
   `2026-11-08-clean-support-coverage` 将 PULNS/LaGAM/Self-PU full-meta 的 support 覆盖扩到
   IMDB、20News、ADNI（共 8 个数据集），文本从冻结 split 的 SBERT 特征 carve，ADNI 记录
   `group_policy="unverifiable"` 与 owner approval；配方注册表升至
-  `survey-recipes-v1.3`。代码与定向测试已完成；正式按 seed × c 训练待外部 GPU 主机执行，
-  不作为已完成实验证据。
+  `survey-recipes-v1.3`。数据与监督预算按各次 manifest 解释，配方能力不自动代表数值复现。
 
 发布前检查：
 
@@ -148,7 +164,7 @@ S1/S2 已按失败回归驱动完成实现；旧同池入口保留输出与随�
 
 - **PN oracle 接入**：`CleanLabelGenerator` + 视图/声明双向 fail-loud + `--oracle` 入口。见[实验层设计 §2](experiment_layer.md#2-当前能力与边界)。
 - **双架构阶段 0-2**：Registry 4 能力字段、build_encoder 导出、nnpu encoder 试点、CNN 提示文案回归、契约路线 B 收口。见 [dual_architecture_plan §5](dual_architecture_plan.md)。
-- **Survey 语义统一（issue #42）**：PUSB 拆为 `pusb`/`pusb_kernel`，先验门禁改由 registry 驱动，台账↔registry 一致性契约。采样视图见[实验协议 §2.3](../research/pu_survey/pu_survey_protocol.md#23-pu-数据集生成)，先验语义见[实验协议 §3](../research/pu_survey/pu_survey_protocol.md#3-class-prior-以及相关参数设置)。
+- **Survey 语义统一（issue #42）**：PUSB 拆为 `pusb`/`pusb_kernel`，先验门禁改由 registry 驱动，台账↔registry 一致性契约。采样视图见[实验协议 §2.3](../research/pu_survey/pu_survey_protocol.md#23-pu-data-generation)，先验语义见[实验协议 §3](../research/pu_survey/pu_survey_protocol.md#3-class-priors-and-related-parameters)。
 - **Self-PU 声明收口（issue #38/#45）**：`input_ndims` 恢复 `{2,4}`，非原生 CNN 由 `native_architectures` 承载。
 - **训练视图分层**：`core/training_views.py` 承载中立角色构造，实验层负责视图路由、先验语义与 manifest；estimator 不依赖 experiment。核心视图拥有并冻结角色位置与来源索引，借用的特征和标签只读。依赖方向见[架构 §2.1](architecture.md)。
 - **SAR-OA 执行路径（issue #43）**：`--labeling-mechanism` 与 `--method` 正交，SAR 强制 OA-only。见[实验协议](../research/pu_survey/pu_survey_protocol.md)。
