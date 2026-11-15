@@ -454,7 +454,7 @@ uv run pytest tests/integration/test_run.py tests/unit/estimators/test_gen_pu.py
 本节记录 PA 选模分数的实现对照。工具箱的
 [`proxy_accuracy`](../../pu_toolbox/experiment/strategies.py) 采用 Wang et al. (2026)
 在 OS 采样设计下的 PA 定义，第二项为完整验证分区 $`L\cup U`$ 上的预测负类比例。
-定义和使用条件见[PU 选模](../user/concepts/pu_model_selection.md#2-pa-的条件和公式)。
+定义和使用条件见[PU 选模](../user/concepts/pu_model_selection.md#2-pa-conditions-and-formulas)。
 
 [PUBench 的固定版本实现](https://github.com/wu-dd/PUBench/blob/a9a62b05b0f222c72aff4df8992307376c78d682/lib/misc.py)
 与 [PU-Bench 的固定版本实现](https://github.com/XiXiphus/PU-Bench/blob/2d95a19eefd72e66ff30128ec2f65e1d1d4cc077/train/utils/metrics.py)

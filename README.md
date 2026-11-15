@@ -64,9 +64,10 @@ report = PUPipeline().fit_evaluate(X, y_pu, y_true=y_true)
 print(report.summary())
 ```
 
-Documentation index: [docs/README.md](docs/README.md). The index and external contributor
-guides are in English; user tutorials, the API reference, and Survey reproduction documents
-are being migrated and currently remain in Chinese. More runnable examples:
+Documentation index: [docs/README.md](docs/README.md). The index, contributor guides,
+user entry pages, quickstart, and concepts are in English. How-to guides, the API reference,
+and Survey reproduction documents currently remain in Chinese and are being migrated.
+More runnable examples:
 [`examples/minimal/`](examples/minimal/).
 
 `PUPipeline` uses OS input sampling by default; independent P and population U

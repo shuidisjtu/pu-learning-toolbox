@@ -78,7 +78,7 @@ X, y_pu, y_true, propensity = make_sar_dataset(
 
 其中 $`\bar c`$ 即传入的 `label_frequency`，$`e(x)`$ 为正类标记倾向。
 OS 总体的已标记比例满足 $`q=\pi_{population}\bar c`$，符号见
-[SCAR/SAR 概念](../concepts/scar_sar.md#1-两种标记机制)。
+[SCAR/SAR 概念](../concepts/scar_sar.md#1-two-labeling-mechanisms)。
 
 实际标记比例由 Bernoulli 抽样产生，会围绕目标波动。正式报告应同时保存：
 
@@ -108,7 +108,7 @@ uv run python examples/minimal/17_sar_policies.py --seed 7 --label-frequency 0.4
 池中有 160 个真正例，请求标记率为 0.4。Bernoulli 的期望计数为 64；
 LBE 配额为 `min(n_pos, max(1, round(c*n_pos)))`，使用半数取偶并保证至少一例。
 LBE 权重按正例内的相对偏好解释，公式和来源见
-[具名机制对照](../concepts/scar_sar.md#6-论文定义与具名实现)。
+[具名机制对照](../concepts/scar_sar.md#6-paper-definitions-and-named-implementations)。
 
 在四角色实验中，Generator 分别在 train 和 pu_val 生成视图，辅助评分在各自允许的
 clean 分区拟合。可将 `SARLBEAGenerator()` 或 `SARLBEBGenerator()` 传给
