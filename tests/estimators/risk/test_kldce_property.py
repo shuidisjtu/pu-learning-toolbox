@@ -272,5 +272,6 @@ class TestFittedAttributes:
             for value in vars(clf).values()
         ), "The fitted estimator must not retain the training Gram matrix"
         restored = pickle.loads(pickle.dumps(clf))
-        np.testing.assert_array_equal(restored.decision_function(X), scores)
+        # BLAS reductions can differ by a few ULPs after array allocation during unpickling.
+        np.testing.assert_allclose(restored.decision_function(X), scores, rtol=1e-12, atol=1e-14)
         np.testing.assert_array_equal(restored.predict(X), predictions)
