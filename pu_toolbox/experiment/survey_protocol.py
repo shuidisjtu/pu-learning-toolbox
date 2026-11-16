@@ -35,7 +35,6 @@ PROTOCOL_PATH = Path(__file__).with_name("survey_protocol_v3_2.json")
 PROTOCOL_PATHS: dict[str, Path] = {
     "survey-v3.2": PROTOCOL_PATH,
 }
-PROTOCOL_ALIASES = tuple(PROTOCOL_PATHS)
 
 
 def resolve_protocol_path(value: str | Path) -> Path:

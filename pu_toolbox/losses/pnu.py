@@ -78,25 +78,3 @@ def _compute_nu_risk_squared(
     """
     theta_N = 1.0 - class_prior
     return float(theta_N * np.mean(negative_scores) + np.mean(-unlabeled_scores))
-
-
-def _compute_pnu_risk(
-    positive_scores: np.ndarray,
-    negative_scores: np.ndarray,
-    unlabeled_scores: np.ndarray,
-    class_prior: float,
-    eta: float,
-) -> float:
-    """Combined PNU risk.
-
-    R_PNU^eta(g) = (1-eta)*R_PN + eta*R_C-PU   (eta >= 0)
-                   (1+eta)*R_PN - eta*R_C-NU   (eta < 0)
-    """
-    r_pn = _compute_pn_risk(positive_scores, negative_scores, class_prior)
-    gamma, branch = _eta_to_gamma(eta)
-
-    if branch == "pu":
-        r_component = _compute_pu_risk_squared(positive_scores, unlabeled_scores, class_prior)
-    else:
-        r_component = _compute_nu_risk_squared(negative_scores, unlabeled_scores, class_prior)
-    return float((1.0 - gamma) * r_pn + gamma * r_component)

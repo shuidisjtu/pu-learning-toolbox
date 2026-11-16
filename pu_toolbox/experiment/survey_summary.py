@@ -38,8 +38,6 @@ from typing import Any
 
 from .training_views import validated_run_view
 
-SCHEMA_VERSION = "survey-summary-1"
-
 #: Delivery status vocabulary.  A report row's ``status`` is one of these and
 #: nothing else.  ``not_reproducible`` is protocol §5 clause 6; the other six are
 #: presentation layers over the same runs.
@@ -66,27 +64,6 @@ STATUS_PRIORITY: tuple[str, ...] = (
     "partial",
     "formal",
 )
-
-#: The three tables protocol §5.2 asks the report to separate, as a partition of
-#: :data:`STATUSES`.  Kept beside the closed set for one reason: a status added
-#: there must not be able to fall silently out of every table.  A probe row is its
-#: own table because its numbers are real but clause 1 bars it from the formal
-#: leaderboard, and a partial row keeps its metric while losing only the right to
-#: be ranked.
-REPORT_TIERS: Mapping[str, tuple[str, ...]] = {
-    "formal": ("formal",),
-    "partial": ("partial", "refused", "incomplete", "not_reproducible", "historical"),
-    "diagnostic": ("technical_probe",),
-}
-
-
-def tier_of(status: str) -> str:
-    """Which report table *status* is filed under; raises if it is filed nowhere."""
-    for tier, statuses in REPORT_TIERS.items():
-        if status in statuses:
-            return tier
-    raise SummaryError(f"status {status!r} belongs to no report tier: {sorted(REPORT_TIERS)}")
-
 
 #: Reason codes.  Free-form prose is not allowed here: the taxonomy is
 #: machine-checked, one ``status`` may be explained by several reasons, and
@@ -150,14 +127,6 @@ def uses_clean_support(manifest: Mapping[str, Any]) -> bool:
     return audit.get("extra_supervision") is True or any(
         "PA+clean-support" in (manifest.get(key) or {}) for key in ("selection", "test_results")
     )
-
-
-def manifest_selection_protocol(protocol: str) -> str:
-    """Resolve a normalized selector without uppercasing the support suffix."""
-    names = {name.lower(): name for name in RESULT_SELECTION_PROTOCOLS}
-    if protocol not in names:
-        raise SummaryError(f"unknown selection_protocol: {protocol!r}")
-    return names[protocol]
 
 
 #: The metric the pre-registered matrix selects on.  Protocol §1.2 makes Accuracy
@@ -508,18 +477,10 @@ def summarize_costs(
     }
 
 
-#: The measured cost fields protocol §5 clause 2 requires a report to carry either
-#: way, because every run trains candidates and every run tunes them.
-MEASURED_COST_FIELDS: tuple[str, ...] = (
-    "single_configuration_cost_seconds",
-    "tuning_cost_seconds",
-)
-
-
 def unrecorded_measurements(resources: Sequence[Mapping[str, Any]]) -> list[str]:
     """Measured cost fields a run's ``resources`` failed to record.
 
-    The report-blocking fields are the two above.  ``peak_gpu_memory_bytes`` is
+    Training and tuning costs are required.  ``peak_gpu_memory_bytes`` is
     judged differently, and deliberately so: its absence is only a gap when the
     run had a peak to aggregate.  A CPU-only method reports ``null`` at the run
     level *and* at every candidate level, which is the complete answer for a run

@@ -12,6 +12,8 @@ Covers:
 
 from __future__ import annotations
 
+import pickle
+
 import numpy as np
 import pytest
 
@@ -232,7 +234,7 @@ def test_edge_new_inner_params_in_get_params_roundtrip():
 class TestFittedAttributes:
     """All spec §7 attributes are present after fit."""
 
-    def test_required_attributes_present(self, rng):
+    def test_required_attributes_and_pickle_keep_minimal_prediction_state(self, rng):
         X, y_pu, _ = _make_censoring_pu_data(rng, n_pos=15, n_neg=30, h=0.3, d=3)
         clf = KLDCEClassifier(
             flip_probability=0.3,
@@ -262,3 +264,14 @@ class TestFittedAttributes:
         ]
         for attr in required:
             assert hasattr(clf, attr), f"Missing attribute: {attr}"
+
+        scores = clf.decision_function(X)
+        predictions = clf.predict(X)
+        assert not any(
+            isinstance(value, np.ndarray) and value.shape == (len(X), len(X))
+            for value in vars(clf).values()
+        ), "The fitted estimator must not retain the training Gram matrix"
+        restored = pickle.loads(pickle.dumps(clf))
+        # BLAS reductions can differ by a few ULPs after array allocation during unpickling.
+        np.testing.assert_allclose(restored.decision_function(X), scores, rtol=1e-12, atol=1e-14)
+        np.testing.assert_array_equal(restored.predict(X), predictions)

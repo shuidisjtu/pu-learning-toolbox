@@ -9,7 +9,7 @@ from _survey_pilot_helpers import driver, splits_tree, unit_calls  # noqa: F401
 from _survey_recipe_registry_helpers import locked_registry, pool_registry
 from _survey_script_helpers import make_splits, survey_script  # noqa: F401
 
-from pu_toolbox.experiment.pilot_plan import completed_runs, manifest_resume_key
+from pu_toolbox.experiment.pilot_plan import completed_runs
 from pu_toolbox.experiment.results import build_summary
 from pu_toolbox.experiment.runner import ExperimentRunner
 from pu_toolbox.experiment.strategies import ProtocolOA, ProtocolPA
@@ -127,11 +127,11 @@ def test_edge_completed_runs_requires_exact_pool_and_trajectory_joins(survey_scr
     path = tmp_path / "result/manifest.json"
     path.parent.mkdir()
     path.write_text(json.dumps(payload), encoding="utf-8")
-    identity = manifest_resume_key(payload)
-    assert identity is not None
     # Resume expectations use the no-view identity; the view remains the result key.
-    key = identity[:6]
-    assert len(completed_runs(tmp_path / "result", expected_recipe_bindings={key: expected})) == 1
+    key = ("spambase", "upu", "native_2d", "scar", "0.5", 0)
+    completed = completed_runs(tmp_path / "result", expected_recipe_bindings={key: expected})
+    assert list(completed.values()) == [path]
+    assert next(iter(completed)) == (*key, payload["run_view"])
     payload["selection"]["OA"]["recipe_candidate_id"] = "wrong"
     path.write_text(json.dumps(payload), encoding="utf-8")
     assert completed_runs(tmp_path / "result", expected_recipe_bindings={key: expected}) == {}

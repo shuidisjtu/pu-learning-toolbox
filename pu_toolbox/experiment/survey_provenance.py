@@ -1,9 +1,7 @@
 """P2.2 report provenance: which code and which inputs produced this report.
 
-The P2.2 implementation plan requires every report to record its input result
-roots, the code commit, the protocol digest, the comparison-matrix digest and a
-generation time.  Three entry points produce those reports, so the block is
-assembled here once instead of three times.
+Report identity blocks record supplied input roots, protocol/comparison digests,
+and code identity without reading a clock.
 
 **This is not the per-manifest identity check.**  Protocol §5 clause 6 asks for
 reproducibility of a *result*, which the survey runner satisfies through the
@@ -19,15 +17,14 @@ conflates the two will look for a commit in every manifest and find none.
 **Why the git call is not in the builders.**  Result builders are pure functions
 of what they are handed, and there is a
 determinism check that compares two builds over one tree.  Reading a commit is
-process I/O, so it happens only in each entry point's ``main``, through
+process I/O, so entry points request it through
 :func:`resolve_code_commit`.  Everything else here is pure: no clock, no
 filesystem.
 
 **A digest that was not read is not a digest.**  ``code_commit_state`` is
 ``"recorded"`` or ``"unavailable"``, never absent, so a report produced outside
 a git work tree says so instead of leaving a reader to guess whether the field
-was forgotten.  The same reasoning drives rendering the commit rather than
-omitting it.
+was forgotten.
 """
 
 from __future__ import annotations
@@ -44,7 +41,6 @@ from typing import Any
 #: into a silent claim.
 CODE_COMMIT_RECORDED = "recorded"
 CODE_COMMIT_UNAVAILABLE = "unavailable"
-CODE_COMMIT_STATES: tuple[str, ...] = (CODE_COMMIT_RECORDED, CODE_COMMIT_UNAVAILABLE)
 
 _GIT_COMMIT: tuple[str, ...] = ("git", "rev-parse", "HEAD")
 _GIT_STATUS: tuple[str, ...] = ("git", "status", "--porcelain")
@@ -87,22 +83,6 @@ def input_result_roots(config: Mapping[str, Any]) -> dict[str, str]:
         if isinstance(name, str) and name and isinstance(root, str) and root:
             roots[name] = root
     return dict(sorted(roots.items()))
-
-
-def recorded_source_roots(config: Mapping[str, Any]) -> dict[str, str]:
-    """``{batch name: upstream source root}`` from a whitelist config, or ``{}``.
-
-    ``source_roots`` is not part of the whitelist schema -- it is an optional
-    block recording where the manifests were produced.  Recorded when present
-    because a report whose checkpoint paths point at another machine should say
-    so itself, rather than leaving the reader to find the note elsewhere.
-    """
-    source = config.get("source_roots")
-    if not isinstance(source, Mapping):
-        return {}
-    return dict(
-        sorted((str(name), root) for name, root in source.items() if isinstance(root, str) and root)
-    )
 
 
 def build_provenance(
@@ -179,41 +159,3 @@ def resolve_code_commit(cwd: str | Path | None = None) -> tuple[str | None, bool
         return None, None
     status = _git_output(_GIT_STATUS, cwd=cwd)
     return commit, None if status is None else bool(status)
-
-
-def render_provenance_lines(block: Mapping[str, Any] | None) -> list[str]:
-    """Markdown bullets for *block*, or ``[]`` when there is no block.
-
-    **Stamped-free on purpose.**  A summary's Markdown and CSV are pinned to be
-    byte-identical across two runs of the same input, so nothing here may read a
-    clock, and every collection is sorted by batch name rather than left in
-    mapping order.
-
-    The protocol and comparison digests are *not* re-rendered: each report
-    already prints them above, and a second copy is a second chance to disagree
-    with the first.
-    """
-    if not block:
-        return []
-    lines: list[str] = []
-    commit = block.get("code_commit")
-    if commit:
-        # Three states, not two: a work tree whose cleanliness could not be read
-        # is not a clean one, and printing it bare would read as clean.  Same
-        # doctrine as ``unavailable`` above -- an absence is stated, not implied.
-        dirty = block.get("code_commit_dirty")
-        if dirty is True:
-            changed = "（工作区有未提交改动）"
-        elif dirty is None:
-            changed = "（工作区状态未能读取）"
-        else:
-            changed = ""
-        lines.append(f"- 代码 commit：`{commit}`{changed}")
-    else:
-        state = block.get("code_commit_state") or CODE_COMMIT_UNAVAILABLE
-        lines.append(f"- 代码 commit：不可用（`{state}`，不在 git 工作树内）")
-    for name, root in sorted((block.get("input_result_roots") or {}).items()):
-        lines.append(f"- 输入结果根 `{name}`：`{root}`")
-    for name, root in sorted((block.get("source_roots") or {}).items()):
-        lines.append(f"- 上游源根 `{name}`：`{root}`（仅溯源）")
-    return lines
