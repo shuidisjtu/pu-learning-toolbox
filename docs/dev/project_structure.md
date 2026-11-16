@@ -229,9 +229,8 @@ pu_toolbox/
     pilot_plan.py                         # deterministic grids, completion checks, checkpoint space estimates, scope filters
     method_ledger.py                      # Survey method-ledger access; enumeration separated from the programmatic source of truth
     survey_summary.py                     (pure statistics: seed means/sample standard deviations, groups, deduplicated costs, missing metrics)
-    survey_result_coverage.py             # explicit expected/excluded cells and normalized observation reconciliation; does not infer the final matrix or grant formal eligibility
     survey_recipe_registry.py             # P4.1 recipe registry: closed sets/schema/digests and manifest binding checks (pure functions)
-    survey_provenance.py                  # P2.2 report identity: pure assembly of result roots/protocol/control digests; Git stamping only in main, no render timestamps
+    survey_provenance.py                  # report identity: deterministic assembly of input roots and digests, plus explicit Git commit/status lookup
     batch_evidence.py                     # §5.6 content-addressed commit/uv.lock/protocol/environment evidence; verifies run/batch identity and builds manifest references
     survey_workbook.py                    # report → four protocol §5.1 sheets + diagnostic/coverage/readme; no ranking, incomplete seeds only in coverage (pure functions; openpyxl)
     survey_diagnostics.py                 # per-method observations and advisory flags from plan §1.4.5 signals; lists unavailable signals (pure functions)
@@ -241,7 +240,7 @@ pu_toolbox/
     support_checkpoints.py                # independent-support meta snapshots and PA+clean-support/OA selection tracks
     genpu_recipe.py                       # single-candidate GEN-PU engineering recipe, six-network cost, PN-stage checkpoint guards
     candidate_image_runner.py             # PULDA/GradPU image trajectories, actual stage costs, snapshot-byte guards
-    survey_profile_identity.py            # explicit draft profile/algorithm mapping, identity inventory, rejection of five-role/legacy binding mismatches
+    survey_profile_identity.py            # explicit profile/algorithm mapping, manifest identity validation, and clean-support/CVIR execution guards
     survey_staged_budget.py               # explicit GEN-PU/PULDA stage budgets, native costs, snapshot-size verification
     survey_episodic_budget.py             # native Robust/Split/Holistic episodes, stopping rules, paid LZO cost checks
     classical_candidate.py                # non-epoch cost receipts for PUET trees and RP nested fits
@@ -543,12 +542,11 @@ tests/
       test_survey_formal_eligibility.py # D24 canonical admission, genuine deviations blocked, ablation labels retained
       test_checkpoint_reclaim.py        # D25 selected-only weights, reclaimed semantics, disabled by default
       _survey_summary_helpers.py        # manifest trees, configs, audit/summary CLI fixtures
-      test_survey_result_coverage.py    # absent/incomplete/missing-metric/excluded/ineligible separation; PN c independence; mechanism/view/budget/path identity
       test_survey_summary_boundaries.py # different views/mechanisms/paths/protocols never merge
       test_survey_summary_clean_support.py # independent support tracks, extra supervision isolation, diagnostics, formal gates
       test_survey_summary_states.py     # closed row-identity c_token/oracle and status/priority/reason vocabularies
       test_survey_summary_stats.py      # five-seed means/sample SD, missing seeds reported without filling, cost sums
-      test_survey_summary_measures.py   # separate missing measurements/peaks/secondary metrics/statuses; closed status partitions
+      test_survey_summary_measures.py   # separate missing measurements, GPU peaks, secondary metrics, and selection identities
       _survey_recipe_registry_helpers.py # fixtures derived from frozen protocol rather than copied by hand
       test_survey_recipe_registry.py    # schema, candidate pools, digest rules
       test_survey_recipe_registry_manifest.py # fail-closed binding with legacy compatibility
@@ -556,7 +554,7 @@ tests/
       test_survey_workbook.py           # sheet assignment, separate clean support, LBE-A/B groups, missing seeds in coverage, unknown mechanisms error
       test_survey_diagnostics.py        # flag conditions, excluded incomplete seeds, unavailable signals, no paper-equivalence claims
       test_export_survey_results_cli.py # config/summary.json to workbook/cards/conclusions; malformed inputs do not leave partial output
-      test_survey_provenance.py         # pure identity assembly, missing-Git degradation/warnings, no render timestamps, three entry points
+      test_survey_provenance.py         # deterministic identity assembly, input roots, Git stamping, and missing-Git degradation
       test_p3_feature_adapter_smoke.py  # shared frozen-feature engineering smoke for preintegrated methods
       test_p3_pulda_puet_runner_smoke.py # four-role PULDA/PUET TS and PA/OA technical smoke
       test_survey_recipe_registry_draft.py # draft generation, exclusions, candidates, legacy manifest protection

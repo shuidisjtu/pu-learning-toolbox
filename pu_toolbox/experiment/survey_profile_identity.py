@@ -12,7 +12,6 @@ SCHEMA = "survey-profile-identity-1"
 FIELD = "profile_identity_schema_version"
 PROTOCOL_VERSION = "survey-v3.2"
 PROTOCOL_VERSIONS = (PROTOCOL_VERSION,)
-MANIFEST_FIELDS = (FIELD, "profile_id", "algorithm_id")
 _NAME = re.compile(r"[a-z][a-z0-9_]*\Z")
 
 
@@ -183,12 +182,6 @@ def require_four_role_profile(protocol, profile_id, *, clean_support=False):
         raise ValueError(
             "CVIR requires a versioned per-view prior/pool adapter; generic execution unavailable"
         )
-
-
-def require_legacy_recipe_identity(protocol):
-    """Registry v1 refs point at v2; this extension cannot pretend to bind them."""
-    if has_profile_identities(protocol):
-        raise ValueError("recipe registry v1 cannot bind the draft profile identity schema")
 
 
 def valid_manifest_profile_identity(payload):

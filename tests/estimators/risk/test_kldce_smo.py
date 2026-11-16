@@ -11,8 +11,6 @@ from pu_toolbox.estimators.risk.kldce import (
 )
 from pu_toolbox.estimators.risk.kldce_smo import (
     _smo_alpha_pair_update,
-    _smo_bias_average,
-    _smo_gamma_pair_update,
     _smo_pair_select,
     _solve_dual_smo,
     kkt_violation_terms,
@@ -82,21 +80,6 @@ def test_basic_incremental_gradient_matches_full_recompute():
     z = _smo_alpha_pair_update(z.copy(), 0, 1, Q, d, a, lb, ub, g=g)
     z = _smo_alpha_pair_update(z.copy(), 1, 2, Q, d, a, lb, ub, g=g)
     assert np.allclose(g, Q @ z - d, atol=1e-12)
-
-
-def test_basic_gamma_pair_update_delegates_same_analytic_step():
-    """γ 对与 α 对同一数学(符号差只来自 a);入口分派返回同解。"""
-    Q = np.array([[2.0, 0.3], [0.3, 1.5]])
-    d = np.array([0.5, 0.7])
-    z = np.array([0.2, 0.4])
-    a = np.array([1.0, 1.0])
-    lb = np.array([0.0, 0.0])
-    ub = np.array([0.25, 0.25])
-    z_alpha = _smo_alpha_pair_update(z.copy(), 0, 1, Q, d, a, lb, ub)
-    z_gamma = _smo_gamma_pair_update(z.copy(), 0, 1, Q, d, a, lb, ub)
-    assert np.allclose(z_gamma, z_alpha)
-    assert abs(z_gamma @ a - z @ a) < 1e-12
-    assert z_gamma[0] <= ub[0] + 1e-12
 
 
 def test_basic_kkt_violation_terms_interior():
@@ -265,10 +248,6 @@ def test_vertex_optimum_inner_converged_seed7():
     assert diag["inner_converged"] is True
     assert diag["status"] == 0
     assert diag["dual_obj"] == pytest.approx(diag_orc["dual_obj"], abs=1e-6)
-
-
-def test_basic_bias_average_four_terms():
-    assert _smo_bias_average([1.0, 2.0, 3.0, 4.0]) == pytest.approx(2.5)
 
 
 def _random_kldce_qp(rng, n=15, k=5, min_len=30, seed=0):

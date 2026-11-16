@@ -1222,7 +1222,6 @@ class KLDCEClassifier(BasePUClassifier):
         self._X_shape_ = X.shape
         self._X_train = X
         self._sigma_val_ = sigma_val
-        self._K_ = K
         self._y_tilde_ = y_tilde
         self.classes_ = np.array([0, 1])
         self._is_fitted = True

@@ -96,25 +96,6 @@ def _smo_alpha_pair_update(
     return z
 
 
-def _smo_gamma_pair_update(
-    z: np.ndarray,
-    i1: int,
-    i2: int,
-    Q: np.ndarray,
-    d: np.ndarray,
-    a: np.ndarray,
-    lb: np.ndarray,
-    ub: np.ndarray,
-) -> np.ndarray:
-    """γ 对更新:与 α 对同一解析步(由 a 的符号承载差异)。
-
-    Kept as a separate entry point so the gamma-pair semantics (second group
-    of the appendix) is explicit at the call site; delegates to the same
-    analytic update.
-    """
-    return _smo_alpha_pair_update(z, i1, i2, Q, d, a, lb, ub)
-
-
 def kkt_violation_terms(
     z: np.ndarray,
     Q: np.ndarray,
@@ -257,13 +238,6 @@ def _smo_pair_select(
             if delta is not None and abs(delta) > best_mag:
                 best_mag, best_pair = abs(delta), (i, j)
     return best_pair
-
-
-def _smo_bias_average(b_values: list[float]) -> float:
-    """Four-term bias average (appendix Eqs. 37-40)."""
-    if not b_values:
-        return 0.0
-    return float(np.mean(np.asarray(b_values, dtype=float)))
 
 
 def _solve_dual_smo(

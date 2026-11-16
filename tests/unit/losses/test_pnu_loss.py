@@ -22,7 +22,6 @@ import pytest
 from pu_toolbox.losses.pnu import (
     _compute_nu_risk_squared,
     _compute_pn_risk,
-    _compute_pnu_risk,
     _compute_pu_risk_squared,
     _eta_to_gamma,
 )
@@ -130,59 +129,6 @@ class TestComponentRiskGolden:
 
 
 # ═════════════════════════════════════════════════════════════════════
-# Combined PNU risk
-# ═════════════════════════════════════════════════════════════════════
-
-
-class TestPnuRiskGolden:
-    """MATH: combined R_PNU^eta on both branches.
-
-    Shared inputs as in TestComponentRiskGolden:
-    R_PN = 0.75, R_C-PU = 0.25, R_C-NU = 0.5.
-    """
-
-    p = np.array([2.0, 4.0])
-    n = np.array([1.0, 3.0])
-    u = np.array([0.5, 1.5])
-    class_prior = 0.25
-
-    @pytest.mark.math
-    def test_basic_pnu_risk_pu_branch_hand_computed(self):
-        """eta=+0.5 -> gamma=0.5, branch "pu": (1-0.5)*R_PN + 0.5*R_C-PU."""
-        risk = _compute_pnu_risk(self.p, self.n, self.u, self.class_prior, 0.5)
-        # Hand computation:
-        #   (1 - 0.5) * 0.75 + 0.5 * 0.25 = 0.375 + 0.125 = 0.5
-        assert risk == pytest.approx(0.5)
-
-    @pytest.mark.math
-    def test_basic_pnu_risk_nu_branch_hand_computed(self):
-        """eta=-0.5 -> gamma=0.5, branch "nu": (1-0.5)*R_PN + 0.5*R_C-NU."""
-        risk = _compute_pnu_risk(self.p, self.n, self.u, self.class_prior, -0.5)
-        # Hand computation:
-        #   (1 - 0.5) * 0.75 + 0.5 * 0.5 = 0.375 + 0.25 = 0.625
-        assert risk == pytest.approx(0.625)
-
-    @pytest.mark.unit
-    def test_edge_pnu_risk_eta_zero_degenerates_to_pn(self):
-        """eta=0 -> gamma=0: the combination reduces to R_PN exactly.
-
-        Extreme unlabeled scores (100, 200) prove the unlabeled component
-        is fully ignored — R_C-PU of the "pu" branch never enters.
-        """
-        u_extreme = np.array([100.0, 200.0])
-        risk = _compute_pnu_risk(self.p, self.n, u_extreme, self.class_prior, 0.0)
-        # (1 - 0.0) * 0.75 + 0.0 * (anything) = 0.75
-        assert risk == pytest.approx(0.75)
-
-    @pytest.mark.unit
-    def test_edge_pnu_risk_eta_one_reduces_to_pu_component(self):
-        """eta=1 -> gamma=1: the combination equals R_C-PU exactly."""
-        risk = _compute_pnu_risk(self.p, self.n, self.u, self.class_prior, 1.0)
-        # (1 - 1.0) * 0.75 + 1.0 * 0.25 = 0.25
-        assert risk == pytest.approx(0.25)
-
-
-# ═════════════════════════════════════════════════════════════════════
 # Parameter handling (class_prior)
 # ═════════════════════════════════════════════════════════════════════
 
@@ -239,10 +185,6 @@ class TestEmptyInputs:
             risk = _compute_pn_risk(np.array([]), np.array([]), 0.5)
         assert np.isnan(risk)
 
-        with pytest.warns(RuntimeWarning):
-            risk = _compute_pnu_risk(np.array([]), np.array([]), np.array([]), 0.5, 0.3)
-        assert np.isnan(risk)
-
 
 # ═════════════════════════════════════════════════════════════════════
 # Determinism
@@ -258,21 +200,17 @@ class TestDeterminism:
 
     @pytest.mark.unit
     def test_deterministic_repeated_calls_identical_output(self):
-        """All five helpers return bit-identical results on repeat calls."""
+        """All four helpers return bit-identical results on repeat calls."""
         first = (
             _compute_pn_risk(self.p, self.n, 0.25),
             _compute_pu_risk_squared(self.p, self.u, 0.25),
             _compute_nu_risk_squared(self.n, self.u, 0.25),
-            _compute_pnu_risk(self.p, self.n, self.u, 0.25, 0.5),
-            _compute_pnu_risk(self.p, self.n, self.u, 0.25, -0.5),
             _eta_to_gamma(-0.5),
         )
         second = (
             _compute_pn_risk(self.p, self.n, 0.25),
             _compute_pu_risk_squared(self.p, self.u, 0.25),
             _compute_nu_risk_squared(self.n, self.u, 0.25),
-            _compute_pnu_risk(self.p, self.n, self.u, 0.25, 0.5),
-            _compute_pnu_risk(self.p, self.n, self.u, 0.25, -0.5),
             _eta_to_gamma(-0.5),
         )
         assert first == second

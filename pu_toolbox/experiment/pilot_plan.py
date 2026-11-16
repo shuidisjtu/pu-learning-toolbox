@@ -597,19 +597,6 @@ def support_products(
     return found
 
 
-def manifest_resume_key(payload: dict[str, Any]) -> tuple[Any, ...] | None:
-    """The run *and view* a manifest records, or ``None`` when it records neither.
-
-    ``manifest_identity`` names a protocol unit; this names one execution of it.
-    A resume scan keys on the pair, because a unit may legitimately have been run
-    under both views and each manifest is evidence only for the view it used.
-    """
-    identity = manifest_identity(payload)
-    if identity is None:
-        return None
-    return (*identity, validated_run_view(payload))
-
-
 def completed_runs(
     results_root: str | Path,
     *,

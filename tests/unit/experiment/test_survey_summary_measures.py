@@ -1,11 +1,10 @@
-"""How an absent value is read: a measurement, a peak, a metric, a status.
+"""How an absent value is read: a measurement, a peak, or a metric.
 
-The four are not the same finding.  A cost the protocol requires a report to carry
+These absences are not the same finding. A cost the protocol requires a report to carry
 is a reporting gap; a GPU peak on a run that never allocated GPU memory is the
 complete answer; a secondary metric a run could not produce is an unavailable
-observation rather than a missing seed; and a status that belongs to no report
-table is a defect in the vocabulary.  Collapsing them either invents defects or
-hides them, so each is asserted separately here.
+observation rather than a missing seed. Collapsing them either invents defects
+or hides them, so each is asserted separately here.
 
 """
 
@@ -13,12 +12,9 @@ import pytest
 from _survey_summary_helpers import manifest
 
 from pu_toolbox.experiment.survey_summary import (
-    REPORT_TIERS,
-    STATUSES,
     SummaryError,
     aggregate_additional_metric,
     matrix_selector,
-    tier_of,
     unrecorded_measurements,
 )
 
@@ -122,18 +118,6 @@ def test_param_an_additional_metric_observing_a_seed_outside_the_run_raises():
     # would not even show as missing.
     with pytest.raises(SummaryError, match="outside the seeds that ran"):
         aggregate_additional_metric([(9, 0.5)], metric_name="auc", ran_seeds=[0, 1])
-
-
-def test_basic_the_report_tiers_partition_the_closed_status_set():
-    grouped = [status for statuses in REPORT_TIERS.values() for status in statuses]
-
-    assert sorted(grouped) == sorted(STATUSES)
-    assert len(grouped) == len(set(grouped))
-
-
-def test_param_an_unknown_status_raises_rather_than_filing_silently():
-    with pytest.raises(SummaryError, match="belongs to no report tier"):
-        tier_of("blocked")
 
 
 def test_determ_the_matrix_selector_is_spelled_the_way_the_matrix_reads():
