@@ -112,18 +112,15 @@ class TestScarCalibration:
         assert acc > 0.85, f"Accuracy {acc:.3f} below 0.85"
 
     @pytest.mark.math
-    def test_math_balanced_oof_propensity_lands_in_band(self):
-        """sqrt-balanced OOF keeps c_hat close to the true c=0.5.
+    def test_math_stratified_oof_preserves_labeling_propensity(self):
+        """With separable classes, the labeled fraction among positives is known."""
+        X = np.repeat([100.0, -100.0], 60).reshape(-1, 1)
+        y_pu = np.repeat([1, 0], [30, 90])
 
-        Before the fix the unweighted OOF under-estimated c (0.40 on this
-        dataset) and inflated class_prior_ (0.62); the sqrt-balance rule
-        must land both in the acceptance bands.
-        """
-        X, y_pu, _ = make_scar_dataset(n=200, c=0.5, random_state=42)
-        clf = ElkanNotoClassifier(internal_cv_folds=3, random_state=42)
-        clf.fit(X, y_pu)
-        assert 0.50 <= clf.propensity_ <= 0.68, f"c_hat={clf.propensity_}"
-        assert 0.40 <= clf.class_prior_ <= 0.58, f"prior={clf.class_prior_}"
+        clf = ElkanNotoClassifier(random_state=42).fit(X, y_pu)
+
+        assert clf.propensity_ == pytest.approx(0.5, abs=0.02)
+        assert clf.class_prior_ == pytest.approx(0.5, abs=0.02)
 
 
 # ═════════════════════════════════════════════════════════════════════
@@ -225,7 +222,7 @@ class TestErrorHandling:
             ElkanNotoClassifier(**init_kwargs)
 
     def test_param_not_fitted_and_validation_errors(self, rng):
-        """Not fitted raises; zero positives raises; too few positives for kfold."""
+        """Not fitted raises; both PU groups need enough samples for each fold."""
         X, y_pu, _ = make_scar_dataset(random_state=rng)
         clf = ElkanNotoClassifier()
         for method in ["predict", "predict_proba", "decision_function"]:
@@ -236,10 +233,11 @@ class TestErrorHandling:
         with pytest.raises(PUValidationError):
             ElkanNotoClassifier().fit(X, np.zeros_like(y_pu))
 
-        y_pu = np.zeros(len(X), dtype=int)
-        y_pu[:3] = 1
-        with pytest.raises(PUValidationError, match="internal_cv_folds"):
-            ElkanNotoClassifier(internal_cv_folds=4).fit(X, y_pu)
+        for minority_label in (0, 1):
+            y_pu = np.full(len(X), 1 - minority_label)
+            y_pu[:3] = minority_label
+            with pytest.raises(PUValidationError, match="internal_cv_folds=4"):
+                ElkanNotoClassifier(internal_cv_folds=4).fit(X, y_pu)
 
 
 # ═════════════════════════════════════════════════════════════════════
@@ -263,16 +261,15 @@ class TestCompatibility:
         """Different base estimators and sample_weight produce varied outputs."""
         X, y_pu, _ = make_scar_dataset(n=100, c=0.5, random_state=rng)
 
-        # RandomForest base estimator (probability-correction mode: weighted
-        # retraining with a non-calibrated estimator can produce negative
-        # duplication weights)
+        # Each propensity training fold has only two unlabeled rows for calibration.
+        small_unlabeled_pool = np.r_[np.flatnonzero(y_pu == 1), np.flatnonzero(y_pu == 0)[:3]]
         clf_rf = ElkanNotoClassifier(
             base_estimator=RandomForestClassifier(n_estimators=10, random_state=42),
             mode="probability_correction",
             internal_cv_folds=3,
             random_state=42,
         )
-        clf_rf.fit(X, y_pu)
+        clf_rf.fit(X[small_unlabeled_pool], y_pu[small_unlabeled_pool])
         assert clf_rf.predict(X).shape == (X.shape[0],)
 
         # Sample weight changes model
@@ -284,6 +281,7 @@ class TestCompatibility:
         sw[:40] = 100.0
         clf_w = ElkanNotoClassifier(internal_cv_folds=3, random_state=42)
         clf_w.fit(X, y_pu, sample_weight=sw)
+        assert clf_unw.propensity_ != pytest.approx(clf_w.propensity_)
         assert not np.array_equal(pred_unweighted, clf_w.predict(X))
 
         # Sample weight shape validation

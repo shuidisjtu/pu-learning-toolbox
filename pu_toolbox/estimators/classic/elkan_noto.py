@@ -2,14 +2,7 @@
 
 """Elkan–Noto PU classifier (KDD 2008).
 
-Native clean-room implementation of the classic SCAR-based PU learning
-method.  Reference: pulearn/pulearn (BSD-3-Clause) for algorithmic
-validation; API contract follows ``BasePUClassifier``.
-
-Reference
----------
-Elkan, C. & Noto, K.  "Learning Classifiers from Only Positive and
-Unlabeled Data."  KDD, 2008.
+Clean-room implementation with pulearn/pulearn (BSD-3-Clause) as a reference.
 """
 
 from __future__ import annotations
@@ -42,47 +35,35 @@ from ...core.validation import validate_pu_X_y, validate_sample_weight
 
 class ElkanNotoClassifier(BasePUClassifier):
     """Elkan–Noto PU classifier with probability correction or weighted retraining.
+
     Parameters
     ----------
     base_estimator : sklearn estimator, optional
-        Base binary classifier.  Must implement ``predict_proba``.
-        Default: ``LogisticRegression()``.
+        Binary estimator. Defaults to ``LogisticRegression()``.
     calibration_method : {"sigmoid", "isotonic"}, default "sigmoid"
-        Probability calibration method used when the base estimator is
-        not a linear model with natural probabilistic output.
+        Calibration for estimators other than ``LogisticRegression``.
     internal_cv_folds : int, default 3
-        Number of stratified cross-validation folds for estimating
-        ``c`` via out-of-fold predictions.  Must be ≥ 2.
+        Folds for estimating labeling propensity. Must be at least 2, with
+        at least that many labeled positives and that many unlabeled samples.
     eps : float, default 1e-12
-        Numerical clipping threshold for ``g(x)`` to avoid division
-        by zero in weight computation.
-    mode : {"probability_correction", "weighted_retraining"}, \
-            default "weighted_retraining"
-        * ``"probability_correction"`` — scale ``g(x)`` by ``1 / c``.
-        * ``"weighted_retraining"`` — duplicate unlabeled samples with
-          computed weights and refit the base estimator.  The toolkit
-          default (ADR-0016 step-6 write-back round 3, 12/12 paired-CI
-          improvement over probability_correction on the SCAR/SAR grid;
-          calibration method does not enter the final prediction under
-          this mode).
+        Probability clipping margin for computing retraining weights.
+    mode : {"probability_correction", "weighted_retraining"}, default "weighted_retraining"
+        Scale labeling probabilities by ``1 / c`` or refit on soft labels.
     random_state : int or None, default None
-        Random seed for reproducible K-fold splits.
+        Seed for stratified splits and the default estimator.
 
     Attributes
     ----------
     propensity_ : float
-        Estimated labeling propensity ``c_hat = P(s=1 | y=1)``.
+        Estimated labeling propensity ``c = P(s=1 | y=1)``.
     class_prior_ : float
-        Estimated class prior ``P(y=1)`` (only valid for
-        single-training-set scenario).
+        Estimated population prior ``P(y=1)`` under single-training-set sampling.
     label_classifier_ : sklearn estimator
-        The fitted ``g(x)`` model that predicts ``P(s=1 | x)``.
+        Fitted model for ``P(s=1 | x)``.
     final_estimator_ : sklearn estimator or None
-        The retrained model used in weighted-retraining mode.
-        ``None`` in probability-correction mode.
+        Retrained classifier; ``None`` in probability-correction mode.
     """
 
-    # ── Class-level metadata ────────────────────────────────────────
     family: AlgorithmFamily = AlgorithmFamily.CLASSIC_CALIBRATION
     label_semantics = "pu"
     assumption: tuple[Assumption, ...] = (Assumption.SCAR,)
@@ -109,7 +90,6 @@ class ElkanNotoClassifier(BasePUClassifier):
         self.mode = mode
         self.random_state = random_state
 
-        # ── Parameter validation ──────────────────────────────────
         if not isinstance(internal_cv_folds, Integral) or internal_cv_folds < 2:
             raise ValidationError(
                 f"internal_cv_folds must be an integer >= 2; got {internal_cv_folds!r}."
@@ -119,8 +99,6 @@ class ElkanNotoClassifier(BasePUClassifier):
         if not isinstance(eps, Real) or not eps > 0:
             raise ValidationError(f"eps must be > 0; got {eps!r}.")
 
-    # ── Public fit API ──────────────────────────────────────────────
-
     def fit(
         self,
         X: np.ndarray,
@@ -129,61 +107,37 @@ class ElkanNotoClassifier(BasePUClassifier):
         class_prior: float | None = None,
         sample_weight: np.ndarray | None = None,
     ) -> ElkanNotoClassifier:
-        """Fit the Elkan–Noto classifier.
+        """Fit on labeled positives and unlabeled samples.
 
-        Parameters
-        ----------
-        X : np.ndarray of shape (n_samples, n_features)
-            Feature matrix.
-        y_pu : np.ndarray of shape (n_samples,)
-            PU labels: 1 = labeled positive, 0 = unlabeled.
-        class_prior : float, optional
-            Accepted for API compatibility; ignored because Elkan–Noto
-            estimates ``c`` internally.
-        sample_weight : np.ndarray of shape (n_samples,), optional
-            Per-sample weights forwarded to the base estimator.
-
-        Returns
-        -------
-        self : ElkanNotoClassifier
-            Fitted estimator.
+        ``class_prior`` is ignored. ``sample_weight`` applies to the label
+        models, not directly to the final weighted refit.
         """
         X, y_pu = validate_pu_X_y(X, y_pu, estimator_name="ElkanNotoClassifier")
 
-        n_samples, n_features = X.shape
-        self._X_shape_ = (n_samples, n_features)
+        self._X_shape_ = X.shape
         self.classes_ = np.array([0, 1])
 
-        sw = validate_sample_weight(sample_weight, n_samples)
-
-        mask_pos = y_pu == 1
-        mask_unl = y_pu == 0
-        n_labeled = int(np.sum(mask_pos))
-
-        if n_labeled < self.internal_cv_folds:
+        n_samples = X.shape[0]
+        sample_weight = validate_sample_weight(sample_weight, n_samples)
+        labeled = y_pu == 1
+        n_labeled = int(np.count_nonzero(labeled))
+        n_unlabeled = n_samples - n_labeled
+        if min(n_labeled, n_unlabeled) < self.internal_cv_folds:
             raise ValidationError(
-                f"Need at least internal_cv_folds={self.internal_cv_folds} labeled positives "
-                f"for stratified K-fold, but only {n_labeled} were found. "
-                "Reduce internal_cv_folds or collect more labeled data."
+                f"Need at least internal_cv_folds={self.internal_cv_folds} samples of each "
+                f"PU label, but found {n_labeled} labeled positives and {n_unlabeled} "
+                "unlabeled samples. Reduce internal_cv_folds or collect more data."
             )
 
-        # ── Build calibrated g(x) classifier ────────────────────────
+        self.propensity_ = self._estimate_propensity(X, y_pu, sample_weight)
+
         base = self._resolve_base_estimator()
-        self.label_classifier_ = self._wrap_with_calibration(base)
-
-        # ── Estimate c via stratified K-fold out-of-fold ────────────
-        self.propensity_ = self._estimate_propensity(X, y_pu, mask_pos, sw)
-
-        # ── Fit final g(x) on all data ──────────────────────────────
-        # K-fold above used temporary models for c estimation only;
-        # now train the actual label classifier on the full dataset.
-        s_labels = y_pu.astype(int)
-        if sw is not None:
-            self.label_classifier_.fit(X, s_labels, sample_weight=sw)
+        self.label_classifier_ = self._wrap_with_calibration(base, y_pu)
+        if sample_weight is None:
+            self.label_classifier_.fit(X, y_pu)
         else:
-            self.label_classifier_.fit(X, s_labels)
+            self.label_classifier_.fit(X, y_pu, sample_weight=sample_weight)
 
-        # ── Class prior ─────────────────────────────────────────────
         self.class_prior_ = float(
             np.clip(
                 n_labeled / (n_samples * self.propensity_),
@@ -192,60 +146,39 @@ class ElkanNotoClassifier(BasePUClassifier):
             )
         )
 
-        # ── Weighted retraining mode ─────────────────────────────────
         if self.mode == "weighted_retraining":
-            self.final_estimator_ = self._retrain_weighted(X, mask_pos, mask_unl)
+            self.final_estimator_ = self._retrain_weighted(X, labeled)
         else:
             self.final_estimator_ = None
 
         self._is_fitted = True
         return self
 
-    # ── Core prediction methods ─────────────────────────────────────
-
     def _predict(self, X: np.ndarray) -> np.ndarray:
-        """Binary predictions via threshold on ``f(x) >= 0.5``."""
         self._check_is_fitted()
-        f = self._decision_function(X)
-        return (f >= 0.5).astype(int)
+        return (self._decision_function(X) >= 0.5).astype(int)
 
     def _decision_function(self, X: np.ndarray) -> np.ndarray:
-        """Return ``f(x) = P(y=1 | x)`` estimates."""
         self._check_is_fitted()
-
         if self.mode == "weighted_retraining" and self.final_estimator_ is not None:
-            proba = self.final_estimator_.predict_proba(X)
-            return proba[:, 1]
-
-        g = self._predict_label_proba(X)
-        return g / self.propensity_
+            return self.final_estimator_.predict_proba(X)[:, 1]
+        return self._predict_label_proba(X) / self.propensity_
 
     def predict_proba(self, X: np.ndarray) -> np.ndarray:
-        """Return ``P(y=0|x)`` and ``P(y=1|x)``.
+        """Return negative- and positive-class scores in that column order.
 
-        Returns
-        -------
-        np.ndarray of shape (n_samples, 2)
-            Column 0 = ``P(y=0|x)``, column 1 = ``P(y=1|x)``.
-            Values may exceed 1 when ``c < 1`` — this is expected
-            behaviour under the Elkan–Noto model (see method card §6.2).
+        In probability-correction mode, the scores are not clipped to [0, 1].
         """
         self._check_is_fitted()
-        f = self._decision_function(X)
-        return np.column_stack([1.0 - f, f])
+        positive_scores = self._decision_function(X)
+        return np.column_stack([1.0 - positive_scores, positive_scores])
 
     def predict_label_proba(self, X: np.ndarray) -> np.ndarray | None:
-        """Return ``g(x) = P(s=1 | x)``.
-
-        Returns ``None`` in weighted-retraining mode (the final
-        estimator's probabilities represent ``f(x)``, not ``g(x)``).
-        """
+        """Return ``P(s=1 | x)``, or ``None`` in weighted-retraining mode."""
         self._check_is_fitted()
         if self.mode == "weighted_retraining":
             return None
         return self._predict_label_proba(X)
-
-    # ── Metadata ────────────────────────────────────────────────────
 
     def get_pu_metadata(self) -> dict:
         """Return PU-specific metadata including propensity and mode."""
@@ -254,110 +187,52 @@ class ElkanNotoClassifier(BasePUClassifier):
         meta["mode"] = self.mode
         return meta
 
-    # Private helpers
-
     def _resolve_base_estimator(self):
-        """Return the base estimator, defaulting to LogisticRegression."""
         if self.base_estimator is None:
             return LogisticRegression(random_state=self.random_state)
         return clone(self.base_estimator)
 
-    def _wrap_with_calibration(self, base):
-        """Wrap the base estimator with calibration when needed.
-
-        LogisticRegression (and other linear models with natural
-        probabilistic output) are used directly.  Other models are
-        wrapped in ``CalibratedClassifierCV`` to ensure reliable
-        ``g(x) ≈ P(s=1 | x)`` estimates.
-        """
-        # LogisticRegression already outputs well-calibrated probabilities
-        # when using the default lbfgs solver.
+    def _wrap_with_calibration(self, base, labels: np.ndarray):
         if isinstance(base, LogisticRegression):
             return base
 
-        return CalibratedClassifierCV(
-            estimator=base,
-            method=self.calibration_method,
-            cv=min(self.internal_cv_folds, 5),
-        )
-
-    # NOTE: CalibratedClassifierCV with integer cv uses StratifiedKFold
-    # internally, which defaults to shuffle=False — random_state is not
-    # needed for deterministic splits in this configuration.  Sub-estimator
-    # randomness is controlled by the base estimator's own random_state.
+        min_label_count = int(np.bincount(labels, minlength=2).min())
+        cv = min(self.internal_cv_folds, 5, min_label_count)
+        if cv < 2:
+            raise ValidationError(
+                "Probability calibration requires at least two samples of each label "
+                "in its training data."
+            )
+        return CalibratedClassifierCV(estimator=base, method=self.calibration_method, cv=cv)
 
     def _estimate_propensity(
         self,
         X: np.ndarray,
         y_pu: np.ndarray,
-        mask_pos: np.ndarray,
         sample_weight: np.ndarray | None,
     ) -> float:
-        """Estimate ``c = P(s=1 | y=1)`` via stratified K-fold out-of-fold.
-
-        Splits labeled positives into ``internal_cv_folds`` folds, trains
-        ``g(x)`` on the complement of each fold, and averages the
-        predicted probabilities on the held-out positives.
-
-        Per the method card, only ``c_hat_1`` (mean over positive
-        hold-out predictions) is exposed.
-        """
-        X_pos = X[mask_pos]
-        n_pos = X_pos.shape[0]
-
-        # Use dummy labels for StratifiedKFold (all 1 — only positives)
-        dummy_y = np.ones(n_pos, dtype=int)
-
-        skf = StratifiedKFold(
+        """Estimate ``c`` without systematically changing the labeling rate in training folds."""
+        splitter = StratifiedKFold(
             n_splits=self.internal_cv_folds,
             shuffle=True,
             random_state=self.random_state,
         )
-
-        g_scores = np.empty(n_pos)
-
-        # Pre-compute unlabeled portion (invariant across folds)
-        X_unl = X[~mask_pos]
-        n_unl = X_unl.shape[0]
+        labeled = y_pu == 1
+        fold_scores: list[np.ndarray] = []
         base = self._resolve_base_estimator()
 
-        # Extract sample_weight arrays for unlabeled and positive subsets
-        sw = None
-        if sample_weight is not None:
-            sw = np.asarray(sample_weight, dtype=float)
-            sw_unl = sw[~mask_pos]
-            sw_pos = sw[mask_pos]
-
-        for train_idx, holdout_idx in skf.split(X_pos, dummy_y):
-            X_pos_train = X_pos[train_idx]
-            X_pos_holdout = X_pos[holdout_idx]
-
-            X_train = np.vstack([X_unl, X_pos_train])
-            s_train = np.hstack([np.zeros(n_unl, dtype=int), np.ones(len(train_idx), dtype=int)])
-
-            # Sqrt-balanced fold weights: a fold's labeled-positive share
-            # (~n_pos/internal_cv_folds of the training stack) is far below the
-            # full-data share, which shifts LR probabilities down and
-            # under-estimates c.  Scale labeled positives by
-            # sqrt(n_unl / n_pos_fold), the geometric midpoint between
-            # unweighted and fully balanced.  Weights multiply any
-            # user-supplied sample_weight.
-            scale = np.sqrt(n_unl / len(train_idx))
-            sw_pos_train = np.full(len(train_idx), scale)
-            if sw is not None:
-                sw_pos_train = sw_pos[train_idx] * scale
-                fit_kwargs = {"sample_weight": np.hstack([sw_unl, sw_pos_train])}
+        for train_idx, holdout_idx in splitter.split(X, y_pu):
+            X_train, s_train = X[train_idx], y_pu[train_idx]
+            g_model = self._wrap_with_calibration(clone(base), s_train)
+            if sample_weight is None:
+                g_model.fit(X_train, s_train)
             else:
-                fit_kwargs = {"sample_weight": np.hstack([np.ones(n_unl), sw_pos_train])}
+                g_model.fit(X_train, s_train, sample_weight=sample_weight[train_idx])
 
-            g_model = clone(base)
-            g_model = self._wrap_with_calibration(g_model)
-            g_model.fit(X_train, s_train, **fit_kwargs)
+            holdout_pos = holdout_idx[labeled[holdout_idx]]
+            fold_scores.append(g_model.predict_proba(X[holdout_pos])[:, 1])
 
-            proba = g_model.predict_proba(X_pos_holdout)
-            g_scores[holdout_idx] = proba[:, 1]
-
-        c_hat = float(np.mean(g_scores))
+        c_hat = float(np.mean(np.concatenate(fold_scores)))
         c_hat = float(np.clip(c_hat, PROPENSITY_CLIP_EPS, 1.0))
 
         if c_hat <= PROPENSITY_CLIP_EPS:
@@ -371,65 +246,26 @@ class ElkanNotoClassifier(BasePUClassifier):
         return c_hat
 
     def _predict_label_proba(self, X: np.ndarray) -> np.ndarray:
-        """Return ``g(x) = P(s=1 | x)`` from the fitted label classifier."""
         _sklearn_check_is_fitted(self.label_classifier_)
-        proba = self.label_classifier_.predict_proba(X)
-        return proba[:, 1]
+        return self.label_classifier_.predict_proba(X)[:, 1]
 
-    def _retrain_weighted(
-        self,
-        X: np.ndarray,
-        mask_pos: np.ndarray,
-        mask_unl: np.ndarray,
-    ):
-        """Create a weighted dataset and refit a fresh estimator.
+    def _retrain_weighted(self, X: np.ndarray, labeled: np.ndarray):
+        unlabeled = ~labeled
+        positive_weight = self._compute_weights(self._predict_label_proba(X)[unlabeled])
+        X_labeled, X_unlabeled = X[labeled], X[unlabeled]
 
-        For each unlabeled sample, two weighted copies are created
-        (positive with weight ``w(x)``, negative with weight ``1-w(x)``).
-        Labeled positives are kept with weight 1.
-
-        Method card §5.2, §6.4: the new estimator is a **fresh clone**
-        and replaces ``g(x)`` as the final model.
-        """
-        g = self._predict_label_proba(X)
-        w = self._compute_weights(g[mask_unl])
-
-        X_pos = X[mask_pos]
-        X_unl = X[mask_unl]
-
-        # Each unlabeled sample → positive copy + negative copy
-        X_aug = np.vstack([X_pos, X_unl, X_unl])
-        y_aug = np.hstack(
-            [
-                np.ones(len(X_pos), dtype=int),
-                np.ones(len(X_unl), dtype=int),
-                np.zeros(len(X_unl), dtype=int),
-            ]
-        )
-        sw_aug = np.hstack(
-            [
-                np.ones(len(X_pos)),
-                w,
-                1.0 - w,
-            ]
-        )
+        X_aug = np.vstack([X_labeled, X_unlabeled, X_unlabeled])
+        y_aug = np.concatenate([np.ones(len(X), dtype=int), np.zeros(len(X_unlabeled), dtype=int)])
+        weights = np.concatenate([np.ones(len(X_labeled)), positive_weight, 1.0 - positive_weight])
 
         final = clone(self._resolve_base_estimator())
-        # Ensure the retrained model can produce probabilities
         if not hasattr(final, "predict_proba"):
-            final = self._wrap_with_calibration(final)
-        final.fit(X_aug, y_aug, sample_weight=sw_aug)
+            final = self._wrap_with_calibration(final, y_aug)
+        final.fit(X_aug, y_aug, sample_weight=weights)
         return final
 
     def _compute_weights(self, g_unlabeled: np.ndarray) -> np.ndarray:
-        """Compute ``w(x)`` for unlabeled samples.
-
-        ``w(x) = (1 - c) * g(x) / (c * (1 - g(x)))``
-
-        Numerators and denominators are clipped to ``eps`` to avoid
-        division-by-zero and log(0) downstream.  A warning is emitted
-        when clipping actually occurs.
-        """
+        """Estimate ``P(y=1 | x, s=0)`` for the unlabeled samples."""
         c = self.propensity_
         g = np.clip(g_unlabeled, self.eps, 1.0 - self.eps)
 
@@ -443,5 +279,6 @@ class ElkanNotoClassifier(BasePUClassifier):
                 stacklevel=2,
             )
 
-        w = (1.0 - c) * g / (c * (1.0 - g))
-        return np.clip(w, 0.0, 1.0)
+        positive_weight = (1.0 - c) * g / (c * (1.0 - g))
+        # Keep the negative-copy weight nonnegative when g exceeds c.
+        return np.clip(positive_weight, 0.0, 1.0)

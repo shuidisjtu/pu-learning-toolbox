@@ -296,10 +296,17 @@ ElkanNotoClassifier(base_estimator=None, calibration_method="sigmoid", internal_
 |---|---|---|---|
 | `base_estimator` | sklearn estimator | `None` (`LogisticRegression()`) | Base binary classifier; must implement `predict_proba` |
 | `calibration_method` | `"sigmoid"` / `"isotonic"` | `"sigmoid"` | Calibration for base estimators other than LogisticRegression; LogisticRegression is used directly |
-| `internal_cv_folds` | `int` | `3` | OOF folds for estimating `c`; probability calibration uses `min(internal_cv_folds, 5)` folds; must be ≥ 2 |
+| `internal_cv_folds` | `int` | `3` | Stratified folds for estimating `c`; must be at least 2. Requires at least this many labeled positives and this many unlabeled samples |
 | `eps` | `float` | `1e-12` | Clipping threshold against division by zero in weights |
 | `mode` | `"probability_correction"` / `"weighted_retraining"` | `"weighted_retraining"` | Probability correction (`g(x)/c`) or weighted retraining; the toolbox defaults to weighted retraining (ADR-0016) |
 | `random_state` | `int \| None` | `None` | K-fold split seed |
+
+To estimate `c`, stratify on the observed PU labels, holding out both labeled positives and
+unlabeled samples in each fold. Average the predictions on the held-out labeled positives
+only. For base estimators that require calibration, the calibration fold count is capped by
+`internal_cv_folds`, 5, and the smaller label count in the calibration input. Calibration
+requires at least two samples of each label in that input, including within each propensity
+training fold.
 
 - Optional Chinese research background: [Elkan_Noto method card](../../../research/method_cards/Elkan_Noto.md).
   Example: [01_elkan_noto.py](../../../../examples/minimal/01_elkan_noto.py).
