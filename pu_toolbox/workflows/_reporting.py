@@ -11,7 +11,6 @@ from ..core.base import BasePUClassifier
 from ..core.device import resolve_device_name
 from ..diagnostics.report import PUDiagnosticReport
 from ..preprocessing.data_profiler import ProfileIssue, PUDataProfile
-from ..registry import RecommendationResult
 from ._inputs import cv_provenance
 from .report import CVMetric, PipelineReport, PriorInfo
 
@@ -20,12 +19,9 @@ def build_pipeline_report(
     *,
     profile: PUDataProfile,
     prior_info: PriorInfo,
-    recommendation: RecommendationResult | None,
     cv_metrics: dict[str, CVMetric],
     classifier_name: str,
-    auto_mode: bool,
     classifier_cls: type[BasePUClassifier] | None,
-    skipped_candidates: list[dict[str, str]],
     y_true: np.ndarray | None,
     splitter: Any,
     n_splits: int,
@@ -41,26 +37,6 @@ def build_pipeline_report(
 ) -> PipelineReport:
     """Assemble issues, provenance, CV metadata, and fitted artifacts."""
     issues: list[ProfileIssue] = list(profile.issues)
-    if prior_info.degraded:
-        issues.append(
-            ProfileIssue(
-                "prior_estimation_failed",
-                "warning",
-                prior_info.degraded,
-                "Auto mode degraded to a no-prior run: methods that "
-                "require a class prior were excluded from the candidates.",
-            )
-        )
-    if recommendation is not None:
-        issues.extend(
-            ProfileIssue(
-                "recommender_warning",
-                "warning",
-                message,
-                "Review the method choice or pass an explicit classifier=.",
-            )
-            for message in recommendation.global_warnings
-        )
     issues.extend(
         ProfileIssue(
             f"metric_{name}_unavailable",
@@ -76,9 +52,7 @@ def build_pipeline_report(
     )
     provenance = {
         "classifier": classifier_name,
-        "classifier_mode": (
-            "auto" if auto_mode else "name" if classifier_cls is not None else "instance"
-        ),
+        "classifier_mode": "name" if classifier_cls is not None else "instance",
         "prior_source": prior_info.source,
         "input_sampling": prior_info.input_sampling,
         "prior_audit_flagged": prior_audit_flagged,
@@ -86,7 +60,7 @@ def build_pipeline_report(
         "classifier_params": parameter_provenance(classifier_params),
         "sample_weight": _sample_weight_provenance(sample_weight),
         "y_true_supplied": y_true is not None,
-        "skipped_candidates": skipped_candidates,
+        "skipped_candidates": [],
         "architecture": f"native_{architecture}",
         "backbone": backbone,
         "device": {"requested": device, "resolved": resolve_device_name(device)},
@@ -98,7 +72,7 @@ def build_pipeline_report(
     }
     return PipelineReport(
         profile=profile,
-        recommendation=recommendation,
+        recommendation=None,
         prior=prior_info,
         cv_metrics=cv_metrics,
         cv_provenance=cv_provenance(splitter, n_splits),

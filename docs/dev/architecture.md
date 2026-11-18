@@ -6,7 +6,7 @@ Design decisions and tradeoffs are recorded in [docs/adr/](../adr/README.md). Th
 document describes the current architecture.
 
 **Relationship to `project_structure.md`**: this page explains module boundaries,
-dependency directions, data flow, recommendation, and registration conventions.
+dependency directions, data flow, explicit selection, and registration conventions.
 [`project_structure.md`](project_structure.md) is authoritative for file inventories
 and directory structure. **API contracts**: exact signatures and method semantics
 belong in [the API reference](../user/reference/api/index.md), rather than being duplicated here.
@@ -41,7 +41,6 @@ are documented alongside the directory trees in
 | `core/` | PU base classes, label semantics, input validation/normalization, device and random-state handling, exceptions, tags, and **neutral training-role views** (`core/training_views.py`) | [Exports](../../pu_toolbox/core/__init__.py) |
 | `preprocessing/` | SCAR/SAR labeling and data generation; structured data profiling | [Exports](../../pu_toolbox/preprocessing/__init__.py), [profiling guide](../user/howto/data_profiling.md) |
 | `registry/` | Algorithm registration, metadata, and built-in discovery | [Exports](../../pu_toolbox/registry/__init__.py), [built-in methods](../../pu_toolbox/registry/builtin_methods.py) |
-| `advisor/` | Algorithm recommendations based on data profiles | [Exports](../../pu_toolbox/advisor/__init__.py), [method selection](../user/concepts/method_selection.md) |
 | `utils/` | Shared utilities; private API that may change in minor releases | [Exports](../../pu_toolbox/utils/__init__.py) |
 
 ### Estimation — class priors and PU losses used by Algorithms
@@ -100,7 +99,7 @@ maturity describe provenance and stability independently of registry availabilit
 
 | Layer | Uses/calls |
 |---|---|
-| Core (`core/`, `preprocessing/`, `registry/`, `advisor/`, `utils/`) | — |
+| Core (`core/`, `preprocessing/`, `registry/`, `utils/`) | — |
 | Estimation (`prior/`, `losses/`) | Core |
 | Algorithms (`estimators/`) | Core, Estimation |
 | Evaluation (`metrics/`, `model_selection/`, `diagnostics/`) | Core, Estimation (function-local only), Orchestration |
@@ -174,10 +173,9 @@ was written that way.
 - **Data profiling**: `preprocessing/profiling.py` supplies statistical primitives
   (`pu_data_summary`/`pnu_data_summary`/`scar_diagnostic`, kept backward compatible)
   → `preprocessing/data_profiler.py` aggregates `PUDataProfile` and actionable
-  issues → `workflows` (first pipeline step), `diagnostics` (reports), and
-  `advisor` (recommendations).
+  issues → `workflows` (first pipeline step) and `diagnostics` (reports).
 - **Metadata semantics**: `core/tags.py` is authoritative for registry metadata
-  fields and enums; registry and advisor use those definitions.
+  fields and enums; registry uses those definitions.
 - **Devices and randomness**: `core/device.py`'s `resolve_device` is the single
   device-normalization entry point. `core/random.py`'s `check_random_state`
   normalizes seeds for preprocessing and experiments. Preprocessing declares
@@ -223,8 +221,8 @@ User input (X, y_pu[, y_true])
   ↓ Validation + label normalization                [core/validation + labels]
 Data profile                                        [preprocessing/data_profiler]
   ↓ Profile issues include an error → fail fast
-Method recommendation (default auto path)            [advisor/recommend_from_profile]
-  ↓ Skip for explicit classifier; record reasons in provenance.classifier
+Explicit classifier selected by caller               [registry or instance]
+  ↓ Validate capabilities and required inputs
 Class-prior estimation (when needed)                 [prior/*]
   ↑ Only for requires_class_prior=True; skip methods that do not require π
     (e.g. PUSB/LBE/Elkan-Noto/InfoMax PU)
@@ -259,7 +257,7 @@ Evaluation + diagnostics → report                   [metrics + diagnostics →
 
 The experiment layer is a second entry point for researchers, using explicit data
 roles and selection protocols. It runs alongside the PUPipeline path and bypasses
-advisor/prior recommendations.
+automatic method ranking.
 
 ```text
 Four clean-view roles: train/pu_val/clean_val/test    [bundle/DatasetPart + core/validation]
@@ -295,7 +293,7 @@ Independent test evaluation + manifest               [runner → manifest]
 - **Versioned provenance**: manifests preserve seed / split_ref / generation /
   selection / test_results / elapsed / failures / resources for auditable runs.
 
-## 4. Algorithm registration and recommendation
+## 4. Algorithm registration and explicit selection
 
 Algorithms register metadata in `registry`: name/aliases/family/scenario/assumption/
 requires_class_prior/requires_clean_support/backend/maturity/source_status,
@@ -344,14 +342,14 @@ a concrete class is registered:
   authoritative for the complete synchronization surface.
 
 Methods with `requires_clean_support=True` need an additional clean labeled support
-set. The ordinary PU-only advisor excludes them. Explicit training calls must supply
+set. PU-only workflows exclude them. Explicit training calls must supply
 support data with an independent label budget as specified for the method.
 
 ### Registry versus the experiment method ledger
 
 `registry` is the **code-side source of truth**: `get_algorithm(name)` returns an
 algorithm **class** for callers to instantiate; `get_metadata(name)` returns
-metadata for capability/prior gates and advisor recommendations.
+metadata for capability/prior gates.
 
 `pu_toolbox/experiment/method_ledger.json` is the **experiment-side source of truth
 for result annotations**. It records paper sources, native sampling assumptions,
@@ -365,27 +363,11 @@ See [protocol §4](../research/pu_survey/pu_survey_protocol.md#4-target-algorith
 for semantics and [the ledger](../../pu_toolbox/experiment/method_ledger.json)
 for current fields.
 
-`advisor` matches profiles to registry metadata: hard filtering
-(trainability, scenario, sparsity, available class prior) → soft scoring
-(assumption match, maturity, trust, scale, cost, GPU, and label availability)
-→ risk hints. Weights are configurable through `ScoringConfig`.
-The [API reference](../user/reference/api/tools.md#recommend_methods--recommend_from_profile) defines recommendation structures and
-serialization; [method selection](../user/concepts/method_selection.md) explains
-user-facing decisions.
-
-### Boundary with model_selection
-
-The advisor performs **metadata reasoning**: filtering, scoring, and ranking profiles
-against registry metadata without training models. `model_selection` performs
-**empirical selection** after a method is chosen: `PUTuner` searches hyperparameters,
-`PUModelComparator` compares configurations, and `PUStratifiedKFold` provides CV
-folds, with actual model training. The advisor answers which algorithm is suitable
-in seconds without a GPU; model selection evaluates which configuration works best
-on the data.
-
-By default, `PUPipeline(classifier="auto")` consumes the advisor's choice and uses
-`model_selection` splitting for training. Tuning is an explicit addition and does
-not run automatically. See [method selection](../user/concepts/method_selection.md).
+Method selection is explicit: callers inspect registry capabilities and provide a classifier
+or candidate set. Profiling and prior estimation inform that choice but do not rank methods.
+`PUTuner` and `PUModelComparator` evaluate explicit candidates using validation evidence.
+Advisor rankings and automatic classifier selection are retired; the advisor package and its
+public exports have been removed. See [ADR 0023](../adr/0023-explicit-method-selection.md).
 
 ## 5. Evaluation and splitting
 

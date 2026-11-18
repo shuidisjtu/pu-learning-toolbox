@@ -15,11 +15,16 @@ from .workflows import DEFAULT_METRICS
 _SCHEMA_VERSION = 1
 
 
+def _is_auto_classifier(value: object) -> bool:
+    """Recognize the retired classifier token using the pipeline semantics."""
+    return isinstance(value, str) and value.strip().casefold() == "auto"
+
+
 @dataclass(frozen=True)
 class RunConfiguration:
     """Serializable settings for one pipeline or tuning run."""
 
-    classifier: str = "auto"
+    classifier: str | None = None
     classifier_params: dict[str, Any] = field(default_factory=dict)
     prior_estimator: str | None = "pen_l1"
     class_prior: float | None = None
@@ -32,6 +37,21 @@ class RunConfiguration:
     tuning_grid: dict[str, list[Any]] = field(default_factory=dict)
     scoring: str = "pu_zero_one_risk"
     comparison_classifiers: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        if self.classifier is not None and (
+            not isinstance(self.classifier, str)
+            or not self.classifier.strip()
+            or _is_auto_classifier(self.classifier)
+        ):
+            raise ValueError("classifier must be an explicit non-empty name, not auto.")
+        if any(
+            not isinstance(name, str) or not name.strip() or _is_auto_classifier(name)
+            for name in self.comparison_classifiers
+        ):
+            raise ValueError("comparison_classifiers must contain explicit names.")
+        if self.classifier is None and len(self.comparison_classifiers) < 2:
+            raise ValueError("classifier is required unless comparing explicit classifiers.")
 
     @classmethod
     def from_mapping(cls, value: Mapping[str, Any]) -> RunConfiguration:
@@ -49,7 +69,7 @@ class RunConfiguration:
         if unknown:
             raise ValueError(f"unknown run configuration fields: {unknown}.")
 
-        classifier = value.get("classifier", "auto")
+        classifier = value.get("classifier")
         classifier_params = value.get("classifier_params", {})
         prior_estimator = value.get("prior_estimator", "pen_l1")
         class_prior = value.get("class_prior")
@@ -63,8 +83,6 @@ class RunConfiguration:
         scoring = value.get("scoring", "pu_zero_one_risk")
         comparison_classifiers = value.get("comparison_classifiers", [])
 
-        if not isinstance(classifier, str) or not classifier:
-            raise ValueError("classifier must be a non-empty string.")
         _validate_mapping(classifier_params, "classifier_params")
         if prior_estimator is not None and (
             not isinstance(prior_estimator, str) or not prior_estimator
@@ -105,8 +123,7 @@ class RunConfiguration:
         if not isinstance(scoring, str) or not scoring:
             raise ValueError("scoring must be a non-empty string.")
         if not isinstance(comparison_classifiers, list) or any(
-            not isinstance(name, str) or not name or name == "auto"
-            for name in comparison_classifiers
+            not isinstance(name, str) for name in comparison_classifiers
         ):
             raise ValueError("comparison_classifiers must be a list of explicit names.")
         if comparison_classifiers and len(comparison_classifiers) < 2:

@@ -4,9 +4,9 @@
 > Concepts: [the PU problem and the roles of π](../concepts/pu_problem.md),
 > [SCAR/SAR](../concepts/scar_sar.md), and [prior targets](../concepts/class_prior_semantics.md).
 
-`PUPipeline` combines data validation, prior resolution, profiling, model selection by metadata,
+`PUPipeline` combines data validation, prior resolution, profiling, explicit classifier configuration,
 training, PU-stratified cross-validation, and evaluation in one workflow. Supply `(X, y_pu)` and
-a method name, or use `"auto"`, to obtain a report recording its inputs and decisions.
+an explicit method name or configured instance, to obtain a report recording its inputs and decisions.
 
 ## Quick example
 
@@ -15,7 +15,7 @@ Use the `X, y_pu` arrays loaded in the quickstart and its existing `results/` di
 ```python
 from pu_toolbox import PUPipeline
 
-pipe = PUPipeline()  # classifier="auto" selects a method.
+pipe = PUPipeline(classifier="upu")  # Select a classifier explicitly.
 report = pipe.fit_evaluate(X, y_pu)  # X: (n, d); y_pu: {1, 0} PU labels.
 
 print(report.summary())
@@ -34,7 +34,7 @@ report.save("results/pipeline.json")
 2. **Prior resolution:** resolve a supplied value or estimate once on the full supplied PU data
    when needed. This step **never uses `y_true`**.
 3. **Profiling:** call `profile_pu_data` once for labeling-mechanism evidence and data-quality
-   checks; auto mode uses that profile to recommend a classifier.
+   checks; choose the classifier separately.
 4. **Cross-validation:** the default is `PUStratifiedKFold(5, shuffle=True, random_state=...)`.
    Each fold fits an independent estimator, computes metrics, and contributes to their mean
    and standard deviation.
@@ -72,32 +72,20 @@ see the [API reference](../reference/api/tools.md#class-prior-resolution-precede
   estimator instance. KM names select `KernelMeanPriorEstimator` variants.
 - With an explicit classifier, disabling estimation through `prior_estimator=None` while omitting
   a required prior raises `PipelineError`. Its message gives alternatives and states that
-  `y_true` is never used for estimation. Auto mode can instead fall back to recommendations
-  that do not require an external prior.
+  `y_true` is never used for estimation.
 - OS profiling audits population-prior consistency with the labeled fraction. Converting a
   population prior to native U requires it to be at least the labeled fraction of that training
   fold. TS profiling records the extra-P concatenation fraction separately.
 
 ## Classifier selection
 
-| `classifier=` | Behavior |
-|---|---|
-| `"auto"` (default) | Resolve a prior, call `recommend_from_profile`, then take the first ranked candidate that can be instantiated automatically |
-| A registered name such as `"nnpu"` or `"upu"` | Resolve names/aliases case-insensitively; configure constructor arguments through `classifier_params`; inject managed arguments when the constructor accepts them |
-| An instance such as `UPUClassifier(...)` | Clone per fold; resolve constructor priors by `class_prior_target`, then supply converted fold-specific priors |
-
-Supply additional required constructor arguments through `classifier_params`, for example
-`PUPipeline(classifier="ldce", classifier_params={"flip_probability": 0.2})`.
-Auto mode skips methods requiring such arguments because it has no method-specific parameter
-target. For object-valued dependencies such as a DGPU generator, use a configured instance.
-Methods requiring additional clean support have their own fit contract; the ordinary PU-only
-recommender excludes them. See the relevant method guide, such as [Self-PU](self_pu.md).
-
-**Fallback behavior:** in auto mode, an exception or invalid estimate can degrade to recommendations
-without a prior, excluding methods that require one. `report.prior.degraded` and the issue
-`prior_estimation_failed` record the cause. With an explicit classifier, estimation failure
-remains an error. If profiling flags `inconsistent_class_prior`, the report sets
-`report.provenance["prior_audit_flagged"]=True`; review any selected prior-dependent method.
+Specify a registered classifier name, for example `classifier="upu"`, or a configured
+estimator instance. Names and aliases are resolved case-insensitively; use
+`classifier_params` for named constructors. Instances are cloned per fold. Supply required
+method-specific arguments and any required extra supervision explicitly. Discover capabilities
+with `pu-toolbox list-methods`; use explicit candidates with `PUTuner` or `PUModelComparator`
+for empirical selection. Omitted classifiers and `classifier="auto"` are retired;
+the decision is recorded in [ADR 0023](../../adr/0023-explicit-method-selection.md).
 
 ### Deep methods and architecture selection
 
@@ -105,10 +93,6 @@ Install `pip install "pu-toolbox[torch]"` for torch methods. CNN support is dete
 registered capabilities and the constructor's `encoder` parameter, rather than a fixed method
 list. Examples include nnPU, WConPU, and InfoMax PU; additional methods may declare support.
 Self-PU can be instantiated by name but has no native CNN encoder-injection path.
-
-Auto mode uses GPU availability and data size as recommendation scoring inputs. These preferences
-are not performance guarantees or a hard exclusion of all deep methods on CPU. When a deep method
-is selected, torch seeding and training-cost warnings apply as for an explicitly chosen method.
 
 | Parameter | Default | Meaning |
 |---|---|---|

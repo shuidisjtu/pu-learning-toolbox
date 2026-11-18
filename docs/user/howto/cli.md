@@ -1,7 +1,7 @@
 # Using the command-line interface
 
 > Prerequisite: complete the [quickstart](../quickstart.md).
-> The CLI wraps library functionality. `sensitivity` and `recommend` directly call estimator
+> The CLI wraps library functionality. `sensitivity` directly calls estimator
 > `fit`; other commands delegate learning logic to the library. The `run` command also
 > merges configuration, assembles searches, and writes artifacts: `report.json` and
 > `report.md` are always produced; `tuning.json`, `comparison.json`, and `model.pkl`
@@ -13,8 +13,8 @@
 # 1. Generate SCAR demo data: X.csv, y_pu.csv, and y_true.csv.
 pu-toolbox make-demo-data --out-dir demo/ --n 200 --seed 42
 
-# 2. Train and evaluate; auto mode selects a method.
-pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
+# 2. Train and evaluate an explicitly selected method.
+pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --classifier upu --out-dir results/
 
 # 3. Inspect results/report.md and results/report.json.
 # The JSON report uses strict encoding without NaN literals.
@@ -33,7 +33,7 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 | `--class-prior` | No | — | Explicit population prior in (0, 1), bypassing estimation |
 | `--prior-estimator` | No | `pen_l1` | `pen_l1` / `recpe` / `km1` / `km2` / `none`, or registered names such as `class_prior_estimation` (alias `cpe`; `pe` is deprecated) |
 | `--prior-param` | No | — | Repeatable estimator constructor parameters, e.g. `--prior-param sigma=3.0 --prior-param n_centers=100`; values accept JSON literals |
-| `--classifier` | No | `auto` | Registered method name or automatic recommendation |
+| `--classifier` | Yes | — | Explicit registered method name |
 | `--classifier-param` | No | — | Repeatable constructor parameters accepting JSON numbers, booleans, lists, and objects, e.g. `--classifier-param reg_lambda=0.01` |
 | `--config` | No | — | JSON run configuration shared with the UI; explicitly supplied nondefault options override configured values |
 | `--architecture` | No | `mlp` | `mlp` for tables or `cnn` for 4-D NCHW images with an explicit supported classifier |
@@ -67,8 +67,6 @@ uses OS input semantics; independent TS analyses use the Python API with `input_
   separated demo classes.
 - `profile --data X.csv --labels y_pu.csv [--true-labels y_true.csv] [--out-dir .]`:
   profiles data and labeling-mechanism evidence, writing `profile.json`.
-- `recommend --profile profile.json [--data X.csv --labels y_pu.csv] [--class-prior 0.3 | --prior-estimator recpe] [--top-k 5] [--has-gpu] [--out-dir .]`:
-  recommends methods and writes `recommendation.json`. Prior estimation requires data and labels.
 - `sensitivity --data X.csv --labels y_pu.csv [--classifier elkan_noto] [--class-priors 0.1,...,0.9] [--seed 42] [--out-dir .]`:
   scans class-prior/propensity assumptions and writes `sensitivity.json`.
 - `audit-benchmark --result-dir results/ [--output audit.json]`: checks required artifacts,

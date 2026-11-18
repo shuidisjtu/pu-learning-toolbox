@@ -97,7 +97,7 @@ in the selected region. Reports preserve the auxiliary target and its approximat
 
 ## 5. From estimation to reporting and training
 
-`PUPipeline(input_sampling="os")` first uses a population `class_prior` supplied
+`PUPipeline(classifier="upu", input_sampling="os")` first uses a population `class_prior` supplied
 at call time, then a classifier constructor value, and finally estimates a prior
 if needed. A constructor value is interpreted according to the classifier's
 `class_prior_target`. The automatic chain resolves native-U estimates to population

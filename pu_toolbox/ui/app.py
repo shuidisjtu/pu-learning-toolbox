@@ -104,7 +104,7 @@ def main() -> None:
     ):
         try:
             if (
-                imported_config.classifier != "auto"
+                imported_config.classifier is not None
                 and imported_config.classifier not in catalog_by_name
             ):
                 raise ValueError(
@@ -142,13 +142,11 @@ def main() -> None:
             st.sidebar.error(f"配置无法应用：{exc}")
     config_columns = st.columns(3)
     image_mode = X.ndim == 4
-    selection_options = (
-        ["手动选择", "比较模型"] if image_mode else ["自动推荐", "手动选择", "比较模型"]
-    )
+    selection_options = ["手动选择", "比较模型"]
     selection_mode = config_columns[0].radio(
         "选择方式", selection_options, horizontal=True, key="selection_mode"
     )
-    classifier = "auto"
+    classifier = None
     comparison_classifiers: list[str] = []
     if selection_mode == "手动选择":
         choices = sorted(
@@ -159,19 +157,22 @@ def main() -> None:
         if image_mode and "dist_pu" in choices:
             # Its CNN recipe must be explicitly configured, so keep prior defaults first.
             choices = [name for name in choices if name != "dist_pu"] + ["dist_pu"]
-        classifier = config_columns[1].selectbox("分类器", choices, key="classifier")
-        selected = catalog_by_name[classifier]
-        config_columns[2].markdown(
-            f"族：`{selected['family']}`  \n"
-            f"数据场景：`{', '.join(selected['scenario'])}`  \n"
-            f"需要类先验：`{selected['requires_class_prior']}`  \n"
-            f"主输入标签语义：`{selected['label_semantics']}`  \n"
-            f"GPU：`{selected['supports_gpu']}`"
+        classifier = config_columns[1].selectbox(
+            "分类器", choices, index=None, placeholder="请选择分类器", key="classifier"
         )
-        if selected["scenario"] == ["case_control"]:
-            st.warning(
-                "此方法要求独立采样的正例 P 与总体边缘分布 U；只有数据确实符合该设计时才运行。"
+        if classifier is not None:
+            selected = catalog_by_name[classifier]
+            config_columns[2].markdown(
+                f"族：`{selected['family']}`  \n"
+                f"数据场景：`{', '.join(selected['scenario'])}`  \n"
+                f"需要类先验：`{selected['requires_class_prior']}`  \n"
+                f"主输入标签语义：`{selected['label_semantics']}`  \n"
+                f"GPU：`{selected['supports_gpu']}`"
             )
+            if selected["scenario"] == ["case_control"]:
+                st.warning(
+                    "此方法要求独立采样的正例 P 与总体边缘分布 U；只有数据确实符合该设计时才运行。"
+                )
     elif selection_mode == "比较模型":
         choices = sorted(
             name
@@ -185,7 +186,7 @@ def main() -> None:
         comparison_classifiers = config_columns[1].multiselect(
             "待比较模型",
             choices,
-            default=choices[:2],
+            default=[],
             key="comparison_classifiers",
         )
         config_columns[2].caption("所有模型使用相同的先验、CV、指标和随机种子。")
@@ -242,7 +243,7 @@ def main() -> None:
     backbone = "cnn13"
     if image_mode:
         backbone = st.selectbox("CNN 骨架", list(CNN_BACKBONES), key="backbone")
-    if classifier != "auto":
+    if classifier is not None:
         with st.expander("模型参数与调参", expanded=True):
             parameter_rows = catalog_by_name[classifier]["parameters"]
             if parameter_rows:
@@ -308,31 +309,35 @@ def main() -> None:
                 st.error(str(exc))
                 return
 
-    run_configuration = RunConfiguration(
-        classifier=classifier,
-        classifier_params=classifier_params,
-        prior_estimator=prior_estimator,
-        class_prior=class_prior,
-        evaluation_cv=int(evaluation_cv),
-        metrics=tuple(metrics),
-        random_state=int(seed),
-        architecture="cnn" if X.ndim == 4 else "mlp",
-        backbone=backbone,
-        device="auto",
-        tuning_grid=configuration_grid,
-        scoring=scoring,
-        comparison_classifiers=tuple(comparison_classifiers),
-    )
-    st.download_button(
-        "导出运行配置",
-        run_configuration.to_json(),
-        "pu-run-config.json",
-        "application/json",
-        disabled=not metrics,
-    )
+    valid_selection = classifier is not None or len(comparison_classifiers) >= 2
+    if valid_selection:
+        run_configuration = RunConfiguration(
+            classifier=classifier,
+            classifier_params=classifier_params,
+            prior_estimator=prior_estimator,
+            class_prior=class_prior,
+            evaluation_cv=int(evaluation_cv),
+            metrics=tuple(metrics),
+            random_state=int(seed),
+            architecture="cnn" if X.ndim == 4 else "mlp",
+            backbone=backbone,
+            device="auto",
+            tuning_grid=configuration_grid,
+            scoring=scoring,
+            comparison_classifiers=tuple(comparison_classifiers),
+        )
+        st.download_button(
+            "导出运行配置",
+            run_configuration.to_json(),
+            "pu-run-config.json",
+            "application/json",
+            disabled=not metrics,
+        )
 
     st.subheader("3 · 训练与结果")
     invalid_comparison = selection_mode == "比较模型" and len(comparison_classifiers) < 2
+    if classifier is None and selection_mode == "手动选择":
+        st.warning("请选择分类器。")
     if invalid_comparison:
         st.warning("模型比较至少需要选择两个模型。")
     active_run: BackgroundRun | None = st.session_state.get("active_run")
@@ -340,7 +345,7 @@ def main() -> None:
         "开始分析",
         type="primary",
         use_container_width=True,
-        disabled=not metrics or invalid_comparison or active_run is not None,
+        disabled=not metrics or not valid_selection or active_run is not None,
     )
 
     common = {

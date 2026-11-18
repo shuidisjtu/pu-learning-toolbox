@@ -136,10 +136,9 @@ metadata. Interpret estimates under the method's representative-positive and
 identifiability assumptions. ReCPE records a regrouping approximation; independent
 BBE has its own TS holdout contract.
 
-For a standalone recommendation using a KM2 estimate with an explicit target:
+For a standalone KM2 estimate and TS profile with an explicit target:
 
 ```python
-from pu_toolbox.advisor import recommend_from_profile
 from pu_toolbox.preprocessing import profile_pu_data
 from pu_toolbox.prior import KernelMeanPriorEstimator
 
@@ -152,9 +151,6 @@ resolved_prior = native_unlabeled_to_population(
 )
 profile = profile_pu_data(
     X_ts, y_pu_ts, input_sampling="ts", class_prior=resolved_prior,
-)
-recommendation = recommend_from_profile(
-    profile, class_prior=resolved_prior, class_prior_source="estimated",
 )
 ```
 

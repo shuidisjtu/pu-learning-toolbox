@@ -24,10 +24,10 @@ draws. The default demo provides enough labeled positives for the default five-f
 ## Step 2: Run the complete workflow
 
 ```bash
-pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
+pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --classifier upu --out-dir results/
 ```
 
-In auto mode, the pipeline resolves the prior, profiles the data, recommends a method, trains
+The pipeline resolves the prior, profiles the data, trains the explicitly selected method
 with PU-stratified cross-validation, and produces evaluation reports. Prior estimation is used
 when needed; the report records its source and the prior values actually consumed by training.
 The unlabeled samples include both true classes. The demo's `y_true.csv` is not passed to this
@@ -49,7 +49,7 @@ from pu_toolbox import PUPipeline
 X = pd.read_csv("demo/X.csv").to_numpy()
 y_pu = pd.read_csv("demo/y_pu.csv")["label"].to_numpy()
 
-pipe = PUPipeline()  # classifier="auto" selects a method.
+pipe = PUPipeline(classifier="upu")  # Select a registered classifier explicitly.
 report = pipe.fit_evaluate(X, y_pu)  # X: (n, d); y_pu: {1, 0} PU labels.
 
 print(report.summary())

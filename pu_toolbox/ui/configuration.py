@@ -32,8 +32,10 @@ def apply_run_configuration(
     catalog_by_name: dict[str, dict[str, Any]],
 ) -> None:
     """Populate widget state from a validated portable configuration."""
-    configured = {config.classifier, *config.comparison_classifiers}
-    for name in sorted(configured - {"auto"}):
+    configured = set(config.comparison_classifiers)
+    if config.classifier is not None:
+        configured.add(config.classifier)
+    for name in sorted(configured):
         validate_label_semantics(get_algorithm(name), "pu")
     needs_support = sorted(
         name
@@ -45,16 +47,9 @@ def apply_run_configuration(
             "UI has no independent clean reward/support input for "
             f"{needs_support}; call the estimator explicitly with isolated support_data."
         )
-    state["selection_mode"] = (
-        "比较模型"
-        if config.comparison_classifiers
-        else "自动推荐"
-        if config.classifier == "auto"
-        else "手动选择"
-    )
+    state["selection_mode"] = "比较模型" if config.comparison_classifiers else "手动选择"
     state["comparison_classifiers"] = list(config.comparison_classifiers)
-    if config.classifier != "auto":
-        state["classifier"] = config.classifier
+    state["classifier"] = config.classifier
     state["evaluation_cv"] = config.evaluation_cv
     state["seed"] = config.random_state
     state["metrics"] = list(config.metrics)

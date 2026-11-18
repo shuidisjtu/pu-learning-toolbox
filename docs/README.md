@@ -22,7 +22,7 @@ consult the [API index](user/reference/api/index.md) for exact contracts.
 | Concept | [user/concepts/class_prior_semantics.md](user/concepts/class_prior_semantics.md) | Population, U, risk-pool, and training-table priors; conversion conditions and limits |
 | Concept | [user/concepts/pu_model_selection.md](user/concepts/pu_model_selection.md) | PA/OA, supervision budgets, and independent selection |
 | Concept | [user/concepts/representations.md](user/concepts/representations.md) | Encoders, end-to-end CNNs, frozen features, and comparison conditions |
-| Concept | [user/concepts/method_selection.md](user/concepts/method_selection.md) | Recommender logic and method selection tables |
+| Concept | [user/concepts/method_selection.md](user/concepts/method_selection.md) | Explicit method selection and decision tables |
 | How-to | [user/howto/pipeline.md](user/howto/pipeline.md) | End-to-end training and evaluation with PUPipeline |
 | How-to | [user/howto/cli.md](user/howto/cli.md) | Command-line interface |
 | How-to | [user/howto/model_tuning.md](user/howto/model_tuning.md) | Model parameters and PU-aware grid search |

@@ -112,7 +112,7 @@ def test_edge_classifier_parameters_reject_unknown_and_managed_names():
         PUPipeline(classifier="upu", classifier_params={"not_a_parameter": 1})
     with pytest.raises(ValueError, match="pipeline-managed"):
         PUPipeline(classifier="upu", classifier_params={"class_prior": 0.4})
-    with pytest.raises(ValueError, match="explicit classifier"):
+    with pytest.raises(PipelineError):
         PUPipeline(classifier="auto", classifier_params={"max_iter": 10})
 
 

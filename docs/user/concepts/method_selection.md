@@ -4,41 +4,13 @@
 > Background: [the PU problem and the roles of π](pu_problem.md), and
 > [SCAR/SAR mechanisms](scar_sar.md).
 
-## 1. Start with the recommender
+## 1. Choose explicit candidates
 
-The built-in `recommend_methods` function combines a data profile (size, sparsity,
-and PU proportions) with your scenario, assumption, and prior inputs. It filters
-registered methods, scores eligible candidates across seven dimensions, and returns
-the top-k methods with reasons and risk warnings. Use the decision tables below to
-understand and review its recommendations.
-
-```python
-from pu_toolbox import recommend_methods
-
-result = recommend_methods(
-    X, y_pu,
-    class_prior=0.3,      # Supply known π; None excludes methods requiring an external prior
-    has_gpu=True,
-    top_k=5,
-)
-
-for c in result.candidates:
-    print(f"{c.rank}. {c.name} (score={c.score:.1f})")
-    for r in c.reasons:
-        print(f"    - {r}")
-```
-
-The seven scoring dimensions are assumption match, maturity, source confidence, data
-scale, training cost, GPU availability, and labeled-positive availability. Adjust
-their weights through `ScoringConfig`. The prior requirement is a **hard filter**:
-`class_prior=None` excludes methods that require an external prior. The ordinary
-PU-only recommender also excludes methods requiring an additional clean support set
-and methods whose main-input label semantics are not PU. See the
-[API reference](../reference/api/classifiers.md#classifiers-and-estimators) for exact signatures and return structures.
-
-The recommender reasons about metadata without training models. After choosing a
-method, use `model_selection` for empirical hyperparameter search or configuration
-comparison; see the [tuning guide](../howto/model_tuning.md).
+Inspect registered capabilities with `pu-toolbox list-methods` and the
+[classifier reference](../reference/api/classifiers.md). Select candidates according to the
+sampling design, labeling assumptions, prior requirements, available supervision, and budget.
+Use [PUTuner or PUModelComparator](../howto/model_tuning.md) to evaluate explicit candidates
+with appropriate validation. Profiles inform judgment; they do not determine a ranking.
 
 ## 2. The role of π in method selection
 
@@ -76,9 +48,7 @@ Start with the properties of your data:
 | Very few labeled positives | Simple baselines such as Elkan-Noto / `pusb` | Deep methods may not improve on simple baselines with limited labeling |
 | Audit evidence is needed | Supply `y_true` for audited profiling and oracle metrics | Audit truth supports identifying evidence and supervised evaluation; keep it out of PU training and selection |
 
-The recommender encodes scale, cost, assumption, and other metadata preferences into
-its scores. This table explains the considerations and supports manual review;
-a recommendation score is not an empirical performance guarantee.
+This table supports manual review; it is not an empirical performance guarantee.
 
 ## 4. Algorithm-family ideas
 

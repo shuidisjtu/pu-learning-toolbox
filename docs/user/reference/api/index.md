@@ -55,11 +55,10 @@ See the [distribution-shift APIs](tools.md#distribution-shift-api):
 - `analyze_domain_assumptions` and `analyze_pu_uncertainty`.
 - Research-only joint-shift classifiers and their interpretation limits.
 
-## Data profiling and recommendations
+## Data profiling and method discovery
 
 - [`profile_pu_data`](tools.md#profile_pu_data): data-quality and assumption evidence.
-- [`recommend_methods` / `recommend_from_profile`](tools.md#recommend_methods--recommend_from_profile):
-  method recommendations.
+- [Explicit method discovery](tools.md#explicit-method-discovery-and-selection): registry capabilities and candidate selection.
 
 ## Diagnostics and evaluation
 

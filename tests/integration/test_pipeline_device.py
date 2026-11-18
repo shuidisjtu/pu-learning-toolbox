@@ -62,60 +62,6 @@ def test_basic_fresh_estimator_skips_device_injection_when_default():
     assert clf.device is None
 
 
-def test_param_auto_has_gpu_follows_cuda_availability(monkeypatch):
-    """默认 device=None 时 has_gpu 如实反映 resolve_device_name(默认 auto)。
-
-    Regression guard: has_gpu used to be ``self.device != "cpu"``; with
-    the default switched to None, ``None != "cpu"`` would always be True
-    and wrongly report a GPU as available.
-    """
-    import torch
-
-    from pu_toolbox import PUPipeline
-    from pu_toolbox.advisor._types import MethodCandidate, RecommendationResult
-    from pu_toolbox.registry.metadata import AlgorithmMetadata
-
-    X, y_pu = _table_data(n=40)
-    captured: dict = {}
-
-    def fake_recommend(profile, **kwargs):
-        captured["has_gpu"] = kwargs["has_gpu"]
-        meta = AlgorithmMetadata(name="upu", paper="fake")
-        cand = MethodCandidate(
-            name="upu", score=90.0, rank=1, reasons=(), warnings=(), metadata=meta
-        )
-        return RecommendationResult(
-            candidates=(cand,), filters_applied={}, global_warnings=(), provenance={}
-        )
-
-    monkeypatch.setattr("pu_toolbox.workflows.pipeline.recommend_from_profile", fake_recommend)
-
-    class _StubClf:
-        def fit(self, X, y, **kwargs):
-            return self
-
-        def predict(self, X):
-            return np.zeros(len(X), dtype=int)
-
-        def decision_function(self, X):
-            return np.zeros(len(X))
-
-    def stub_fresh(cls, instance, prior):
-        return _StubClf()
-
-    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
-    pipe = PUPipeline(classifier="auto", evaluation_cv=2)
-    monkeypatch.setattr(pipe, "_fresh_estimator", stub_fresh)
-    pipe.fit_evaluate(X, y_pu, class_prior=0.6)
-    assert captured["has_gpu"] is False
-
-    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
-    pipe = PUPipeline(classifier="auto", evaluation_cv=2)
-    monkeypatch.setattr(pipe, "_fresh_estimator", stub_fresh)
-    pipe.fit_evaluate(X, y_pu, class_prior=0.6)
-    assert captured["has_gpu"] is True
-
-
 def test_determ_repeated_default_construction_stable():
     from pu_toolbox import PUPipeline
 

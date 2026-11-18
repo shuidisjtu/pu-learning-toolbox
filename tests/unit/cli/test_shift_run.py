@@ -100,3 +100,28 @@ def test_determ_same_seed_produces_identical_comparison(tmp_path):
         parsed.func(parsed)
         payloads.append((tmp_path / name / "shift_comparison.json").read_bytes())
     assert payloads[0] == payloads[1]
+
+
+@pytest.mark.parametrize("name", ["auto", "AUTO", " Auto "])
+def test_edge_shift_run_rejects_auto_before_data_loading(name):
+    from pu_toolbox.cli.shift import run_shift_run
+
+    args = build_parser().parse_args(
+        [
+            "shift-run",
+            "--source-data",
+            "missing",
+            "--source-labels",
+            "missing",
+            "--target-data",
+            "missing",
+            "--target-labels",
+            "missing",
+            "--out-dir",
+            "out",
+            "--classifier",
+            name,
+        ]
+    )
+    with pytest.raises(ValueError, match="classifier"):
+        run_shift_run(args)

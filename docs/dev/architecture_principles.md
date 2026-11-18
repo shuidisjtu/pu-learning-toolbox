@@ -83,7 +83,7 @@
    | 分类 | 模块 |
    |---|---|
    | 稳定（冻结迁移与重构） | `losses`、`prior`、`diagnostics`、`metrics` |
-   | 活跃 | `advisor`、`cli`、`core`、`estimators`、`experiment`、`model_selection`、`preprocessing`、`registry`、`ui`、`utils`、`workflows` |
+   | 活跃 | `cli`、`core`、`estimators`、`experiment`、`model_selection`、`preprocessing`、`registry`、`ui`、`utils`、`workflows` |
 
    边界（2026-10-04 裁定）：冻结针对**结构与契约的迁移/重构**，**不针对零行为变更的
    注释清理**——否则与注释门禁的分区迁移互相矛盾。

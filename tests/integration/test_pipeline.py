@@ -3,8 +3,7 @@
 """Tests for PUPipeline — the end-to-end PU workflow.
 
 Covers: full-run report contents and serialization, class-prior
-resolution precedence (user > constructor > estimation), auto mode via
-the recommender, registry-name parsing and fail-fast errors, metric
+resolution precedence (user > constructor > estimation), explicit classifier selection, registry-name parsing and fail-fast errors, metric
 availability semantics (missing y_true / scores / prior), CV fold
 prechecks, and run-to-run determinism.
 """
@@ -20,7 +19,6 @@ from pu_toolbox.core.base import BasePriorEstimator, BasePUClassifier
 from pu_toolbox.core.config import POSITIVE_LABEL
 from pu_toolbox.core.exceptions import ValidationError
 from pu_toolbox.estimators.risk.upu import UPUClassifier
-from pu_toolbox.registry.registry import get_algorithm
 from pu_toolbox.workflows import DEFAULT_METRICS, PipelineError, PipelineReport, PUPipeline
 from tests.helpers import make_scar_data
 
@@ -50,6 +48,8 @@ class TestPipelineBasic:
         # Strict JSON serialization: parseable, no NaN literals.
         payload = json.loads(report.to_json())
         assert payload["schema_version"] == "1.1"
+        assert payload["recommendation"] is None
+        assert payload["provenance"]["skipped_candidates"] == []
         assert set(payload["cv_metrics"]) == set(DEFAULT_METRICS)
         assert payload["prior"]["source"] == "estimated"
         assert payload["cv_metrics"]["pu_recall"]["n_computed"] == 5
@@ -64,23 +64,19 @@ class TestPipelineBasic:
         assert report.prior.value == pytest.approx(0.4)
         assert report.prior.estimator is None
 
-    def test_auto_mode_uses_recommendation(self, rng):
-        """auto selects a classifier via the recommender and estimates a prior."""
+    def test_param_classifier_must_be_explicit(self):
+        with pytest.raises(TypeError, match="classifier"):
+            PUPipeline()
+        with pytest.raises(PipelineError, match="specify a classifier"):
+            PUPipeline(classifier="auto")
+
+    def test_basic_default_prior_estimator_still_available(self, rng):
         X, y_pu, _ = make_scar_data(rng, n=150, separation=4.0)
-        report = PUPipeline().fit_evaluate(X, y_pu)
-        assert report.recommendation is not None
-        assert report.provenance["classifier_mode"] == "auto"
+        report = PUPipeline(classifier="upu").fit_evaluate(X, y_pu)
         assert report.prior.source == "estimated"
         assert report.prior.auto_selected is True
-        assert report.final_model is not None
-        # v1.2.1 guard: the auto prior must land in the acceptance band so the
-        # selected risk-method classifier does not degenerate (recall=0) as
-        # it did with the collapsed recpe estimate (0.036 on probe data).
-        assert 0.25 <= report.prior.value <= 0.75, f"prior={report.prior.value}"
-        candidate_classes = {
-            get_algorithm(c.name).__name__ for c in report.recommendation.candidates
-        }
-        assert report.provenance["classifier"] in candidate_classes
+        assert 0.25 <= report.prior.value <= 0.75
+        assert report.provenance["classifier_mode"] == "name"
 
     def test_classifier_instance_uses_constructor_prior(self, rng):
         """A user-supplied instance carries its own constructor prior."""
@@ -115,15 +111,15 @@ class TestPipelineParameterErrors:
 
     def test_invalid_metric_raises(self):
         with pytest.raises(ValueError, match="Unknown metric"):
-            PUPipeline(metrics=["nope"])
-        pipe = PUPipeline(metrics=["auc"])
+            PUPipeline(classifier="upu", metrics=["nope"])
+        pipe = PUPipeline(classifier="upu", metrics=["auc"])
         assert pipe.metrics == ["pu_auc_roc"]
 
     def test_invalid_cv_raises(self):
         with pytest.raises(ValidationError, match=">= 2"):
-            PUPipeline(evaluation_cv=1)
+            PUPipeline(classifier="upu", evaluation_cv=1)
         with pytest.raises(ValidationError, match="split"):
-            PUPipeline(evaluation_cv=object())
+            PUPipeline(classifier="upu", evaluation_cv=object())
 
     def test_param_cnn_error_hint_lists_registered_cnn_methods(self):
         """Regression (issue #45): the cnn hint was hardcoded to
@@ -188,18 +184,8 @@ class TestPipelineEdgeCases:
         assert "decision" in auc.reason
         assert report.cv_metrics["pu_recall"].available is True
 
-    def test_prior_estimation_failure_degrades_in_auto_but_raises_explicit(self, rng):
-        """Auto mode degrades on estimator failure; explicit mode raises."""
+    def test_prior_estimation_failure_raises_for_required_prior(self, rng):
         X, y_pu, _ = make_scar_data(rng, n=150, separation=4.0)
-        failing = _FailingPriorEstimator()
-        report = PUPipeline(prior_estimator=failing).fit_evaluate(X, y_pu)
-        assert report.prior.degraded is not None
-        assert report.prior.source == "none"
-        assert any(i.code == "prior_estimation_failed" for i in report.issues)
-        assert report.recommendation is not None
-        # No-prior recommendation excludes prior-requiring methods.
-        assert not any(c.metadata.requires_class_prior for c in report.recommendation.candidates)
-        # Explicit classifier with a real prior requirement still raises.
         pipe = PUPipeline(classifier="upu", prior_estimator=_FailingPriorEstimator())
         with pytest.raises(PipelineError, match="failed"):
             pipe.fit_evaluate(X, y_pu)

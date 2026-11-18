@@ -43,11 +43,9 @@ def _write_demo(tmp_path, rng=None):
 def _run(tmp_path, rng, *extra):
     """Run the CLI against demo data; return the parsed report payload.
 
-    ``--classifier upu`` keeps the suite fast: auto mode selects LLSVM
+    ``--classifier upu`` keeps the suite fast: LLSVM
     (3000 fixed epochs, ~15s/run); uPU finishes in ~0.2s and exercises the
-    same CSV-IO / report / exit-code surface.  Auto mode is covered by
-    test_basic_auto_mode_without_prior_estimator and
-    test_demo_output_consumable_by_run.
+    same CSV-IO / report / exit-code surface.
     """
     data, labels, truth = _write_demo(tmp_path, rng)
     out = tmp_path / "out"
@@ -236,35 +234,28 @@ def test_param_prior_estimator_none_missing_prior_exits_one(tmp_path, rng, capsy
 
 
 @pytest.mark.integration
-def test_basic_auto_mode_without_prior_estimator(tmp_path, rng):
-    """auto + --prior-estimator none degrades to a no-prior recommendation.
-
-    Regression guard: auto mode used to hardcode needs_prior=True, so the
-    documented 'none disables estimation' option always exited 1 with the
-    default classifier.
-    """
+@pytest.mark.parametrize("extra", [[], ["--classifier", "auto"]])
+def test_run_rejects_implicit_and_auto_classifier(tmp_path, rng, capsys, extra):
     data, labels, _ = _write_demo(tmp_path, rng)
     out = tmp_path / "out"
-    main(
-        [
-            "run",
-            "--data",
-            str(data),
-            "--labels",
-            str(labels),
-            "--out-dir",
-            str(out),
-            "--evaluation-cv",
-            "3",
-            "--seed",
-            "42",
-            "--prior-estimator",
-            "none",
-            "--quiet",
-        ]
-    )
-    payload = json.loads((out / "report.json").read_text(encoding="utf-8"))
-    assert payload["prior"]["source"] == "none"
+    with pytest.raises(SystemExit) as exc:
+        main(
+            [
+                "run",
+                "--data",
+                str(data),
+                "--labels",
+                str(labels),
+                "--out-dir",
+                str(out),
+                "--prior-estimator",
+                "none",
+                *extra,
+            ]
+        )
+    assert exc.value.code == 1
+    assert "classifier" in capsys.readouterr().err
+    assert not out.exists()
 
 
 @pytest.mark.integration
@@ -278,6 +269,8 @@ def test_edge_headerless_csv_reports_error(tmp_path, capsys):
         main(
             [
                 "run",
+                "--classifier",
+                "upu",
                 "--data",
                 str(tmp_path / "x.csv"),
                 "--labels",
@@ -300,6 +293,8 @@ def test_edge_multi_column_labels_reports_error(tmp_path, rng, capsys):
         main(
             [
                 "run",
+                "--classifier",
+                "upu",
                 "--data",
                 str(data),
                 "--labels",
@@ -310,3 +305,37 @@ def test_edge_multi_column_labels_reports_error(tmp_path, rng, capsys):
         )
     assert exc.value.code == 1
     assert "single column" in capsys.readouterr().err
+
+
+@pytest.mark.integration
+def test_comparison_config_runs_without_single_classifier(tmp_path, rng):
+    data, labels, _ = _write_demo(tmp_path, rng)
+    config = tmp_path / "comparison.json"
+    config.write_text(
+        json.dumps(
+            {
+                "comparison_classifiers": ["upu", "elkan_noto"],
+                "evaluation_cv": 2,
+                "class_prior": 0.5,
+                "metrics": ["pu_zero_one_risk"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    out = tmp_path / "out"
+    main(
+        [
+            "run",
+            "--data",
+            str(data),
+            "--labels",
+            str(labels),
+            "--out-dir",
+            str(out),
+            "--config",
+            str(config),
+            "--quiet",
+        ]
+    )
+    assert (out / "comparison.json").exists()
+    assert (out / "report.json").exists()

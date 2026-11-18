@@ -9,7 +9,6 @@ from sklearn.base import clone
 
 torch = pytest.importorskip("torch")
 
-from pu_toolbox.advisor import recommend_methods  # noqa: E402
 from pu_toolbox.core.exceptions import NotFittedError  # noqa: E402
 from pu_toolbox.estimators.deep.pulns import (  # noqa: E402
     PULNSClassifier,
@@ -75,7 +74,7 @@ def test_missing_support_bad_labels_and_identity_overlap_fail_closed():
         model().fit(X, y, support_data=support, os_or_ts="ts")
 
 
-def test_fit_cloning_pickle_seed_registry_and_auto_recommendation_exclusion():
+def test_fit_cloning_pickle_seed_and_registry():
     X, y, support = data()
     fitted = clone(model())
     with pytest.raises(NotFittedError):
@@ -94,8 +93,6 @@ def test_fit_cloning_pickle_seed_registry_and_auto_recommendation_exclusion():
     np.testing.assert_array_equal(restored.predict_proba(X), fitted.predict_proba(X))
     assert get_algorithm("pulns") is PULNSClassifier
     assert get_metadata("pulns").requires_clean_support
-    recommendation = recommend_methods(X, y, class_prior=0.4, top_k=100)
-    assert "pulns" not in [m.name for m in recommendation.candidates]
 
 
 def test_clean_support_never_enters_classifier_minibatches(monkeypatch):

@@ -16,6 +16,7 @@ from pu_toolbox.model_selection.comparison import (
 )
 from pu_toolbox.model_selection.tuning import PUTuner, TuningResult
 from pu_toolbox.progress import CancellationToken, ProgressCallback
+from pu_toolbox.run_config import _is_auto_classifier
 from pu_toolbox.ui.history import append as history_append
 from pu_toolbox.workflows import PUPipeline
 from pu_toolbox.workflows.report import PipelineReport
@@ -36,7 +37,7 @@ def execute_analysis(
     y_pu: np.ndarray,
     y_true: np.ndarray | None,
     class_prior: float | None,
-    classifier: str,
+    classifier: str | None,
     classifier_params: dict[str, Any],
     tuning_grid: dict[str, Any],
     comparison_classifiers: list[str],
@@ -46,6 +47,12 @@ def execute_analysis(
     progress_callback: ProgressCallback,
 ) -> AnalysisResult:
     """Execute normal, tuning, or comparison mode without touching Streamlit."""
+    if _is_auto_classifier(classifier) or any(
+        _is_auto_classifier(name) for name in comparison_classifiers
+    ):
+        raise ValueError("classifier auto is no longer supported.")
+    if classifier is None and not comparison_classifiers:
+        raise ValueError("classifier is required unless comparing explicit classifiers.")
     if comparison_classifiers:
         comparison = PUModelComparator(
             classifiers=comparison_classifiers,

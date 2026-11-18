@@ -28,6 +28,8 @@ def _write_inputs(tmp_path, rng):
 
 def _run_script(tmp_path, *extra, out_dir=None):
     out = tmp_path / "out" if out_dir is None else Path(out_dir)
+    if "--classifier" not in extra:
+        extra = (*extra, "--classifier", "elkan_noto")
     proc = subprocess.run(
         [sys.executable, "scripts/pu_workflow/sensitivity.py", *extra, "--out-dir", str(out)],
         capture_output=True,

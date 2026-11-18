@@ -71,7 +71,8 @@ its results. Load the references for those stages as they become relevant.
 
 - Record input sampling, labeling policy, training risk view, prior target,
   validation supervision and representation as separate settings.
-- The current CLI profile/recommend/run path uses OS input semantics.
+- The CLI profile/run path uses OS input semantics. Select the classifier explicitly;
+  do not invoke advisor ranking, `recommend`, or `classifier="auto"`.
   Explicit TS analyses use Python APIs with `input_sampling="ts"`.
 - Pipeline's call-level `class_prior` and report `prior.value` target the
   population. Read estimator target declarations and recorded conversions

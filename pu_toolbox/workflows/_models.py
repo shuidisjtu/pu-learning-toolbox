@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import inspect
 import warnings
-from collections.abc import Sequence
 from typing import Any, Literal, get_args, get_origin, get_type_hints
 
 import numpy as np
@@ -21,12 +20,13 @@ _ALWAYS_PROVIDED = {"class_prior", "random_state"}
 def resolve_classifier_name(
     name: str, *, provided_params: set[str] | None = None
 ) -> type[BasePUClassifier]:
+    if name.strip().casefold() == "auto":
+        raise PipelineError("Automatic model selection has been removed; specify a classifier.")
     try:
         cls = get_algorithm(name)
     except RegistryError as exc:
         raise PipelineError(
-            f"Unknown classifier {name!r}. Use 'auto' or a registered method "
-            "name (see list_algorithms())."
+            f"Unknown classifier {name!r}. Use a registered method name (see list_algorithms())."
         ) from exc
     if not isinstance(cls, type) or not issubclass(cls, BasePUClassifier):
         raise PipelineError(f"{name!r} does not resolve to a PU classifier.")
@@ -100,37 +100,6 @@ def missing_required_params(cls: type, *, provided_params: set[str] | None = Non
         and param not in _ALWAYS_PROVIDED
         and param not in provided
     }
-
-
-def pick_first_instantiable(
-    candidates: Sequence[Any],
-) -> tuple[type[BasePUClassifier] | None, list[dict[str, str]]]:
-    skipped: list[dict[str, str]] = []
-    for candidate in candidates:
-        try:
-            cls = get_algorithm(candidate.name)
-        except RegistryError:
-            skipped.append({"name": candidate.name, "reason": "not registered"})
-            continue
-        if not (isinstance(cls, type) and issubclass(cls, BasePUClassifier)):
-            skipped.append({"name": candidate.name, "reason": "not a PU classifier"})
-            continue
-        try:
-            validate_label_semantics(cls, "pu")
-        except ValueError as exc:
-            skipped.append({"name": candidate.name, "reason": str(exc)})
-            continue
-        missing = missing_required_params(cls)
-        if missing:
-            skipped.append(
-                {
-                    "name": candidate.name,
-                    "reason": f"constructor requires {sorted(missing)}",
-                }
-            )
-            continue
-        return cls, skipped
-    return None, skipped
 
 
 def fresh_estimator(

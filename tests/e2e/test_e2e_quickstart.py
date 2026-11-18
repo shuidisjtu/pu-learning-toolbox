@@ -47,7 +47,7 @@ def _assert_strict_report(path: Path) -> dict:
 
 
 def test_basic_quickstart_demo_to_report(tmp_path):
-    """The documented quickstart journey: make-demo-data -> auto run -> report."""
+    """The documented quickstart journey: make-demo-data -> explicit run -> report."""
     demo = tmp_path / "demo"
     proc = _cli("make-demo-data", "--out-dir", str(demo), "--n", "200", "--seed", "42")
     assert proc.returncode == 0, proc.stderr
@@ -63,6 +63,8 @@ def test_basic_quickstart_demo_to_report(tmp_path):
         str(demo / "y_pu.csv"),
         "--out-dir",
         str(results),
+        "--classifier",
+        "upu",
     )
     assert proc.returncode == 0, proc.stderr
     payload = _assert_strict_report(results / "report.json")
@@ -117,6 +119,8 @@ def test_param_run_invalid_labels_reports_error(tmp_path):
         str(tmp_path / "bad_labels.csv"),
         "--out-dir",
         str(tmp_path / "out"),
+        "--classifier",
+        "upu",
     )
     assert proc.returncode == 1
     assert "error:" in proc.stderr
@@ -140,6 +144,8 @@ def test_edge_headerless_csv_reports_error(tmp_path):
         str(demo / "y_pu.csv"),
         "--out-dir",
         str(tmp_path / "out"),
+        "--classifier",
+        "upu",
     )
     assert proc.returncode == 1
     assert "error:" in proc.stderr

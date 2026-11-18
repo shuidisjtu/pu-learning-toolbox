@@ -75,7 +75,7 @@ class TestPriorTargets:
     @pytest.mark.parametrize("invalid", ["cc", "OS", None, [], True])
     def test_edge_invalid_input_sampling_raises(self, invalid):
         with pytest.raises(ValueError, match="input_sampling"):
-            PUPipeline(input_sampling=invalid)
+            PUPipeline(classifier="upu", input_sampling=invalid)
 
     def test_basic_native_u_estimate_resolves_population(self):
         X = np.random.RandomState(7).normal(size=(25, 2))

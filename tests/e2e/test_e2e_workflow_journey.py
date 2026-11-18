@@ -2,8 +2,8 @@
 
 """Real-subprocess end-to-end journeys: workflow-script chain + full chain.
 
-Covers the pu-workflow script pipeline (profile -> recommend) and the full
-demo -> profile -> recommend -> run chain, all through real subprocesses
+Covers the pu-workflow profile script and the full
+demo -> profile -> explicit run chain, all through real subprocesses
 against the real entry points with real file IO.
 """
 
@@ -73,8 +73,8 @@ def _run_report_payload(demo: Path, out_dir: Path) -> dict:
     return json.loads((out_dir / "report.json").read_text(encoding="utf-8"))
 
 
-def test_basic_profile_recommend_chain(tmp_path, rng):
-    """profile.py -> recommend.py chain produces a non-empty candidate list."""
+def test_basic_profile_script_writes_profile(tmp_path, rng):
+    """profile.py produces a profile for the supplied data."""
     X, y_pu = _write_inputs(tmp_path, rng)
     proc = _run_script(
         "scripts/pu_workflow/profile.py",
@@ -89,26 +89,9 @@ def test_basic_profile_recommend_chain(tmp_path, rng):
     profile = tmp_path / "profile.json"
     assert profile.exists()
 
-    proc = _run_script(
-        "scripts/pu_workflow/recommend.py",
-        "--profile",
-        str(profile),
-        "--data",
-        str(X),
-        "--labels",
-        str(y_pu),
-        "--prior-estimator",
-        "recpe",
-        "--out-dir",
-        str(tmp_path),
-    )
-    assert proc.returncode == 0, proc.stderr
-    rec = json.loads((tmp_path / "recommendation.json").read_text(encoding="utf-8"))
-    assert len(rec["candidates"]) > 0
-
 
 def test_edge_full_chain_demo_to_report(tmp_path, rng):
-    """Full journey: demo -> profile -> recommend -> run -> report."""
+    """Full journey: demo -> profile -> explicit run -> report."""
     demo = tmp_path / "demo"
     proc = _cli("make-demo-data", "--out-dir", str(demo), "--n", "60", "--seed", "42")
     assert proc.returncode == 0, proc.stderr
@@ -124,21 +107,7 @@ def test_edge_full_chain_demo_to_report(tmp_path, rng):
     )
     assert proc.returncode == 0, proc.stderr
 
-    proc = _run_script(
-        "scripts/pu_workflow/recommend.py",
-        "--profile",
-        str(tmp_path / "profile.json"),
-        "--data",
-        str(demo / "X.csv"),
-        "--labels",
-        str(demo / "y_pu.csv"),
-        "--prior-estimator",
-        "recpe",
-        "--out-dir",
-        str(tmp_path),
-    )
-    assert proc.returncode == 0, proc.stderr
-    assert (tmp_path / "recommendation.json").exists()
+    assert (tmp_path / "profile.json").exists()
 
     payload = _run_report_payload(demo, tmp_path / "results")
     assert "cv_metrics" in payload

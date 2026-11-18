@@ -148,7 +148,7 @@ error. Its `reason` records this without generating repeated issues.
 
 Diagnostic reports do not replace significance tests, class-prior sensitivity analysis, or method
 recommendation. Use the separate [sensitivity interface](sensitivity_analysis.md) and
-[method recommender](../concepts/method_selection.md) for those tasks.
+[explicit method selection guide](../concepts/method_selection.md) for those tasks.
 
 ## 8. Example
 

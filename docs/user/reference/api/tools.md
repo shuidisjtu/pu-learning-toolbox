@@ -9,8 +9,8 @@ Usage: [pipeline guide](../../howto/pipeline.md). Complete manual prior-estimati
 
 ```python
 pipe = PUPipeline(
-    classifier="auto",          # Registry name / "auto" recommendation / classifier instance.
-    classifier_params=None,      # Constructor args for explicit names; unavailable for auto/instances.
+    classifier="upu",          # Explicit registry name or classifier instance.
+    classifier_params=None,      # Constructor args for explicit names; unavailable for instances.
     prior_estimator="pen_l1",   # "pen_l1"/"recpe"/"km1"/"km2" (the last two map to
                                 # KernelMeanPriorEstimator), estimator instance, or None.
     prior_params=None,          # Args for a named prior estimator, e.g. {"variant": "km2"}; not an instance.
@@ -39,8 +39,8 @@ report = pipe.fit_evaluate(
 
 | Constructor parameter | Type | Default | Description |
 |---|---|---|---|
-| `classifier` | `str \| BasePUClassifier` | `"auto"` | Registry name / automatic recommendation / instance |
-| `classifier_params` | `dict \| None` | `None` | Explicit named classifier's constructor arguments; unavailable for auto/instances |
+| `classifier` | `str \| BasePUClassifier` | Required by the approved contract | Explicit registry name or instance |
+| `classifier_params` | `dict \| None` | `None` | Explicit named classifier's constructor arguments; unavailable for instances |
 | `prior_estimator` | `str \| instance \| None` | `"pen_l1"` | Prior estimator; see precedence below |
 | `prior_params` | `dict \| None` | `None` | Named prior estimator's constructor arguments |
 | `evaluation_cv` | `int \| splitter \| None` | `None` (→5 folds) | PU-stratified evaluation CV |
@@ -100,9 +100,8 @@ A direct call omitting `risk_class_prior` uses the same value at both consumptio
 Constructors declaring `input_sampling` receive the workflow's design; a supplied instance's
 declaration must agree with the workflow.
 
-- `prior_estimator=None` with a required but missing prior raises `PipelineError` for an explicit classifier. Auto can fall back to methods not requiring an external prior.
+- `prior_estimator=None` with a required but missing prior raises `PipelineError` for an explicit classifier.
 - Default OS profiling audits a population prior below the labeled-positive fraction (`inconsistent_class_prior`); independent TS records its extra-P fraction separately.
-- In auto mode, prior-estimation failure falls back to prior-free recommendations (`report.prior.degraded`) rather than aborting.
 
 ### Metrics
 
@@ -125,21 +124,10 @@ without aborting. `CVMetric.n_computed` reports computed folds and is serialized
 
 ### Classifier selection semantics
 
-These workflows accept classifiers declaring main-input `label_semantics="pu"` only.
-Explicit PN/PNU mismatches fail before training; numeric label values do not determine semantics.
-`y_true` supplies evaluation labels without switching the main input to PN.
-
-| `classifier=` | Behavior |
-|---|---|
-| `"auto"` (default) | Resolve prior → recommend through `recommend_from_profile` → scan ranks for the first automatically instantiable candidate |
-| Registered name such as `"nnpu"` / `"upu"` | Resolve case-insensitively with aliases; configure through `classifier_params`; inject managed arguments when accepted by the constructor |
-| Instance such as `UPUClassifier(...)` | Clone per fold, convert/set a constructor prior when present, and inject a constructed CNN encoder when supported; retain the instance's other constructor settings |
-
-Methods with required non-`class_prior` arguments, such as `"ldce"` requiring
-`flip_probability`, accept those through `classifier_params` in explicit-name mode.
-Auto skips these methods and records reasons in `report.provenance["skipped_candidates"]`.
-`class_prior`, `random_state`, and `encoder` are managed by the workflow and cannot be overridden
-through `classifier_params`.
+Select a registered name or configured estimator instance explicitly. Named methods accept
+`classifier_params`; instances are cloned for each fold. Check method-specific prior,
+constructor, input-label, and supervision requirements before fitting. Omission and
+`classifier="auto"` are retired. Automatic prior estimation remains available. See [ADR 0023](../../../adr/0023-explicit-method-selection.md).
 
 ### Deep methods and architecture selection
 
@@ -155,7 +143,6 @@ Contracts for `architecture` / `backbone` / `device`:
 - Compatible explicit names pass required-argument checks when supplied appropriately. The prior follows explicit input before estimation. In CNN mode, `fit_evaluate` lazily builds `build_encoder("cnn", backbone=..., in_channels=...)` and injects it.
 - Input dimensions: 4-D NCHW + explicit compatible deep classifier + CNN is accepted. Prior estimation/profiling use a flattened view, and CV splits indices. 4-D with MLP or a nondeep classifier, and 2-D with CNN, raise `PipelineError`.
 - Deep methods with `evaluation_cv>1` produce a training-cost warning (n_splits+1 fits with refit). Reduce folds when appropriate; minimum evaluation fold count is 2.
-- Auto uses GPU availability and data size as recommendation scoring inputs. Lower CPU/small-data scores do not categorically exclude deep methods. A selected deep method still receives torch seeding and training-cost warnings.
 
 ### Error cases
 
@@ -167,8 +154,8 @@ Contracts for `architecture` / `backbone` / `device`:
 | Fewer positives than CV folds | `ValidationError` suggesting fewer folds |
 | Required prior ultimately unavailable | `PipelineError` |
 | User `class_prior` outside (0,1) | `ValueError`, as for invalid constructor settings such as metrics/architecture |
-| Estimated prior outside (0,1) | Auto degrades to prior-free recommendations; explicit classifier raises `PipelineError` |
-| Prior-estimator exception | Auto degrades, recording prior.degraded; explicit classifier raises `PipelineError` |
+| Estimated prior outside (0,1) | Explicit classifier raises `PipelineError` |
+| Prior-estimator exception | Explicit classifier raises `PipelineError` |
 | Unknown metric | `ValueError` during construction |
 | Invalid `evaluation_cv` | `ValidationError` |
 | Invalid sample_weight shape/values | `ValidationError` |
@@ -181,14 +168,14 @@ Contracts for `architecture` / `backbone` / `device`:
 | Field | Type | Description |
 |---|---|---|
 | `profile` | `PUDataProfile` | Data profile |
-| `recommendation` | `RecommendationResult \| None` | Auto recommendation; None for explicit classifiers |
 | `prior` | `PriorInfo` | Prior value/source/estimator/auto_selected and target provenance |
+| `recommendation` | `None` | Retained for schema 1.1 compatibility; always null for new reports |
 | `cv_metrics` | `dict[str, CVMetric]` | Metric CV means / standard deviations / availability |
 | `cv_provenance` | `dict` | CV metadata, including fold count |
 | `final_model` | estimator \| None | Full-data refit model; None with refit=False |
 | `diagnostic` | `PUDiagnosticReport \| None` | Structured diagnostics; None with refit=False |
 | `issues` | `tuple[ProfileIssue, ...]` | Error/warning issues |
-| `provenance` | `dict` | Workflow audit: classifier/prior/architecture/backbone/device/encoder/sample_weight, etc. |
+| `provenance` | `dict` | Workflow audit: classifier/prior/architecture/backbone/device/encoder/sample_weight, etc.; `skipped_candidates` is always empty in new reports |
 
 `has_errors` / `has_warnings` indicate issue severity. `summary()` returns a compact readable
 summary with CV means±standard deviations, issues, and assumption notes.
@@ -382,7 +369,7 @@ clf.fit(X, y_pu, X_target=..., y_target_pu=..., class_prior=..., target_class_pr
 
 Import from `pu_toolbox.estimators.research`. Besides source X/y_pu, fit requires explicit
 `X_target`, `y_target_pu`, `class_prior`, and `target_class_prior`. It is outside the stable
-registry and Pipeline auto selection. `get_pu_metadata()["guarantee"]` is fixed to
+registry. `get_pu_metadata()["guarantee"]` is fixed to
 `research_joint_shift_approximation`.
 
 ### `DynamicJointShiftPUClassifier` (research)
@@ -401,7 +388,7 @@ Kumagai et al., AISTATS 2025, Equations (13), (19)–(23), and Algorithm 1: weig
 shared features and update bounded weight heads; classification steps freeze current weights
 and update shared features/classifier head. `training_mode="two_step"` and both correction
 switches support paper-style ablations. The authors have not released source; metadata is
-`clean_room_paper_objective`, not `official_exact`. It stays outside the stable registry/auto.
+`clean_room_paper_objective`, not `official_exact`. It stays outside the stable registry.
 
 `build_joint_shift_estimator(...)` builds `dynamic`, `trpu`, `tepu`, `fine_tune`, `mmd`,
 `two_step`, and three correction ablations. Neural comparisons share feature/classifier-head
@@ -576,57 +563,14 @@ identify SCAR versus SAR; `plausible` is not proof of SCAR.
 | `low_variance_features` | info | Review feature scaling; low-variance columns may carry little signal |
 | `selection_diagnostic_inconclusive` | info | Evaluation groups are too small or features are nonfinite; obtain an audit or trusted positive labels |
 
-## recommend_methods / recommend_from_profile
+## Explicit method discovery and selection
 
-Usage and selection rationale: [method selection](../../concepts/method_selection.md).
-
-```python
-result = recommend_methods(
-    X, y_pu,
-    scenario=None,       # Scenario or a string, e.g. "case_control"
-    assumption=None,     # Assumption or a string, e.g. "scar"
-    class_prior=None,    # Known P(Y=1); None excludes methods requiring a prior.
-    has_gpu=False,
-    top_k=5,
-    random_state=42,
-    config=None,         # ScoringConfig; defaults to DEFAULT_CONFIG exported by pu_toolbox.advisor.
-)
-
-result = recommend_from_profile(
-    profile,             # Existing PUDataProfile; skips repeated profiling.
-    scenario=None, assumption=None, class_prior=None,
-    class_prior_source=None,  # e.g. "user"/"estimated"; affects global-warning wording, not provenance.
-    has_gpu=False, top_k=5, config=None,
-)
-```
-
-Returns `RecommendationResult` with `candidates` (`MethodCandidate` fields:
-name/score/rank/reasons/warnings/metadata), `filters_applied`, `global_warnings`, and
-`provenance`. Export with `result.to_json()` / `to_markdown()` / `save(path)`.
-
-### ScoringConfig: configurable scoring weights
-
-The `config` argument of `recommend_methods` / `recommend_from_profile` defaults to
-`DEFAULT_CONFIG`. The seven `*_max` fields are the scoring dimensions' anchors; their sum
-`max_raw_score` is the denominator in `raw / max_raw_score * 100`:
-
-| Field | Default | Meaning |
-|---|---|---|
-| `assumption_max` | `30.0` | Maximum assumption-match score |
-| `maturity_max` | `20.0` | Maximum maturity score |
-| `source_max` | `15.0` | Maximum source-status score |
-| `scale_max` | `20.0` | Maximum data-scale score |
-| `gpu_max` | `5.0` | Maximum GPU-availability score |
-| `labeled_pos_max` | `10.0` | Maximum labeled-positive sufficiency score |
-| `cost_max` | `10.0` | Maximum training-cost score |
-| `maturity_scores` | `{stable:20, research:12, experimental:5}` | Scores by maturity level |
-| `source_scores` | `{official_exact:15, official_bundle:12, official_related:9, third_party_only:6, not_found:3, unknown:1}` | Scores by source status |
-| `small_data_threshold` | `1000` | Small-data threshold |
-| `large_data_threshold` | `10000` | Large-data threshold |
-
-`max_raw_score` is the sum of the seven `*_max` fields. `__post_init__` checks that
-`maturity_scores` / `source_scores` values do not exceed their corresponding maxima,
-keeping scores within the 0–100 contract.
+Use `pu-toolbox list-methods` to inspect registered capabilities and select candidates explicitly.
+Use [PUTuner](#putuner) or [PUModelComparator](#pumodelcomparator) for empirical tuning or
+comparison with authorized validation evidence. Profile OS and TS data with the correct
+`input_sampling` in [profile_pu_data](#profile_pu_data); a TS table's positive fraction is not
+a population labeling rate. The advisor ranking APIs are retired; no replacement
+ranking or compatibility layer is specified ([ADR 0023](../../../adr/0023-explicit-method-selection.md)).
 
 ## Data generation
 
@@ -681,6 +625,12 @@ numeric seed only when an integer was supplied.
 
 Usage: [sensitivity analysis](../../howto/sensitivity_analysis.md). Executable example:
 [09_sensitivity_analysis.py](../../../../examples/minimal/09_sensitivity_analysis.py).
+
+This analysis is defined for **OS inputs only**. It interprets the observed labeled fraction as
+`q = P(S=1) = π · c̄` and computes both precision and risk using the full OS pool. It does not
+detect TS inputs. Do not pass a combined TS table: its fraction of separately sampled labeled
+positives is set by the sampling design, not by the population labeling rate, so the implied
+priors, propensities, and metrics do not have the stated interpretation.
 
 ```python
 analysis = analyze_pu_sensitivity(

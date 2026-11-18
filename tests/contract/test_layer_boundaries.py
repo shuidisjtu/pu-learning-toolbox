@@ -36,7 +36,6 @@ _LOWER_LAYERS = (
     "core",
     "preprocessing",
     "registry",
-    "advisor",
     "utils",
     "prior",
     "losses",

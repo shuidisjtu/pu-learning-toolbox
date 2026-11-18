@@ -46,6 +46,15 @@ def test_basic_ui_run_writes_history_entry(tmp_path: Path):
     app.run()
     assert not app.exception
 
+    # Explicit selection is required before an analysis can start.
+    classifier = next(box for box in app.selectbox if box.label == "\u5206\u7c7b\u5668")
+    assert classifier.value is None
+    start = next(b for b in app.button if "\u5206\u6790" in b.label or "\u8fd0\u884c" in b.label)
+    assert start.disabled
+    classifier.select("upu")
+    app.run()
+    assert not app.exception
+
     # 3) press the start-analysis button (label resolved from app.py at
     # implementation time; adjust if the wording differs).
     start = next(b for b in app.button if "分析" in b.label or "运行" in b.label)

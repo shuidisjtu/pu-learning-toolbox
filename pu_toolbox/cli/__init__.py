@@ -2,8 +2,8 @@
 
 The CLI is a thin wrapper over the library: it parses arguments, reads
 CSV inputs, maps errors to exit codes, and delegates learning logic to
-the library.  Two subcommands fit a registered estimator directly
-(``sensitivity`` and ``recommend``); ``run`` additionally owns its own
+the library. The ``sensitivity`` subcommand fits a registered estimator directly;
+``run`` additionally owns its own
 configuration merge, parameter grid assembly, and artifact writing
 (``report.json`` and ``report.md`` are always written, while
 ``tuning.json`` / ``comparison.json`` / ``model.pkl`` are written only
@@ -23,7 +23,6 @@ from .demo import build_demo_parser
 from .deployment import build_deployment_parser
 from .info import build_info_parser
 from .profile import build_profile_parser
-from .recommend import build_recommend_parser
 from .run import build_run_parser
 from .sensitivity import build_sensitivity_parser
 from .shift import build_shift_parser
@@ -43,7 +42,6 @@ def build_parser() -> argparse.ArgumentParser:
     build_info_parser(sub)
     build_demo_parser(sub)
     build_profile_parser(sub)
-    build_recommend_parser(sub)
     build_sensitivity_parser(sub)
     build_skill_parser(sub)
     build_audit_benchmark_parser(sub)

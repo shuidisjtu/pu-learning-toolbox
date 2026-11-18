@@ -15,7 +15,7 @@ scoring rule, seed, compute budget, and output directory. Reuse the user's choic
 - Explicit train/validation/test roles, PA/OA, or custom research components: use
   [research-experiments.md](research-experiments.md).
 
-The current `profile`, `recommend`, and `run` CLI commands use the OS default.
+The current `profile` and `run` CLI commands use the OS default.
 Query the installed CLI before selecting version-specific options:
 
 ```bash
@@ -38,31 +38,22 @@ For a supplied population prior of 0.4:
 
 ```bash
 pu-toolbox profile --data X.csv --labels y_pu.csv --out-dir work/profile
-pu-toolbox recommend --profile work/profile/profile.json --class-prior 0.4 --out-dir work/recommend
-pu-toolbox run --data X.csv --labels y_pu.csv --class-prior 0.4 --classifier auto --evaluation-cv 3 --seed 42 --out-dir work/run
+pu-toolbox run --data X.csv --labels y_pu.csv --class-prior 0.4 --classifier upu --evaluation-cv 3 --seed 42 --out-dir work/run
 ```
 
 Read `profile.json` for `selection_diagnostic`, `issues`, and input counts.
-Read `recommendation.json` for ranked `candidates`, their `reasons`/`warnings`,
-`global_warnings`, and `filters_applied`. The model selected for training is recorded
-in the final report's `provenance`.
+Select a registered classifier explicitly after checking its capabilities, assumptions,
+prior requirements, and authorized supervision. Read the final report for the selected
+classifier, prior provenance, training values, and diagnostics.
 
-For authorized automatic prior estimation, let the Pipeline resolve the estimator
-target, recommendation, and training values together:
+For authorized automatic prior estimation, keep the classifier explicit:
 
 ```bash
-pu-toolbox run --data X.csv --labels y_pu.csv --classifier auto --prior-estimator pen_l1 --evaluation-cv 3 --seed 42 --out-dir work/estimated
+pu-toolbox run --data X.csv --labels y_pu.csv --classifier upu --prior-estimator pen_l1 --evaluation-cv 3 --seed 42 --out-dir work/estimated
 ```
 
-Carry a requested estimator or explicit prior into the run. For a selected method
-that supports an omitted external prior, `--prior-estimator none` selects that
-policy. In auto mode the report records the selected method and any prior-estimation
-degradation, together with the candidates considered.
-
-The standalone `recommend --prior-estimator` path reads the estimator's scalar
-output directly. Use an explicitly resolved population value for recommendations
-that require that target; [sampling-and-priors.md](sampling-and-priors.md) gives
-the shared conversion API. Pipeline reports preserve the complete estimation chain.
+Carry a requested estimator or explicit prior into the run. For a selected method that
+supports an omitted external prior, `--prior-estimator none` selects that policy.
 
 ## Python analysis with explicit input sampling
 
@@ -94,8 +85,7 @@ report.save(out / "report.md")
 For OS, set `input_sampling="os"` and use same-pool PU observations. Configure
 `prior_estimator="pen_l1"`, `"recpe"`, `"km1"`, or `"km2"` for estimated-prior
 analysis, and omit the `fit_evaluate` population-prior argument. A configured
-classifier's prior requirement determines whether estimation is needed. Auto mode
-resolves a prior before ranking candidates. Methods needing additional constructor
+classifier's prior requirement determines whether estimation is needed. Methods needing additional constructor
 arguments use `classifier_params`, or a configured estimator instance.
 
 ## Tune a specified method

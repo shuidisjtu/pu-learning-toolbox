@@ -123,7 +123,7 @@ def test_edge_ui_config_import_rejects_pnu_without_mutating_widget_state(mode):
 
     catalog = {row["name"]: row for row in classifier_catalog()}
     config = RunConfiguration(
-        classifier="pnu" if mode == "manual" else "auto",
+        classifier="pnu" if mode == "manual" else "upu",
         comparison_classifiers=("upu", "pnu") if mode == "comparison" else (),
     )
     state = {"existing": "preserve"}
@@ -149,16 +149,3 @@ def test_determ_cli_labels_column_preserves_alias_semantics(capsys):
             for alias in metadata.aliases:
                 assert rows[alias] == metadata.label_semantics
     assert rows["pnu"] == "pnu" and rows["self_pu"] == "pu"
-
-
-def test_edge_recommender_excludes_non_pu_methods_and_records_filter():
-    from pu_toolbox.advisor import recommend_methods
-
-    result = recommend_methods(
-        np.arange(80).reshape(40, 2),
-        np.tile([0, 1], 20),
-        class_prior=0.4,
-        top_k=100,
-    )
-    assert all(candidate.name != "pnu" for candidate in result.candidates)
-    assert result.filters_applied["label_semantics"] == "pu (main training input)"

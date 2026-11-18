@@ -26,7 +26,7 @@ file visibility, authentication, and network access policies.
 1. Upload a feature CSV or 4-D NCHW `.npy` image array.
 2. Upload single-column `{1, 0}` PU labels and, optionally, true binary labels.
 3. Inspect sample, feature, labeled-positive, and unlabeled counts.
-4. Use automatic recommendation, select one model manually, or compare several under the same CV settings.
+4. Select one model explicitly, or compare explicitly chosen models under the same CV settings.
 5. In the advanced panel, select parameters to edit and set their numeric, boolean, or categorical
    values. Use the additional fixed-parameter JSON field for complex values, or enable
    “compare hyperparameter combinations” for a grid.
@@ -40,7 +40,7 @@ parameter grids, priors, CV, metrics, and seeds, but not uploaded data. Reuse it
 
 ```bash
 pu-toolbox run --data X.csv --labels y_pu.csv --out-dir results/ \
-  --config pu-run-config.json
+  --classifier upu --config pu-run-config.json
 ```
 
 Explicit nondefault CLI options and `--classifier-param` values override corresponding

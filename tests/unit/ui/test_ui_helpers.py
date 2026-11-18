@@ -139,3 +139,55 @@ def test_param_edge_clean_support_methods_are_not_ui_ready_or_importable(method,
     with pytest.raises(ValueError, match="independent clean reward/support"):
         apply_run_configuration(state, config, catalog)
     assert state == before
+
+
+def test_comparison_configuration_clears_stale_classifier():
+    catalog = {item["name"]: item for item in classifier_catalog()}
+    state = {"classifier": "upu", "selection_mode": "\u624b\u52a8\u9009\u62e9"}
+    config = RunConfiguration(comparison_classifiers=("upu", "nnpu"))
+    apply_run_configuration(state, config, catalog)
+    assert state["selection_mode"] == "\u6bd4\u8f83\u6a21\u578b"
+    assert state["classifier"] is None
+    assert state["comparison_classifiers"] == ["upu", "nnpu"]
+
+
+@pytest.mark.parametrize("classifier", [None, "auto", "AUTO", " Auto "])
+def test_edge_execution_rejects_implicit_classifier(classifier):
+    from pu_toolbox.ui.execution import execute_analysis
+
+    with pytest.raises(ValueError, match="classifier"):
+        execute_analysis(
+            X=None,
+            y_pu=None,
+            y_true=None,
+            class_prior=None,
+            classifier=classifier,
+            classifier_params={},
+            tuning_grid={},
+            comparison_classifiers=[],
+            scoring="pu_zero_one_risk",
+            pipeline_params={},
+            cancellation_token=None,
+            progress_callback=None,
+        )
+
+
+@pytest.mark.parametrize("name", ["auto", "AUTO", " Auto "])
+def test_edge_execution_rejects_auto_comparison_candidate(name):
+    from pu_toolbox.ui.execution import execute_analysis
+
+    with pytest.raises(ValueError, match="classifier"):
+        execute_analysis(
+            X=None,
+            y_pu=None,
+            y_true=None,
+            class_prior=None,
+            classifier=None,
+            classifier_params={},
+            tuning_grid={},
+            comparison_classifiers=["upu", name],
+            scoring="pu_zero_one_risk",
+            pipeline_params={},
+            cancellation_token=None,
+            progress_callback=None,
+        )

@@ -11,7 +11,7 @@
 - **Registered PU algorithms** from recent research, all native clean-room implementations, plus an isolated research joint-shift solver ([method cards](docs/research/method_cards/)); `pu-toolbox list-methods` prints the current set
 - **sklearn-compatible API** -- `fit(X, y)` / `predict(X)` / `decision_function(X)`, works with pipelines and cross-validation
 - **SCAR & SAR** -- constant and instance-dependent labeling mechanisms, with a data simulator
-- **Data profiling + recommender** -- automatic quality checks, SCAR/SAR evidence, and a 7-dimension scoring recommender that picks the method for your data
+- **Data profiling** -- automatic quality checks and SCAR/SAR evidence to inform explicit method selection
 - **Auditable pipeline** -- one-call `PUPipeline` (profile -> prior -> train -> PU-stratified CV -> evaluate) plus structured diagnostic reports and prior/propensity sensitivity analysis
 - **Composable PU research** -- OS and independent TS sampling, explicit prior targets, injectable experiment strategies, custom encoders, and recorded research settings ([guide](docs/user/howto/custom_experiments.md))
 - **Distribution-shift guardrails** -- OOF source/target drift audit, bounded covariate weights, overlap diagnostics, and a guarded `ShiftAwarePUPipeline`
@@ -21,6 +21,9 @@
 - **Evaluation metrics** -- PU-native risk plus supervised ranking, balanced-accuracy, and probability-calibration metrics with explicit availability contracts
 - **Reproducible traditional-PU benchmark** -- locked seven-method protocols, leakage preflight, resumable trials, paired comparisons, and tuning evidence
 - **Graphical UI** -- upload data, configure/compare models, inspect diagnostics, and download results
+
+> Method selection is explicit; see [ADR 0023](docs/adr/0023-explicit-method-selection.md).
+> Automatic prior estimation remains available when required.
 
 ## Quick Start
 
@@ -60,7 +63,7 @@ X, y_pu, y_true = make_scar_dataset(
 )
 
 # One call: profile -> class prior -> train -> PU-stratified CV -> evaluate
-report = PUPipeline().fit_evaluate(X, y_pu, y_true=y_true)
+report = PUPipeline(classifier="upu").fit_evaluate(X, y_pu, y_true=y_true)
 print(report.summary())
 ```
 
@@ -84,8 +87,8 @@ The `pu-toolbox` console command wraps the full pipeline. Full guide: [`docs/use
 # 1. Generate SCAR demo data (X.csv / y_pu.csv / y_true.csv)
 pu-toolbox make-demo-data --out-dir demo/ --n 200 --seed 42
 
-# 2. One-shot full pipeline run (auto mode picks the algorithm)
-pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
+# 2. Run an explicitly selected classifier
+pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --classifier upu --out-dir results/
 
 # 3. Inspect results
 #    results/report.md     full Markdown report
@@ -99,7 +102,7 @@ pip install "pu-toolbox[ui]"
 pu-toolbox-ui
 ```
 
-The UI supports automatic recommendations, manual model parameters,
+The UI supports explicit model parameters,
 PU-stratified grid search, metric charts, diagnostics, and report/model
 downloads. See the [model tuning guide](docs/user/howto/model_tuning.md) and
 [UI guide](docs/user/howto/ui.md).

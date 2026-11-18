@@ -1,5 +1,8 @@
 # Project Directory Structure
 
+> This inventory may include legacy code pending retirement; the approved selection boundary
+> is documented in [ADR 0023](../adr/0023-explicit-method-selection.md).
+
 > This document is the authoritative directory inventory. Existing files are listed as such;
 > proposed files carry `(planned)`. `generate_structure.py` generates the tree blocks for
 > `pu_toolbox/`, `tests/`, `scripts/`, and `docs/`, checking file names in both directions.
@@ -163,18 +166,13 @@ pu_toolbox/
     split.py                              (implemented: PUStratifiedKFold PU-aware splitters retain labeled positives in each fold)
     tuning.py                             (implemented: PUTuner hyperparameter grid search reusing PUPipeline and PU metrics)
   registry/
-    __init__.py                           (public re-exports; __getattr__ lazily forwards advisor symbols to avoid import cycles)
+    __init__.py                           (public registry re-exports)
     registry.py                           (implemented: thread-safe register_method/get_algorithm central registry and alias resolution)
     metadata.py                           (public: AlgorithmMetadata contract shared by registry and documentation generation)
     builtin_methods.py                    (implemented: built-in metadata and concrete class paths; loaded on demand, with optional explicit prewarm)
-  advisor/
-    __init__.py                           (public recommendation engine and result data structures)
-    recommender.py                        (implemented: recommend_methods/recommend_from_profile data-profile → registered-method recommendations)
-    rules.py                              (implemented: score_method rules, method_warnings risk warnings, and ScoringConfig weights)
-    _types.py                             (private advisor components: MethodCandidate/RecommendationResult data structures)
   workflows/
     __init__.py                           (public PUPipeline, PipelineReport, and ShiftAware reports)
-    pipeline.py                           (implemented: PUPipeline profile→prior→training→CV→diagnostics; mlp/cnn and auto recommendations)
+    pipeline.py                           (implemented: PUPipeline profile→prior→training→CV→diagnostics; mlp/cnn and explicit classifier selection)
     _evaluation.py                        (metric resolution, PU-aware CV execution, and aggregation)
     _inputs.py                            (input validation, splitter preparation, and CV provenance)
     _models.py                            (private workflow classifier/prior resolution, instantiation, and parameter checks)
@@ -186,8 +184,7 @@ pu_toolbox/
     run.py                                (run: two CSV inputs, three standard output files, exit codes 0/1/2)
     info.py                               (list-methods/list-priors: registered classifiers and priors, with explicit km1/km2 entries)
     demo.py                               (make-demo-data: SCAR X/y_pu/y_true CSV files checked for five-fold usability)
-    profile.py                            (profile: profiles and SCAR/SAR diagnostics; writes profile.json for recommend)
-    recommend.py                          (recommend: reads profile.json, recommends methods/estimates priors, writes recommendation.json)
+    profile.py                            (profile: profiles and SCAR/SAR diagnostics; writes profile.json)
     sensitivity.py                        (sensitivity: prior/propensity scans with fixed predictions; writes sensitivity.json)
     audit_benchmark.py                    (audit-benchmark: result audits, PASS/FAIL summaries, optional JSON)
     skill.py                              (skill: installs the wheel's pu-workflow skill into user agent directories)
@@ -449,10 +446,6 @@ tests/
       test_classical_candidate_execution.py # PUET/RP explicit plans, four-role replay, failure evidence
       test_cvir_image_execution.py      # image priors, view locks, dual-protocol replay
       test_kldce_candidate_execution.py # actual SCAR binding, four-role replay, failure evidence
-    advisor/
-      test_recommender.py               # filtering, scoring, outputs
-      test_scoring_rules.py             # recommendation scores and boundaries
-      __init__.py
     cli/
       test_classifier_params.py         # classifier-param JSON parsing and errors
       test_cli_main.py                  # CLI entry smoke
@@ -462,7 +455,7 @@ tests/
       test_skill.py                     # bundled skill installation
       test_audit_benchmark.py           # audit-benchmark
       test_profile.py                   # profile, pu-workflow step 1
-      test_recommend.py                 # recommend, pu-workflow step 2
+      test_recommend.py                 # retired recommendation CLI boundary
       test_sensitivity_cmd.py           # sensitivity, pu-workflow step 4
       test_shift_audit.py               # shift-audit parameters, errors, artifacts
       test_shift_run.py                 # shift-run parameters, errors, paired artifacts
@@ -478,8 +471,8 @@ tests/
       test_metric_availability.py       # compute_metric availability and probability gates
       test_architecture_capability.py   # fail-loud capability/signature drift
       test_report_provenance.py         # four architecture-capability fields for bare mlp/full native_cnn
-      test_label_semantics_entrypoints.py # CLI/UI/tuning/recommendation label-semantics gates
-      test_pipeline_label_semantics.py  # rejects mismatches in construction/run/clone/auto
+      test_label_semantics_entrypoints.py # CLI/UI/tuning label-semantics gates
+      test_pipeline_label_semantics.py  # rejects mismatches in construction/run/clone
       test_pipeline_prior_targets.py    # OS/TS estimation targets, per-fold consumption, real classifiers, population evaluation
     experiment/
       test_cvir_known_prior_adapter.py  # alpha_U/population pi, candidate roles, manifest/path rejection
@@ -640,6 +633,7 @@ tests/
   integration/                          # CLI + PUPipeline + registry + estimators
     test_model_configuration.py         # named/required parameters and PUTuner determinism
     test_pipeline.py                    # complete workflow, priors, errors, availability, determinism
+    test_run_config_retirement.py       # explicit classifier retirement boundary
     test_pipeline_deep.py               # deep architecture selection; optional torch
     test_run.py                         # in-process end-to-end run, actual CSV IO/training
     test_cli_deep_save_model.py         # run --save-model CNN E2/E3 regressions; optional torch
@@ -668,11 +662,10 @@ tests/
     test_minimal_examples.py            # all minimal scripts, native-U priors, PNU and review decisions
   e2e/                                  # real-subprocess user journeys in nightly CI
     test_profile_script.py              # subprocess pu-workflow profile
-    test_recommend_script.py            # subprocess recommend including profile→recommend
     test_sensitivity_script.py          # subprocess sensitivity
-    test_e2e_quickstart.py              # demo→auto run→report and CLI error journeys
-    test_e2e_workflow_journey.py        # profile→recommend and demo→profile→recommend→run
-    test_e2e_subcommands.py             # subprocess profile/recommend/sensitivity
+    test_e2e_quickstart.py              # demo→explicit run→report and CLI error journeys
+    test_e2e_workflow_journey.py        # profile and explicit classifier workflow journeys
+    test_e2e_subcommands.py             # subprocess profile/sensitivity
   benchmarks/                           # benchmark runners
     test_assigned_benchmark_runner.py   # first-five-paper runner
     test_assigned_preflight.py          # first-five-paper readiness audits
@@ -858,7 +851,7 @@ docs/
     concepts/
       pu_problem.md                       # problem setting, notation, role of π
       scar_sar.md                         # SCAR/SAR mechanisms and identification limits
-      method_selection.md                 # method-choice principles, recommender, decision table
+      method_selection.md                 # method-choice principles, explicit candidates, decision table
       class_prior_semantics.md            # population/U/risk-pool priors, conversion conditions, implementation limits
       pu_model_selection.md               # PA/OA, supervision roles, independent selection
       pu_sampling.md                      # OS/TS, finite-pool provenance, training risk views
@@ -977,7 +970,6 @@ For commands, see the
 scripts/
   pu_workflow/                            (compatible thin skill wrappers delegating to CLI subcommands)
     profile.py                            (delegates to `pu-toolbox profile`: profile.json contract)
-    recommend.py                          (delegates to `pu-toolbox recommend`: recommendation.json contract)
     sensitivity.py                        (delegates to `pu-toolbox sensitivity`: sensitivity.json contract)
   check_test_quality.py                   (test count/marker/coverage quality gate)
   check_doc_links.py                      (five documentation consistency rules)

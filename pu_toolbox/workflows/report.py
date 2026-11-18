@@ -4,9 +4,8 @@
 
 ``PipelineReport`` aggregates everything produced by a
 :class:`~pu_toolbox.workflows.PUPipeline` run: the data profile, the
-recommendation (auto mode only), the resolved class prior and its
-source, per-fold CV metrics, the final refitted model, and the final
-diagnostic report.  All report types follow the toolbox convention of
+resolved class prior and its source, per-fold CV metrics, the final
+refitted model, and the diagnostic report. Report types follow the toolbox convention of
 ``to_dict()`` / ``to_json()`` / ``to_markdown()`` / ``save()``.
 """
 
@@ -21,7 +20,6 @@ import numpy as np
 
 from ..diagnostics.report import MetricBasis, PUDiagnosticReport
 from ..preprocessing.data_profiler import ProfileIssue, PUDataProfile
-from ..registry import RecommendationResult
 from ..utils.serialization import escape_markdown, format_from_suffix, format_value, json_safe
 
 PriorSource = Literal["user", "constructor", "estimated", "none"]
@@ -43,8 +41,7 @@ __all__ = ["CVMetric", "PipelineReport", "PriorInfo", "PriorSource"]
 class PriorInfo:
     """The resolved class prior and where it came from.
 
-    ``degraded`` is set when automatic estimation failed and the
-    pipeline degraded to a no-prior run (auto mode only).
+    ``degraded`` is retained in the report schema and is unset for new runs.
     """
 
     value: float | None
@@ -143,7 +140,8 @@ class PipelineReport:
     """Everything produced by one :meth:`PUPipeline.fit_evaluate` run."""
 
     profile: PUDataProfile
-    recommendation: RecommendationResult | None
+    # Reserved null field in schema 1.1.
+    recommendation: None
     prior: PriorInfo
     cv_metrics: dict[str, CVMetric]
     cv_provenance: dict[str, Any]
@@ -252,9 +250,7 @@ class PipelineReport:
             "schema_version": "1.1",
             "classifier": self.provenance.get("classifier"),
             "profile": self.profile.to_dict(),
-            "recommendation": (
-                self.recommendation.to_dict() if self.recommendation is not None else None
-            ),
+            "recommendation": None,
             "prior": self.prior.to_dict(),
             "cv_metrics": {name: metric.to_dict() for name, metric in self.cv_metrics.items()},
             "cv_provenance": self.cv_provenance,
@@ -325,8 +321,7 @@ class PipelineReport:
         """Write the report to ``path``, inferring the format from the suffix.
 
         An unknown ``format`` raises ``ValueError`` instead of silently
-        writing a markdown report (matching ``PUDiagnosticReport.save``
-        and ``RecommendationResult.save``).
+        writing a Markdown report.
         """
         target = Path(path)
         fmt = format

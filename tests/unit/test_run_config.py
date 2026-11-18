@@ -55,11 +55,11 @@ def test_deterministic_configuration_serialization():
 def test_param_comparison_configuration_round_trip():
     config = RunConfiguration.from_mapping(
         {
-            "classifier": "auto",
             "comparison_classifiers": ["upu", "pnu"],
             "metrics": ["pu_zero_one_risk"],
         }
     )
+    assert config.classifier is None
     assert config.comparison_classifiers == ("upu", "pnu")
     assert RunConfiguration.from_json(config.to_json()) == config
     with pytest.raises(ValueError, match="cannot run together"):
@@ -69,3 +69,31 @@ def test_param_comparison_configuration_round_trip():
                 "tuning_grid": {"reg_lambda": [0.1]},
             }
         )
+
+
+@pytest.mark.parametrize(
+    "value",
+    [{}, {"classifier": "auto"}, {"classifier": "auto", "comparison_classifiers": ["upu", "nnpu"]}],
+)
+def test_edge_implicit_or_auto_classifier_rejected(value):
+    with pytest.raises(ValueError, match="classifier"):
+        RunConfiguration.from_mapping(value)
+
+
+def test_edge_direct_configuration_rejects_auto_comparison():
+    with pytest.raises(ValueError, match="comparison_classifiers"):
+        RunConfiguration(comparison_classifiers=("upu", "auto"))
+
+
+@pytest.mark.parametrize("name", ["AUTO", " Auto ", "\tauto\n"])
+@pytest.mark.parametrize("comparison", [False, True])
+def test_param_auto_variants_rejected_in_classifier_and_candidates(name, comparison):
+    values = {"comparison_classifiers": ["upu", "nnpu"]} if comparison else {}
+    with pytest.raises(ValueError, match="classifier"):
+        RunConfiguration.from_mapping({**values, "classifier": name})
+    with pytest.raises(ValueError, match="classifier"):
+        RunConfiguration(classifier=name, **values)
+    with pytest.raises(ValueError, match="comparison_classifiers"):
+        RunConfiguration.from_mapping({"comparison_classifiers": ["upu", name]})
+    with pytest.raises(ValueError, match="comparison_classifiers"):
+        RunConfiguration(comparison_classifiers=("upu", name))

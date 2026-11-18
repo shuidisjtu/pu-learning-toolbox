@@ -3,7 +3,7 @@
 """The ``profile`` subcommand: profile data and diagnose SCAR/SAR assumptions.
 
 pu-workflow step 1: reads X/y_pu CSV (or .npy images) and writes a
-strict-JSON profile (``profile.json``) that the recommend step consumes.
+strict-JSON profile (``profile.json``) for data inspection.
 """
 
 from __future__ import annotations

@@ -78,7 +78,6 @@ STRICT_INLINE_PARTITIONS: tuple[str, ...] = (
 # ones a prior ruling kept on purpose, so a whole-directory strict flip
 # would need that ruling revisited first.
 PENDING_INLINE_PARTITIONS: tuple[str, ...] = (
-    "pu_toolbox/advisor",
     "pu_toolbox/core",
     "pu_toolbox/estimators",
     "pu_toolbox/experiment",

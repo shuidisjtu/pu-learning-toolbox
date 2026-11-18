@@ -160,7 +160,7 @@ Phase 0-9 已闭环（框架 → 核心风险估计 → 机制 → 推荐诊断 
   文字直接陈述结果与适用条件。格式、测试质量、文档链接与生成目录门禁通过。
 
 输入设计和先验目标通过现有 API 路由：CLI 使用 OS，独立 TS 使用显式 Python 参数，
-Pipeline 记录总体解析与逐折训练消费。CLI 的显式采样参数和 recommend 目标解析作为后续工程项维护。
+Pipeline 记录总体解析与逐折训练消费。CLI 的显式采样参数作为后续工程项维护；recommend 路径按 [ADR 0023](../adr/0023-explicit-method-selection.md) 退役。
 
 ### 未发布（PU 研究能力整合）
 

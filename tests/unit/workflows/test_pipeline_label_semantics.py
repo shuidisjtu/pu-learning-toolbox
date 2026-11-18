@@ -1,7 +1,5 @@
 """Public PU workflows reject semantic mismatches before any classifier fit."""
 
-from types import SimpleNamespace
-
 import numpy as np
 import pytest
 
@@ -122,17 +120,6 @@ def test_param_constructor_mutation_is_checked_on_fresh_model(meaning):
             max_epochs=None,
             classifier_name="custom",
         )
-
-
-def test_determ_auto_candidates_skip_incompatible_semantics(monkeypatch):
-    classes = {"bad": PNSpy, "ternary": PNUSpy, "good": SpyClassifier}
-    monkeypatch.setattr(_models, "get_algorithm", classes.__getitem__)
-    candidates = [SimpleNamespace(name=name) for name in classes]
-    first = _models.pick_first_instantiable(candidates)
-    assert first == _models.pick_first_instantiable(candidates)
-    assert first[0] is SpyClassifier
-    assert [item["name"] for item in first[1]] == ["bad", "ternary"]
-    assert all("label_semantics" in item["reason"] for item in first[1])
 
 
 def test_edge_comparison_pnu_fails_before_any_model_fit(monkeypatch):

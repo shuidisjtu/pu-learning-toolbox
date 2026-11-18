@@ -11,6 +11,7 @@ from pathlib import Path
 import pandas as pd
 
 from ..diagnostics import analyze_pu_shift
+from ..run_config import _is_auto_classifier
 from ..workflows import PUPipeline, ShiftAwarePUPipeline
 from .run import _load_features, _load_label_column, _parse_classifier_params
 
@@ -146,6 +147,8 @@ def run_shift_audit(args: argparse.Namespace) -> None:
 
 def run_shift_run(args: argparse.Namespace) -> None:
     """Run a paired baseline/weighted comparison and save stable artifacts."""
+    if _is_auto_classifier(args.classifier):
+        raise ValueError("classifier auto is no longer supported; choose an explicit classifier.")
     source = _load_features(Path(args.source_data))
     source_labels = _load_label_column(Path(args.source_labels), "source-labels")
     target = _load_features(Path(args.target_data))

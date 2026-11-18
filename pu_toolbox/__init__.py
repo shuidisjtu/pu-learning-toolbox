@@ -2,7 +2,6 @@
 
 __version__ = "1.11.0"
 
-from .advisor import ScoringConfig, recommend_from_profile, recommend_methods
 from .diagnostics import (
     DomainAssumptionReport,
     PUShiftMonitor,
@@ -91,7 +90,6 @@ __all__ = [
     "ReCPEEstimator",
     "RankPruningClassifier",
     "RobustPUClassifier",
-    "ScoringConfig",
     "ShiftAwarePUPipeline",
     "ShiftAwarePipelineReport",
     "ShiftComparisonReport",
@@ -109,6 +107,4 @@ __all__ = [
     "build_encoder",
     "make_sar_dataset",
     "profile_pu_data",
-    "recommend_from_profile",
-    "recommend_methods",
 ]

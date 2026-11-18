@@ -1,10 +1,9 @@
 # ruff: noqa: N802, N803, N806, E501
 
-"""Real-subprocess e2e: profile / recommend / sensitivity CLI subcommands.
+"""Real-subprocess e2e: profile / sensitivity CLI subcommands.
 
-The script-level journeys stay covered by test_{profile,recommend,
-sensitivity}_script.py (compatibility wrappers); this file covers the
-CLI-subcommand entry points the skill now uses.
+The script-level journeys stay covered by the profile and sensitivity script
+tests; this file covers the CLI-subcommand entry points the skill now uses.
 """
 
 from __future__ import annotations
@@ -44,36 +43,29 @@ def _write_inputs(tmp_path, rng):
     return tmp_path / "X.csv", tmp_path / "y_pu.csv"
 
 
-def test_basic_profile_recommend_chain(tmp_path, rng):
-    """pu-toolbox profile -> recommend chain (skill Steps 1/2 entry points)."""
+def test_basic_profile_smoke(tmp_path, rng):
+    """pu-toolbox profile writes a profile for the supplied data."""
     X, y_pu = _write_inputs(tmp_path, rng)
     proc = _cli("profile", "--data", str(X), "--labels", str(y_pu), "--out-dir", str(tmp_path))
     assert proc.returncode == 0, proc.stderr
     profile = tmp_path / "profile.json"
     assert profile.exists()
 
-    proc = _cli(
-        "recommend",
-        "--profile",
-        str(profile),
-        "--data",
-        str(X),
-        "--labels",
-        str(y_pu),
-        "--prior-estimator",
-        "recpe",
-        "--out-dir",
-        str(tmp_path),
-    )
-    assert proc.returncode == 0, proc.stderr
-    rec = json.loads((tmp_path / "recommendation.json").read_text(encoding="utf-8"))
-    assert len(rec["candidates"]) > 0
-
 
 def test_basic_sensitivity_smoke(tmp_path, rng):
     """pu-toolbox sensitivity writes a strict-JSON analysis (skill Step 4)."""
     X, y_pu = _write_inputs(tmp_path, rng)
-    proc = _cli("sensitivity", "--data", str(X), "--labels", str(y_pu), "--out-dir", str(tmp_path))
+    proc = _cli(
+        "sensitivity",
+        "--data",
+        str(X),
+        "--labels",
+        str(y_pu),
+        "--classifier",
+        "elkan_noto",
+        "--out-dir",
+        str(tmp_path),
+    )
     assert proc.returncode == 0, proc.stderr
     payload = json.loads((tmp_path / "sensitivity.json").read_text(encoding="utf-8"))
     assert payload["analysis_type"] == "fixed_output_assumption_sensitivity"
@@ -140,6 +132,8 @@ def test_param_run_accepts_prior_param(tmp_path, rng):
         str(tmp_path / "y_pu.csv"),
         "--out-dir",
         str(tmp_path / "out"),
+        "--classifier",
+        "upu",
         "--prior-estimator",
         "pen_l1",
         "--prior-param",
@@ -147,21 +141,6 @@ def test_param_run_accepts_prior_param(tmp_path, rng):
     )
     assert proc.returncode == 0, proc.stderr
     assert (tmp_path / "out" / "report.json").is_file()
-
-
-def test_param_missing_profile_reports_error(tmp_path, rng):
-    """Missing profile.json -> exit 1, error: on stderr, no traceback."""
-    X, y_pu = _write_inputs(tmp_path, rng)
-    proc = _cli(
-        "recommend",
-        "--profile",
-        str(tmp_path / "none.json"),
-        "--out-dir",
-        str(tmp_path / "out"),
-    )
-    assert proc.returncode == 1
-    assert "error:" in proc.stderr
-    assert "Traceback" not in proc.stderr
 
 
 def test_edge_headerless_csv_reports_error(tmp_path):

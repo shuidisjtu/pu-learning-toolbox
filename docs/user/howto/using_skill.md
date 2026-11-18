@@ -60,7 +60,7 @@ These task descriptions can also be given in Chinese or another supported conver
 
 | Task | Route and artifacts |
 |---|---|
-| Ordinary OS tabular analysis | CLI/Pipeline: profiles, recommendations, priors, and training reports |
+| Ordinary OS tabular analysis | CLI/Pipeline: profiles, explicit classifiers, priors, and training reports |
 | Independent TS and explicit prior targets | Python `input_sampling="ts"`: target conversions and per-fold consumption |
 | OS/TS and SCAR/SAR construction | Preprocessing APIs: PU labels, sampling policies, provenance, and prior metadata |
 | Tuning or multi-method comparison | `PUTuner` / `PUModelComparator` or CLI configuration: candidates and selections |
@@ -75,14 +75,13 @@ prior estimator when required and record its provenance.
 
 ## 3. Sampling, priors, and images
 
-The current `profile`, `recommend`, and `run` CLI commands use OS input semantics.
+The current `profile` and `run` CLI commands use OS input semantics.
 Independent TS uses Python APIs with an explicit sampling design; see the
 [pipeline guide](pipeline.md) and [sampling tutorial](pu_sampling.md).
 
 Pipeline's call-level `class_prior` and report `prior.value` target the population. Reports
 retain the estimator's original target, population conversion, and actual training consumption
-per fold. Standalone recommendations need a population prior with an explicit meaning; integrated
-automatic analysis uses the Pipeline to resolve the chain. See
+per fold. Select the classifier explicitly and use the Pipeline to resolve the prior chain. See
 [prior semantics](../concepts/class_prior_semantics.md).
 
 For raw images, use finite NCHW arrays and an explicit compatible CNN classifier, for example:

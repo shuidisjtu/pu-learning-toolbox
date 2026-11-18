@@ -69,7 +69,6 @@ LAYERS: dict[str, tuple[str, ...]] = {
         "pu_toolbox/core",
         "pu_toolbox/preprocessing",
         "pu_toolbox/registry",
-        "pu_toolbox/advisor",
         "pu_toolbox/utils",
     ),
     "Estimation": ("pu_toolbox/prior", "pu_toolbox/losses"),

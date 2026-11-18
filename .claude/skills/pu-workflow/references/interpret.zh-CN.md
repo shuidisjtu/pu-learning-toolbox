@@ -21,10 +21,9 @@
 先说明 OS、独立 TS 或具名有限池设计；模拟研究另写来源数据、抽样政策与标记机制。
 按用户授权和可执行路线继续分析，将诊断结果用于方法选择和结果解释。
 
-## 推荐与先验链
+## 显式方法选择与先验链
 
-`recommendation.json` 中的 `candidates[]` 按 `rank` 排序，读取 `score`、`reasons`、
-`warnings`、`global_warnings` 和 `filters_applied`，说明当前数据与能力条件下的推荐依据。
+说明用户或研究设计明确选择的分类器、候选及其依据，不使用 advisor 排名。
 
 Pipeline 报告 schema `1.1` 的 `prior` 按以下顺序解释：
 

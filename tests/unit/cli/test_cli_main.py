@@ -44,7 +44,7 @@ def test_basic_run_subcommand_registered_with_defaults():
     )
     assert args.command == "run"
     assert args.config is None
-    assert args.classifier == "auto"
+    assert args.classifier is None
     assert args.prior_estimator == "pen_l1"
     assert args.evaluation_cv == 5
     assert args.seed == 42
@@ -144,3 +144,41 @@ def test_deterministic_help_output_stable(capsys):
     second_out = capsys.readouterr().out
     assert first_exit.value.code == second_exit.value.code == 0
     assert first_out == second_out
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("extra", [[], ["--classifier", "auto"]])
+def test_edge_run_classifier_rejected_before_data_loading(extra):
+    from pu_toolbox.cli.run import _run
+
+    args = build_parser().parse_args(
+        ["run", "--data", "missing", "--labels", "missing", "--out-dir", "out", *extra]
+    )
+    with pytest.raises(ValueError, match="classifier"):
+        _run(args)
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("name", ["AUTO", " Auto ", "\tauto\n"])
+def test_edge_run_comparison_config_rejects_auto_override(tmp_path, name):
+    from pu_toolbox.cli.run import _run
+
+    config = tmp_path / "config.json"
+    config.write_text('{"comparison_classifiers": ["upu", "nnpu"]}', encoding="utf-8")
+    args = build_parser().parse_args(
+        [
+            "run",
+            "--data",
+            "missing",
+            "--labels",
+            "missing",
+            "--out-dir",
+            "out",
+            "--config",
+            str(config),
+            "--classifier",
+            name,
+        ]
+    )
+    with pytest.raises(ValueError, match="classifier"):
+        _run(args)

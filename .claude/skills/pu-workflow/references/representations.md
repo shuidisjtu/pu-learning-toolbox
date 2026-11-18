@@ -36,7 +36,7 @@ Use `uv run pu-toolbox ...` in a uv-managed project. Choose device, epochs,
 batch size, prior source, and candidate count from the task's budget.
 Raw-image tasks use shape/finite-value and label-count checks; table profiling
 uses two-dimensional data. An explicit feature-extraction route supplies
-the two-dimensional features for table profiling and recommendations.
+the two-dimensional features for table profiling and explicit method selection.
 
 ## Train with an encoder template
 

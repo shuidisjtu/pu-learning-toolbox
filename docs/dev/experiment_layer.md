@@ -168,7 +168,7 @@ Core（`registry/`）、Evaluation（`metrics/`）与 Algorithms（`estimators/`
 CVIR 的总体→原生 U 换算委托 `prior.semantics`，其包装器继续校验严格 `(0,1)` 域、
 P/U 计数和风险视图。这里 `os_or_ts="ts"` 对应 OS 完整池校准，使用总体先验；
 原生 U 视图按实际标记数换算。共享计算与研究政策由此分别落在下层原语和实验适配器。
-数据画像、advisor 推荐、PU 感知 CV 与 `PUPipeline` 编排都**没有**被复制（与下文第 ③ 项不冲突：`_stratified_split` 切的是干净标签、且实验层对本仓库的 `pu_toolbox/model_selection` 零 import——`datasets.py:11` 用的是第三方 `sklearn.model_selection`，与本仓库同名包无关）。
+数据画像、PU 感知 CV 与 `PUPipeline` 编排都**没有**被复制（与下文第 ③ 项不冲突：`_stratified_split` 切的是干净标签、且实验层对本仓库的 `pu_toolbox/model_selection` 零 import——`datasets.py:11` 用的是第三方 `sklearn.model_selection`，与本仓库同名包无关）。
 三处「看似重复」的实现及判定：① `survey_execution.py` 的 `PilotOracleMLP` 手写训练循环——
 **不算泄漏**（oracle 基线不是已注册算法，进 `estimators/` 会污染算法谱系）；② 报告组装
 （`survey_summary.py` / `results.py` / `survey_provenance.py`）——**不算泄漏**

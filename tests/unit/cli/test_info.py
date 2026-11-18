@@ -118,4 +118,6 @@ def test_edge_list_priors_names_all_accepted_by_pipeline(capsys):
     # The first token of each line is the estimator name; alias groups
     # ("canonical (aliases: ...)") render in the same line.
     for line in lines:
-        PUPipeline(prior_estimator=line.split()[0])  # unknown names raise at construction
+        PUPipeline(
+            classifier="upu", prior_estimator=line.split()[0]
+        )  # unknown names raise at construction

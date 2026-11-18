@@ -10,7 +10,6 @@ import pytest
 
 torch = pytest.importorskip("torch")
 
-from pu_toolbox.advisor import recommend_methods  # noqa: E402
 from pu_toolbox.core.exceptions import NotFittedError  # noqa: E402
 from pu_toolbox.estimators.deep.lagam import (  # noqa: E402
     LaGAMClassifier,
@@ -173,8 +172,7 @@ def test_ledger_does_not_claim_calibration_or_pa_eligibility():
         )
 
 
-def test_registry_declares_support_and_pu_only_recommender_excludes_lagam():
-    X, y, _ = _data()
+def test_registry_declares_support():
     assert get_algorithm("lagam") is LaGAMClassifier
     assert get_algorithm("la_gam") is LaGAMClassifier
     assert get_metadata("lagam").requires_clean_support is True
@@ -183,9 +181,6 @@ def test_registry_declares_support_and_pu_only_recommender_excludes_lagam():
 
     assert tuple(get_metadata("lagam").scenario) == (Scenario.SINGLE_TRAINING_SET,)
     assert native_sampling_assumption(load_ledger()["methods"]["lagam"]) == "os"
-    result = recommend_methods(X, y, class_prior=0.4, top_k=100)
-    assert "lagam" not in {candidate.name for candidate in result.candidates}
-    assert result.filters_applied["clean_support_required"] == "excluded (not provided)"
     with pytest.raises(ValueError, match="requires_clean_support"):
         AlgorithmMetadata(name="invalid", paper="test", requires_clean_support="yes")
 

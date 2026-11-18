@@ -5,7 +5,7 @@
 Combines data profiling, class-prior estimation, model training,
 PU-stratified cross-validation, and diagnostic reporting into a single
 callable workflow so that non-expert users only need ``(X, y_pu)`` and
-a method name (or ``"auto"`` for recommender-driven selection).
+an explicitly chosen classifier.
 """
 
 from __future__ import annotations
@@ -20,7 +20,6 @@ from typing import Any
 import numpy as np
 
 from ..core.base import BasePriorEstimator, BasePUClassifier
-from ..core.device import resolve_device_name
 from ..core.exceptions import PipelineError, RegistryError
 from ..core.tags import Backend, SampleWeightSupport, TrainingCost
 from ..core.validation import (
@@ -35,7 +34,6 @@ from ..model_selection.split import PUStratifiedKFold
 from ..preprocessing.data_profiler import profile_pu_data
 from ..prior.semantics import native_unlabeled_to_population, population_to_native_unlabeled
 from ..progress import CancellationToken, ProgressCallback, emit_progress
-from ..registry import RecommendationResult, recommend_from_profile
 from ..registry.registry import get_algorithm, get_metadata
 from ._evaluation import (
     _METRIC_SPECS,
@@ -53,7 +51,6 @@ from ._models import (
     declares_encoder_parameter,
     fresh_estimator,
     missing_required_params,
-    pick_first_instantiable,
     resolve_classifier_name,
     validate_classifier_params,
     validate_prior_param_types,
@@ -78,19 +75,15 @@ class PUPipeline:
 
     Parameters
     ----------
-    classifier : str, BasePUClassifier, or "auto" (default "auto")
-        Registry name of a PU classifier, a ready-to-use instance, or
-        ``"auto"`` to select the best match via the recommender.  Registry
-        names are resolved case-insensitively through aliases. Classes with
-        extra required constructor parameters can receive them through
-        ``classifier_params``; auto mode still skips such classes because it
-        has no method-specific parameter target.
+    classifier : str or BasePUClassifier
+        Required registry name or configured PU classifier instance.
+        Registry names are resolved case-insensitively through aliases.
     classifier_params : mapping or None (default None)
         Constructor parameters for a classifier selected by registry name.
         This also makes methods with additional required parameters usable by
         name (for example ``classifier="ldce"`` with
         ``classifier_params={"flip_probability": 0.2}``).  It cannot be
-        combined with ``classifier="auto"`` or a classifier instance.
+        combined with a classifier instance.
         ``class_prior``, ``random_state``, and ``encoder`` remain managed by
         the pipeline and must use their dedicated workflow arguments.
     prior_estimator : str, BasePriorEstimator, or None (default "pen_l1")
@@ -143,16 +136,12 @@ class PUPipeline:
     Deep classifiers (``"wconpu"``, ``"infomax_pu"``) with
     ``architecture="cnn"`` expect 4-D NCHW image tensors; class-prior
     estimation and data profiling then run on the flattened view.
-    ``"auto"`` mode can select a deep method when the data is large and
-    a GPU is available (``device=None``/``"auto"`` resolves to CUDA on
-    GPU machines); the selected classifier then gets torch seeding and
-    training-cost warnings like an explicit one.
     """
 
     def __init__(
         self,
         *,
-        classifier: str | BasePUClassifier = "auto",
+        classifier: str | BasePUClassifier,
         classifier_params: dict[str, Any] | None = None,
         prior_estimator: str | BasePriorEstimator | None | object = _UNSET,
         prior_params: dict[str, Any] | None = None,
@@ -184,11 +173,6 @@ class PUPipeline:
                 "classifier_params cannot override pipeline-managed parameters "
                 f"{managed}; use the dedicated PUPipeline arguments instead."
             )
-        if self.classifier_params and classifier == "auto":
-            raise ValueError(
-                "classifier_params requires an explicit classifier name; "
-                "parameters cannot be applied before auto selects a method."
-            )
         if self.classifier_params and isinstance(classifier, BasePUClassifier):
             raise TypeError(
                 "classifier_params cannot be combined with a classifier instance; "
@@ -198,7 +182,7 @@ class PUPipeline:
         self.metrics = resolve_metric_names(metrics)
 
         # -- classifier: fail fast on unresolvable names -----------------
-        if isinstance(classifier, str) and classifier != "auto":
+        if isinstance(classifier, str):
             self._classifier_cls = resolve_classifier_name(
                 classifier, provided_params=set(self.classifier_params) | {"input_sampling"}
             )
@@ -208,12 +192,9 @@ class PUPipeline:
             validate_label_semantics(classifier, "pu")
             self._classifier_cls = None
             self._classifier_name = type(classifier).__name__
-        elif classifier == "auto":
-            self._classifier_cls = None
-            self._classifier_name = "auto"
         else:
             raise TypeError(
-                "classifier must be 'auto', a registry name, or a BasePUClassifier "
+                "classifier must be a registry name or a BasePUClassifier "
                 f"instance; got {type(classifier).__name__}."
             )
 
@@ -222,12 +203,8 @@ class PUPipeline:
             raise ValueError("architecture must be 'mlp' or 'cnn'")
         if backbone not in CNN_BACKBONES:
             raise ValueError(f"backbone must be one of {CNN_BACKBONES}")
-        if self._classifier_cls is not None:
-            self._is_deep = getattr(self._classifier_cls, "backend", None) == Backend.TORCH
-        elif isinstance(classifier, BasePUClassifier):
-            self._is_deep = getattr(classifier, "backend", None) == Backend.TORCH
-        else:  # auto
-            self._is_deep = False
+        backend = getattr(self._classifier_cls or classifier, "backend", None)
+        self._is_deep = backend == Backend.TORCH
         if architecture == "cnn":
             cnn_methods = cnn_capable_classifier_names()
             cnn_hint = ", ".join(cnn_methods) if cnn_methods else "no registered methods"
@@ -353,8 +330,7 @@ class PUPipeline:
         """
         if cancellation_token is not None:
             cancellation_token.raise_if_cancelled()
-        if self._classifier_name != "auto":
-            validate_label_semantics(self._classifier_cls or self.classifier, "pu")
+        validate_label_semantics(self._classifier_cls or self.classifier, "pu")
         emit_progress(
             progress_callback,
             stage="prepare",
@@ -366,25 +342,15 @@ class PUPipeline:
         sample_weight = validate_sample_weight(sample_weight, X.shape[0])
         total_steps = n_splits + (4 if refit else 3)
 
-        # -- Resolve classifier ------------------------------------------
-        auto_mode = self._classifier_name == "auto"
-        if auto_mode:
-            classifier_cls: type[BasePUClassifier] | None = None
-            classifier_instance: BasePUClassifier | None = None
-        elif self._classifier_cls is not None:
-            classifier_cls = self._classifier_cls
-            classifier_instance = None
-        else:
-            classifier_cls = None
-            classifier_instance = self.classifier
-
-        # -- Resolve class prior (explicit > constructor > estimate) -----
-        if auto_mode:
-            needs_prior = True
-        elif classifier_cls is not None:
-            needs_prior = bool(get_metadata(self._classifier_name).requires_class_prior)
-        else:
-            needs_prior = bool(classifier_instance.requires_class_prior)
+        classifier_cls = self._classifier_cls
+        classifier = self.classifier
+        classifier_instance = classifier if isinstance(classifier, BasePUClassifier) else None
+        classifier_name = self._classifier_name
+        needs_prior = (
+            classifier_instance.requires_class_prior
+            if classifier_instance is not None
+            else get_metadata(classifier_name).requires_class_prior
+        )
         if cancellation_token is not None:
             cancellation_token.raise_if_cancelled()
         prior, prior_info = self._resolve_prior(
@@ -393,7 +359,6 @@ class PUPipeline:
             class_prior=class_prior,
             classifier_instance=classifier_instance,
             needs_prior=needs_prior,
-            allow_degradation=auto_mode,
         )
         emit_progress(
             progress_callback,
@@ -403,7 +368,7 @@ class PUPipeline:
             message="类先验处理完成",
         )
 
-        # -- Data profile (once, reused by recommender and report) -------
+        # -- Data profile ------------------------------------------------
         if cancellation_token is not None:
             cancellation_token.raise_if_cancelled()
         profile = profile_pu_data(
@@ -421,40 +386,6 @@ class PUPipeline:
             total=total_steps,
             message="数据画像与模型准备完成",
         )
-
-        # -- Auto mode: recommend first, then instantiate ---------------
-        skipped_candidates: list[dict[str, str]] = []
-        recommendation: RecommendationResult | None = None
-        if auto_mode:
-            recommendation = recommend_from_profile(
-                profile,
-                class_prior=prior,
-                class_prior_source=prior_info.source,
-                # A resolved CUDA device declares GPU availability to the
-                # recommender's GPU dimension; otherwise the GPU bonus
-                # (gpu_max) is unreachable and deep methods are never
-                # considered on large data.
-                has_gpu=resolve_device_name(self.device) == "cuda",
-                top_k=10,
-            )
-            classifier_cls, skipped_candidates = pick_first_instantiable(recommendation.candidates)
-            if classifier_cls is None:
-                raise PipelineError(
-                    "auto mode found no candidate that can be auto-instantiated. "
-                    "Pass an explicit classifier= instance (e.g. LDCE needs "
-                    "flip_probability). Skipped: "
-                    + "; ".join(f"{s['name']} ({s['reason']})" for s in skipped_candidates)
-                )
-            classifier_name = classifier_cls.__name__
-            # Recompute the deep flag for the selected method: the
-            # recommender can pick a TORCH method on large data, and the
-            # training-cost warning / torch seeding below must see it.
-            self._is_deep = getattr(classifier_cls, "backend", None) == Backend.TORCH
-
-        elif classifier_cls is not None:
-            classifier_name = self._classifier_name
-        else:
-            classifier_name = type(classifier_instance).__name__
 
         if sample_weight is not None:
             support_owner = classifier_cls or type(classifier_instance)
@@ -594,12 +525,9 @@ class PUPipeline:
         report = build_pipeline_report(
             profile=profile,
             prior_info=prior_info,
-            recommendation=recommendation,
             cv_metrics=cv_metrics,
             classifier_name=classifier_name,
-            auto_mode=auto_mode,
             classifier_cls=classifier_cls,
-            skipped_candidates=skipped_candidates,
             y_true=y_true,
             splitter=splitter,
             n_splits=n_splits,
@@ -632,16 +560,12 @@ class PUPipeline:
         class_prior: float | None,
         classifier_instance: BasePUClassifier | None,
         needs_prior: bool,
-        allow_degradation: bool = False,
     ) -> tuple[float | None, PriorInfo]:
         """Resolve the class prior: explicit > constructor > estimation.
 
         ``y_true`` is deliberately not a parameter: class priors are never
         estimated from ground-truth labels.
 
-        With ``allow_degradation`` (auto mode), a failed or invalid
-        estimation degrades to a no-prior run instead of raising: the
-        recommender then simply excludes prior-requiring methods.
         """
         if class_prior is not None:
             _validate_prior_value(class_prior, "class_prior")
@@ -679,20 +603,6 @@ class PUPipeline:
                 input_sampling=self.input_sampling,
             )
         if prior_spec is None:
-            if allow_degradation:
-                # Auto mode with estimation disabled: fall back to a
-                # no-prior run; the recommender excludes prior-requiring
-                # methods (recommend_from_profile accepts class_prior=None).
-                return None, PriorInfo(
-                    value=None,
-                    source="none",
-                    method_requires_prior=needs_prior,
-                    input_sampling=self.input_sampling,
-                    degraded=(
-                        "class-prior estimation disabled (prior_estimator=None); "
-                        "auto mode will only consider methods that need no prior"
-                    ),
-                )
             raise PipelineError(
                 "The selected method requires a class prior, but none was "
                 "provided or estimated (prior_estimator=None). Pass "
@@ -722,18 +632,6 @@ class PUPipeline:
             target = estimator.estimate_target
             value, conversion = self._population_prior(float(raw_value), target, y_pu)
         except Exception as exc:
-            if allow_degradation:
-                # Auto mode: fall back to a no-prior run; the recommender
-                # will exclude prior-requiring methods and the report
-                # records the degradation.
-                return None, PriorInfo(
-                    value=None,
-                    source="none",
-                    method_requires_prior=needs_prior,
-                    estimator=estimator_name,
-                    input_sampling=self.input_sampling,
-                    degraded=f"estimation with {estimator_name!r} failed: {exc}",
-                )
             raise PipelineError(
                 f"Class-prior estimation with {estimator_name!r} failed: {exc}"
             ) from exc

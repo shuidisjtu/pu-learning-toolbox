@@ -15,7 +15,7 @@ import pandas as pd
 
 from ..estimators.deep.vision import CNN_BACKBONES
 from ..model_selection import PUModelComparator, PUTuner
-from ..run_config import RunConfiguration
+from ..run_config import RunConfiguration, _is_auto_classifier
 from ..workflows import PUPipeline
 from ..workflows._models import cnn_capable_classifier_names
 
@@ -109,7 +109,7 @@ def build_run_parser(sub: argparse._SubParsersAction) -> None:
         "values are coerced to int/float when possible",
     )
     parser.add_argument(
-        "--classifier", type=str, default="auto", help="registered method name or 'auto'"
+        "--classifier", type=str, default=None, help="explicit registered method name"
     )
     parser.add_argument(
         "--classifier-param",
@@ -173,6 +173,14 @@ def _run(args: argparse.Namespace) -> None:
     labels_path = Path(args.labels)
     out_dir = Path(args.out_dir)
 
+    config_path = getattr(args, "config", None)
+    config = RunConfiguration.load(config_path) if config_path is not None else None
+    classifier = _configured_value(args.classifier, None, config, "classifier")
+    if _is_auto_classifier(classifier):
+        raise ValueError("classifier auto is no longer supported; choose an explicit classifier.")
+    if classifier is None and not (config is not None and config.comparison_classifiers):
+        raise ValueError("classifier is required unless comparing explicit classifiers.")
+
     X = _load_features(data_path)
     y_pu = _load_label_column(labels_path, "labels")
     y_true = (
@@ -181,9 +189,6 @@ def _run(args: argparse.Namespace) -> None:
         else None
     )
 
-    config_path = getattr(args, "config", None)
-    config = RunConfiguration.load(config_path) if config_path is not None else None
-    classifier = _configured_value(args.classifier, "auto", config, "classifier")
     prior_name = _configured_value(args.prior_estimator, "pen_l1", config, "prior_estimator")
     prior_estimator: str | None = None if prior_name == "none" else prior_name
     prior_params = _parse_prior_params(args.prior_param)
@@ -232,8 +237,6 @@ def _run(args: argparse.Namespace) -> None:
         ).fit(X, y_pu, y_true=y_true, class_prior=class_prior)
         report = comparison.best_report
     elif config is not None and config.tuning_grid:
-        if classifier == "auto":
-            raise ValueError("a tuning configuration requires an explicit classifier.")
         varied_grid = {
             key: values
             for key, values in config.tuning_grid.items()

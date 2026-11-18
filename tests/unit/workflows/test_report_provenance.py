@@ -28,12 +28,9 @@ def _report(*, architecture, backbone, device, encoder_in_channels):
     return build_pipeline_report(
         profile=profile,
         prior_info=PriorInfo(value=0.3, source="user", method_requires_prior=True),
-        recommendation=None,
         cv_metrics={},
         classifier_name="wconpu",
-        auto_mode=False,
         classifier_cls=None,
-        skipped_candidates=[],
         y_true=None,
         splitter=None,
         n_splits=2,
