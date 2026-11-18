@@ -27,7 +27,7 @@
    uv venv /tmp/pu-release-venv --python 3.11
    uv pip install --python <venv>/Scripts/python.exe dist/*.whl
    # 在 venv 内跑 quickstart 三步:make-demo-data → run → report.json schema_version 校验
-   # 跑 PUPipeline 最小流程 + 抽查 examples/minimal/ 1-2 个脚本
+   # 跑显式 estimator 训练与独立 CLI 冒烟 + 抽查 examples/minimal/ 1-2 个脚本
    ```
    验收后清理临时 venv
 

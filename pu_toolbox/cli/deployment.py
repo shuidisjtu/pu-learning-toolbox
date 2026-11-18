@@ -13,7 +13,7 @@ from pathlib import Path
 import pandas as pd
 
 from ..diagnostics import PUShiftMonitor, analyze_pu_uncertainty
-from .run import _load_features, _load_label_column
+from ._data import _load_features, _load_label_column
 
 __all__ = ["build_deployment_parser", "run_review", "run_shift_monitor"]
 

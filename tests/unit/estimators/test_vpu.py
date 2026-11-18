@@ -16,7 +16,6 @@ from pu_toolbox.core.exceptions import NotFittedError, ValidationError  # noqa: 
 from pu_toolbox.estimators.risk.vpu import VPUClassifier, vpu_objective  # noqa: E402
 from pu_toolbox.experiment.checkpoints import EpochCheckpointTrainer  # noqa: E402
 from pu_toolbox.registry import get_algorithm  # noqa: E402
-from pu_toolbox.workflows import PUPipeline  # noqa: E402
 
 pytestmark = pytest.mark.unit
 
@@ -159,21 +158,6 @@ def test_weights_only_roundtrip_preserves_calibrated_scores():
         values = restored(torch.as_tensor(X, device=device)).flatten().cpu().numpy()
     np.testing.assert_allclose(values, fitted.decision_function(X), atol=1e-6)
     assert math.isfinite(fitted.max_log_phi_)
-
-
-@pytest.mark.integration
-def test_pipeline_resolves_vpu_without_prior():
-    X, y = _data()
-    report = PUPipeline(
-        classifier="vpu",
-        classifier_params={"hidden_dim": 8, "batch_size": 5},
-        prior_estimator=None,
-        max_epochs=2,
-        evaluation_cv=2,
-        random_state=7,
-    ).fit_evaluate(X, y)
-    assert isinstance(report.final_model, VPUClassifier)
-    assert report.final_model.predict(X).shape == (len(X),)
 
 
 @pytest.mark.gpu

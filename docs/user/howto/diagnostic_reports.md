@@ -1,6 +1,6 @@
 # Generating Diagnostic Reports
 
-> Prerequisites: complete the [quickstart](../quickstart.md) and [pipeline guide](pipeline.md).
+> Prerequisites: complete the [quickstart](../quickstart.md) and [migration guide](pipeline.md).
 > See [the PU problem](../concepts/pu_problem.md) for metrics and the roles of π.
 
 `build_diagnostic_report` combines data profiles, model outputs, PU metrics, optional supervised

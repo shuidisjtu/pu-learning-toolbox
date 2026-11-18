@@ -105,7 +105,7 @@ class TEDnClassifier(BasePUClassifier):
 
     The default MLP/Adam and finite convergence tolerance/patience are engineering
     choices, not the author's image/text recipes or an approved survey budget.
-    This class is not registered in the OS pipeline or frozen survey matrix.
+    This class is not part of the frozen survey matrix.
     """
 
     family = AlgorithmFamily.RISK_ESTIMATION

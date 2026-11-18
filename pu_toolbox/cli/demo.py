@@ -42,13 +42,9 @@ def run_demo(args: argparse.Namespace) -> None:
     """Generate demo CSVs into ``--out-dir``."""
     n_labeled = max(1, round(args.n * args.c))
     if n_labeled < 5:
-        # The demo must be consumable by `run` with its default 5-fold CV:
-        # PUPipeline rejects n_labeled_positives < n_splits.  --evaluation-cv 2 is the
-        # escape hatch for very small demos.
         raise ValueError(
-            f"--n/--c produce {n_labeled} labeled positives, fewer than the "
-            "default 5-fold CV requires; increase --n (e.g. --n 10 at c=0.5) "
-            f"or run with --evaluation-cv 2. Got n={args.n}, c={args.c}."
+            f"Demo data requires at least 5 labeled positives; --n/--c produce {n_labeled}. "
+            f"Increase --n or --c (got n={args.n}, c={args.c})."
         )
     X, y_pu, y_true = make_scar_dataset(
         n=args.n,
@@ -60,7 +56,7 @@ def run_demo(args: argparse.Namespace) -> None:
     out = Path(args.out_dir)
     out.mkdir(parents=True, exist_ok=True)
     # String feature names: numeric headers are indistinguishable from data
-    # rows when `run` checks for a missing header (see cli/run.py).
+    # rows when a CLI reader checks for a missing header.
     pd.DataFrame(X, columns=[f"feature_{i}" for i in range(X.shape[1])]).to_csv(
         out / "X.csv", index=False
     )

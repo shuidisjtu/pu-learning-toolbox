@@ -27,7 +27,6 @@ Full self-calibration also needs an independent `(X_val, y_val)`. These are true
 encoded as `{0, 1}` or `{-1, 1}`, with both classes present. They drive meta-gradients and
 final teacher selection. Do not substitute test data for this support/validation role.
 
-The Pipeline accepts a population prior and converts it for its training consumers.
 Direct calls retain the estimator's risk-view contract; `os_or_ts` controls that view,
 separately from how input data were sampled.
 
@@ -70,7 +69,7 @@ Install the torch extra before using this classifier. The example requests CUDA;
 The default backbone is a two-layer MLP for tabular or flattened inputs. Direct estimator calls
 also accept NCHW image arrays with a custom PyTorch `backbone` returning shape `(n_samples,)`
 or `(n_samples, 1)`. This custom-backbone route does not declare native CNN support or expose
-the Pipeline's `encoder` injection interface.
+the shared `encoder` injection interface.
 
 ## 3. Ablation without clean validation
 
@@ -86,8 +85,7 @@ is supplied, PU-validation nnPU risk selects a teacher/checkpoint. With neither 
 validation, training-set nnPU risk selects the final teacher.
 
 This path is not full Self-PU. For full-meta experiments, set `require_validation=True`
-so missing clean validation fails immediately. A generic Pipeline/CLI workflow does not expose
-this independent clean-validation input; use the direct estimator API or a trainer that
+so missing clean validation fails immediately. Use the direct estimator API or a trainer that
 explicitly supplies isolated support data.
 
 ## 4. Training stages and state
@@ -156,4 +154,4 @@ does not report independent-test performance or establish numerical reproduction
   budgets and `PA+clean-support`/OA; interpret that supervision separately from purely PU PA,
   and check the applicable versioned Survey recipe before attributing results.
 - For the generic workflow and its available input roles, see [pipeline](pipeline.md).
-- Generate [diagnostic reports](diagnostic_reports.md).
+- Use [data profiling](data_profiling.md) for independent diagnostics.

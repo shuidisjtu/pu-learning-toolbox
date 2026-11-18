@@ -1,6 +1,6 @@
 # Class-Prior and Labeling-Propensity Sensitivity
 
-> Prerequisites: complete the [quickstart](../quickstart.md) and [pipeline guide](pipeline.md).
+> Prerequisites: complete the [quickstart](../quickstart.md) and [migration guide](pipeline.md).
 > See [the PU problem](../concepts/pu_problem.md) for $`q=\pi\bar c`$ and identifiability.
 
 `analyze_pu_sensitivity` holds model outputs fixed while scanning OS population priors and mean

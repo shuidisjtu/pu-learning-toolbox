@@ -39,7 +39,7 @@ upstream compatibility problems; this updates only its temporary checkout.
 The lockfile replaced `requirements.txt`, which was removed on 2026-09-08.
 
 **Base-import guarantee:** the package's own imports must work when optional dependencies are
-unavailable. Blocking `torch`, `torchvision`, and `streamlit` has been verified to leave
+unavailable. Blocking `torch` and `torchvision` has been verified to leave
 `import pu_toolbox` working. There are no unconditional module-level torch imports.
 The two module-scope torch import statements are guarded:
 
@@ -64,12 +64,9 @@ CI separates these responsibilities:
 2. **Static quality gates:** Python 3.11 runs the static checks. The authoritative commands are the
    Quality gates block under Development in [README](../../README.md) and the `quality` job in
    `.github/workflows/tests.yml`; use those lists to avoid maintaining a divergent copy.
-3. **UI tests:** a dedicated Python 3.11 job installs the UI extra and exercises the Streamlit
-   application.
-4. **Build and install wheel:** build the sdist and wheel, install the wheel in an isolated
-   environment, and verify the version, diagnostics import, nonempty registry, CLI entry points,
-   and optional UI entry point from outside the checkout.
-5. **Weekly slow suite:** the workflow named Nightly runs every Monday at 03:23 UTC on the same
+3. **Build and install wheel:** build the sdist and wheel, install the wheel in an isolated
+   environment, and verify the version, diagnostics import, nonempty registry, and standalone CLI entry point from outside the checkout.
+4. **Weekly slow suite:** the workflow named Nightly runs every Monday at 03:23 UTC on the same
    3 × 3 matrix. It executes `-m "slow or e2e"` with the same test dependencies, including
    torchvision.
 

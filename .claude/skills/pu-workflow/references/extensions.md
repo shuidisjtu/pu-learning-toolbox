@@ -18,28 +18,9 @@ and `provenance`. `source_importance_weights.csv` records source-row
 identity and the estimated bounded covariate weights. Report the
 source/target separability evidence and overlap diagnostics.
 
-For an authorized paired model comparison, use target PU labels:
-
-```bash
-uv run pu-toolbox shift-run --source-data X_source.csv --source-labels y_source.csv --target-data X_target.csv --target-labels y_target.csv --classifier elkan_noto --evaluation-cv 3 --shift-cv 3 --out-dir work/shift-run
-```
-
-Supply source `--class-prior`, `--target-class-prior`, and source/target
-truth files when available. Select a classifier with the required
-sample-weight support. Record the adaptation assumptions, permitted
-budget and any explicit overlap-policy choice before executing that
-choice. The default overlap policy determines whether the weighted arm
-runs; read the resulting recommendation and executed arms.
-
-Read `shift_comparison.json`: `baseline`, `weighted`, `metric_deltas`,
-`primary_metric`, `recommendation` and `provenance`. For each available
-comparison, report its evaluation population, metric basis, raw delta
-and `improvement` (positive means the weighted arm performed better).
-The directory also contains the shift report, source weights and
-`target_predictions.csv`.
-
-Completion: the requested audit or paired comparison exists and its
-recorded evidence, executed arms and recommendation have been explained.
+The audit does not fit a PU classifier or establish that weighting improves
+predictions. For a caller-defined weighted experiment, confirm overlap,
+estimator weight support and an independent target evaluation design.
 
 ## Window monitoring
 
@@ -62,11 +43,10 @@ stable-window result has been explained with its observed values.
 
 ## Human-review queue
 
-Use a trusted `model.pkl` produced by the analysis route's
-`--save-model`. Match its feature preprocessing at inference time.
+Use a trusted `model.pkl` saved after fitting a Python estimator. Match its feature preprocessing at inference time.
 
 ```bash
-uv run pu-toolbox review --model work/run/model.pkl --data X.csv --labels y_pu.csv --query-strategy diverse_uncertainty --query-budget 20 --min-confidence 0.5 --out-dir work/review
+uv run pu-toolbox review --model work/model.pkl --data X.csv --labels y_pu.csv --query-strategy diverse_uncertainty --query-budget 20 --min-confidence 0.5 --out-dir work/review
 ```
 
 Optional inputs include `--true-labels` and a headered single-column

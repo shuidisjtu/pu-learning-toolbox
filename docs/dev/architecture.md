@@ -19,11 +19,10 @@ setting](../user/concepts/pu_problem.md). The [semantic baseline](pu_research_se
 and [ADR-0021](../adr/0021-pu-research-semantics.md) provide optional Chinese
 implementation history and decision rationale.
 
-`prior/semantics.py` supplies OS/TS probability-mass conversions. The pipeline resolves
-an estimate to a population prior, then converts it per fold to the estimator's
-default view target; `PriorInfo` records the values actually consumed. The experiment
-layer's CVIR adapter reuses these conversions while retaining its research risk
-views and parameter-binding policy. `preprocessing/_sampling.py` centralizes fixed
+`prior/semantics.py` supplies OS/TS probability-mass conversions. Callers route
+priors to the target consumed by the estimator's actual training risk pool.
+The experiment CVIR adapter reuses these conversions under its research policies.
+`preprocessing/_sampling.py` centralizes fixed
 positive quotas and uniform sampling without replacement for labeling entry points
 and experiment generators.
 
@@ -66,14 +65,13 @@ maturity describe provenance and stability independently of registry availabilit
 | Module | Responsibility | Details |
 |---|---|---|
 | `metrics/` | PU-only metrics and wrappers for standard supervised metrics | [Exports](../../pu_toolbox/metrics/__init__.py), [metric contract (Chinese)](../research/traditional_pu/traditional_pu_metric_contract.md) |
-| `model_selection/` | PU-stratified splitting, tuning, and comparison | [Exports](../../pu_toolbox/model_selection/__init__.py), [tuning guide](../user/howto/model_tuning.md) |
+| `model_selection/` | PU-stratified splitting | [Exports](../../pu_toolbox/model_selection/__init__.py), [model selection guide](../user/howto/model_tuning.md) |
 | `diagnostics/` | Structured diagnostic reports and assumption sensitivity analysis | [Exports](../../pu_toolbox/diagnostics/__init__.py), [report guide](../user/howto/diagnostic_reports.md) |
 
-### Orchestration — end-to-end workflows and CLI
+### Orchestration — standalone CLI
 
 | Module | Responsibility | Details |
 |---|---|---|
-| `workflows/` | PUPipeline orchestration and shift-aware workflows | [Exports](../../pu_toolbox/workflows/__init__.py), [pipeline guide](../user/howto/pipeline.md), [shift guide](../user/howto/distribution_shift.md) |
 | `cli/` | Thin command-line wrappers | [CLI guide](../user/howto/cli.md), [exports](../../pu_toolbox/cli/__init__.py) |
 
 ### Experiment — experiment and research protocols
@@ -82,12 +80,11 @@ maturity describe provenance and stability independently of registry availabilit
 |---|---|---|
 | `experiment/` | Protocol-based research orchestration: four data roles (`train/pu_val/clean_val/test`), independent PA/OA offline selection, independent test evaluation, and versioned provenance. `ExperimentRunner` provides a fixed skeleton with injectable generation, training, and selection strategies (`Generator`/`Trainer`/`SelectionProtocol`). | [Exports](../../pu_toolbox/experiment/__init__.py), [design background (Chinese)](experiment_layer.md), [ADR-0018 (Chinese)](../adr/0018-experiment-layer-public-api.md) |
 
-### User Layer — tutorials, UI, reproduction tools, and agent wrappers
+### User Layer — tutorials, reproduction tools, and agent wrappers
 
 | Module | Responsibility | Details |
 |---|---|---|
 | `examples/` | Tutorials and minimal examples | [Examples](../../examples/) |
-| `ui/` | Optional graphical interface; core installation does not import Streamlit | [Exports](../../pu_toolbox/ui/__init__.py), [UI guide](../user/howto/ui.md) |
 | `benchmarks/` | Paper-reproduction runners, official-data integration, and artifact handling at the repository root; operators supply official data | [Benchmarks](../../benchmarks/) |
 | `scripts/pu_workflow/` | Compatibility wrappers delegating to CLI subcommands | [Wrappers](../../scripts/pu_workflow/) |
 | pu-workflow skill | Routes agent tasks to CLI/public Python APIs and loads analysis, sampling/prior, research, representation, and extension references as needed | [Skill entry](../../.claude/skills/pu-workflow/SKILL.md) |
@@ -102,10 +99,10 @@ maturity describe provenance and stability independently of registry availabilit
 | Core (`core/`, `preprocessing/`, `registry/`, `utils/`) | — |
 | Estimation (`prior/`, `losses/`) | Core |
 | Algorithms (`estimators/`) | Core, Estimation |
-| Evaluation (`metrics/`, `model_selection/`, `diagnostics/`) | Core, Estimation (function-local only), Orchestration |
-| Orchestration (`workflows/`, `cli/`) | Core, Estimation, Algorithms, Evaluation |
+| Evaluation (`metrics/`, `model_selection/`, `diagnostics/`) | Core, Estimation (function-local only) |
+| Orchestration (`cli/`) | Core, Evaluation |
 | Experiment (`experiment/`) | Core, Estimation, Algorithms (function-local only), Evaluation (function-local only) |
-| User Layer (`ui/`, `benchmarks/`) | Core, Estimation, Algorithms, Evaluation, Orchestration |
+| User Layer (`benchmarks/`) | Core, Estimation, Algorithms, Evaluation |
 <!-- END: layer-deps -->
 
 The table is generated by `scripts/generate_layer_deps.py` using an AST scan of all
@@ -120,16 +117,11 @@ within Evaluation, `diagnostics/report.py` and `diagnostics/sensitivity.py` depe
 There are two within-layer cycles that involve function-local imports and therefore
 do not appear in a module-load graph: `estimators/risk/kldce.py` ↔ `kldce_smo.py`,
 and `experiment/survey_execution.py` ↔ `survey_protocol.py`. There are **no
-cross-layer import cycles**. At the aggregated layer level, Evaluation and
-Orchestration point to each other; Evaluation → Orchestration is the approved
-upward exception described below, while the reverse direction is normal.
+cross-layer import cycles**.
 
-**Top-level files outside the layer map**:
-`pu_toolbox/__init__.py` (the umbrella re-export facade), `pu_toolbox/run_config.py`,
-and `pu_toolbox/progress.py` are excluded from the table. `run_config.py` does
-depend upward on `estimators.deep.vision` and `workflows`; it is an unlayered
-top-level convenience module. Although `benchmarks/` is outside the Python package,
-it belongs to User Layer and is included in the scan.
+**Top-level file outside the layer map**:
+`pu_toolbox/__init__.py` is the package re-export facade. Although `benchmarks/`
+is outside the Python package, it belongs to User Layer and is included in the scan.
 
 **Leaf entry point and guards (maintained manually)**:
 no layer depends on Experiment. `tests/contract/test_layer_boundaries.py` guards
@@ -146,12 +138,6 @@ catches transitive imports. Their individual blind spots are documented in the t
    `tests/contract/test_registry_dynamic_import.py` guards its meaning.
    Name-based lookup decouples the experiment layer from algorithm families:
    adding an algorithm requires registration.
-2. **`model_selection` → `workflows` (Evaluation → Orchestration, upward)**:
-   `model_selection/comparison.py` and `tuning.py` statically depend on
-   `PUPipeline`. `model_selection/__init__.py` lazily loads these modules using
-   PEP 562 module-level `__getattr__`. Tuning and comparison built on a PU-aware
-   workflow remain Evaluation responsibilities; moving them would cost more than
-   it would improve the boundary.
 
 **Survey attribution in general-layer docstrings**:
 some general-layer docstrings mention Survey context. These references do not
@@ -213,51 +199,23 @@ The layer list is an overview; consult the annotated
 
 ## 3. Data flow
 
-The main chain is `PUPipeline.fit_evaluate`, from input data to reports.
-Brackets identify modules using the layer terminology above.
+For existing PU observations, callers compose standalone operations: profile
+input data, choose a registered estimator, resolve priors to its actual risk
+pool, call `fit`, and evaluate in the intended assessment population. There is
+no combined single-table validation or candidate-selection workflow. See
+[ADR 0024](../adr/0024-estimator-and-experiment-workflows.md).
 
-```text
-User input (X, y_pu[, y_true])
-  ↓ Validation + label normalization                [core/validation + labels]
-Data profile                                        [preprocessing/data_profiler]
-  ↓ Profile issues include an error → fail fast
-Explicit classifier selected by caller               [registry or instance]
-  ↓ Validate capabilities and required inputs
-Class-prior estimation (when needed)                 [prior/*]
-  ↑ Only for requires_class_prior=True; skip methods that do not require π
-    (e.g. PUSB/LBE/Elkan-Noto/InfoMax PU)
-Training (including CV splitting)                    [estimators/* + model_selection/split]
-  ↓ predict / decision_function / predict_proba
-Evaluation + diagnostics → report                   [metrics + diagnostics → workflows/report]
-```
-
-- **Input contract**: `X` / `y_pu` are PU data prepared by the user. Researchers
-  choose samples and decide which positives receive labels outside the toolbox;
-  the toolbox treats them as supplied inputs. Simulators
-  (`make_sar_*`/`make_scar_labels`/demos) support synthetic research and do not
-  replace real-world sampling. Optional `y_true` is used only for supervised
-  metrics and auditing, never for training.
-- **Profiling semantics**: `PUDataProfile` contains basic statistics, feature
-  quality, issue severity, recommended actions, and labeling-mechanism evidence.
-  Without audit `y_true`, SCAR/SAR hints are explicitly non-identifying screening.
-  With `y_true`, selection dependence is evaluated only within true positives,
-  avoiding confusion between class separability and SAR.
-- **Two-domain path**, separate from the single-domain entry point:
-  `analyze_pu_shift` uses an out-of-fold domain classifier to estimate observable
-  marginal shift and relative density ratios. Once coverage gates pass,
-  `ShiftAwarePUPipeline` passes source-domain weights per fold to `PUPipeline`.
-  This path is restricted to covariate shift; marginal weights are not described
-  as joint `p_target(x,y)/p_source(x,y)` adaptation.
-- **Report assembly**: `build_diagnostic_report` in `diagnostics` reads profiles,
-  fitted estimators, and metric interfaces without training models. Stable-schema
-  JSON/Markdown reports distinguish observed-PU metrics, class-prior-dependent
-  metrics, supervised-oracle metrics, and unavailable metrics.
+- Profiling reports label and feature evidence, not an algorithm ranking.
+- Prior conversions and sample weighting follow the actual estimator contract.
+- `build_diagnostic_report` does not train models. Keep observed-PU,
+  prior-dependent, and supervised metrics distinct.
+- `analyze_pu_shift` estimates marginal drift and bounded covariate weights.
+  The audit does not compare fitted baseline and weighted models or estimate
+  general joint density ratios.
 
 ### 3.1 Experiment-layer data flow
 
-The experiment layer is a second entry point for researchers, using explicit data
-roles and selection protocols. It runs alongside the PUPipeline path and bypasses
-automatic method ranking.
+Use the experiment layer when the four input roles and selection protocols are explicit.
 
 ```text
 Four clean-view roles: train/pu_val/clean_val/test    [bundle/DatasetPart + core/validation]
@@ -363,17 +321,16 @@ See [protocol §4](../research/pu_survey/pu_survey_protocol.md#4-target-algorith
 for semantics and [the ledger](../../pu_toolbox/experiment/method_ledger.json)
 for current fields.
 
-Method selection is explicit: callers inspect registry capabilities and provide a classifier
-or candidate set. Profiling and prior estimation inform that choice but do not rank methods.
-`PUTuner` and `PUModelComparator` evaluate explicit candidates using validation evidence.
-Advisor rankings and automatic classifier selection are retired; the advisor package and its
-public exports have been removed. See [ADR 0023](../adr/0023-explicit-method-selection.md).
+Method selection is explicit. Callers inspect registry capabilities and supply
+an estimator or declare candidates under a study protocol. Profile and prior
+estimation inform the choice but do not rank methods. See [ADR 0023](../adr/0023-explicit-method-selection.md)
+and [ADR 0024](../adr/0024-estimator-and-experiment-workflows.md).
 
 ## 5. Evaluation and splitting
 
 | Capability | Architectural contract | Details |
 |---|---|---|
-| PU-stratified splitting | `PUStratifiedKFold` / `PUStratifiedShuffleSplit` preserve P/U proportions and ensure each training fold contains labeled positives | [Tuning guide](../user/howto/model_tuning.md) |
+| PU-stratified splitting | `PUStratifiedKFold` / `PUStratifiedShuffleSplit` preserve P/U proportions and ensure each training fold contains labeled positives | [Model selection guide](../user/howto/model_tuning.md) |
 | PU metrics | PU-only `pu_zero_one_risk`/`pu_recall`/`pu_estimated_precision`/`pu_negative_rate` do not require true labels; standard supervised wrappers (AUC/F1/Accuracy, etc.) require truth | [Metric contract (Chinese)](../research/traditional_pu/traditional_pu_metric_contract.md) |
 | SCAR/SAR evidence | Non-identifying screening without audit truth; selection-dependence checks within true positives when `y_true` is supplied | [Profiling guide](../user/howto/data_profiling.md) |
 | Structured reports | `build_diagnostic_report` reads profiles, fitted estimators, and metrics without training; outputs stable-schema JSON/Markdown | [Report guide](../user/howto/diagnostic_reports.md) |

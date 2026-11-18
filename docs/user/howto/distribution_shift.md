@@ -69,74 +69,9 @@ shift.save("source_importance_weights.csv")
 The weights CSV preserves one-to-one source-row alignment. JSON stores weight summaries and
 artifact names rather than the full weight vector, keeping reports bounded as sample counts grow.
 
-## Python: explicitly enable covariate adaptation
+## Adaptation boundary
 
-```python
-from pu_toolbox.workflows import ShiftAwarePUPipeline
-
-workflow = ShiftAwarePUPipeline(
-    classifier="elkan_noto",  # Default; the method must actually use sample_weight.
-    evaluation_cv=5,
-    shift_cv=5,
-    random_state=42,
-)
-report = workflow.fit_evaluate(
-    X_source,
-    y_source_pu,
-    X_target,
-    y_target_pu=y_target_pu,
-    y_true_target=y_true_target,        # Optional, for oracle evaluation only.
-    target_class_prior=0.30,            # Optional; enables prior-dependent target metrics.
-)
-
-print(report.shift.to_markdown())
-print(report.target_metrics["pu_auc_roc"].mean)
-```
-
-The workflow slices source weights by CV training fold and passes them to the final refit.
-Methods declaring `sample_weight_support="ignored"`, such as `upu` and `pnu`, fail immediately
-instead of silently ignoring adaptation weights. See the
-[API reference](../reference/api/classifiers.md#sample_weight-support-levels) for weight-support contracts.
-
-For an audit plus an unweighted source baseline:
-
-```python
-report = workflow.fit_evaluate(
-    X_source,
-    y_source_pu,
-    X_target,
-    adapt=False,
-)
-```
-
-Failed coverage checks raise `PipelineError` by default. Controlled research can set
-`allow_unstable=True`; warnings remain in the report. This is not recommended for production.
-
-## CLI: compare paired arms before deciding
-
-```bash
-pu-toolbox shift-run \
-  --source-data source/X.csv \
-  --source-labels source/y_pu.csv \
-  --target-data target/X.csv \
-  --target-labels target/y_pu.csv \
-  --target-class-prior 0.30 \
-  --classifier elkan_noto \
-  --evaluation-cv 5 --shift-cv 5 \
-  --out-dir shift_comparison/
-```
-
-The command compares unweighted and weighted arms on the same target set.
-`--evaluation-cv` controls source-model evaluation; `--shift-cv` controls domain-model folds
-used to estimate the importance weights. It writes
-`shift_comparison.json/.md`, `shift_report.json`, `source_importance_weights.csv`, and
-`target_predictions.csv`. With `--target-true-labels`, the default decision uses oracle AUC;
-otherwise it can use target-prior-dependent PU risk. With neither, it still provides comparison
-values but concludes `audit_only`. Unstable coverage without `--allow-unstable` skips the weighted
-arm and concludes `collect_target_data`.
-
-Oracle-guided comparison requires a designated validation/audit set. Keep final test data
-independent; do not use its truth to choose the adaptation arm, threshold, or prior.
+The audit does not train or compare models. If adapting separately, validate assumptions and use an independent validation set; never use final test truth to choose weights, thresholds, or models.
 
 ## Monitor successive windows
 

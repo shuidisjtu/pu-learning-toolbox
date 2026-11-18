@@ -115,7 +115,7 @@ def test_edge_facade_and_top_level_helpers_are_not_measured(tmp_path):
     that failure is correct, not something to work around by weakening it.
     """
     _write(tmp_path, "pkg/__init__.py", "import pkg.low.b\n")
-    _write(tmp_path, "pkg/run_config.py", "import pkg.low.b\n")
+    _write(tmp_path, "pkg/root_helper.py", "import pkg.low.b\n")
     _write(tmp_path, "pkg/low/b.py", "thing = 1\n")
     assert gld.measure_edges(tmp_path, {"Low": ("pkg/low",)}) == {}
 

@@ -11,15 +11,14 @@ and report persistence, use [analysis.md](analysis.md).
 | OS input | Label some positives in one population sample; U contains the remaining rows | Population estimates use the complete input; native-U prior reflects removal of labeled positives |
 | Independent TS input | Obtain extra P from the positive conditional and U independently from the target population | U represents the population; P/U concatenation has its own class proportion |
 | Finite-pool design | Select or reuse roles from a named source pool | Record removal, replacement, role overlap, and source identities |
-| Population prior | Target-population `P(Y=1)` | Pipeline call-level `class_prior` and report `prior.value` |
+| Population prior | Target-population `P(Y=1)` | Population metrics and the PA selection criterion |
 | Native-U prior | Positive fraction of input U | Ordinary mixture-prior estimators' declared target |
 | Training-table prior | Positive fraction of the P/U concatenation | Consumers with `class_prior_target="training_table"` |
 | Risk-pool prior | Positive fraction of the pool entering a loss | Prepare the value required by the selected method and risk view |
 
 Record input sampling, labeling mechanism, selection policy, and training risk view
 as separate settings. Inspect the estimator's `class_prior_target` and supported
-risk-view parameters when calling it directly. Pipeline applies its default-view
-consumer conversions fold by fold and for the final refit.
+risk-view parameters. Compute conversions from the relevant training partition.
 
 ## Construct same-pool OS observations
 
@@ -154,21 +153,11 @@ profile = profile_pu_data(
 )
 ```
 
-Select an estimator matching the user's requested method and budget. For integrated
-training, Pipeline performs the target resolution and retains its full provenance.
-
-## Read the training chain
-
-Pipeline resolves an explicit call-level population prior, then a classifier's
-constructor prior by its declared target, then required automatic estimation.
-Read these `report.prior` fields together:
-
-- `input_value`, `input_target`, `estimator`, `estimation_pool`, and
-  `estimation_details`: original input or estimator result and its meaning.
-- `value`, `target`, `input_sampling`, and `conversion`: resolved population prior.
-- `training_consumption`: target and value actually passed to each training fold
-  and final refit.
-- `source`, `auto_selected`, and `degraded`: execution provenance.
+Select an estimator matching the requested method and budget. Interpret the
+raw estimate using its declared target and estimation pool. Record the raw
+value, sampling design, any conversion, and the value and target passed to
+training. Recompute partition-specific values if the caller changes the risk
+pool or training data.
 
 Synthetic truth supports construction checks and authorized evaluation. Training
 priors come from user-specified knowledge, allowed PU estimation, or registered

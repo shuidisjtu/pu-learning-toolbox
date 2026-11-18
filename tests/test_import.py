@@ -11,7 +11,6 @@ SUBPACKAGES = [
     "pu_toolbox.estimators.deep",
     "pu_toolbox.metrics",
     "pu_toolbox.model_selection",
-    "pu_toolbox.workflows",
     "pu_toolbox.cli",
 ]
 

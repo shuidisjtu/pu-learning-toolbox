@@ -1,6 +1,6 @@
 """Shared JSON and binary-content helpers for reports, manifests and artifacts.
 
-Every report type (``PipelineReport``, ``PUDiagnosticReport``,
+Report types (``PUDiagnosticReport``,
 ``PUSensitivityAnalysis``, ``PUDataProfile``) renders strict JSON and
 Markdown with the same conventions (NaN/Inf -> ``None``, ``unavailable``
 for missing table cells, ``|`` escaping).  These helpers used to be
@@ -10,9 +10,6 @@ Alongside the JSON digests (:func:`canonical_hash`, :func:`strict_canonical_hash
 this module owns the two binary-content digests the experiment layer needs in
 order to name artifacts: :func:`array_hash` for an ndarray's dtype/shape/bytes
 and :func:`file_hash` for streamed file bytes.
-
-See ``docs/user/reference/api/tools.md#pipelinereport-return-object`` for the report
-serialization contract.
 """
 
 from __future__ import annotations

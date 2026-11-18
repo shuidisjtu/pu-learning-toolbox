@@ -10,7 +10,7 @@
 
 ## 数据与假设证据
 
-`profile.json` 或 Pipeline 报告的 `profile` 包含：
+`profile.json` 包含：
 
 - `summary`：样本数、特征数、标记正例数、标记比例及输入采样设置。
 - `selection_diagnostic.status`：`plausible` 表示诊断支持按 SCAR 路线分析；
@@ -25,31 +25,14 @@
 
 说明用户或研究设计明确选择的分类器、候选及其依据，不使用 advisor 排名。
 
-Pipeline 报告 schema `1.1` 的 `prior` 按以下顺序解释：
+说明先验来自用户知识还是 PU 估计，给出原始估计值及其目标、估计池、OS/TS 换算和模型实际消费值。
+例如：“OS 表中标记比例为 0.20，原生 U 的正类比例估计为 0.25，换算到总体为 0.40；
+模型实际使用的是原生 U 先验 0.25。”
 
-| 阶段 | 字段 | 解释 |
-|---|---|---|
-| 来源 | `source/estimator/auto_selected` | 用户值、构造值或估计方法，以及自动选择情况 |
-| 原始输入 | `input_value/input_target/estimation_pool` | 输入或估计得到的数值、目标分布与估计池 |
-| 总体解析 | `value/target/input_sampling/conversion` | 总体先验和 OS/TS 下使用的换算 |
-| 估计细节 | `estimation_details` | 方法提供的辅助目标、近似或其他元数据 |
-| 训练消费 | `training_consumption` | 每折和最终 refit 实际传给方法的先验与目标 |
+## 训练与诊断
 
-例如，产物记录 OS 标记比例 0.2、原生 U 先验 0.25、总体先验 0.4 时，可写：
-“本次估计的原生 U 正类比例为 0.25，按 OS 质量关系换算的总体先验为 0.4。”
-随后按实际 `training_consumption` 说明所用方法消费的目标。
-
-报告 `degraded`、`prior_audit_flagged` 或相关 issue 有值时，说明实际采用的路线和原因。
-
-## 训练、调参与方法比较
-
-`report.json` 的 `cv_metrics` 按指标读取 `available/mean/std/n_computed/reason`。
-对可用指标写明均值、标准差和有效折数，并解释其方向、是否使用真实标签及评估总体。
-对待补充的信息直接给出 `reason` 对应的动作。
-
-从 `provenance` 与 `cv_provenance` 读取方法、seed、架构和运行设置；按 `issues` 说明具体发现。
-`tuning.json` 或 `comparison.json` 另记录候选范围、评分、选择结果和执行预算。
-将评分准则下选出的候选与其报告相连，明确结果对应的搜索范围。
+记录显式选用的 estimator、参数和评估数据角色。区分训练表诊断、调用方设计的验证与独立测试；
+对每项指标注明是否依赖真值、先验或标记假设。未计算的指标注明原因，不当成零值。
 
 ## 研究实验与表征
 
@@ -69,7 +52,7 @@ PA 分数按当前 OS 计算式和所用总体先验解释；OA 是 clean 验证
 - 固定预测敏感性：读取 `sensitivity.json` 的 `observed_label_rate` 与 `points`，
   记录模型、先验/标记率网格、`is_consistent` 和指标变化，说明合法假设区间内的结果。
 - 重新训练比较：记录各次训练所用先验、方法、seed 和评估结果。
-- 漂移：报告 domain AUC、权重/重叠证据及实际执行的 baseline/weighted 指标差。
+- 漂移：报告 domain AUC、权重和重叠证据；单凭漂移审计不能判断重加权是否改善性能。
 - 监控：报告窗口 ID、告警代码、变化值和阈值。
 - 人工复核：报告策略、预算、覆盖率和可追踪的查询行。
 - 基准审计：报告检查结果、覆盖规模及需要修复的具体产物。

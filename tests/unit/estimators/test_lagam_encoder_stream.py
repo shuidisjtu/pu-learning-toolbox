@@ -230,12 +230,7 @@ def test_edge_late_callback_and_missing_support_refit_invalidate_success():
         fitted.predict(X)
 
 
-def test_basic_cnn_support_still_excluded_from_ui_pu_only_and_standard_trainer():
-    from pu_toolbox.ui.parameters import classifier_catalog, cnn_candidates
-
-    entry = next(c for c in classifier_catalog() if c["name"] == "lagam")
-    assert "lagam" in cnn_candidates() and not entry["ui_ready"]
-    assert entry["requires_clean_support"]
+def test_basic_cnn_support_excluded_from_standard_trainer():
     X, y, _ = data()
     with pytest.raises(ValueError, match="PA-ineligible"):
         EpochCheckpointTrainer().fit(model(encoder=ImageEncoder()), X, y)

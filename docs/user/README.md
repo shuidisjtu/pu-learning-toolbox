@@ -30,13 +30,12 @@ All user documentation below is maintained in English at its existing paths.
    | Generate SCAR/SAR data | [SAR simulation](howto/sar_simulation.md) |
    | Construct same-pool OS and independent TS data | [PU sampling](howto/pu_sampling.md) |
    | Profile data and inspect assumption evidence | [Data profiling](howto/data_profiling.md) |
-   | Train and evaluate with PUPipeline | [Pipeline](howto/pipeline.md) |
+   | Migrate from the retired Pipeline | [Migration](howto/pipeline.md) |
    | Use the command-line interface | [CLI](howto/cli.md) |
    | Configure models and search hyperparameters | [Model tuning](howto/model_tuning.md) |
    | Customize four-role experiments and extend strategies | [Custom experiments](howto/custom_experiments.md) |
    | Inject encoders and use frozen features | [Custom encoders](howto/custom_encoders.md) |
-   | Use the graphical interface | [UI](howto/ui.md) |
-   | Generate diagnostic reports | [Diagnostic reports](howto/diagnostic_reports.md) |
+   | Generate independent diagnostic reports | [Diagnostic reports](howto/diagnostic_reports.md) |
    | Analyze class-prior and propensity sensitivity | [Sensitivity analysis](howto/sensitivity_analysis.md) |
    | Audit and handle source-to-target distribution shift | [Distribution shift](howto/distribution_shift.md) |
    | Train a Self-PU classifier | [Self-PU](howto/self_pu.md) |
@@ -51,7 +50,7 @@ Each how-to guide includes prerequisites and next steps.
 Identify the [sampling design](concepts/pu_sampling.md), then check the
 [labeling assumptions](concepts/scar_sar.md) and
 [prior target](concepts/class_prior_semantics.md). Continue with
-[data profiling](howto/data_profiling.md) and the [pipeline](howto/pipeline.md).
+[data profiling](howto/data_profiling.md) and [direct estimator training](howto/pipeline.md).
 
 ## Synthetic and comparative studies
 
@@ -62,8 +61,8 @@ Read sampling, labeling policies, priors, [model selection](concepts/pu_model_se
 
 The [OS/TS how-to guide](howto/pu_sampling.md) and
 [example 15](../../examples/minimal/15_pu_sampling.py) cover sampling operations.
-[Example 16](../../examples/minimal/16_prior_targets.py) and the
-[pipeline guide](howto/pipeline.md) trace prior values into training.
+[Example 05](../../examples/minimal/05_recpe_pipeline.py) and the
+[migration guide](howto/pipeline.md) show prior conversion for training.
 [Example 17](../../examples/minimal/17_sar_policies.py) compares SAR policies.
 The [encoder guide](howto/custom_encoders.md) and
 [example 18](../../examples/minimal/18_custom_encoders.py) cover encoder injection and frozen features.

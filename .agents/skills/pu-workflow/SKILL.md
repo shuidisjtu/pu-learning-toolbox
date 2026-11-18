@@ -3,7 +3,7 @@ name: pu-workflow
 description: >-
   Run positive-unlabeled learning tasks with pu-learning-toolbox:
   analyze PU data, construct OS/TS and SCAR/SAR studies, estimate class
-  priors, tune or compare methods, run PA/OA experiments, and configure
+  priors, train explicit estimators, run PA/OA experiments, and configure
   image encoders. Also handles requested drift, monitoring, review, and
   benchmark audits.
 license: MIT
@@ -58,7 +58,7 @@ Inspect input shape, label counts and source identities before training.
 
 | User task | Read | Execution and completion |
 |---|---|---|
-| Analyze existing PU data; tune or compare methods | [Analysis](references/analysis.md) | CLI/Pipeline or tuner/comparator; read profiles, selected settings and metric reports |
+| Analyze existing PU data or train an estimator | [Analysis](references/analysis.md) | Profile, fit and diagnose separately; record the actual prior and evaluation population |
 | Construct PU observations; identify OS/TS; estimate or convert a prior | [Sampling and priors](references/sampling-and-priors.md) | Preprocessing and target-aware prior APIs; save sampling/source metadata and actual prior consumption |
 | Run four-role research, PA/OA or custom strategies | [Research experiments](references/research-experiments.md) | `ExperimentRunner`; read separate protocol selections, checkpoints, thresholds and test results |
 | Train images, inject an encoder or use frozen features | [Representations](references/representations.md) | Discover registered capabilities; save representation identity, training scope and model results |
@@ -71,12 +71,11 @@ its results. Load the references for those stages as they become relevant.
 
 - Record input sampling, labeling policy, training risk view, prior target,
   validation supervision and representation as separate settings.
-- The CLI profile/run path uses OS input semantics. Select the classifier explicitly;
-  do not invoke advisor ranking, `recommend`, or `classifier="auto"`.
-  Explicit TS analyses use Python APIs with `input_sampling="ts"`.
-- Pipeline's call-level `class_prior` and report `prior.value` target the
-  population. Read estimator target declarations and recorded conversions
-  when estimating; training consumers receive their required pool priors.
+- Use standalone CLI data and diagnostic tools and train via estimator APIs.
+  Define validation separately for existing PU data. Use `ExperimentRunner`
+  for four-role research inputs.
+- Record the actual prior consumed by each training pool. Distinguish
+  independent TS input from an OS table viewed through a TS-compatible risk.
 - For raw images, select an explicit CNN-capable classifier and specify
   prior information appropriate to the image/feature route.
 - Fit preprocessing and trainable representations on the permitted train
@@ -88,7 +87,7 @@ its results. Load the references for those stages as they become relevant.
 
 ## Report the result
 
-Read the saved JSON and model-selection artifacts. State the settings,
+Read the requested artifacts. State the settings,
 executed budget, findings, available metrics, and actionable next steps.
 For Chinese summaries, load [the interpretation guide](references/interpret.zh-CN.md).
 State the conclusion supported by the analysis and its applicable

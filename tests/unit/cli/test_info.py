@@ -50,12 +50,12 @@ def test_basic_list_priors_lists_estimators(capsys):
 
 @pytest.mark.unit
 def test_param_list_priors_includes_aliases(capsys):
-    """Registry aliases accepted by --prior-estimator appear in the listing."""
+    """Registry aliases appear in the listing."""
     args = build_parser().parse_args(["list-priors"])
     args.func(args)
     out = capsys.readouterr().out
     for alias in ("cpe", "pe", "re_cpe", "rethinking_cpe"):
-        assert alias in out, f"{alias!r} accepted by --prior-estimator but not listed"
+        assert alias in out, f"{alias!r} not listed"
     assert "pe [deprecated]" in out
 
 
@@ -69,7 +69,7 @@ def test_param_list_priors_groups_aliases_with_canonical(capsys):
     assert "cpe" in by_line["class_prior_estimation"]
     assert "pen_l1" in by_line["class_prior_estimation"]
     assert "re_cpe" in by_line["recpe"]
-    # km1/km2 are standalone pipeline names, not registry aliases.
+    # km1/km2 are standalone names, not registry aliases.
     assert "aliases" not in by_line["km1"]
     assert "aliases" not in by_line["km2"]
 
@@ -98,26 +98,3 @@ def test_deterministic_list_methods_output_stable(capsys):
     args.func(args)
     second = capsys.readouterr().out
     assert first == second
-
-
-@pytest.mark.unit
-def test_edge_list_priors_names_all_accepted_by_pipeline(capsys):
-    """Every listed name must construct a PUPipeline prior estimator.
-
-    Regression guard: _PRIOR_NAMES used to hard-code registry aliases
-    (recpe/pen_l1); if the registry drops an alias, list-priors would
-    list a name PUPipeline rejects.  The listing must never outrun the
-    accepted set.
-    """
-    from pu_toolbox.workflows import PUPipeline
-
-    args = build_parser().parse_args(["list-priors"])
-    args.func(args)
-    lines = [line for line in capsys.readouterr().out.splitlines()[1:] if line.strip()]
-    assert lines, "list-priors printed nothing"
-    # The first token of each line is the estimator name; alias groups
-    # ("canonical (aliases: ...)") render in the same line.
-    for line in lines:
-        PUPipeline(
-            classifier="upu", prior_estimator=line.split()[0]
-        )  # unknown names raise at construction

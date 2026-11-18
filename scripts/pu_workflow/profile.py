@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # ruff: noqa: E402
-"""pu-workflow step 1: profile data and diagnose SCAR/SAR assumptions.
+"""Profile data and diagnose SCAR/SAR assumptions.
 
 Compatibility wrapper: delegates to the ``pu-toolbox profile`` subcommand.
 Exit codes: 0 success; 1 user/input error (clear stderr message, no

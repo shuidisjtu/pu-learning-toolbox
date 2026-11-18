@@ -100,10 +100,7 @@ class AlgorithmMetadata:
     encoder_parameter: str | None = None
     """Constructor parameter name that receives an injected encoder.
 
-    Declarative metadata only: injection is signature-driven -- the pipeline
-    passes the built encoder to the constructor parameter named here when the
-    constructor declares it, never by reading this field. Capability
-    validation goes through signature checks and class-attribute consistency.
+    Declarative metadata only; callers must use the actual constructor signature.
     """
 
     trains_encoder: bool = False

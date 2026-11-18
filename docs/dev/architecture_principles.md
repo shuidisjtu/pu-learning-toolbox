@@ -83,15 +83,13 @@
    | 分类 | 模块 |
    |---|---|
    | 稳定（冻结迁移与重构） | `losses`、`prior`、`diagnostics`、`metrics` |
-   | 活跃 | `cli`、`core`、`estimators`、`experiment`、`model_selection`、`preprocessing`、`registry`、`ui`、`utils`、`workflows` |
+   | 活跃 | `cli`、`core`、`estimators`、`experiment`、`model_selection`、`preprocessing`、`registry`、`utils` |
 
    边界（2026-10-04 裁定）：冻结针对**结构与契约的迁移/重构**，**不针对零行为变更的
    注释清理**——否则与注释门禁的分区迁移互相矛盾。
 
    如实登记：清单的**完备性**（每个被跟踪的顶层**模块目录**恰好被分类一次，且无 stale）由
-   `tests/unit/test_stable_modules.py` 守住；根级模块 `pu_toolbox/__init__.py`、
-   `pu_toolbox/progress.py`、`pu_toolbox/run_config.py` **不在表内、不被守**——判据按目录，
-   它们没有可判定的行。「某个模块是否**仍然**稳定」（即基准标签之后是否被改过）
+   `tests/unit/test_stable_modules.py` 守住；根级 `pu_toolbox/__init__.py` 不在按目录维护的表内。「某个模块是否**仍然**稳定」（即基准标签之后是否被改过）
    **没有机械守卫**——复核要重跑上面那条判定命令。
 
 ## 5. 审计历史

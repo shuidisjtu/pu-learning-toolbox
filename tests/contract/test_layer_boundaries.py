@@ -30,7 +30,7 @@ pytestmark = pytest.mark.contract
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 _PACKAGE_ROOT = _PROJECT_ROOT / "pu_toolbox"
 
-# Lower layers per architecture.md §2.  Orchestration (workflows/, cli/) and the
+# Lower layers per architecture.md §2.  Orchestration (cli/) and the
 # user layer may legitimately reach experiment/ and are deliberately absent.
 _LOWER_LAYERS = (
     "core",

@@ -1,9 +1,8 @@
-"""P3Mix variants through real convolution CV and four-role checkpoint selection."""
+"""P3Mix four-role checkpoint selection and native TS refusal."""
 
 # ruff: noqa: E402, N803, N806
 
 import json
-import pickle
 from functools import wraps
 from pathlib import Path
 
@@ -12,11 +11,9 @@ import pytest
 
 torch = pytest.importorskip("torch")
 
-from pu_toolbox.estimators.deep import vision
 from pu_toolbox.estimators.deep.p3mix import P3MixClassifier
 from pu_toolbox.experiment import DatasetPart
 from pu_toolbox.experiment.runner import ExperimentRunner
-from pu_toolbox.workflows import PUPipeline
 
 pytestmark = pytest.mark.integration
 
@@ -37,73 +34,6 @@ class TinyEncoder(torch.nn.Module):
 def data(seed=53):
     features = np.random.RandomState(seed).normal(size=(24, 3, 4, 4)).astype(np.float32)
     return features, np.r_[np.ones(8, dtype=int), np.zeros(16, dtype=int)]
-
-
-@pytest.mark.parametrize("variant", ["base", "e", "c"])
-@pytest.mark.parametrize("batching_policy", ["role_balanced", "merged_shuffle"])
-def test_basic_determ_three_variants_train_independent_cv_encoders_and_roundtrip(
-    monkeypatch, variant, batching_policy
-):
-    templates, fits = [], []
-
-    def build(*_args, **_kwargs):
-        template = TinyEncoder().requires_grad_(False)
-        templates.append(template)
-        return template
-
-    original_fit = P3MixClassifier.fit
-
-    @wraps(original_fit)
-    def record(estimator, *args, **kwargs):
-        fitted = original_fit(estimator, *args, **kwargs)
-        fits.append(fitted)
-        return fitted
-
-    monkeypatch.setattr(vision, "build_encoder", build)
-    monkeypatch.setattr(P3MixClassifier, "fit", record)
-    features, labels = data()
-    originals = features.copy(), labels.copy()
-    report = PUPipeline(
-        classifier="p3mix",
-        classifier_params={
-            "variant": variant,
-            "hidden_dim": 4,
-            "max_epochs": 2,
-            "batch_size": 4,
-            "pool_size": 3,
-            "batching_policy": batching_policy,
-        },
-        architecture="cnn",
-        evaluation_cv=2,
-        random_state=19,
-        device="cpu",
-        metrics=("pu_zero_one_risk",),
-    ).fit_evaluate(features, labels, class_prior=0.4)
-
-    assert len(templates) == 1 and len(fits) == 3
-    assert len({id(fit.encoder_) for fit in fits}) == 3
-    for fit in fits:
-        assert fit.encoder is templates[0] and fit.encoder_ is not templates[0]
-        torch.testing.assert_close(
-            fit.encoder_.first_training_weight, templates[0].conv.weight, rtol=0, atol=0
-        )
-        assert all(parameter.requires_grad for parameter in fit.encoder_.parameters())
-        assert not torch.equal(fit.encoder_.conv.weight, templates[0].conv.weight)
-        assert fit.training_provenance_["run_view"] == "os"
-        assert not fit.training_provenance_["calibration_applied"]
-        assert not fit.training_provenance_["formal_admission"]
-        assert (fit.teacher_ is not None) is (variant == "e")
-        assert fit.candidate_training_positions_.size == 3
-    assert templates[0].first_training_weight is None
-    assert all(not parameter.requires_grad for parameter in templates[0].parameters())
-    assert report.final_model is fits[-1]
-    assert report.provenance["architecture"] == "native_cnn"
-    restored = pickle.loads(pickle.dumps(report.final_model))
-    np.testing.assert_array_equal(
-        restored.predict_proba(features), report.final_model.predict_proba(features)
-    )
-    np.testing.assert_array_equal(features, originals[0])
-    np.testing.assert_array_equal(labels, originals[1])
 
 
 @pytest.mark.parametrize("variant", ["base", "e", "c"])

@@ -23,7 +23,6 @@ from pu_toolbox.experiment.checkpoints import EpochCheckpointTrainer  # noqa: E4
 from pu_toolbox.experiment.method_ledger import load_ledger  # noqa: E402
 from pu_toolbox.experiment.training_views import resolve_training_view  # noqa: E402
 from pu_toolbox.registry import get_algorithm  # noqa: E402
-from pu_toolbox.workflows import PUPipeline  # noqa: E402
 
 pytestmark = pytest.mark.unit
 
@@ -214,26 +213,6 @@ def test_basic_weights_roundtrip_preserves_scores():
     with torch.no_grad():
         scores = restored(torch.as_tensor(X, device=device)).flatten().cpu().numpy()
     np.testing.assert_allclose(scores, fitted.decision_function(X), atol=1e-6)
-
-
-@pytest.mark.integration
-def test_basic_pipeline_resolves_pulda_with_prior():
-    X, y = _data()
-    report = PUPipeline(
-        classifier="pulda",
-        classifier_params={
-            "hidden_dim": 7,
-            "warmup_epochs": 1,
-            "pu_epochs": 1,
-            "positive_batch_size": 4,
-            "unlabeled_batch_size": 7,
-        },
-        prior_estimator=None,
-        evaluation_cv=2,
-        random_state=5,
-    ).fit_evaluate(X, y, class_prior=0.5)
-    assert isinstance(report.final_model, PULDAClassifier)
-    assert report.final_model.predict(X).shape == (len(X),)
 
 
 @pytest.mark.gpu

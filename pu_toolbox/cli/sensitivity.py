@@ -2,7 +2,7 @@
 
 """The ``sensitivity`` subcommand: assumption sensitivity analysis.
 
-pu-workflow step 4: fits a fast classifier (default elkan_noto), then
+Fits a fast classifier (default elkan_noto), then
 audits the fixed model outputs over class-prior / label-propensity
 assumptions.  Writes ``sensitivity.json``.
 """
@@ -15,7 +15,7 @@ from pathlib import Path
 from ..core.validation import validate_label_semantics
 from ..diagnostics.sensitivity import analyze_pu_sensitivity
 from ..registry import get_algorithm, get_metadata
-from .run import _load_features, _load_label_column
+from ._data import _load_features, _load_label_column
 
 __all__ = ["build_sensitivity_parser", "run_sensitivity"]
 
@@ -33,7 +33,7 @@ def build_sensitivity_parser(sub: argparse._SubParsersAction) -> None:
     """Attach the ``sensitivity`` subcommand to *sub* (side-effect only)."""
     parser = sub.add_parser(
         "sensitivity",
-        help="assumption sensitivity analysis on fitted predictions (pu-workflow step 4)",
+        help="assumption sensitivity analysis on fitted predictions",
     )
     parser.add_argument("--data", required=True, help="feature matrix CSV (header row required)")
     parser.add_argument("--labels", required=True, help="PU labels CSV, single column {1, 0}")

@@ -21,7 +21,6 @@ from pu_toolbox.experiment.checkpoints import EpochCheckpointTrainer  # noqa: E4
 from pu_toolbox.experiment.method_ledger import load_ledger  # noqa: E402
 from pu_toolbox.experiment.training_views import resolve_training_view  # noqa: E402
 from pu_toolbox.registry import get_algorithm  # noqa: E402
-from pu_toolbox.workflows import PUPipeline  # noqa: E402
 
 pytestmark = pytest.mark.unit
 
@@ -216,19 +215,6 @@ def test_rejects_unsupported_weight_and_bad_model_and_input():
     with torch.no_grad():
         values = restored(torch.as_tensor(X)).reshape(-1).numpy()
     np.testing.assert_allclose(values, fitted.decision_function(X), atol=1e-7)
-
-
-@pytest.mark.integration
-def test_pipeline_resolves_robust_pu_with_prior():
-    X, y = _data()
-    report = PUPipeline(
-        classifier=_estimator(pretrain_epochs=1, episodes=1, batch_size=8),
-        prior_estimator=None,
-        evaluation_cv=2,
-        random_state=3,
-    ).fit_evaluate(X, y)
-    assert isinstance(report.final_model, RobustPUClassifier)
-    assert report.final_model.predict(X).shape == (len(X),)
 
 
 @pytest.mark.gpu

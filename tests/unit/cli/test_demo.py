@@ -21,6 +21,7 @@ def test_demo_writes_three_files(tmp_path):
     for name in ("X.csv", "y_pu.csv", "y_true.csv"):
         assert (tmp_path / name).exists()
     assert len(pd.read_csv(tmp_path / "X.csv")) == 100
+    assert int(pd.read_csv(tmp_path / "y_pu.csv").iloc[:, 0].sum()) >= 5
 
 
 @pytest.mark.unit
@@ -35,10 +36,7 @@ def test_demo_default_separation_is_one():
 
 @pytest.mark.unit
 def test_param_too_few_labeled_positives_reports_error(tmp_path, capsys):
-    """n=3 at c=0.5 labels only 2 positives -- fewer than the default 5-fold
-    CV demands -- so the guard must refuse instead of writing CSVs that
-    `run` cannot consume (regression: the old --n>=3 guard passed but the
-    demo still failed under the default 5-fold CV)."""
+    """The demo refuses to write data with fewer than five labeled positives."""
     with pytest.raises(SystemExit) as exc:
         main(["make-demo-data", "--out-dir", str(tmp_path / "d"), "--n", "3"])
     assert exc.value.code == 1
@@ -53,36 +51,6 @@ def test_edge_n_below_minimum_reports_error(tmp_path, capsys):
         main(["make-demo-data", "--out-dir", str(tmp_path / "d"), "--n", "1"])
     assert exc.value.code == 1
     assert "error:" in capsys.readouterr().err
-
-
-@pytest.mark.unit
-def test_basic_demo_output_consumable_by_run(tmp_path):
-    """Demo output feeds straight into `run` (self-contained loop)."""
-    demo_dir = tmp_path / "demo"
-    out = tmp_path / "out"
-    args = build_parser().parse_args(
-        ["make-demo-data", "--out-dir", str(demo_dir), "--n", "30", "--seed", "42"]
-    )
-    args.func(args)
-    main(
-        [
-            "run",
-            "--data",
-            str(demo_dir / "X.csv"),
-            "--labels",
-            str(demo_dir / "y_pu.csv"),
-            "--out-dir",
-            str(out),
-            "--evaluation-cv",
-            "3",
-            "--seed",
-            "42",
-            "--classifier",
-            "upu",
-            "--quiet",
-        ]
-    )
-    assert (out / "report.json").exists()
 
 
 @pytest.mark.unit

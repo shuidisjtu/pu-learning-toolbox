@@ -2,184 +2,6 @@
 
 [API reference index](index.md)
 
-## PUPipeline
-
-Usage: [pipeline guide](../../howto/pipeline.md). Complete manual prior-estimation workflow:
-[05_recpe_pipeline.py](../../../../examples/minimal/05_recpe_pipeline.py).
-
-```python
-pipe = PUPipeline(
-    classifier="upu",          # Explicit registry name or classifier instance.
-    classifier_params=None,      # Constructor args for explicit names; unavailable for instances.
-    prior_estimator="pen_l1",   # "pen_l1"/"recpe"/"km1"/"km2" (the last two map to
-                                # KernelMeanPriorEstimator), estimator instance, or None.
-    prior_params=None,          # Args for a named prior estimator, e.g. {"variant": "km2"}; not an instance.
-    evaluation_cv=5,            # PU-stratified folds or custom splitter.
-                                # The actual default evaluation_cv=None resolves to 5-fold PUStratifiedKFold.
-    metrics=DEFAULT_METRICS,    # Metric names from the table below.
-                                # The actual default metrics=None resolves to DEFAULT_METRICS.
-    random_state=42,
-    architecture="mlp",         # "mlp" tables / "cnn" 4-D NCHW with an explicit compatible method.
-    backbone="cnn13",           # cnn13/cnn13_no_bn/resnet18/resnet50; used for CNN.
-    device=None,                # Torch device; None/"auto" selects CUDA when available, otherwise CPU.
-    max_epochs=None,            # Epoch cap forwarded to named constructors accepting max_epochs.
-    input_sampling="os",       # "os" one source pool / "ts" independent P and population U.
-)
-report = pipe.fit_evaluate(
-    X,
-    y_pu,
-    y_true=None,
-    class_prior=None,
-    sample_weight=None,         # Sliced per CV training fold and passed to final refit.
-    refit=True,
-    progress_callback=None,     # Called at workflow boundaries.
-    cancellation_token=None,    # Interrupted by raise_if_cancelled.
-)
-```
-
-| Constructor parameter | Type | Default | Description |
-|---|---|---|---|
-| `classifier` | `str \| BasePUClassifier` | Required by the approved contract | Explicit registry name or instance |
-| `classifier_params` | `dict \| None` | `None` | Explicit named classifier's constructor arguments; unavailable for instances |
-| `prior_estimator` | `str \| instance \| None` | `"pen_l1"` | Prior estimator; see precedence below |
-| `prior_params` | `dict \| None` | `None` | Named prior estimator's constructor arguments |
-| `evaluation_cv` | `int \| splitter \| None` | `None` (→5 folds) | PU-stratified evaluation CV |
-| `metrics` | `Sequence[str] \| None` | `None` (→DEFAULT_METRICS) | Metric names |
-| `random_state` | `int \| None` | `42` | Random seed |
-| `architecture` | `str` | `"mlp"` | `"mlp"` / `"cnn"` |
-| `backbone` | `str` | `"cnn13"` | `cnn13`/`cnn13_no_bn`/`resnet18`/`resnet50` |
-| `device` | `str \| None` | `None` (auto) | Torch device |
-| `max_epochs` | `int \| None` | `None` | Epoch cap for compatible named deep methods |
-| `input_sampling` | `str` | `"os"` | Input sampling design: `"os"` / `"ts"` |
-
-`refit=False` computes CV metrics only, skipping full-data refit and model diagnostics;
-`report.final_model` and `report.diagnostic` are then None. This mode primarily supports search.
-
-`sample_weight` must be one-dimensional, finite, nonnegative, and have at least one positive
-entry. After resolving the classifier, a non-None value triggers the `SampleWeightSupport`
-check: only `supported` proceeds; `ignored` and `not_implemented` raise `PipelineError`.
-`provenance["sample_weight"]` records presence, range, mean, and ESS, not the complete vector.
-
-`provenance["architecture"]` is `"native_mlp"` / `"native_cnn"`.
-`provenance["backbone"]` stores the CNN backbone name (None for MLP);
-`provenance["device"]` stores `{"requested", "resolved"}`.
-`provenance["encoder"]` summarizes the injected encoder as `{"backbone", "in_channels"}`
-(None without injection in MLP mode).
-
-### Class-prior resolution precedence
-
-| Priority | Source | Report source |
-|---|---|---|
-| 1 | Explicit `fit_evaluate(class_prior=...)` | `user` |
-| 2 | Classifier instance constructor `class_prior=...` | `constructor` |
-| 3 | Automatic `prior_estimator` estimation, default `"pen_l1"` | `estimated` |
-| 4 | Method does not need a prior | `none` |
-
-Call-level `class_prior` targets the population; constructor values follow the classifier's
-`class_prior_target`. Prior estimators declare their scalar through `estimate_target` and
-`estimation_pool`; the default target for third-party estimators is `population`.
-Native-U estimates are converted to the population according to the input sampling design.
-Estimation runs once on the complete supplied PU data and is shared across folds; training
-converts it per fold for the classifier's default-view target: `population`, `native_unlabeled`,
-or `training_table`. This is not fold-nested prior estimation.
-PUSBKernel also accepts `fit(..., risk_class_prior=...)` to specify the native-U risk prior
-separately; `class_prior` supplies the concatenated training-table quantile threshold.
-A direct call omitting `risk_class_prior` uses the same value at both consumption points.
-
-`PipelineReport` JSON uses `schema_version="1.1"` for target-aware resolution and consumption.
-`PriorInfo` retains its original fields and records:
-
-| Field | Meaning |
-|---|---|
-| `target` / `value` | `population` and resolved population value |
-| `input_value` / `input_target` | Original input/estimate and its target |
-| `estimation_pool` / `estimation_details` | Estimation pool and diagnostics; ReCPE includes approximation identity |
-| `input_sampling` / `conversion` | OS/TS input design and conversion name |
-| `training_consumption` | CV/refit stage/fold, P fraction, and parameter target/value records |
-
-Constructors declaring `input_sampling` receive the workflow's design; a supplied instance's
-declaration must agree with the workflow.
-
-- `prior_estimator=None` with a required but missing prior raises `PipelineError` for an explicit classifier.
-- Default OS profiling audits a population prior below the labeled-positive fraction (`inconsistent_class_prior`); independent TS records its extra-P fraction separately.
-
-### Metrics
-
-`DEFAULT_METRICS = ("pu_zero_one_risk", "pu_recall", "pu_estimated_precision", "pu_auc_roc")`.
-Aliases: `pu_risk`, `auc`/`roc_auc`, `recall`, `precision`, `accuracy`, `f1`,
-`negative_rate`, `ap`, `bacc`, `brier`, `ece`.
-
-| Metric | Required inputs | basis |
-|---|---|---|
-| `pu_recall` / `pu_negative_rate` | `y_pu` and predictions only | `pu_observed` |
-| `pu_zero_one_risk` / `pu_estimated_precision` | Predictions and class prior | `class_prior_dependent` |
-| `pu_auc_roc` / `average_precision` | `y_true` and continuous scores | `supervised_oracle` |
-| `pu_accuracy` / `pu_f1` / `balanced_accuracy` | `y_true` and predictions | `supervised_oracle` |
-| `brier_score` / `expected_calibration_error` | `y_true` and actual `predict_proba` | `probability_calibration` |
-
-These functions, including `calibration_bucket_stats`, are directly importable from
-`pu_toolbox.metrics`. Missing inputs (truth, continuous scores, predict_proba, or prior) make
-the corresponding metric unavailable with a recorded reason (`CVMetric.available=False`),
-without aborting. `CVMetric.n_computed` reports computed folds and is serialized in `to_json()`.
-
-### Classifier selection semantics
-
-Select a registered name or configured estimator instance explicitly. Named methods accept
-`classifier_params`; instances are cloned for each fold. Check method-specific prior,
-constructor, input-label, and supervision requirements before fitting. Omission and
-`classifier="auto"` are retired. Automatic prior estimation remains available. See [ADR 0023](../../../adr/0023-explicit-method-selection.md).
-
-### Deep methods and architecture selection
-
-Contracts for `architecture` / `backbone` / `device`:
-
-| Parameter | Default | Values | Semantics |
-|---|---|---|---|
-| `architecture` | `"mlp"` | `"mlp"` / `"cnn"` | CNN requires an explicit deep classifier with an encoder constructor parameter and matching registry capabilities. Candidates are discovered dynamically; nnPU, WConPU, and InfoMax PU are examples, not an exhaustive list. Unsupported methods such as Self-PU, auto, or nondeep classifiers with CNN raise `PipelineError`; 4-D input with MLP also raises `PipelineError` |
-| `backbone` | `"cnn13"` | `"cnn13"` / `"cnn13_no_bn"` / `"resnet18"` / `"resnet50"` | Used for `architecture="cnn"`; invalid values raise `ValueError` |
-| `device` | `None` (auto) | `None`/`"auto"`/`"cpu"`/`"cuda"`, etc. | Forwarded by signature for constructed deep classifiers; None/auto resolves to CUDA when torch+CUDA are available, otherwise CPU. Supplied instances retain their device setting |
-
-- CNN integration requires an `encoder` constructor parameter accepting a feature extractor and matching native CNN / 4-D / encoder capability declarations. The pipeline injects `build_encoder` output under signature guards; unsupported paths fail during construction.
-- Compatible explicit names pass required-argument checks when supplied appropriately. The prior follows explicit input before estimation. In CNN mode, `fit_evaluate` lazily builds `build_encoder("cnn", backbone=..., in_channels=...)` and injects it.
-- Input dimensions: 4-D NCHW + explicit compatible deep classifier + CNN is accepted. Prior estimation/profiling use a flattened view, and CV splits indices. 4-D with MLP or a nondeep classifier, and 2-D with CNN, raise `PipelineError`.
-- Deep methods with `evaluation_cv>1` produce a training-cost warning (n_splits+1 fits with refit). Reduce folds when appropriate; minimum evaluation fold count is 2.
-
-### Error cases
-
-| Scenario | Exception |
-|---|---|
-| Invalid classifier / prior name | `PipelineError` during construction |
-| Required constructor arguments missing, e.g. ldce without flip_probability | `PipelineError` during construction; supply classifier_params or a configured instance |
-| No positives / fewer than `MIN_POSITIVE_SAMPLES` | `ValidationError` |
-| Fewer positives than CV folds | `ValidationError` suggesting fewer folds |
-| Required prior ultimately unavailable | `PipelineError` |
-| User `class_prior` outside (0,1) | `ValueError`, as for invalid constructor settings such as metrics/architecture |
-| Estimated prior outside (0,1) | Explicit classifier raises `PipelineError` |
-| Prior-estimator exception | Explicit classifier raises `PipelineError` |
-| Unknown metric | `ValueError` during construction |
-| Invalid `evaluation_cv` | `ValidationError` |
-| Invalid sample_weight shape/values | `ValidationError` |
-| Classifier ignores or does not implement sample_weight | `PipelineError`, without silent weighted-training failure |
-
-### PipelineReport (return object)
-
-`fit_evaluate` returns a `PipelineReport` with:
-
-| Field | Type | Description |
-|---|---|---|
-| `profile` | `PUDataProfile` | Data profile |
-| `prior` | `PriorInfo` | Prior value/source/estimator/auto_selected and target provenance |
-| `recommendation` | `None` | Retained for schema 1.1 compatibility; always null for new reports |
-| `cv_metrics` | `dict[str, CVMetric]` | Metric CV means / standard deviations / availability |
-| `cv_provenance` | `dict` | CV metadata, including fold count |
-| `final_model` | estimator \| None | Full-data refit model; None with refit=False |
-| `diagnostic` | `PUDiagnosticReport \| None` | Structured diagnostics; None with refit=False |
-| `issues` | `tuple[ProfileIssue, ...]` | Error/warning issues |
-| `provenance` | `dict` | Workflow audit: classifier/prior/architecture/backbone/device/encoder/sample_weight, etc.; `skipped_candidates` is always empty in new reports |
-
-`has_errors` / `has_warnings` indicate issue severity. `summary()` returns a compact readable
-summary with CV means±standard deviations, issues, and assumption notes.
-
 ## Distribution-shift API
 
 Usage and interpretation: [distribution-shift guide](../../howto/distribution_shift.md).
@@ -223,59 +45,6 @@ Returns `PUShiftReport`:
 `save(.json/.md)` saves structured/readable reports. Weight-estimation scope is fixed to
 `marginal_covariate`: a bounded relative transform of the marginal density ratio, not joint
 `p_target(x,y)/p_source(x,y)` weights.
-
-### `ShiftAwarePUPipeline`
-
-```python
-workflow = ShiftAwarePUPipeline(
-    pipeline=None,               # Optional configured PUPipeline.
-    classifier="elkan_noto",    # Used when pipeline=None.
-    alpha=0.1,
-    shift_cv=5,
-    allow_unstable=False,
-    evaluation_cv=5,             # Remaining keywords pass to PUPipeline.
-    random_state=42,
-)
-result = workflow.fit_evaluate(
-    X_source,
-    y_source_pu,
-    X_target,
-    y_target_pu=y_target_pu,
-    y_true_source=None,
-    y_true_target=None,
-    class_prior=None,
-    target_class_prior=None,
-    adapt=True,
-    refit=True,
-)
-```
-
-`adapt=True` requires target PU labels and passes the audit's source weights to `PUPipeline`;
-coverage-gate failure raises `PipelineError` by default. `adapt=False` runs the audit and an
-unweighted source baseline. `ShiftAwarePipelineReport` separately stores `shift`,
-`source_pipeline`, and `target_metrics`; target-truth metrics remain `supervised_oracle`.
-Its guarantee is fixed to `covariate_shift_only`. Target PU labels provide an adaptation safety
-gate and target evaluation input; they do not enter marginal domain-density-ratio estimation.
-
-### `ShiftAwarePUPipeline.compare`
-
-```python
-comparison = workflow.compare(
-    X_source, y_source_pu, X_target,
-    y_target_pu=...,              # Required.
-    y_true_source=None, y_true_target=None,
-    class_prior=None, target_class_prior=None,
-    primary_metric=None,          # Defaults to first available oracle metric.
-    min_improvement=0.0,
-)
-```
-
-Runs unweighted and weighted arms on the same target set and returns `ShiftComparisonReport`.
-`metric_deltas[*].improvement` has unified direction: positive always favors weighting (risk
-differences are negated). Automatic `recommendation` uses only target-truth oracle metrics or
-target-prior-dependent metrics. With only PU-observed metrics it is `audit_only`; failed
-coverage without override yields `collect_target_data`. Oracle-guided arm selection requires
-a designated validation/audit set; keep final test truth independent of that decision.
 
 ### `PUShiftMonitor`
 
@@ -394,96 +163,11 @@ switches support paper-style ablations. The authors have not released source; me
 `two_step`, and three correction ablations. Neural comparisons share feature/classifier-head
 sizes and absolute-value-corrected PU risk.
 
-## PUTuner
-
-```python
-tuner = PUTuner(
-    classifier="nnpu",          # Explicit registry name required; "auto" raises an error.
-    param_grid={...},           # Each combination expanded by ParameterGrid.
-    scoring="pu_zero_one_risk", # Selection metric.
-    metrics=None,               # Reported metrics.
-    **pipeline_params,          # evaluation_cv / prior_estimator / random_state / architecture, etc.
-)
-result = tuner.fit(X, y_pu, y_true=None, class_prior=None)
-```
-
-Runs PU-stratified Pipeline CV for each `sklearn.model_selection.ParameterGrid` combination.
-`pipeline_params` accepts `evaluation_cv`, `prior_estimator`, `random_state`, `architecture`, and related
-workflow settings. Trials use `refit=False`; only the selected combination receives full-data
-refit and diagnostics.
-
-Returns `TuningResult`:
-
-| Field | Meaning |
-|---|---|
-| `best_params` / `best_score` | Best valid combination and CV mean |
-| `best_report` | Selected combination's complete PipelineReport with full-data refit model |
-| `trials` | Every TuningTrial with status ok / unavailable / failed |
-| `scoring` | Canonical metric name |
-| `higher_is_better` | Records the metric's fixed selection direction; not a constructor option |
-
-Raises `PipelineError` if no trial can compute the selection metric. Scoring with truth-based
-metrics uses clean-label supervision; provide only permitted validation truth, keeping final
-test truth separate. Full example: [model-tuning guide](../../howto/model_tuning.md).
-
-### Selection metrics
-
-Both `PUTuner` and `PUModelComparator` resolve aliases and derive the direction from `scoring`.
-
-| Direction | Recommended starting points | Other supported selection metrics |
-|---|---|---|
-| Minimize | `pu_zero_one_risk` (default; aliases `pu_risk`, `risk`), `brier_score` (`brier`) | `expected_calibration_error` (`ece`) |
-| Maximize | `average_precision` (`ap`) | `pu_recall` (`recall`), `pu_estimated_precision` (`precision`), `pu_auc_roc` (`auc`, `roc_auc`), `pu_accuracy` (`accuracy`), `pu_f1` (`f1`), `balanced_accuracy` (`bacc`) |
-
-`pu_negative_rate` (`negative_rate`) measures how often U is predicted negative, not how often
-those predictions are correct. Use it in `metrics` for reporting; passing it as `scoring` raises
-`ValueError`. Remove `higher_is_better` from existing constructor calls; the result still records
-the direction used. `brier_score` and `expected_calibration_error` now select the lowest value.
-
-## PUModelComparator
-
-```python
-cmp = PUModelComparator(
-    classifiers=["nnpu", "upu"], # At least two explicit registry names; "auto" raises an error.
-    classifier_params=None,      # Per-model constructor arguments: {name: params}.
-    scoring="pu_zero_one_risk",
-    metrics=None,
-    **pipeline_params,
-)
-result = cmp.fit(X, y_pu, y_true=None, class_prior=None)
-```
-
-Compares at least two explicit registry names under the same PU-aware CV settings. Returns
-`ModelComparisonResult` with `best_classifier`, `best_score`, per-model `trials`, and a
-full-data-fitted `best_report`. The result also records the canonical `scoring` name and its
-`higher_is_better` direction. The same [selection metrics](#selection-metrics) apply. Failed models
-are isolated and recorded; nonwinning models run CV only.
-
-## Progress and cancellation
-
-`PUPipeline.fit_evaluate`, `PUTuner.fit`, and `PUModelComparator.fit` accept
-`progress_callback=` and `cancellation_token=`.
-
-```python
-token = CancellationToken()
-
-def on_progress(update: ProgressUpdate):
-    print(update.stage, update.fraction)   # Fields: stage/completed/total/message/fraction
-
-report = pipe.fit_evaluate(..., progress_callback=on_progress, cancellation_token=token)
-token.cancel()                             # Thread-safe cooperative cancellation signal
-```
-
-`ProgressUpdate` fields are `stage` / `completed` / `total` / `message` / `fraction` (a property).
-`CancellationToken.cancel()` sets the signal; the next safe-boundary check raises
-`RunCancelledError`. An individual model `fit` already in progress is not forcibly interrupted.
-
 ## build_encoder
 
 The shared encoder builder for deep classifiers is defined in
 `pu_toolbox/estimators/deep/vision.py` and publicly exported as
-`from pu_toolbox import build_encoder`. PUPipeline calls it internally for
-`architecture="cnn"`; callers can also pass its result to a compatible classifier.
+`from pu_toolbox import build_encoder`. Pass its result to a compatible classifier.
 
 ```python
 encoder = build_encoder(
@@ -566,7 +250,7 @@ identify SCAR versus SAR; `plausible` is not proof of SCAR.
 ## Explicit method discovery and selection
 
 Use `pu-toolbox list-methods` to inspect registered capabilities and select candidates explicitly.
-Use [PUTuner](#putuner) or [PUModelComparator](#pumodelcomparator) for empirical tuning or
+Use independent validation or [ExperimentRunner](../../howto/custom_experiments.md) for controlled single-model parameter grids or
 comparison with authorized validation evidence. Profile OS and TS data with the correct
 `input_sampling` in [profile_pu_data](#profile_pu_data); a TS table's positive fraction is not
 a population labeling rate. The advisor ranking APIs are retired; no replacement
@@ -749,7 +433,7 @@ and validation-side score transform; the example's `predict_selected` implements
 
 ### Method-specific training adapters
 
-The independent exploratory adapters do not modify the locked Survey/Pipeline/CLI contracts.
+The independent exploratory adapters do not modify the locked Survey contracts.
 `pu_toolbox.experiment.cvir_adapter.CVIRKnownPriorTrainer` keeps CVIR's explicit α_U and its
 source separate from PA's population π and rejects calibrated TS/SAR.
 `CVIRClassifier.input_sampling="ts"` means directly supplied native independent P and marginal U;

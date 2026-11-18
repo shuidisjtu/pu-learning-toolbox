@@ -1,6 +1,6 @@
 # ruff: noqa: N806
 
-"""Compare adaptation, monitor windows, and create a human-review queue."""
+"""Monitor shift and create a human-review queue for a directly fitted model."""
 # API reference: docs/user/reference/api/tools.md#distribution-shift-api
 
 from pu_toolbox.diagnostics import (
@@ -8,8 +8,8 @@ from pu_toolbox.diagnostics import (
     analyze_domain_assumptions,
     analyze_pu_uncertainty,
 )
+from pu_toolbox.estimators.classic import ElkanNotoClassifier
 from pu_toolbox.preprocessing import make_scar_dataset
-from pu_toolbox.workflows import ShiftAwarePUPipeline
 
 
 def main() -> None:
@@ -23,19 +23,7 @@ def main() -> None:
     # This is not evidence that covariate-shift assumptions hold.
     X_target += 0.2
 
-    workflow = ShiftAwarePUPipeline(classifier="elkan_noto", evaluation_cv=3, shift_cv=3)
-    # Target truth makes this an oracle validation/audit comparison, not a final test.
-    comparison = workflow.compare(
-        X_source,
-        y_source,
-        X_target,
-        y_target_pu=y_target,
-        y_true_source=y_true_source,
-        y_true_target=y_true_target,
-        class_prior=0.5,
-        target_class_prior=0.5,
-    )
-    print("adaptation decision:", comparison.recommendation)
+    model = ElkanNotoClassifier().fit(X_source, y_source)
 
     monitor = PUShiftMonitor(X_source, y_source, cv=3)
     window, _ = monitor.update(X_target, y_window_pu=y_target, window_id="current")
@@ -51,13 +39,8 @@ def main() -> None:
     )
     print("assumption difference:", assumptions.conclusion)
 
-    chosen = (
-        comparison.weighted
-        if comparison.recommendation == "reweight_recommended"
-        else comparison.baseline
-    )
     review = analyze_pu_uncertainty(
-        chosen.final_model,
+        model,
         X_target,
         y_pu=y_target,
         y_true=y_true_target,

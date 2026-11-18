@@ -199,10 +199,9 @@ def test_param_unused_prior_still_requires_valid_scalar(prior):
         model().fit(*data(), class_prior=prior)
 
 
-def test_basic_ledger_view_gate_and_public_pipeline_access():
+def test_basic_ledger_view_gate():
     from pu_toolbox.experiment.method_ledger import load_ledger
     from pu_toolbox.experiment.training_views import resolve_training_view
-    from pu_toolbox.workflows import PUPipeline
 
     ledger = load_ledger()
     assert (
@@ -215,21 +214,6 @@ def test_basic_ledger_view_gate_and_public_pipeline_access():
         resolve_training_view(
             ledger, "lbe_neural", "ts", is_oracle=False, estimator_class=NeuralLBEClassifier
         )
-    pipeline = PUPipeline(
-        classifier="lbe_neural",
-        prior_estimator=None,
-        evaluation_cv=2,
-        device="cpu",
-        classifier_params={
-            "hidden_dim": 4,
-            "pretrain_steps": 1,
-            "n_em_iter": 2,
-            "m_steps": 2,
-            "batch_size": 4,
-        },
-    )
-    report = pipeline.fit_evaluate(*data())
-    assert report.final_model.predict(data()[0]).shape == (12,)
 
 
 def test_determ_cpu_fit_does_not_seed_unrelated_cuda_devices(monkeypatch):

@@ -162,26 +162,14 @@ pu_toolbox/
     uncertainty.py                        (implemented: analyze_pu_uncertainty uncertainty, selective prediction, and query queues)
   model_selection/
     __init__.py                           (public splitters and lazily loaded tuning/comparison exports to avoid import cycles)
-    comparison.py                         (implemented: PUModelComparator CV comparison/ranking of registered classifiers)
     split.py                              (implemented: PUStratifiedKFold PU-aware splitters retain labeled positives in each fold)
-    tuning.py                             (implemented: PUTuner hyperparameter grid search reusing PUPipeline and PU metrics)
   registry/
     __init__.py                           (public registry re-exports)
     registry.py                           (implemented: thread-safe register_method/get_algorithm central registry and alias resolution)
     metadata.py                           (public: AlgorithmMetadata contract shared by registry and documentation generation)
     builtin_methods.py                    (implemented: built-in metadata and concrete class paths; loaded on demand, with optional explicit prewarm)
-  workflows/
-    __init__.py                           (public PUPipeline, PipelineReport, and ShiftAware reports)
-    pipeline.py                           (implemented: PUPipeline profile→prior→training→CV→diagnostics; mlp/cnn and explicit classifier selection)
-    _evaluation.py                        (metric resolution, PU-aware CV execution, and aggregation)
-    _inputs.py                            (input validation, splitter preparation, and CV provenance)
-    _models.py                            (private workflow classifier/prior resolution, instantiation, and parameter checks)
-    _reporting.py                         (private build_pipeline_report assembly and provenance normalization)
-    report.py                             (PipelineReport/PriorInfo/CVMetric data classes; to_dict/to_json/save contracts)
-    shift.py                              (implemented: ShiftAwarePUPipeline paired baseline/weighted comparisons → ShiftComparisonReport)
   cli/                                    (argparse subcommands and thin workflow wrappers)
     __init__.py                           (build_parser/main assembles subcommands; user errors → exit 1)
-    run.py                                (run: two CSV inputs, three standard output files, exit codes 0/1/2)
     info.py                               (list-methods/list-priors: registered classifiers and priors, with explicit km1/km2 entries)
     demo.py                               (make-demo-data: SCAR X/y_pu/y_true CSV files checked for five-fold usability)
     profile.py                            (profile: profiles and SCAR/SAR diagnostics; writes profile.json)
@@ -190,18 +178,7 @@ pu_toolbox/
     skill.py                              (skill: installs the wheel's pu-workflow skill into user agent directories)
     shift.py                              (shift-audit/shift-run: shift audit and weighted-training comparison; writes shift_report/comparison artifacts)
     deployment.py                         (shift-monitor/review deployment commands and artifact exports)
-  ui/                                     (optional Streamlit UI; core installation does not import streamlit)
-    __init__.py                           (public data loading, run configuration, deployment analysis, and parameter catalogs)
-    app.py                                (Streamlit main(): upload→configuration→background training→results)
-    configuration.py                      (run configuration/session-state adapters: apply_run_configuration/parse_json_mapping)
-    data.py                               (CSV/NPY parsing and validation: load_feature_data including 4-D NCHW, and load_label_data)
-    execution.py                          (execute_analysis normal/tuning/comparison dispatch; finalize_run history completion)
-    history.py                            (process-wide history: thread-safe append/snapshot; retained on refresh, cleared on restart)
-    parameters.py                         (parameter metadata and typed widgets: classifier_catalog signature reflection/parameter_schema/render_parameter_form)
-    results.py                            (render_results metrics, diagnostic hints, and JSON/MD/pkl downloads)
-    runtime.py                            (submit_background/BackgroundRun thread pool, progress snapshots, and cooperative cancellation)
-    launcher.py                           (pu-toolbox-ui main() wraps streamlit run app.py)
-    deployment.py                         (UI-independent analyze_deployment_window and render_deployment_tools panel)
+    _data.py                              # shared CLI feature and label readers
   experiment/                             # public four-role experiments, PA/OA, independent testing, read-only summaries/reports
     cvir_adapter.py                       # independent CVIR wiring for explicit OS alpha_U and population-pi/view-prior conversion
     pulns_adapter.py                      # extra clean-support role/group isolation, budget, and endpoint OA gates; ADNI isolation marked unverifiable
@@ -248,8 +225,6 @@ pu_toolbox/
     results.py                            (read-only v3 manifests, identity/budget consistency, seed aggregation, provenance disclosure)
     research_settings.py                  # sampling, risk pools, prior inputs, supervision, representation, and readable summaries
   __init__.py
-  run_config.py                           (implemented: portable RunConfiguration JSON shared by CLI/UI; schema_version validation)
-  progress.py                             (CancellationToken/emit_progress cooperative cancellation and progress callbacks)
 ```
 
 ## 3. Tests (`tests/`)
@@ -290,21 +265,21 @@ tests/
       test_shift_monitor.py             # window deltas, alerts, history restoration, configuration gates
       test_uncertainty.py               # rejection coverage, three query policies, per-row artifacts
     estimators/
-      test_elkan_noto.py                # OOF propensity near true c, weighted refit, priors, normalized probabilities, pipeline
+      test_elkan_noto.py                # OOF propensity near true c, weighted refit, priors, normalized probabilities
       test_upu.py                       # separable boundaries, prior sensitivity, loss variants, PU-CV λ search, validation risk
       test_nnpu.py                      # nnPU training dynamics and early stopping
       test_nnpu_encoder.py              # encoder injection, Sequential composition, 4-D boundaries, default regression
       test_bias_aware.py                # LBE bounded propensity/EM, all-positive PUSB errors, parameter/prior validation
       test_pusb_kernel.py               # official-aligned formulas, CV, determinism
       test_dist_pu.py                   # optional torch, mixup boundaries, class-prior/epochs validation
-      test_vpu.py                       # golden formulas, normalization, registry/pipeline, checkpoints, CUDA smoke
+      test_vpu.py                       # golden formulas, normalization, registry, checkpoints, CUDA smoke
       test_vpu_ts_view.py               # core-role TS/OS pools, bare default equals TS, validation requests only train roles
-      test_pulda.py                     # golden dual losses, two-stage trajectories, registry/pipeline, checkpoints, CUDA smoke
+      test_pulda.py                     # golden dual losses, two-stage trajectories, registry, checkpoints, CUDA smoke
       test_grad_pu.py                   # golden formulas, API/registry, determinism, checkpoints, CUDA smoke
       test_robust_pu.py                 # self-paced weights, API/registry, determinism, checkpoints, CUDA smoke
       test_split_pu.py                  # JS formulas, stages, API, determinism, checkpoints, CUDA smoke
       test_lagam.py                     # second-order meta-labels, support gates, cluster contrast, CUDA smoke
-      test_puet.py                      # golden node risks, ensembles, determinism, pickle, pipeline
+      test_puet.py                      # golden node risks, ensembles, determinism and pickle
       test_self_pu.py                   # pace/meta/EMA/three-stage training
       test_deep_pu.py                   # InfoMax PU/WConPU/DGPU API and registry
       test_deep_pu_vision.py            # WConPU vision backbones and tensor augmentation
@@ -383,15 +358,7 @@ tests/
     metrics/
       test_classification.py            # hand-calculated average_precision/pu_recall/pu_estimated_precision/pu_negative_rate, sklearn references, empty groups, low priors
     model_selection/
-      test_comparison.py                # model comparison, failure isolation, selection direction
       test_split.py                     # positives per fold, disjoint complete coverage, approximate PU ratios, MIN_POSITIVE_SAMPLES
-      test_tuning.py                    # PUTuner grids, selection direction, unavailable metrics
-    ui/
-      test_history.py                   # process-wide history and final entries (D9 regression)
-      test_ui_helpers.py                # upload parsing, typed parameters, configuration state, model catalogs
-      test_runtime.py                   # background runs, progress snapshots, cooperative cancellation
-      test_deployment.py                # deployment-analysis helpers and error paths
-      test_cnn_candidates.py            # registry-capability-driven CNN candidate/backbone catalogs
     prior/
       test_recpe.py                     # copy-fraction boundaries, custom base classifier/estimator, default KM2, None confidence interval, density-ratio quantiles
       test_pen_l1.py                    # automatic median-bandwidth σ, separated/low-prior bands, bounded estimates
@@ -447,33 +414,23 @@ tests/
       test_cvir_image_execution.py      # image priors, view locks, dual-protocol replay
       test_kldce_candidate_execution.py # actual SCAR binding, four-role replay, failure evidence
     cli/
-      test_classifier_params.py         # classifier-param JSON parsing and errors
       test_cli_main.py                  # CLI entry smoke
-      test_run_deep.py                  # deep run paths: .npy input and parameters
       test_info.py                      # list-methods/list-priors
       test_demo.py                      # make-demo-data
       test_skill.py                     # bundled skill installation
       test_audit_benchmark.py           # audit-benchmark
       test_profile.py                   # profile, pu-workflow step 1
-      test_recommend.py                 # retired recommendation CLI boundary
       test_sensitivity_cmd.py           # sensitivity, pu-workflow step 4
       test_shift_audit.py               # shift-audit parameters, errors, artifacts
-      test_shift_run.py                 # shift-run parameters, errors, paired artifacts
       test_deployment_commands.py       # shift-monitor/review parameters and artifact journeys
+      test_data.py                      # CLI CSV and NCHW feature/label contracts
+      test_label_semantics_entrypoints.py # sensitivity fit boundary for label semantics
     core/
       test_device.py                    # shared resolve_device helper
       test_training_view_contract.py    # neutral OS/TS roles/order, owned frozen/borrowed arrays, no estimator→experiment imports
       test_random.py                    # direct check_random_state tests including differences from inline construction
       test_fit_state.py                 # exceptions, cancellation, signatures for fit-state guards
       test_fit_guard_coverage.py        # candidate fits retain shared failure guards and do not declare clean roles; AST, no source hashes
-    workflows/
-      test_pipeline_report.py           # prior-reliability context in PipelineReport.summary()
-      test_metric_availability.py       # compute_metric availability and probability gates
-      test_architecture_capability.py   # fail-loud capability/signature drift
-      test_report_provenance.py         # four architecture-capability fields for bare mlp/full native_cnn
-      test_label_semantics_entrypoints.py # CLI/UI/tuning label-semantics gates
-      test_pipeline_label_semantics.py  # rejects mismatches in construction/run/clone
-      test_pipeline_prior_targets.py    # OS/TS estimation targets, per-fold consumption, real classifiers, population evaluation
     experiment/
       test_cvir_known_prior_adapter.py  # alpha_U/population pi, candidate roles, manifest/path rejection
       test_pulns_support_adapter.py     # all-role isolation, extra-label budgets, OA-only rejection
@@ -628,32 +585,14 @@ tests/
       test_serialization_hashes.py      # strict rejects nonfinite values, lenient writes NaN, equal finite-payload digests
       test_content_hashes.py            # array dtype/shape/bytes including 0-D; streamed file hashes independent of chunking
     test_basis_single_source.py         # shared RBF kernel formula consistency
-    test_run_config.py                  # portable UI/CLI configuration schema and serialization
     test_stable_modules.py              # stable-module inventory completeness; shallow clones read index without tags
   integration/                          # CLI + PUPipeline + registry + estimators
-    test_model_configuration.py         # named/required parameters and PUTuner determinism
-    test_pipeline.py                    # complete workflow, priors, errors, availability, determinism
-    test_run_config_retirement.py       # explicit classifier retirement boundary
-    test_pipeline_deep.py               # deep architecture selection; optional torch
-    test_run.py                         # in-process end-to-end run, actual CSV IO/training
-    test_cli_deep_save_model.py         # run --save-model CNN E2/E3 regressions; optional torch
-    test_ui_app.py                      # Streamlit rendering; skips without ui extra
-    test_ui_history_flow.py             # process-wide UI history wiring, D9; optional streamlit
-    test_pipeline_device.py             # pipeline/deep-estimator device autodetection and epochs defaults
-    test_prior_params.py                # prior_params forwarding behind CLI --prior-param
-    test_run_errors.py                  # friendly user-input errors
-    test_pipeline_sample_weight.py      # per-fold weight forwarding and semantic rejection
-    test_shift_workflow.py              # shift audits, adaptation, target evaluation
     test_joint_shift_classifier.py      # synthetic protocol, boundedness, determinism
-    test_shift_comparison.py            # paired weighted controls, evidence gates, reports
     test_joint_shift_baselines.py       # four controls, ablations, boundaries, determinism
-    test_cv_fold_isolation.py           # varying fold weights, untrained templates, no cross-fold leakage
-    test_nnpu_pipeline_cnn.py           # cnn/mlp provenance and encoder pickle round trips
-    test_pan_pipeline_cnn.py            # PAN/PULDA native CNN pipelines, seed checks, architecture gates
     test_iris_smoke.py                  # native classifier trainability/prediction smoke without accuracy assertions
     test_pulns_cnn_support.py           # built-in CNN, independent reward set, no test-label use by public workflows
-    test_dist_pu_pipeline_cnn.py        # explicit CNN/CV-copy isolation, frozen-feature adapter preservation
-    test_p3mix_pipeline_cnn.py          # three variants: real convolutional CV and four-role checkpoint selection/reclamation
+    test_dist_pu_pipeline_cnn.py        # frozen pilot keeps DistPU defaults
+    test_p3mix_pipeline_cnn.py          # four-role checkpoint selection and TS view rejection
     test_survey_recipe_binding_v3.py    # CLI frozen-registry binding, complete fields, verifiable aggregation, tampering rejection
     test_classical_candidate_runner.py  # PUET/RP four-role PA/OA and costs without artificial epochs
     test_diy_experiment_example.py      # prediction/preprocessing/test-label isolation
@@ -663,8 +602,7 @@ tests/
   e2e/                                  # real-subprocess user journeys in nightly CI
     test_profile_script.py              # subprocess pu-workflow profile
     test_sensitivity_script.py          # subprocess sensitivity
-    test_e2e_quickstart.py              # demo→explicit run→report and CLI error journeys
-    test_e2e_workflow_journey.py        # profile and explicit classifier workflow journeys
+    test_e2e_workflow_journey.py        # demo and standalone profile journeys
     test_e2e_subcommands.py             # subprocess profile/sensitivity
   benchmarks/                           # benchmark runners
     test_assigned_benchmark_runner.py   # first-five-paper runner
@@ -857,7 +795,7 @@ docs/
       pu_sampling.md                      # OS/TS, finite-pool provenance, training risk views
       representations.md                  # comparison conditions for encoders, native CNNs, frozen features
     howto/
-      pipeline.md                         # end-to-end PUPipeline workflow
+      pipeline.md                         # migration from the retired single-table workflow
       cli.md                              # command-line interface
       data_profiling.md                   # data profiles and assumption hints
       diagnostic_reports.md               # diagnostic report generation
@@ -868,14 +806,13 @@ docs/
       model_tuning.md                     # model parameters and PU-aware grid search
       custom_experiments.md               # four-role experiment API and strategy extension
       custom_encoders.md                  # encoder injection, shared backbones, frozen features
-      ui.md                               # UI installation and usage
       using_skill.md                      # enabling and using the pu-workflow skill
       pu_sampling.md                      # same-pool quotas, independent TS, metadata, entry-point migration
     reference/
       api/
         index.md                          # API navigation, version, and registry index
         classifiers.md                    # classifier and class-prior estimator contracts
-        tools.md                          # pipeline, utilities, and experiment contracts
+        tools.md                          # standalone tools and experiment contracts
         errors.md                         # exception types and usage scenarios
     README.md                             # user journey map
     quickstart.md                         # five-minute quickstart

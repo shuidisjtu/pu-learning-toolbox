@@ -38,20 +38,16 @@ contracts, including standalone research interfaces. Find registered names and a
   input, prior, support-data, and architecture requirements.
 - **Standalone mixture estimation:** `BBEMixtureEstimator` and `best_bin_estimate`.
 
-## Pipelines and orchestration
-
-- [`PUPipeline`](tools.md#pupipeline): end-to-end PU analysis.
-- [`PUTuner`](tools.md#putuner): PU-aware parameter search.
-- [`PUModelComparator`](tools.md#pumodelcomparator): compare models.
-- [Progress and cancellation](tools.md#progress-and-cancellation): `ProgressUpdate` and
-  `CancellationToken`.
+## Encoder construction
 - [`build_encoder`](tools.md#build_encoder): shared image encoder construction.
+
+- [`build_diagnostic_report`](tools.md#build_diagnostic_report): independent structured diagnostics.
 
 ## Distribution shift
 
 See the [distribution-shift APIs](tools.md#distribution-shift-api):
 
-- `analyze_pu_shift`, `ShiftAwarePUPipeline`, and `PUShiftMonitor`.
+- `analyze_pu_shift` and `PUShiftMonitor`.
 - `analyze_domain_assumptions` and `analyze_pu_uncertainty`.
 - Research-only joint-shift classifiers and their interpretation limits.
 
@@ -64,7 +60,6 @@ See the [distribution-shift APIs](tools.md#distribution-shift-api):
 
 - [`analyze_pu_sensitivity`](tools.md#analyze_pu_sensitivity): class-prior and labeling-propensity
   sensitivity.
-- [`build_diagnostic_report`](tools.md#build_diagnostic_report): structured diagnostic reports.
 
 ## Research experiments
 
@@ -128,9 +123,9 @@ provide optional Chinese research background.
 | [`weighted_contrastive_pu`](classifiers.md#weightedcontrastivepuclassifier-registered-as-weighted_contrastive_pu-alias-wconpu) (`wconpu`) | [`WeightedContrastivePUClassifier`](classifiers.md#weightedcontrastivepuclassifier-registered-as-weighted_contrastive_pu-alias-wconpu) | deep | `class_prior` / `encoder` / `hidden_dim` / `embedding_dim` | [WConPU](../../../research/method_cards/WConPU.md) |
 | [`p3mix`](classifiers.md#p3mixclassifier-experimental-registration-native-os) | [`P3MixClassifier`](classifiers.md#p3mixclassifier-experimental-registration-native-os) | deep | `variant` / `beta` / `gamma` / `pool_size` / `encoder` | [P3MIX](../../../research/method_cards/P3MIX.md) |
 | [`dgpu`](classifiers.md#dgpuclassifier-registered-as-dgpu) | [`DGPUClassifier`](classifiers.md#dgpuclassifier-registered-as-dgpu) | deep | `class_prior` / `generator` / `model` / `hidden_dim` | [DGPU](../../../research/method_cards/DGPU.md) |
-| — (`km1` / `km2` variant) | [`KernelMeanPriorEstimator`](classifiers.md#kernelmeanpriorestimator-km1--km2-variants) | class-prior | `variant="km1"/"km2"` and other kernel-mean settings; supported by `PUPipeline.prior_estimator` | [Kernel_Mean](../../../research/method_cards/Kernel_Mean_Class_Prior.md) |
+| — (`km1` / `km2` variant) | [`KernelMeanPriorEstimator`](classifiers.md#kernelmeanpriorestimator-km1--km2-variants) | class-prior | `variant="km1"/"km2"` and other kernel-mean settings | [Kernel_Mean](../../../research/method_cards/Kernel_Mean_Class_Prior.md) |
 
-> Registered classifier names work in `PUPipeline(classifier="...")` and CLI `--classifier`.
+> Registered classifier names are discoverable through the registry and `list-methods`.
 > `get_algorithm(name)` and `get_metadata(name)` discover built-ins on first use without manual
 > initialization. Importing the registry alone does not load the built-in catalog.
 > `clear_registry()` resets the registry; the next public use reloads the built-ins.

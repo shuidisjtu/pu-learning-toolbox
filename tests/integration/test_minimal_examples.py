@@ -7,7 +7,6 @@ import runpy
 import subprocess
 import sys
 from pathlib import Path
-from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -133,34 +132,23 @@ def test_basic_joint_shift_uses_independent_population_pools(monkeypatch):
         )
 
 
-@pytest.mark.parametrize(
-    ("recommendation", "has_weighted", "use_weighted"),
-    [
-        ("reweight_recommended", True, True),
-        ("no_clear_benefit", True, False),
-        ("audit_only", True, False),
-        ("collect_target_data", False, False),
-    ],
-)
-def test_edge_shift_review_respects_comparison_decision(
-    monkeypatch, recommendation, has_weighted, use_weighted
-):
-    from pu_toolbox import diagnostics, workflows
+def test_basic_shift_review_uses_fitted_model_and_target_data(monkeypatch):
+    from pu_toolbox import diagnostics
 
-    baseline, weighted = object(), object()
-    comparison = SimpleNamespace(
-        recommendation=recommendation,
-        baseline=SimpleNamespace(final_model=baseline),
-        weighted=SimpleNamespace(final_model=weighted) if has_weighted else None,
-    )
-    monkeypatch.setattr(workflows.ShiftAwarePUPipeline, "compare", lambda *a, **kw: comparison)
-    observed = []
+    real_review = diagnostics.analyze_pu_uncertainty
+    calls = []
 
-    def record_review(model, *args, **kwargs):
-        observed.append(model)
-        return SimpleNamespace(summary={"coverage": 1.0}, query_indices=np.array([], dtype=int))
+    def record_review(model, features, **kwargs):
+        result = real_review(model, features, **kwargs)
+        calls.append((model, features, kwargs, result))
+        return result
 
     monkeypatch.setattr(diagnostics, "analyze_pu_uncertainty", record_review)
     demo = runpy.run_path(str(ROOT / "examples/minimal/12_shift_decision_tools.py"))
     demo["main"]()
-    assert observed == [weighted if use_weighted else baseline]
+    assert len(calls) == 1
+    model, features, kwargs, result = calls[0]
+    assert model.predict(features).shape == (len(features),)
+    assert len(kwargs["y_pu"]) == len(features) == len(kwargs["y_true"])
+    assert kwargs["query_budget"] == 10
+    assert len(result.query_indices) <= kwargs["query_budget"]

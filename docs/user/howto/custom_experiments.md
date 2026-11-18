@@ -93,7 +93,7 @@ print(result.test_metrics)
 ```
 
 These inputs are fully labeled benchmark data. For existing real P/U observations, use an
-estimator or [PUPipeline](pipeline.md) directly; the four-role runner requires the complete-label
+estimator directly; the four-role runner requires the complete-label
 input views described above.
 
 ## 3. Configure parameters, candidates, and outputs

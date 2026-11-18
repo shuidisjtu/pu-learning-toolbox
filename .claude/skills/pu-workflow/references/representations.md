@@ -24,19 +24,10 @@ print(model_class.native_architectures, model_class.input_ndims,
       model_class.encoder_parameter, model_class.trains_encoder)
 ```
 
-The CNN Pipeline/CLI route uses an explicit classifier that declares encoder
-injection and CNN input support. Example for headered PU labels and a finite
-float NCHW array saved as `X.npy`, with a known population prior:
-
-```bash
-pu-toolbox run --data X.npy --labels y_pu.csv --classifier nnpu --architecture cnn --backbone cnn13_no_bn --device cpu --class-prior 0.4 --max-epochs 2 --evaluation-cv 2 --out-dir image-output
-```
-
-Use `uv run pu-toolbox ...` in a uv-managed project. Choose device, epochs,
-batch size, prior source, and candidate count from the task's budget.
-Raw-image tasks use shape/finite-value and label-count checks; table profiling
-uses two-dimensional data. An explicit feature-extraction route supplies
-the two-dimensional features for table profiling and explicit method selection.
+Train image models with the Python estimator API. Match device, encoder,
+training budget and prior to the estimator contract. Validate NCHW shapes,
+finite values and label counts. Profile 2-D features only after extraction
+under the permitted fit scope.
 
 ## Train with an encoder template
 
@@ -93,8 +84,7 @@ print(settings)
 ```
 
 Direct nnPU `fit` with its default native-U loss consumes `pi_u` computed
-from the current train partition. `PUPipeline` accepts the population prior
-and resolves the declared consumer target for each fold and final fit.
+from the current train partition.
 nnPU deep-copies `template` into `encoder_` for each fit, giving candidates
 and folds their own trainable encoder. The encoder returns finite
 two-dimensional features; the model builds its prediction head from that
@@ -102,8 +92,7 @@ feature dimension.
 
 For shared backbones, use
 `build_encoder("cnn", backbone="cnn13_no_bn", in_channels=1)` from
-`pu_toolbox.estimators.deep`. Discover accepted backbones through the installed
-CLI or function signature. Shared encoders include channel normalization;
+`pu_toolbox.estimators.deep`. Discover accepted backbones through the installed Python API. Shared encoders include channel normalization;
 record the chosen means/stds and image range. Current ResNet builders use
 random initialization (`weights=None`) and require torchvision.
 

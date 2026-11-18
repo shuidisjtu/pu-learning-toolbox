@@ -248,28 +248,3 @@ def test_basic_source_receipt_pins_distinctions_not_source_replay_or_admission()
     assert not receipt["author_code_replay"] and not receipt["formal_admission"]
     assert not receipt["calibration_applied"] and receipt["candidate_protocol_ref"] is None
     assert receipt["owner_signatures"] == []
-
-
-def test_basic_public_cnn_pipeline_routes_encoder_and_explicit_alpha(monkeypatch):
-    from pu_toolbox.estimators.deep import vision
-    from pu_toolbox.workflows import PUPipeline
-
-    monkeypatch.setattr(vision, "build_encoder", lambda *args, **kwargs: ImageEncoder())
-    X, y = data()
-    report = PUPipeline(
-        classifier="cvir",
-        architecture="cnn",
-        prior_estimator=None,
-        device="cpu",
-        evaluation_cv=2,
-        classifier_params=dict(
-            unlabeled_positive_prior=0.3,
-            hidden_dim=4,
-            max_epochs=1,
-            warm_start_epochs=0,
-            batch_size=4,
-        ),
-    ).fit_evaluate(X, y)
-    assert report.final_model.predict(X).shape == (19,)
-    assert report.final_model.unlabeled_positive_prior_ == 0.3
-    assert report.final_model.data_device_policy_ == "cpu_stream"

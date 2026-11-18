@@ -128,11 +128,6 @@ UNLIMITED_FILES: dict[str, str] = {
     "test_classification.py": (
         "PU + planned supervised/calibration metrics with hand-computed MATH golden values"
     ),
-    "test_pipeline.py": (
-        "cross-cutting end-to-end integration suite for the PUPipeline workflow "
-        "(report contents, prior resolution, auto mode, error paths, determinism, "
-        "provenance call-site mapping)"
-    ),
 }
 
 # Files whose algorithms are fully covered by contract tests
@@ -149,6 +144,29 @@ CONTRACT_COVERED_FILES: dict[str, str] = {
 # every run and flagged as removable once the category is covered, so
 # the list stays honest and shrinkable.
 PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
+    "test_e2e_workflow_journey.py": {
+        "param": "smoke with fixed options; parameter coverage is in test_profile_script.py",
+        "edge": "profile failures are covered by test_profile_script.py",
+        "determ": "profile reproducibility is covered by test_profile_script.py",
+    },
+    "test_dist_pu_pipeline_cnn.py": {
+        "basic": "frozen protocol lock; fit/predict is covered by the DistPU estimator tests",
+        "param": "fixed pilot defaults; alternative recipes are covered by the estimator tests",
+        "determ": "static protocol assertions require no RNG",
+    },
+    "test_p3mix_pipeline_cnn.py": {
+        "determ": "snapshot replay checks restoration, not same-seed repeated training",
+    },
+    "test_pulns_cnn_support.py": {
+        "param": "native CNN smoke varies backbones; invalid parameters are covered at unit level",
+        "edge": "PULNS encoder and input boundaries are covered in the estimator tests",
+    },
+    "test_data.py": {
+        "determ": "file parsers are pure over fixed inputs; repeatability is incidental to parsing",
+    },
+    "test_label_semantics_entrypoints.py": {
+        "edge": "unsupported label semantics are the parameterized refusal paths in this file",
+    },
     "test_dist_pu_source_review.py": {
         "determ": (
             "checks fixed source references and ledger text; it does not run a stochastic algorithm"
@@ -279,28 +297,10 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
     "test_training_view_routing.py": {
         "determ": ("the router is a pure function of a signature -- no randomness, no seed state"),
     },
-    "test_architecture_capability.py": {
-        "basic": (
-            "single-purpose gate unit tests on synthetic classifier stubs; "
-            "the pipeline fit/predict flow is covered by test_pipeline(_deep) "
-            "integration tests"
-        ),
-        "edge": (
-            "the gate's own boundary scenarios (capability/signature mismatch) "
-            "are these error-path tests; input boundary validation lives in "
-            "encoder and pipeline tests"
-        ),
-        "determ": (
-            "check_architecture_capability is a pure function over metadata "
-            "(no randomness, no seed state); deep estimator seed determinism "
-            "is unit-tested with fixed seeds"
-        ),
-    },
     "test_check_api_docs.py": {
         "basic": (
             "anti-drift gate unit tests: symbolic coverage checks and static "
-            "AST extraction, no fit/predict behavioral smoke; pipeline behavior "
-            "is covered by test_pipeline(_deep) integration tests"
+            "AST extraction, no fit/predict behavioral smoke"
         ),
         "param": (
             "gate has no parameter surface (main takes no arguments; "
@@ -316,56 +316,6 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
         "determ": (
             "export-contract test compares structure and forward shape only, "
             "never trained weights (random init); no RNG/seed dependence"
-        ),
-    },
-    "test_cli_deep_save_model.py": {
-        "param": (
-            "end-to-end success-path regression; CLI parameter error "
-            "paths live in existing CLI tests"
-        ),
-        "edge": (
-            "success-path regression; boundary inputs are covered by existing CLI/model tests"
-        ),
-        "determ": (
-            "GPU/CUDA deep training is not bit-reproducible; determinism is asserted at unit level"
-        ),
-    },
-    "test_cnn_candidates.py": {
-        "basic": (
-            "Candidate-set derivation is a registry metadata query with no fit/predict "
-            "behavior; the training flow is covered by the test_pipeline(_deep) integration tests"
-        ),
-        "param": (
-            "No parameter-validation surface; declaration legality is covered by the "
-            "test_capability_declarations contract tests"
-        ),
-        "edge": (
-            "Asserts the fixed current declaration set and bidirectional consistency; "
-            "empty-set/declaration boundaries are covered by registry unit tests"
-        ),
-        "determ": (
-            "cnn_candidates is a pure function (no randomness, no seed state); "
-            "deep-estimator seed determinism is covered by the existing fixed-seed unit tests"
-        ),
-    },
-    "test_cv_fold_isolation.py": {
-        "basic": (
-            "Single-intent isolation lock test: both folds genuinely train 1 epoch each "
-            "and assert weight/object comparisons, no fit/predict output smoke; "
-            "pipeline-path behavior is covered by the test_pipeline(_deep) integration tests"
-        ),
-        "param": (
-            "No parameter-validation surface (constructor args fixed); parameter validation "
-            "and error paths are covered by pipeline/WConPU unit tests"
-        ),
-        "edge": (
-            "No input-boundary scenarios; boundary/validation behavior is covered by "
-            "validate_pu_X_y and encoder unit tests"
-        ),
-        "determ": (
-            "Seeded via fixed random_state but asserts no determinism (the subject is "
-            "isolation, not reproducibility); deep-training seed determinism is covered by "
-            "test_pipeline_deep TestPipelineDeepSeedReproducibility"
         ),
     },
     "test_ledger_registry_consistency.py": {
@@ -483,15 +433,6 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
             "determinism is covered by the estimator unit tests"
         ),
     },
-    "test_ui_history_flow.py": {
-        "param": (
-            "AppTest wiring test is a success-path end-to-end; parameter errors are unit-level"
-        ),
-        "edge": ("AppTest wiring test is a success-path end-to-end; boundary cases are unit-level"),
-        "determ": (
-            "UI flow includes background-thread timing; history module determinism is unit-tested"
-        ),
-    },
     "test_traditional_pu_resume.py": {
         "param": (
             "no parameter validation surface here; runner config validation is "
@@ -536,51 +477,6 @@ PARTIAL_COVERAGE: dict[str, dict[str, str]] = {
         "determ": (
             "seeded GPU smoke asserts behavior, not reproducibility; seed determinism "
             "is covered by test_nnpu_encoder.py test_seed_determinism_with_encoder"
-        ),
-    },
-    "test_history.py": {
-        "param": "history.append accepts any mapping; there is no input validation path",
-        "determ": "history module is deterministic by construction (no randomness)",
-    },
-    "test_nnpu_pipeline_cnn.py": {
-        "basic": (
-            "pipeline end-to-end provenance mapping and pickle round-trip assertions "
-            "(single-intent integration locks); unit-level field assembly is covered by "
-            "test_report_provenance.py"
-        ),
-        "param": (
-            "no constructor-error surface beyond the pipeline gates themselves; pipeline "
-            "error paths are covered by test_pipeline_deep.py"
-        ),
-        "edge": (
-            "no new boundary scenarios; 4-D boundary behavior is covered by "
-            "test_nnpu_encoder.py and validate_pu_X_y tests"
-        ),
-        "determ": (
-            "seeded pipeline runs assert provenance values, not reproducibility; seed "
-            "determinism is covered by test_nnpu_encoder.py and test_pipeline_deep.py"
-        ),
-    },
-    "test_report_provenance.py": {
-        "basic": (
-            "provenance field assembly assertions (plain dict key/value asserts, "
-            "not a fit/predict smoke); end-to-end pipeline behavior is covered "
-            "by test_pipeline(_deep) integration tests"
-        ),
-        "param": (
-            "build_pipeline_report is called directly with fixed arguments; "
-            "field-value validation and error paths are covered by "
-            "pipeline/device tests"
-        ),
-        "edge": (
-            "only two representative combinations (mlp bare, cnn full) are "
-            "asserted; None/empty/invalid boundaries are covered by device and "
-            "pipeline tests"
-        ),
-        "determ": (
-            "build_pipeline_report is a pure assembly function (no randomness, "
-            "no seed state); device resolution is only asserted to land in "
-            "{cpu, cuda}, never pinned to a fixed value"
         ),
     },
     # Runner-oracle guards live separately from the successful execution path.

@@ -1,23 +1,15 @@
 # PU 双架构渐进式升级方案
 
-状态：设计方案（不改变当前默认行为；已对照 v1.11.0 代码现状核实修订）  
-适用范围：`PUPipeline`、Registry、深度估计器、实验与结果报告
+适用范围：显式 estimator、Registry 能力声明、encoder 构造和实验层图像评估。
 
 ## 1. 背景与目标
 
-当前工具箱已经为 `infomax_pu` 和 `weighted_contrastive_pu`（别名
-`wconpu`）提供了可用的 MLP/CNN 双架构：表格输入使用内置 MLP，图像输入由
-Pipeline 构造并注入 CNN encoder。
+深度 PU 方法可以共享表征网络的构造方式，但仍各自决定预测头、损失和训练循环。
+例如 `infomax_pu`、`weighted_contrastive_pu` 支持原生 MLP/CNN；要处理图像时，调用方
+按约定将 CNN encoder 交给具体估计器。对传统算法使用 CNN 特征，是另一类实验路径。
 
-本方案的目标不是让所有算法表面上拥有同一组参数，而是：
-
-1. 为研究者提供可解释、可复现的架构比较能力；
-2. 为实验型开发者提供能力感知的统一配置和错误提示；
-3. 保留传统 PU 算法的原始实现、调参结果和论文语义；
-4. 让未来适合的深度算法能够低成本接入 MLP/CNN；
-5. 保证交叉验证、随机种子、预算、保存加载和报告的一致性。
-
-本方案遵循 YAGNI：先解决当前实验和接口治理问题，不进行一次性“大一统”重构。
+本方案让这两类路径都可测试、可比较、可追踪，不要求所有估计器共用构造参数或 trainer。
+新增架构时要保留原有二维路径的算法语义，并明确新路径的表示、拟合范围、预算和评估方法。
 
 ## 2. 参考项目及吸收内容
 
@@ -34,7 +26,7 @@ ResNet 特征网络。工具箱借鉴“共享 encoder、算法 head/loss 解耦
 
 PU-Bench 的 backbone factory、统一 trainer 生命周期、方法配置与训练代码分离，
 可作为工具箱整理 `vision.py`、Registry 和实验配置的参考。工具箱保留现有
-sklearn estimator/Pipeline 契约，不强迫所有算法使用同一个 trainer。
+scikit-learn 风格的 estimator 契约，不强迫所有算法使用同一个 trainer。
 
 - [PU-Bench 项目](https://github.com/XiXiphus/PU-Bench)
 
@@ -48,58 +40,31 @@ LIBSVM 的 problem/parameter/model 分离、训练前参数校验、统一 train
 
 ## 3. 能力分类
 
-每个算法应明确属于以下一种或多种能力模式：
-
-| 能力模式 | 含义 |
+| 路径 | 含义 |
 |---|---|
-| `native_mlp` | 算法原生使用二维表格/MLP 表征 |
-| `native_cnn` | PU 目标端到端训练 CNN encoder |
-| `cnn_feature_adapter` | CNN 提取特征后运行传统算法；不是原生 CNN |
-| `tabular_only` | 当前正式实现只接受二维表格特征 |
+| `native_mlp` | 估计器的原生 MLP 路径。 |
+| `native_cnn` | 估计器的原生 CNN 路径；是否训练传入的 encoder 由独立字段声明。 |
+| `cnn_feature_adapter` | 先提取 CNN 特征，再用二维特征拟合估计器；不算该方法的原生 CNN 实现。 |
+| `tabular_only` | Registry 对未声明任何原生架构的标记；实际接受的维度另看 `input_ndims`。 |
 
-初始推进分类（保留设计顺序；已实施状态见 §5，完整能力名单以 registry 为准）：
-
-- `native_mlp` + `native_cnn`：`infomax_pu`、`weighted_contrastive_pu`；
-- 优先评估 encoder 适配：`nnpu`、`dist_pu`；
-- 需要逐个改造复杂接口：`self_pu`、`dgpu`；
-- 当前保持 `tabular_only`：`elkan_noto`、`upu`、`pnu`、`centroid_pu/ldce`、
-  `kldce`、`llsvm`、`pusb`、`pusb_kernel`、`lbe`。
-
-`tabular_only` 是当前实现和算法语义的正式边界，不表示数学上绝对不能把图片
-转换为特征。若以后增加传统算法的图像能力，必须单独标记为
-`cnn_feature_adapter`。
+`input_ndims` 说明能接受哪些维度，不说明怎样处理这些维度。估计器可能接受四维输入但将其展平，
+不能因此标记为 `native_cnn`。完整能力清单以 Registry 为准，不在本计划另维护一份名单。
 
 ## 4. 总体架构
 
-```text
-2-D table ──┐
-            ├─ EncoderFactory ─→ features ─→ PU algorithm head/loss ─→ model
-4-D image ──┘
-```
-
 ### 4.1 Encoder 契约
 
-统一 encoder 的最低契约：
+支持注入的估计器要求 encoder 将其支持的输入映射为 `(batch, feature_dim)`，输出不是最终类别分数。
+调用方可以用公开的 `build_encoder` 构造共享骨架，或提供满足具体估计器要求的自定义网络。
+内置 CNN 名称以 `vision.py` 的 `CNN_BACKBONES` 为准。
 
-- 输入为二维表格或 NCHW 图像；
-- 输出形状为 `(batch, feature_dim)`；
-- 不输出最终 PU logits；
-- 可被深拷贝、sklearn clone 相关流程和 pickle 使用；
-- 不在全量数据上提前拟合；
-- CV 中的构造语义采用"共享构造 + 逐 fit 深拷贝"：Pipeline 以同一
-  random_state 构造一次 encoder，每个 fold 的估计器在 fit 内深拷贝出
-  独立副本，训练互不泄漏；初始化随机源在 fold 间共享（同一 seed 下各
-  fold 初始权重一致，现有测试锁定该语义）。"逐 fold 独立随机初始化"
-  是可选改进，仅在有明确实验需求（如研究 fold 间初始化多样性）时实施，
-  并同步更新锁定语义的测试。
-
-`architecture="mlp"` 仍返回/使用算法内置 MLP；`architecture="cnn"` 使用公共
-factory 构造 CNN/ResNet。现有 `build_encoder` 函数继续兼容（当前仅在模块内
-使用，阶段 1 补公共导出），必要时增加别名而不删除旧入口。
+训练时，拟合后的状态不得在候选或分区之间泄漏。对于在 `fit` 内深拷贝 encoder 的估计器，
+复用同一个未拟合模板可共享初始化而不共享更新后的权重。不能把这种实现假定为所有方法的保证；
+新方法应验证其 clone、实际拟合、预测及所承诺的保存恢复行为。
 
 ### 4.2 Registry 能力声明
 
-在现有 `AlgorithmMetadata` 基础上增加最小能力信息，例如：
+四个字段分别表达原生结构、输入维度、注入参数及训练责任，例如：
 
 ```python
 native_architectures = {"mlp", "cnn"}
@@ -108,222 +73,83 @@ encoder_parameter = "encoder"
 trains_encoder = True
 ```
 
-不支持 CNN 的算法显式声明 `tabular_only` 或仅 `{2}`。当前唯一的架构 gate 是
-构造函数签名检查；元数据能力字段是本方案的新增内容。落地顺序：阶段 0 新增
-元数据字段，与签名检查并行生效（二者结论应一致）；稳定后签名检查降级为
-兼容性兜底。
+Registry 同步估计器类上实际声明的字段，用于查询及 `list-methods` 展示。
+`encoder_parameter` 命名构造参数，不是自动注入指令。声明、构造签名和实际接受的输入必须相符。
 
-新增字段归属沿用现有分工：与实现强绑定、适合类属性声明的能力字段
-（`input_ndims`、`encoder_parameter`、`trains_encoder`、
-`native_architectures` 等）以估算器类属性为权威来源（与
-`sample_weight_support` 同模式），注册表条目同步镜像；避免能力信息继续在
-注册表字段、类属性与签名检查三处分裂。
+### 4.3 估计器与实验层的分工
 
-`encoder_parameter` 语义收窄为声明性元数据：它命名接收注入 encoder 的固定
-构造函数参数名，用于能力声明、门禁与列表展示；Pipeline 依构造函数签名经该
-参数注入 encoder，并通过类属性一致性校验把关，不基于该元数据做动态注入。
-
-### 4.3 Pipeline 责任
-
-Pipeline 统一负责：
-
-- 输入维度、通道数和架构兼容性校验；
-- encoder 的构造和注入（构造语义见 §4.1）；
-- 先验、设备、随机种子和训练预算传递；
-- CV、模型选择与报告；
-- 对不支持的架构快速失败。
-
-保存加载沿用现状分工：Pipeline 产出报告与最终模型对象，模型落盘与加载由
-CLI 负责（pickle 契约）；本方案只要求保存加载契约稳定可测，不迁移职责。
-
-算法自身只负责 PU 目标、算法 head 和特殊训练循环。
+- **直接拟合**：调用方选择 estimator、构造及传入 encoder、指定设备与先验，自己管理数据划分。
+  估计器校验自身输入，并实现模型头、PU 目标与训练循环。
+- **四角色实验**：调用方把已构造的 estimator 交给 `ExperimentRunner`。
+  Runner 按实验数据维度、所请求的架构和模型声明预检，并记录候选、验证选择和独立测试结果。
+  Survey 的骨架、表征和训练预算由对应配方定义，不能从 Registry 的能力字段推断。
+- **固定特征适配**：实验层可用同一份冻结 encoder 对不同数据角色提取二维特征；
+  若 encoder 需要训练，只能使用许可的训练数据，不能让验证或测试参与拟合。
 
 ## 5. 渐进式实施阶段
 
-### 阶段 0：能力契约和文档，不改变默认行为
+### 阶段 0：能力契约和文档
 
-- 在 Registry 增加架构能力字段；
-- 统一输入和 encoder 输出校验；
-- 补充 CLI/API/报告中的能力说明；
-- 保留 `architecture="mlp"` 默认值和已有构造参数；
-- 增加新算法接入模板。
-
-验收：现有表格流程、WConPU/InfoMax MLP/CNN 流程和旧报告均不回归。
-
-**实施结果（已完成，2026-08-30）**：4 能力字段
-（native_architectures / input_ndims / encoder_parameter / trains_encoder +
-派生 is_tabular_only）以估算器类属性为权威，经 `_SYNC_FIELDS` 镜像进
-registry；Pipeline CNN 路径并行校验 `check_architecture_capability`
-（签名与能力声明漂移 fail-loud）；`list-methods` 扩为 7 列能力展示；
-统一 encoder 输出校验 helper `validate_encoder_features` 接入
-infomax/wconpu；契约测试 4 组不变量强制新算法声明；接入模板见
-[new_algorithm_template.md](new_algorithm_template.md)。验收通过：快速测试
-零回归、7 门禁全过、集成与基线契约红线文件未改。
+2026-08-30 完成四项能力字段及 Registry 同步、`list-methods` 展示、`validate_encoder_features`
+共享校验和能力声明测试。新增方法沿用[接入模板](new_algorithm_template.md)。
 
 ### 阶段 1：整理现有双架构实现
 
-- 明确 `vision.py` 的通用 encoder factory 职责，补 `build_encoder`
-  公共导出；
-- 兼容保留现有 WConPU backbone 函数；
-- 报告 provenance 增加 architecture/backbone/device/encoder 字段，
-  分别报告 `native_mlp` 与 `native_cnn`；
-- UI 的 CNN 算法候选集改由注册表能力元数据驱动（移除硬编码集合）；
-- 补齐测试缺口：CV fold 训练隔离测试（fold 间权重不泄漏）、
-  `build_encoder` 公共导出契约测试；其余项（CNN13/ResNet 形状、
-  seed 确定性、pickle/save-load round-trip、fail-fast）已有覆盖，
-  CPU/GPU 执行级测试在 CUDA 可用时补充。
-
-**实施结果（已完成，2026-08-30）**：`build_encoder` 从包根与
-`estimators.deep` 双层公共导出（torch-free 导入链保持）；报告
-provenance 顶层平铺 4 字段——architecture(native_mlp/native_cnn)、
-backbone（MLP 为 None）、device(requested+resolved)、encoder（构造摘要，
-MLP 为 None），schema_version 保持 1.0；UI CNN 候选集由 registry 能力
-元数据推导（`cnn_candidates` 纯函数），骨架清单以 vision.py
-`CNN_BACKBONES` 为单一权威（app/run_config/pipeline/CLI 全量消费）；
-CV fold 隔离测试锁定"共享构造 + 逐 fit 深拷贝"语义（2 折真实训练 +
-权重快照断言 + device=cpu 钉定）。设计决策要点：architecture 单值
-（native_mlp/native_cnn，由 pipeline.architecture 映射，不同运行各自
-体现、单次报告不分节）；provenance 顶层平铺 4 键为纯 additive 扩展
-（schema_version 保持 1.0，不破坏旧消费者）；encoder 存构造摘要而非
-完整状态（MLP 为 None）；backbone 清单单一权威 vision.py
-`CNN_BACKBONES`（registry 不扩字段，YAGNI）；CV 隔离测试选 2 折真实
-训练 + 权重快照 + 防假阳性（方案 C）——静态检查或对象标识断言无法
-捕获 deepcopy 语义被破坏的真实风险，方案 C 直接锁定现状语义。
+2026-08-30 将通用 `build_encoder` 从包根及 `estimators.deep` 导出，保留原有 WConPU 构造入口。
+CNN13 和 ResNet 系列的模型结构由 encoder 工厂维护；算法一致性仍通过各自的输入形状、
+拟合、确定性及保存恢复用例验证，而非由工厂统一保证。
 
 ### 阶段 2：以 `nnpu` 为首个试点
 
-- 增加可选 `encoder=None`；
-- `None` 继续使用原有 MLP；
-- 传入 encoder 时只替换表征网络，不改变 PU loss 数学目标；
-- 注意 nnpu 现有 `model` 参数语义为完整网络（输出原始 score），新增
-  `encoder` 后需定义 encoder→head 的组合结构及与 `model` 的共存/优先级；
-- 完成二维/四维输入、CV、seed、设备和保存加载回归测试。
+2026-08-30 接入可选的 `encoder`。提供时，nnPU 在 `fit` 内深拷贝 encoder，探测输出特征维度，
+将传入的 `model` 用作分数头（未提供时构造线性头）。未提供 encoder 时，`model` 仍是完整网络，
+默认 `Linear(d, 1)`。因此可以替换表征而不改变 nnPU 风险目标。
 
-`dist_pu` 在试点稳定后再评估，避免同时改造多个训练循环。
-
-**实施结果（已完成，2026-08-30）**：nnpu 新增 keyword-only `encoder`
-参数——提供时在 fit 内深拷贝 + eval probe 得 representation_dim，
-`model` 复用为 score head（默认 `Linear(rep_dim, 1)`），组合为
-`nn.Sequential(encoder_, head)`，训练循环与 PU loss 数学目标零改动；
-`encoder=None` 分支逐字不动（默认 `Linear(d, 1)` 保持，计划原文
-"原有 MLP"系笔误）。能力声明升级 MLP/CNN 双架构，pipeline
-CV fold 隔离/UI 候选集/报告 provenance 声明驱动自动生效；新增 gpu
-marker 与 CUDA 执行级测试（无 CUDA 自动 skip），gpu 实执行已于
-FunctionTest 验收环境（NVIDIA T600）验收通过。设计决策要点：encoder
-与 model 同传合法、非互斥——model 复用为 score head，fit 内深拷贝 +
-eval probe 得 representation_dim 后组合为单一
-`nn.Sequential(encoder_, head)`，训练循环/early stopping/optimizer
-重建/decision_function 零改动，PU loss 数学目标不变；encoder=None
-分支逐字不动（默认 `Linear(d, 1)`，计划原文"原有 MLP"系笔误勘误，
-泛指原有默认网络）；head 维度不匹配不预校验、由 torch 前向自然报错
-（与现状 model 语义一致，YAGNI）；新测试全放新文件，既有测试与红线
-文件零改动；gpu 测试经 `pytest.mark.gpu` 注册，无 CUDA 自动 skip。
-
-**Dist-PU 后续接入（2026-10-20）**：新增可选 `encoder`，仅在显式
-`training_recipe="author_staged"` + `distribution_loss="author_histogram"` 下接受；
-默认 clean-room 全量 MLP 保留，避免隐式改损失或把全量目标当作 mini-batch 目标。
-注入网络 deepcopy/解冻训练，完整输入/标签/伪标签留 CPU，两阶段、扫描和预测均有批次界限；
-单行尾批以 BN 运行统计处理，记录该工程差异。Pipeline/CV、UI 能力列表、方法台账及 API
-同步，旧 MLP pickle 缺失的可选参数按构造缺省迁移；冻结 Pilot 的 Dist-PU 图像行仍走原
-feature-adapter。实现说明见 [Dist-PU 方法卡](../research/method_cards/Dist-PU.md)。
+2026-10-20 接入 Dist-PU 的可选 encoder，仅用于显式 `training_recipe="author_staged"` 和
+`distribution_loss="author_histogram"`；默认保留 clean-room 全量路径，冻结 Pilot 的图像条目仍用固定特征。
+前者在训练时复制 encoder，按批执行并保留数值保护；细节见 [Dist-PU 方法卡](../research/method_cards/Dist-PU.md)。
 
 ### 阶段 3：逐个评估复杂深度算法
 
-分别处理 `self_pu`、`dgpu` 等使用完整 `backbone/model` 或特殊状态的算法。
-不得仅通过参数重命名把完整模型伪装成 encoder。self_pu 的元学习再加权依赖
-干净验证标签（真值 y），encoder 适配不解决该前置条件；dgpu 依赖外部
-generator 协议，与 encoder 注入无法直接映射。二者建议长期搁置，待有明确
-实验需求再单独立项。
+Self-PU 可接受二维和四维输入，但声明的原生架构只有 MLP，四维可由默认网络展平。
+它的元学习仍需要独立的干净验证监督。DGPU 有自身的生成器协议。是否接入原生 CNN 应逐算法评估，
+不能把完整 `backbone` 或 `model` 仅重命名为 encoder，也不能因新表征消除既有监督要求。
 
-**现状注记（2026-09-14，issue #38 + 审阅 P1#1 修正）**：Self-PU 维持
-mlp-only——能力声明为 `{mlp}`/`{2,4}`/无 encoder/不训练 encoder。"非原生
-CNN"语义由 `native_architectures={"mlp"}` 承载，不再由 `input_ndims`
-收窄表达：模板定义 `input_ndims` 为"支持输入维度"，而默认网络的
-`Flatten` 使 fit 实际接受 4D 估计器级输入（有测试验证），声明 `{2}` 与
-公共行为矛盾，且 `ExperimentRunner._validate_model_capability` 会按声明
-拒绝本可运行的输入——故恢复 `{2,4}`（2026-09-14 审阅 P1#1）。Pipeline
-层 4-D+mlp 的拒绝是独立于声明的 UX 护栏，不受影响。Survey 图像行经
-`cnn_feature_adapter` 与其他非 CNN 方法同组。原生 CNN 接入（论文有
-MNIST MLP/CIFAR-13 层 CNN/ADNI 3-branch CNN 协议）待有明确实验需求时
-单独立项。
+### 阶段 4：传统算法图像特征适配
 
-### 阶段 4：按实际需求增加传统算法图像适配
+`experiment/feature_adapter.py` 的 `adapt_image_bundle_to_features` 生成二维特征和表示记录；
+`LeaderboardRunSpec` 区分原生和特征适配分组。该路径按 Survey 协议 §2.5 单独调参及报告，
+不替换已有 `tabular_native` 基准。
 
-仅在实验或用户需求明确时实现：
+## 6. 架构演进要求
 
-```text
-固定/折内训练的 CNN encoder → 传统 PU 算法
-```
-
-该路径单独调参、单独报告为 `cnn_feature_adapter`，不替换
-`tabular_native` 结果，也不默认进入原生算法主榜单。
-
-**现状注记（2026-09-12）**：该路径已在实验层实现，见
-`pu_toolbox/experiment/feature_adapter.py`：`adapt_image_bundle_to_features`
-输出二维特征与可审计 manifest，`LeaderboardRunSpec` 提供跨方法公平分组门禁，
-服务调查实验并按协议 §2.5 单独报告。该能力停留在实验层——主链路
-`PUPipeline` 不提供传统算法的 encoder 注入，`tabular_native` 主榜单与报告
-口径不受影响。未来若需进入主链路（传统算法 CNN 适配接入 `PUPipeline`），
-单独立项重新评估。
-
-## 6. 兼容性策略
-
-必须保持：
-
-- `architecture="mlp"` 为默认值；
-- 现有二维输入行为和传统算法构造函数不变；
-- 旧调参结果保留为 `tabular_native` 基准；
-- 新增参数不覆盖已有参数语义；
-- 旧报告字段和模型文件尽量可解析/加载；
-- CNN 模型保存输入通道、backbone、归一化、encoder 权重和算法参数；
-- CPU/GPU 加载支持设备映射；
-- 同一 `random_state` 的初始化和训练满足可复现要求。
-
-架构升级后，传统算法的既有调优结果不被替代：新适配路径必须重新调参，旧结果
-作为回归测试和比较基线继续保留。
+保留估计器既有二维输入和构造参数语义。接入新架构时，明确特征维度、归一化、初始权重、
+encoder 是否可训练以及在哪个数据分区拟合。需要可复现实验或模型恢复时，记录 seed、设备、
+实际配置及权重来源，并在承诺的设备和序列化路径下验证。新架构的实验预算应独立核对，不能复用
+旧架构的调参结果冒充验证证据。
 
 ## 7. 当前实验的公平性协议
 
-> 实验协议全文：[pu_survey_protocol.md](../research/pu_survey/pu_survey_protocol.md)。
-> 8 数据集、ResNet-18 主协议、统一 OS 视图 + 可选 TS-OS 校准、`c∈{0.1, 0.3, 0.5}`。
-
-本计划与实验协议的关系：PA/PAUC/OA 模型选择与 TS-OS 校准均已落地于实验层
-（`pu_toolbox/experiment/`，见 [experiment_layer.md](experiment_layer.md)），
-属实验协议的前置基础设施，不计入双架构改造范围。
-同理，本双架构计划**不是**文本 SBERT 向量或表格 MLP 路径的前置条件——它
-仅是图像数据集公平比较的**部分**前置工作（原生 CNN 与 `cnn_feature_adapter`
-的路径分组依赖它）；文本/表格路径可独立推进。
-协议要求图像榜单的 backbone 配置（统一 encoder/训练预算、能力台账与门禁、
-encoder 注入、`cnn_feature_adapter`、跨路径公平性检查）见协议 §2.5。
-当前工具箱已集成 cnn13/resnet18/resnet50，ResNet-34 尚未集成；协议的正类
-比例集合与既有深度协议（pi=0.3/0.5/0.7）不一致，实施前需明确补充运行或
-对齐口径。
-
-建议分为三条轨道：
+具体数据集、标记预算、训练风险视图及评估口径以 [Survey 协议](../research/pu_survey/pu_survey_protocol.md)
+为准。PA/OA 选择、OS 输入下的 TS-compatible 风险视图和图像架构是不同的设计维度；
+同样的 CNN 结构不保证训练目标或验证监督一样。表格和文本 SBERT 特征不依赖原生 CNN 接入。
 
 ### 轨道 A：原生算法比较
 
-- 深度算法使用已验证的原生 MLP/CNN；
-- 传统算法保持二维输入；
-- 比较算法目标本身的性能和稳定性。
+在同一表示和协议组内比较各算法；按方法声明区分二维输入和原生 CNN 路径。
 
 ### 轨道 B：架构比较
 
-- 只比较声明支持 MLP/CNN 的同一算法；
-- 固定数据划分、seed、模型选择和调参预算；
-- 分别报告 `native_mlp` 和 `native_cnn`。
+比较同一算法支持的 MLP/CNN 实现，固定源样本划分、标记策略、seed、选择证据和预算，
+分别报告 `native_mlp` 与 `native_cnn`。
 
 ### 轨道 C：CNN 特征适配
 
-- 传统算法通过 CNN 特征处理图片；
-- encoder 和预处理必须在训练 fold 内拟合；
-- 单独调参和报告，不与原生实现混合排名。
+先固定 encoder 的来源或训练范围，再提取特征供二维方法使用。
+单独记录表示、训练范围和调参预算，不把其结果与端到端原生 CNN 混为同一组。
 
-所有轨道统一记录 Accuracy、AUC、F1、Precision、Recall、标准差（主报告已
-具备）；训练时间、失败率和有效 seed 数为待补齐字段（时间与 seed 数已存在
-于 benchmark trials，失败率需增加 trial 级异常捕获）。需要 class prior 的
-算法同时报告真实先验和估计先验结果（该并列目前仅 benchmark trials 具备，
-主报告待补齐）。
+各轨道记录实际先验消费、候选与 epoch 预算、使用的验证监督、最终评估样本及有效 seed 数。
+配置允许真实先验和估计先验对照时，分别记明来源和额外监督，不把不同条件合并报告。
 
 ## 8. 传统算法引入 CNN 的风险
 
@@ -348,7 +174,7 @@ encoder 注入、`cnn_feature_adapter`、跨路径公平性检查）见协议 §
 
 - CNN smoke training；
 - 输入和输出形状测试；
-- CV fold 隔离测试；
+- 独立拟合之间的模型状态隔离测试；
 - 固定 seed 测试；
 - CPU/GPU（可用时）测试；
 - save/load/predict round-trip 测试；
@@ -364,10 +190,7 @@ encoder 注入、`cnn_feature_adapter`、跨路径公平性检查）见协议 §
   + 深度算法按需适配
   + 传统算法保持 tabular_native
   + 必要时单独提供 cnn_feature_adapter
-  + 严格 CV、seed、预算和报告约束
+  + 显式数据划分、seed、预算和报告约束
 ```
 
-这是一项面向多架构扩展的渐进式架构改进，不是一次性重构。它吸收 PUBench 的
-共享 featurizer 思路、PU-Bench 的 backbone factory/配置分层和 LIBSVM 的参数与
-模型契约，同时保留当前工具箱的 sklearn/Pipeline 兼容性。
-
+架构扩展以显式 estimator 为训练入口，以实验协议管理比较边界，并保留 scikit-learn 风格的估计器契约。

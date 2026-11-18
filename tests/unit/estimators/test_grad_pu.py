@@ -21,7 +21,6 @@ from pu_toolbox.experiment.checkpoints import EpochCheckpointTrainer  # noqa: E4
 from pu_toolbox.experiment.method_ledger import load_ledger  # noqa: E402
 from pu_toolbox.experiment.training_views import resolve_training_view  # noqa: E402
 from pu_toolbox.registry import get_algorithm  # noqa: E402
-from pu_toolbox.workflows import PUPipeline  # noqa: E402
 
 pytestmark = pytest.mark.unit
 
@@ -230,21 +229,6 @@ def test_basic_weights_only_roundtrip_preserves_scores():
     with torch.no_grad():
         values = restored(torch.as_tensor(X, device=device)).reshape(-1).cpu().numpy()
     np.testing.assert_allclose(values, fitted.decision_function(X), atol=1e-6)
-
-
-@pytest.mark.integration
-def test_basic_pipeline_resolves_gradpu_without_prior():
-    X, y = _data()
-    report = PUPipeline(
-        classifier="gradpu",
-        classifier_params={"hidden_dim": 6, "batch_size": 5},
-        prior_estimator=None,
-        max_epochs=2,
-        evaluation_cv=2,
-        random_state=3,
-    ).fit_evaluate(X, y)
-    assert isinstance(report.final_model, GradPUClassifier)
-    assert report.final_model.predict(X).shape == (len(X),)
 
 
 @pytest.mark.gpu

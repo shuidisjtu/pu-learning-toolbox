@@ -61,9 +61,7 @@ assert model.decision_function(X).shape == (32,)
 ```
 
 Direct nnPU `fit` with its default risk view consumes a native-U `class_prior`; the explicit
-conversion uses this train partition's labeled fraction. `PUPipeline` instead accepts a
-population prior and converts it using classifier declarations and per-fold counts; see the
-[pipeline guide](pipeline.md).
+conversion uses this train partition's labeled fraction; recompute it within each training fold. See the [migration guide](pipeline.md).
 
 The template retains initialization state; `model.encoder_` holds fitted state. Reuse the
 initial template across candidates or folds, with each fit obtaining its own copy.

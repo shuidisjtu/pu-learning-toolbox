@@ -16,8 +16,7 @@ four roles:
 
 Isolate roles at the original-source level. PA reads PU labels from `view="pu"`.
 The four-role runner currently receives clean inputs, then a Generator constructs
-the train/pu_val views. Use `PUPipeline` for ordinary internal CV with existing
-real PU data, and `ExperimentRunner` for four-role experiments.
+the train/pu_val views. For existing PU data, call estimators directly and design validation explicitly; use `ExperimentRunner` for four-role experiments.
 
 ## 2. PA: conditions and formulas
 
@@ -145,7 +144,7 @@ test labels as separate supervision budgets and stages.
 - Report prior provenance, sampling design, supervision budgets, and multi-seed
   statistics. Evaluate on test only after priors, candidates, and thresholds are fixed.
 
-See [model tuning](../howto/model_tuning.md) for ordinary tuning and the
+See [model tuning](../howto/model_tuning.md) for selection boundaries and the
 [Survey protocol](../../research/pu_survey/pu_survey_protocol.md) for study-specific settings.
 
 ## 6. Sources

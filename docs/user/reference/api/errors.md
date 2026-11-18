@@ -24,21 +24,16 @@ These exceptions are defined centrally in `core/exceptions.py`. `PipelineError` 
 
 | Entry point | Scenario | Outcome |
 |---|---|---|
-| `PUPipeline.fit_evaluate` | Labeled positives are fewer than the requested `evaluation_cv` folds | `ValidationError` |
 | `ElkanNotoClassifier.fit` | Labeled positives are fewer than `internal_cv_folds` | `ValidationError` |
-| `PUPipeline.fit_evaluate` | Invalid `sample_weight` shape or values, e.g. negative weights | `ValidationError` |
 | `ElkanNotoClassifier.fit` | Invalid `sample_weight` shape or values | `ValidationError` |
 | `AlgorithmMetadata(...)` | Invalid metadata values, e.g. an unrecognized `class_prior_target` | `ValidationError` |
-| `PUTuner.fit` / `PUModelComparator.fit` | No candidate produces a usable selection score | `PipelineError` |
-| `ShiftAwarePUPipeline.fit_evaluate` | Adaptation requested and the coverage gate fails, without `allow_unstable` | `PipelineError` |
-| `ShiftAwarePUPipeline.compare` | Coverage gate fails without `allow_unstable`, and baseline evaluation succeeds | Returns a comparison with `weighted=None` and `recommendation="collect_target_data"` |
 
 ## Error and issue-code navigation
 
 | API | Error scenarios | Issue codes |
 |---|---|---|
-| `PUPipeline` | [Error scenarios](tools.md#error-cases) | — |
 | `profile_pu_data` | Input rejection, e.g. truth missing labeled positives | [Issue codes](tools.md#issue-codes): `no_labeled_positives` / `sar_signal` / … |
+
 | `build_diagnostic_report` | An unfitted estimator raises `ValueError`; `estimator` and `y_pred`/`scores` are mutually exclusive | [Model-output issue codes](tools.md#report-issue-codes-model-output-checks): `constant_predictions` / … |
 
 For environment/installation matters, version matrices, CI responsibilities, and Python support,

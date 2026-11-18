@@ -15,7 +15,7 @@ constructing PU observations. Fit preprocessing within train.
 
 `ExperimentRunner.fit` accepts four `DatasetPart(view="clean")` inputs with
 true binary labels. The generator constructs PU views for train and pu_val.
-For existing real PU observations, use the Pipeline/estimator route in
+For existing real PU observations, use the direct estimator route in
 [analysis.md](analysis.md).
 
 | Role | Supervision used | Purpose |
@@ -91,8 +91,7 @@ signature. For an estimator's native-U loss on OS data, a custom trainer compute
 the training-partition prior with
 `population_to_native_unlabeled(population_prior, mean(y_pu), input_sampling="os")`
 and passes that value to the estimator. Record both population and consumed
-values. Pipeline performs its own declared-target resolution per fold;
-custom research trainers implement the chosen research contract.
+values.
 
 ## Interpret independent PA/OA selection
 

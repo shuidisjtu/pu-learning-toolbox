@@ -9,8 +9,7 @@
 Inspect registered capabilities with `pu-toolbox list-methods` and the
 [classifier reference](../reference/api/classifiers.md). Select candidates according to the
 sampling design, labeling assumptions, prior requirements, available supervision, and budget.
-Use [PUTuner or PUModelComparator](../howto/model_tuning.md) to evaluate explicit candidates
-with appropriate validation. Profiles inform judgment; they do not determine a ranking.
+Use appropriate independent validation for explicit candidates; see [model selection](../howto/model_tuning.md). Profiles inform judgment; they do not determine a ranking.
 
 ## 2. The role of π in method selection
 
@@ -25,12 +24,10 @@ with appropriate validation. Profiles inform judgment; they do not determine a r
   consume the supplied prior. `requires_class_prior=False` means the caller may omit
   an external prior, rather than establishing that the method has no prior dependence.
 - **When π is unknown:** estimate it with recpe / pen_l1 / km1 / km2, or choose a
-  method that accepts an omitted external prior. `PUPipeline` can connect prior
-  estimation to training when the selected method needs it.
+  method that accepts an omitted external prior. Connect prior estimation to training explicitly.
 
 See [prior semantics](class_prior_semantics.md) for prior targets,
-the [pipeline guide](../howto/pipeline.md) for resolution priority and automatic
-estimation, and [sensitivity analysis](../howto/sensitivity_analysis.md) for checking
+the [migration guide](../howto/pipeline.md) for direct training, and [sensitivity analysis](../howto/sensitivity_analysis.md) for checking
 the effect of prior assumptions.
 
 ## 3. Choose according to data conditions
@@ -40,7 +37,7 @@ Start with the properties of your data:
 | Data condition | Options to investigate | Reason and limits |
 |---|---|---|
 | π is known | uPU / nnPU / PNU / LLSVM / Dist-PU | Use the prior in a risk or objective under the method's assumptions; verify the required prior target |
-| π is unknown | Estimate π first, or consider Elkan-Noto / InfoMax PU | Prior estimation is an upstream step that `PUPipeline` can connect automatically |
+| π is unknown | Estimate π first, or consider Elkan-Noto / InfoMax PU | Prior estimation is an explicit upstream step |
 | Some labeled negatives are available | PNU | Combines PN/PU/NU risks; use the PNU label contract explicitly |
 | Feature-dependent labeling is suspected (SAR) | Review LBE / DGPU and the distinct `pusb` / `pusb_kernel` paths | Check each implementation's assumptions and additional requirements; the `pusb` baseline alone does not identify the latent class posterior |
 | Small data (< 1000 samples) | Elkan-Noto and other shallow methods | Compare simpler models before paying the fixed training cost of deep or fixed-epoch methods |
@@ -98,5 +95,5 @@ does not currently implement them; they are listed here for context.
 
 ## Next steps
 
-- Run the selected method in a complete [pipeline](../howto/pipeline.md).
+- Fit the selected estimator directly; see [migration](../howto/pipeline.md).
 - Check precise parameter contracts in the [API reference](../reference/api/classifiers.md#classifiers-and-estimators).

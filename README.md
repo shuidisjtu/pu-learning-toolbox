@@ -12,18 +12,17 @@
 - **sklearn-compatible API** -- `fit(X, y)` / `predict(X)` / `decision_function(X)`, works with pipelines and cross-validation
 - **SCAR & SAR** -- constant and instance-dependent labeling mechanisms, with a data simulator
 - **Data profiling** -- automatic quality checks and SCAR/SAR evidence to inform explicit method selection
-- **Auditable pipeline** -- one-call `PUPipeline` (profile -> prior -> train -> PU-stratified CV -> evaluate) plus structured diagnostic reports and prior/propensity sensitivity analysis
+- **Auditable analysis** -- data profiling and prior/propensity sensitivity analysis
 - **Composable PU research** -- OS and independent TS sampling, explicit prior targets, injectable experiment strategies, custom encoders, and recorded research settings ([guide](docs/user/howto/custom_experiments.md))
-- **Distribution-shift guardrails** -- OOF source/target drift audit, bounded covariate weights, overlap diagnostics, and a guarded `ShiftAwarePUPipeline`
-- **Deployment monitoring** -- resumable window alerts, coverage/rejection controls, and active-review exports in CLI and UI
-- **CLI** -- `pu-toolbox` turns the whole pipeline into terminal commands
-- **Model tuning** -- unified classifier parameters plus PU-aware grid search
+- **Distribution-shift guardrails** -- OOF source/target drift audit, bounded covariate weights, overlap diagnostics, and independent monitoring and review
+- **Deployment monitoring** -- resumable window alerts, coverage/rejection controls, and active-review exports in CLI
+- **CLI** -- `pu-toolbox` provides independent profiling, sensitivity and audit commands
+- **Controlled model tuning** -- single-model parameter grids in four-role experiments
 - **Evaluation metrics** -- PU-native risk plus supervised ranking, balanced-accuracy, and probability-calibration metrics with explicit availability contracts
 - **Reproducible traditional-PU benchmark** -- locked seven-method protocols, leakage preflight, resumable trials, paired comparisons, and tuning evidence
-- **Graphical UI** -- upload data, configure/compare models, inspect diagnostics, and download results
 
 > Method selection is explicit; see [ADR 0023](docs/adr/0023-explicit-method-selection.md).
-> Automatic prior estimation remains available when required.
+> Prior estimators are available as explicit upstream steps.
 
 ## Quick Start
 
@@ -31,7 +30,6 @@
 pip install pu-toolbox                # core dependencies (Python >= 3.10)
 pip install "pu-toolbox[torch]"       # + PyTorch-based methods (nnPU, Dist-PU, Self-PU, ...)
 pip install "pu-toolbox[text]"        # + fixed SBERT preprocessing for survey text datasets
-pip install "pu-toolbox[ui]"          # + Streamlit graphical interface
 ```
 
 ### Installation environments
@@ -53,59 +51,30 @@ Notes per environment:
 ### Hello World
 
 ```python
-from pu_toolbox.preprocessing import make_scar_dataset
-from pu_toolbox import PUPipeline
+import numpy as np
+from pu_toolbox.estimators.risk import UPUClassifier
+from pu_toolbox.prior import population_to_native_unlabeled
 
-# Synthetic OS data with SCAR labeling: each positive has the same labeling
-# probability. Observed labels are 1 (labeled positive) and 0 (unlabeled).
-X, y_pu, y_true = make_scar_dataset(
-    n=500, c=0.5, n_features=8, separation=1.0, random_state=42,
-)
-
-# One call: profile -> class prior -> train -> PU-stratified CV -> evaluate
-report = PUPipeline(classifier="upu").fit_evaluate(X, y_pu, y_true=y_true)
-print(report.summary())
+# For an OS training pool with known population prior 0.5:
+pi_u = population_to_native_unlabeled(0.5, float(np.mean(y_train_pu == 1)))
+model = UPUClassifier(class_prior=pi_u, random_state=42)
+model.fit(X_train, y_train_pu)
+predictions = model.predict(X_test)
 ```
 
-Documentation index: [docs/README.md](docs/README.md). The index, contributor guides,
-user entry pages, quickstart, concepts, how-to guides, and API reference are in English.
-The public Survey reproduction documents are also available in English.
-More runnable examples:
-[`examples/minimal/`](examples/minimal/).
+Here `X_train`, `y_train_pu` and `X_test` are user-provided separate arrays.
+See [migration](docs/user/howto/pipeline.md) for risk-pool and prior semantics.
 
-`PUPipeline` uses OS input sampling by default; independent P and population U
-use `input_sampling="ts"`. A supplied `class_prior` targets the population;
-the report records its source, conversions, and the value consumed by each
-training fold. See [prior semantics](docs/user/concepts/class_prior_semantics.md)
-and the [pipeline guide](docs/user/howto/pipeline.md).
-
-## Command Line
-
-The `pu-toolbox` console command wraps the full pipeline. Full guide: [`docs/user/howto/cli.md`](docs/user/howto/cli.md).
+## Command-line tools
 
 ```bash
-# 1. Generate SCAR demo data (X.csv / y_pu.csv / y_true.csv)
 pu-toolbox make-demo-data --out-dir demo/ --n 200 --seed 42
-
-# 2. Run an explicitly selected classifier
-pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --classifier upu --out-dir results/
-
-# 3. Inspect results
-#    results/report.md     full Markdown report
-#    results/report.json   strict JSON (no NaN), machine-readable
+pu-toolbox profile --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
+pu-toolbox list-methods
 ```
 
-## Graphical UI and model tuning
-
-```bash
-pip install "pu-toolbox[ui]"
-pu-toolbox-ui
-```
-
-The UI supports explicit model parameters,
-PU-stratified grid search, metric charts, diagnostics, and report/model
-downloads. See the [model tuning guide](docs/user/howto/model_tuning.md) and
-[UI guide](docs/user/howto/ui.md).
+See the [CLI guide](docs/user/howto/cli.md) for sensitivity, shift audit, monitoring and review.
+Pipeline, its run commands and UI are retired without a compatibility period.
 
 ## Documentation
 
@@ -115,7 +84,7 @@ Docs are split by audience; the full index is [`docs/README.md`](docs/README.md)
 |----------|---------|
 | [`docs/user/quickstart.md`](docs/user/quickstart.md) | 5-minute start (CLI + Python) |
 | [`docs/user/concepts/`](docs/user/concepts/) | Sampling, SCAR/SAR, prior targets, PA/OA selection, representations, method choice |
-| [`docs/user/howto/`](docs/user/howto/) | Simulation, pipeline, DIY experiments, encoders, CLI, reports, sensitivity, distribution shift |
+| [`docs/user/howto/`](docs/user/howto/) | Simulation, migration, DIY experiments, encoders, CLI, sensitivity, distribution shift |
 | [`docs/user/reference/api/index.md`](docs/user/reference/api/index.md) | Precise API contract |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | English contribution guide: setup, branches, tests, shared helpers, and PR requirements |
 | [`docs/dev/architecture.md`](docs/dev/architecture.md) | English architecture guide; other English developer guides are listed in the documentation index |

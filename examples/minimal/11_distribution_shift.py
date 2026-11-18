@@ -1,10 +1,10 @@
 # ruff: noqa: N806
 
-"""Audit PU distribution shift and run guarded covariate adaptation."""
+"""Audit PU distribution shift without training or adaptation."""
 # API reference: docs/user/reference/api/tools.md#distribution-shift-api
 
+from pu_toolbox.diagnostics import analyze_pu_shift
 from pu_toolbox.preprocessing import make_scar_dataset
-from pu_toolbox.workflows import ShiftAwarePUPipeline
 
 
 def main() -> None:
@@ -26,23 +26,11 @@ def main() -> None:
     # Any adaptation guarantee still depends on the covariate-shift assumptions.
     X_target = X_target + 0.25
 
-    report = ShiftAwarePUPipeline(
-        classifier="elkan_noto",
-        evaluation_cv=3,
-        shift_cv=3,
-        random_state=42,
-    ).fit_evaluate(
-        X_source,
-        y_source,
-        X_target,
-        y_target_pu=y_target,
-        y_true_source=y_true_source,
-        y_true_target=y_true_target,
-        class_prior=0.5,
-        target_class_prior=0.5,
+    report = analyze_pu_shift(
+        X_source, y_source, X_target, y_target_pu=y_target, cv=3, random_state=42
     )
-
-    print(report.to_markdown())
+    print(report.domain_auc, report.severity)
+    print(report.weight_summary["effective_sample_fraction"])
 
 
 if __name__ == "__main__":

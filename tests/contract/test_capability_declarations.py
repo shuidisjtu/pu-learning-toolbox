@@ -12,19 +12,14 @@ from __future__ import annotations
 
 from dataclasses import fields
 
-import numpy as np
 import pytest
 
 from pu_toolbox.core.base import BasePUClassifier
-from pu_toolbox.core.tags import AlgorithmFamily, Backend
 from pu_toolbox.registry import (
     AlgorithmMetadata,
     list_algorithms,
-    register_method,
-    unregister_method,
 )
 from pu_toolbox.registry.registry import get_algorithm
-from pu_toolbox.workflows import PipelineError, PUPipeline
 
 _LEGAL_NDIMS = {2, 4}
 _LEGAL_ARCHS = {"mlp", "cnn"}
@@ -99,13 +94,13 @@ def test_tabular_only_derived_from_empty_native_architectures():
 
 @pytest.mark.contract
 def test_cnn_capability_consistent_with_signature():
-    from pu_toolbox.workflows._models import declares_encoder_parameter
+    import inspect
 
     for meta, cls in _classifier_entries():
         if "cnn" in cls.native_architectures:
             assert 4 in cls.input_ndims, meta.name
             assert cls.encoder_parameter is not None, meta.name
-            assert declares_encoder_parameter(cls), meta.name
+            assert "encoder" in inspect.signature(cls.__init__).parameters, meta.name
 
 
 _EXPECTED_DECLARATIONS = {
@@ -173,49 +168,3 @@ def test_capability_field_set_is_exactly_the_four_declared_fields():
         name for name in names if name in _CAPABILITY_FIELDS or "architecture" in name
     }
     assert capability_named == _CAPABILITY_FIELDS
-
-
-class _EncoderDeclaredByNameOnly(BasePUClassifier):
-    """Fixture: constructor accepts the metadata-declared name, not ``encoder``."""
-
-    backend = Backend.TORCH
-
-    def __init__(self, *, foo=None):
-        self.foo = foo
-
-    def fit(self, X, y_pu, *, class_prior=None, sample_weight=None):
-        return self
-
-    def _predict(self, X):
-        return np.zeros(len(X))
-
-    def _decision_function(self, X):
-        return np.zeros(len(X))
-
-
-@pytest.mark.contract
-def test_encoder_parameter_metadata_never_drives_encoder_injection():
-    """Issue #45 (route B): ``encoder_parameter`` is declarative metadata only.
-
-    The registry entry below declares ``encoder_parameter="foo"`` and the
-    fixture constructor even accepts ``foo``, yet the CNN path still refuses
-    the method: injection stays keyed to the fixed ``encoder`` constructor
-    parameter (signature check), never to the declared metadata name.
-    """
-    name = "fake_encoder_parameter_metadata"
-    register_method(
-        AlgorithmMetadata(
-            name=name,
-            paper="Contract-test fixture for issue #45 (route B).",
-            family=AlgorithmFamily.CLASSIC_CALIBRATION,
-            native_architectures=frozenset({"cnn"}),
-            input_ndims=frozenset({2, 4}),
-            encoder_parameter="foo",
-        ),
-        _EncoderDeclaredByNameOnly,
-    )
-    try:
-        with pytest.raises(PipelineError, match="declare an 'encoder' constructor parameter"):
-            PUPipeline(classifier=name, architecture="cnn")
-    finally:
-        unregister_method(name)

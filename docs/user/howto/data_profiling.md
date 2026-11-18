@@ -124,5 +124,5 @@ is non-identifying and how audit mode provides more direct evidence about select
 
 ## Next steps
 
-- [End-to-end training and evaluation](pipeline.md).
+- [Direct estimator migration](pipeline.md).
 - [Exact API contracts](../reference/api/tools.md#profile_pu_data).

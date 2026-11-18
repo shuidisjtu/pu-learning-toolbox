@@ -172,12 +172,7 @@ Registered classifiers must declare `label_semantics`: for `"pu"`, 0 is unlabele
 0 is a true negative; `"pnu"` accepts three main-input roles, positive/negative/unlabeled.
 The experiment runner and PU workflows conservatively treat undeclared third-party estimators
 as `"pu"`; supervised oracles must explicitly declare `"pn"`. The runner checks the generated
-view. `PUPipeline` requires PU main inputs and checks at construction, run entry, and after
-actual cloning/construction. Comparison, tuning, and CLI/UI execution reuse this gate; CLI
-sensitivity checks it before direct fitting too. Direct three-role PNU fitting remains available,
-but a PNU model cannot bypass the PU workflow semantics gate. Equal numeric label sets do not
-establish equal meaning. The [label-semantics design](../../../dev/label_semantics_plan.md) is
-optional Chinese implementation background.
+view. Check each estimator's declared main-input label contract before fitting.
 
 ### sample_weight support levels
 
@@ -215,7 +210,7 @@ ClassPriorEstimator(*, sigma=None, reg_lambda=0.01, theta_grid=None, n_centers=2
 - Implements `fit(X, y_pu)` + `estimate()`; `estimate_target=estimation_pool="native_unlabeled"`.
   The old alias `pe` is deprecated (`FutureWarning`).
 - Optional Chinese research background: [class_prior_estimation method card](../../../research/method_cards/class_prior_estimation.md).
-  Example: [05_recpe_pipeline.py](../../../../examples/minimal/05_recpe_pipeline.py), through `PUPipeline`.
+  Example: [05_recpe_pipeline.py](../../../../examples/minimal/05_recpe_pipeline.py).
 
 #### ReCPEEstimator (recpe; alias re_cpe)
 
@@ -267,7 +262,7 @@ KernelMeanPriorEstimator(*, variant="km1", kernel_width=None, width_selection="r
 | `standardize` | `bool` | `False` | Standardize before training |
 | `random_state` | `int \| None` | `None` | Random seed |
 
-- `PUPipeline.prior_estimator="km1"/"km2"` maps to this estimator.
+- Construct with `variant="km1"` or `variant="km2"`.
 - `estimate_target=estimation_pool="native_unlabeled"`; returns the U mixture proportion.
 - Optional Chinese research background: [Kernel_Mean method card](../../../research/method_cards/Kernel_Mean_Class_Prior.md).
 
@@ -622,7 +617,7 @@ than averaging per-batch risks; last-digit floating-point differences are possib
 resident reductions remain unchanged. `data_device_policy_` / `training_data_device_` record
 the actual policy and data residency. Per-epoch snapshots include encoder, head, normalization,
 and inference batch size; optimizer resumption is unsupported.
-`PUPipeline(classifier="vpu", architecture="cnn", ...)` can inject a shared encoder. Optional
+Compatible classifiers can accept a shared encoder. Optional
 Chinese research background: [VPU method card](../../../research/method_cards/VPU.md).
 
 #### CVIRClassifier (cvir; alias conditional_value_ignoring_risk)
@@ -822,7 +817,7 @@ running statistics; inference preserves BN state and restores modes.
 `stage_optimizer_steps_` separates pretrain/reward_probe/policy/classifier;
 `optimizer_steps_` and `history_["optimizer_steps"]` count all actual updates. Returning an
 earlier best network does not subtract cost.
-The ordinary Pipeline/CLI has no independent reward-set input; direct calls require isolated
+Direct calls require isolated
 support. Explicit research routes use `PULNSExtraSupportTrainer` or
 `PULNSCleanSupportCheckpointTrainer` and must record their extra supervision and compatible
 protocol. CNN eligibility does not authorize reuse of test/selection labels.
@@ -1161,7 +1156,7 @@ SelfPUClassifier(class_prior, *, backbone=None, hidden_dim=128, warmup_epochs=10
 #### `InfoMaxPUClassifier` (registered as `infomax_pu`)
 
 Deep PU classifier: PURL representation learning → prior estimation → nnPU classification.
-For fine-grained control of its many constructor parameters, pass an instance to `PUPipeline`.
+Configure its constructor parameters directly.
 
 ```python
 InfoMaxPUClassifier(*, class_prior=None, representation_dim=20, hidden_dim=60,

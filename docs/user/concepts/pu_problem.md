@@ -76,10 +76,8 @@ method has no prior-related quantities: LDCE/KLDCE derive a prior from the label
 inventory, see the [semantic baseline](../../dev/pu_research_semantics.md#4-历史-os_or_ts-的逐实现清单)
 (optional Chinese implementation background).
 
-The pipeline resolves a call-level population prior first, then a classifier constructor prior
-according to its declared target, then estimation when required. See the
-[pipeline guide](../howto/pipeline.md) for operations and
-[sensitivity analysis](../howto/sensitivity_analysis.md) for misspecification checks.
+Estimate or supply the prior explicitly and convert it for the estimator risk pool. See the
+[migration guide](../howto/pipeline.md) and [sensitivity analysis](../howto/sensitivity_analysis.md).
 
 ## 5. Differences from supervised learning
 
@@ -109,7 +107,7 @@ population prior + OA + trainable ResNet-18” specifies separate choices. SCAR/
 labeling mechanism, OS/TS describes input sampling, and historical `os_or_ts` describes a training
 risk view.
 
-For existing PU data, read sampling → labeling assumptions → priors → pipeline. For synthetic
+For existing PU data, read sampling → labeling assumptions → priors → direct estimator training. For synthetic
 or comparative studies, read sampling → labeling policy → risk view → model selection →
 representations → DIY experiments. Sources and formula conditions are listed on the relevant
 concept pages. The [semantic baseline](../../dev/pu_research_semantics.md) is optional Chinese

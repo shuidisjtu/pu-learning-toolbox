@@ -35,10 +35,7 @@ if TYPE_CHECKING:
 _BUILTIN: dict[tuple[str, str], AlgorithmMetadata] = {
     # ── 1. Class-Prior Estimation ──────────────────────────────────
     ("..prior.pen_l1", "ClassPriorEstimator"): AlgorithmMetadata(
-        # NOTE: km1/km2 are NOT aliases here -- they denote
-        # KernelMeanPriorEstimator(variant=...) in PUPipeline (a different
-        # algorithm), so binding them to ClassPriorEstimator would repeat
-        # the kldce alias bug.
+        # km1/km2 name KernelMeanPriorEstimator variants, not penL1 aliases.
         name="class_prior_estimation",
         aliases=["cpe", "pen_l1", "pe"],
         deprecated_aliases=["pe"],

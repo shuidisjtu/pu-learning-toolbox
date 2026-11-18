@@ -24,11 +24,8 @@ by a *string*-based dynamic import (``importlib.import_module``): reading text w
 ``estimators``/``prior`` -- and it is recorded as a ruled exception in
 architecture.md §2.1 rather than here.
 
-Excluded from the measurement: the package facade (``pu_toolbox/__init__.py``)
-and the top-level helper modules (``pu_toolbox/progress.py``,
-``pu_toolbox/run_config.py``).  They belong to no layer; the facade is an
-umbrella re-export that legitimately reaches every layer, so including it would
-drown the real edges.
+Excluded from the measurement: the package facade (``pu_toolbox/__init__.py``),
+an umbrella re-export whose edges would mask the dependencies of individual layers.
 
 Coverage boundary of ``validate_layout``: it checks the directories holding
 ``.py`` files *inside* ``pu_toolbox/`` -- regular packages and namespace-style
@@ -78,9 +75,9 @@ LAYERS: dict[str, tuple[str, ...]] = {
         "pu_toolbox/model_selection",
         "pu_toolbox/diagnostics",
     ),
-    "Orchestration": ("pu_toolbox/workflows", "pu_toolbox/cli"),
+    "Orchestration": ("pu_toolbox/cli",),
     "Experiment": ("pu_toolbox/experiment",),
-    "User Layer": ("pu_toolbox/ui", "benchmarks"),
+    "User Layer": ("benchmarks",),
 }
 
 _SKIP_PARTS = {"__pycache__"}

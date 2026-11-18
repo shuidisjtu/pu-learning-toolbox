@@ -9,8 +9,6 @@ torch = pytest.importorskip("torch")
 
 from pu_toolbox import build_encoder  # noqa: E402
 from pu_toolbox.estimators.deep.pulns import PULNSClassifier  # noqa: E402
-from pu_toolbox.workflows import PUPipeline  # noqa: E402
-from pu_toolbox.workflows._models import cnn_capable_classifier_names  # noqa: E402
 
 pytestmark = pytest.mark.integration
 
@@ -78,20 +76,3 @@ def test_basic_determ_native_backbone_support_training_and_independent_fold_copi
     )
     for key, value in encoder.state_dict().items():
         torch.testing.assert_close(value, source[key], rtol=0, atol=0)
-
-
-def test_param_edge_pipeline_architecture_routing_does_not_supply_hidden_reward_labels():
-    features, labels, support = images()
-    pipe = PUPipeline(
-        classifier="pulns", architecture="cnn", evaluation_cv=2, max_epochs=1, device="cpu"
-    )
-    assert "pulns" in cnn_capable_classifier_names()
-    estimator = pipe._fresh_estimator(pipe._classifier_cls, None, None)
-    with pytest.raises(ValueError, match="clean support_data; PA-ineligible"):
-        pipe._fit_and_evaluate_one(
-            estimator, features, labels, features, labels, np.zeros(len(labels), int), None, None
-        )
-    assert not estimator._is_fitted
-    with pytest.raises(ValueError, match="ts risk substitution"):
-        estimator.fit(features, labels, support_data=support, os_or_ts="ts")
-    assert not estimator._is_fitted

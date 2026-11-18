@@ -97,7 +97,7 @@ If `native_architectures` includes `"cnn"`, provide:
   without CUDA; run `pytest -m gpu` in the acceptance environment. See
   `tests/unit/estimators/test_nnpu_gpu.py`.
 - A save/load/predict round-trip test.
-- Fail-fast tests for unsupported architectures using `PUPipeline` architecture validation.
+- Fail-fast tests for unsupported input shapes or architectures at the estimator boundary.
 
 ## 4. Minimal declarations
 
