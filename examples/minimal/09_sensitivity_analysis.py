@@ -1,7 +1,7 @@
 # ruff: noqa: N806
 
 """Audit class-prior and labeling-propensity assumptions for fixed outputs."""
-# API reference (signatures, parameters, return contracts): docs/user/reference/api.md
+# API reference: docs/user/reference/api/tools.md#analyze_pu_sensitivity
 
 from sklearn.model_selection import train_test_split
 

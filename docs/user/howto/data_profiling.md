@@ -50,7 +50,7 @@ the input. This exposes a conflict with the trusted-positive assumption early.
 
 ## 2. Returned object
 
-See the [API reference](../reference/api.md) for `PUDataProfile` fields,
+See the [API reference](../reference/api/tools.md#returned-pudataprofile) for `PUDataProfile` fields,
 `selection_diagnostic["status"]` values, and issue codes such as `no_labeled_positives`.
 
 - `report.has_errors` indicates data errors that prevent reliable training;
@@ -125,4 +125,4 @@ is non-identifying and how audit mode provides more direct evidence about select
 ## Next steps
 
 - [End-to-end training and evaluation](pipeline.md).
-- [Exact API contracts](../reference/api.md).
+- [Exact API contracts](../reference/api/tools.md#profile_pu_data).

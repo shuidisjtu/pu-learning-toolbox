@@ -67,7 +67,7 @@ A new algorithm must:
    are equal. The Pipeline resolves a population prior and converts it for each training fold;
    direct estimator calls must supply the prior required by that estimator's risk view.
    Further explanations and API details are in [prior semantics](../user/concepts/class_prior_semantics.md)
-   and the [API contract](../user/reference/api.md), scheduled for the user-documentation migration.
+   and the [API contract](../user/reference/api/classifiers.md#classifiers-and-estimators).
 
 ## 2. Existing automated gates
 

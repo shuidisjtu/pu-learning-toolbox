@@ -113,7 +113,7 @@ Docs are split by audience; the full index is [`docs/README.md`](docs/README.md)
 | [`docs/user/quickstart.md`](docs/user/quickstart.md) | 5-minute start (CLI + Python) |
 | [`docs/user/concepts/`](docs/user/concepts/) | Sampling, SCAR/SAR, prior targets, PA/OA selection, representations, method choice |
 | [`docs/user/howto/`](docs/user/howto/) | Simulation, pipeline, DIY experiments, encoders, CLI, reports, sensitivity, distribution shift |
-| [`docs/user/reference/api.md`](docs/user/reference/api.md) | Precise API contract |
+| [`docs/user/reference/api/index.md`](docs/user/reference/api/index.md) | Precise API contract |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | English contribution guide: setup, branches, tests, shared helpers, and PR requirements |
 | [`docs/dev/architecture.md`](docs/dev/architecture.md) | English architecture guide; other English developer guides are listed in the documentation index |
 | [`docs/dev/project_structure.md`](docs/dev/project_structure.md) | Source/data boundaries, local artifact retention, and scripts grouped by task |
@@ -223,7 +223,7 @@ uv run ruff format --check pu_toolbox/      # format check
 # Quality gates
 uv run python scripts/check_test_quality.py
 uv run python scripts/check_doc_links.py
-uv run python scripts/check_api_docs.py       # api.md covers every public symbol (anti-drift)
+uv run python scripts/check_api_docs.py       # API reference covers every public symbol (anti-drift)
 uv run python scripts/check_project_metadata.py
 uv run python scripts/check_math_rendering.py
 uv run python scripts/check_skill_sync.py

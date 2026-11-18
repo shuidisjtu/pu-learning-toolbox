@@ -60,7 +60,7 @@ alpha_used_last_round = model.estimate_unlabeled_prior()
 
 输出高分表示正类，`predict` 在 logit 0 分割；不提供校准的 predict_proba。
 `class_prior` 非空、sample_weight、外部干净验证标签均不接受。
-完整参数/返回结构见 [API](../../user/reference/api.md)。
+完整参数/返回结构见 [API](../../user/reference/api/classifiers.md#tednclassifier-standalone-experimental-registration-native-ts)。
 
 ## 来源差异与验收边界
 

@@ -1,6 +1,6 @@
 # Method Card: KLDCE（Kernelized LDCE）
 
-> 参数契约（签名、参数表、返回结构）以 [API 参考](../../user/reference/api.md) 为权威；本文档只记论文研究内容、实现边界与复现状态。
+> 参数契约（签名、参数表、返回结构）以 [API 参考](../../user/reference/api/classifiers.md#kldceclassifier-kldce-alias-kernelized_ldce) 为权威；本文档只记论文研究内容、实现边界与复现状态。
 
 2026-11-04 崩溃路径修复：原 `_rbf_kernel` 一次构造全尺寸 GEMM，在本机 NumPy
 OpenBLAS 0.3.23.dev / 2 线程环境曾出现 native 崩溃；本轮旧 CIFAR 调用在 90 秒

@@ -1,7 +1,7 @@
 # ruff: noqa: N806
 
 """Audit PU distribution shift and run guarded covariate adaptation."""
-# API reference (signatures, parameters, return contracts): docs/user/reference/api.md
+# API reference: docs/user/reference/api/tools.md#distribution-shift-api
 
 from pu_toolbox.preprocessing import make_scar_dataset
 from pu_toolbox.workflows import ShiftAwarePUPipeline

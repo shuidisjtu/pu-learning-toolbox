@@ -1,5 +1,5 @@
 """Elkan-Noto classifier — no class prior needed."""
-# API reference (signatures, parameters, return contracts): docs/user/reference/api.md
+# API reference: docs/user/reference/api/classifiers.md#elkannotoclassifier-elkan_noto-alias-en
 
 import numpy as np
 from sklearn.metrics import accuracy_score

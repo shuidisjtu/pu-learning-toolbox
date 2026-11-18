@@ -376,7 +376,7 @@ independent work.
    proportion consumes converted $`\pi_U`$. The caller supplies only $`\pi`$;
    run metadata records the mapping. For standalone APIs and Pipeline's declared-target
    conversion, see [prior semantics](../../user/concepts/class_prior_semantics.md) and the
-   [API reference](../../user/reference/api.md). Estimator output targets, such as labeling
+   [API reference](../../user/reference/api/classifiers.md#classifiers-and-estimators). Estimator output targets, such as labeling
    frequency $`c`$ or mixture proportion, must be declared in their metadata and converted
    to $`\pi`$ before downstream use where a population prior is required.
 

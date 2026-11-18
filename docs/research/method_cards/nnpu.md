@@ -1,6 +1,6 @@
 # Method Card: Non-Negative PU Learning (nnPU)
 
-> 参数契约（签名、参数表、返回结构）以 [API 参考](../../user/reference/api.md) 为权威；本文档只记论文研究内容、实现边界与复现状态。
+> 参数契约（签名、参数表、返回结构）以 [API 参考](../../user/reference/api/classifiers.md#nonnegativepuclassifier-nnpu-alias-nn-pu) 为权威；本文档只记论文研究内容、实现边界与复现状态。
 
 工具箱的输入采样、实际风险池和先验消费目标分别见
 [采样概念](../../user/concepts/pu_sampling.md)与

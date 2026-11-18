@@ -123,7 +123,7 @@ Built-in protocols min-max normalize nonconstant scores on their respective
 validation roles before scanning a threshold grid. Constant scores retain their
 original values, with affine parameters recorded as `None`. Threshold ties retain
 the first value encountered in the grid, which is the smaller threshold for the
-default ascending grid. See the [API reference](../reference/api.md) for the exact
+default ascending grid. See the [API reference](../reference/api/tools.md#experiment-layer-experiment) for the exact
 contract and [example 14](../../../examples/minimal/14_diy_experiment.py) for an
 executable independent-selection workflow.
 

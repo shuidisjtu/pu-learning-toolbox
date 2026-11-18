@@ -409,7 +409,7 @@ tests/
       __init__.py
       test_sampling_semantics.py        # same-pool quotas, independent TS, provenance, legacy-entry compatibility
     scripts/
-      test_check_api_docs.py            # api.md public-symbol coverage gate
+      test_check_api_docs.py            # API reference public-symbol coverage gate
       test_check_baseline_configs.py    # baseline-configuration consistency gate
       test_check_doc_links.py           # orphan/Markdown-link gate
       test_check_format.py              # ruff lint/format gate
@@ -879,8 +879,11 @@ docs/
       using_skill.md                      # enabling and using the pu-workflow skill
       pu_sampling.md                      # same-pool quotas, independent TS, metadata, entry-point migration
     reference/
-      api.md                              # precise public API contract
-      index.md                            # symbols grouped by module
+      api/
+        index.md                          # API navigation, version, and registry index
+        classifiers.md                    # classifier and class-prior estimator contracts
+        tools.md                          # pipeline, utilities, and experiment contracts
+        errors.md                         # exception types and usage scenarios
     README.md                             # user journey map
     quickstart.md                         # five-minute quickstart
   dev/                                    # contributor guides and optional internal background
@@ -983,7 +986,7 @@ scripts/
   check_skill_sync.py                     (complete mirrored resource trees, internal links, portable metadata)
   check_baseline_configs.py               (locked configurations vs constructor defaults)
   check_format.py                         (ruff check + format --check across the configured scope)
-  check_api_docs.py                       (api.md public-symbol coverage: static __all__ extraction and registered names)
+  check_api_docs.py                       (API reference public-symbol coverage: static __all__ extraction and registered names)
   generate_structure.py                   (--check validates / --update regenerates project_structure.md tree blocks)
   prepare_survey_splits.py                (data/raw → four-role train/pu_val/clean_val/test.npz and manifests)
   run_survey_experiment.py                (official example from protocol §2.4 item 9: single-method four-role PU, PA/OA, independent test)

@@ -12,11 +12,11 @@
 好的架构不是图纸，它回答：
 
 - **什么不能做**——如层间不允许反向依赖（[architecture.md §2.1](architecture.md)）、
-  分类器必须满足 fit/predict/decision_function 契约（[api.md](../user/reference/api.md)）；
+  分类器必须满足 fit/predict/decision_function 契约（[API reference](../user/reference/api/classifiers.md#classifiers-and-estimators)）；
 - **在当前项目情况下，为什么不能做**——每条限制的取舍在 [ADR 体系](../adr/README.md)。
 
 若理由链丢失，后人只能照抄"是什么 / 怎么做"，无法判断哪些可以演进。本项目的文档体系
-为此分工：`architecture.md` 记为什么这样组织、`api.md` 记契约、方法卡记论文出处、ADR 记取舍。
+为此分工：`architecture.md` 记为什么这样组织、API 参考 记契约、方法卡记论文出处、ADR 记取舍。
 
 ## 2. 腐朽的根源
 
@@ -47,7 +47,7 @@
 
 | 表现 | 应手 |
 |---|---|
-| 真相分裂 | 真相源分工：文件级职能 → [project_structure.md](project_structure.md)；API 契约 → [api.md](../user/reference/api.md)；公式/源码状态 → 方法卡；实现状态 → `registry/builtin_methods.py`；字段语义 → `core/tags.py` |
+| 真相分裂 | 真相源分工：文件级职能 → [project_structure.md](project_structure.md)；API 契约 → [API reference](../user/reference/api/index.md)；公式/源码状态 → 方法卡；实现状态 → `registry/builtin_methods.py`；字段语义 → `core/tags.py` |
 | 概念膨胀 | 命名治理：过宽注册名走 `deprecated_aliases` + `FutureWarning`；新名词先在契约中定义再使用 |
 | 治理检验体系腐朽 | 永远通过 / 频繁误报的检查无价值：check_math_rendering 曾假绿（已锚定 PROJECT_ROOT）、check_test_quality 豁免计入非零退出码；2026-10-04 阶段 7 又实证三处——check_comment_quality 路径不存在时打印 passed 并 exit 0、check_api_docs 的注册表解析为空时不校验、check_doc_links rule-3 只报 warning 故可整条静默失效——以及一处误报：类别匹配用裸子串（edge 命中 ledger）。门禁必须"能失败"，且**能让它失败的那条路径要有测试** |
 

@@ -1,5 +1,5 @@
 """PNU classifier — uses positive, negative, AND unlabeled samples."""
-# API reference (signatures, parameters, return contracts): docs/user/reference/api.md
+# API reference: docs/user/reference/api/classifiers.md#pnuclassifier-pnu
 
 import numpy as np
 from sklearn.metrics import accuracy_score

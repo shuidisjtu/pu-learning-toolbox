@@ -1,5 +1,5 @@
 """ReCPE + UPU pipeline — estimate class prior, then train classifier."""
-# API reference (signatures, parameters, return contracts): docs/user/reference/api.md
+# API reference: docs/user/reference/api/tools.md#pupipeline
 
 import numpy as np
 from sklearn.metrics import accuracy_score

@@ -70,4 +70,4 @@ Continue with these task guides and consult the API reference for exact contract
 - Use the graphical interface: run `pu-toolbox-ui` after installing the UI extra; see [UI](howto/ui.md).
 - Configure models or search parameters: [model tuning](howto/model_tuning.md).
 - Control each step of the workflow: [pipeline](howto/pipeline.md).
-- Look up commands and parameters: [CLI](howto/cli.md) and [API reference](reference/api.md).
+- Look up commands and parameters: [CLI](howto/cli.md) and [API reference](reference/api/index.md).

@@ -25,7 +25,7 @@ Put other information in its authoritative location:
 |---|---|
 | Module layers, dependency directions, data flow | [Architecture](architecture.md) |
 | File and directory responsibilities | [Project structure](project_structure.md) |
-| Public API signatures and semantics | [API reference](../user/reference/api.md) |
+| Public API signatures and semantics | [API reference](../user/reference/api/index.md) |
 | Paper formulas, sources, reproduction status | [Method cards](../research/method_cards/) (Chinese research background) |
 | Design tradeoffs and alternatives | [ADRs](../adr/README.md) (Chinese historical background) |
 
