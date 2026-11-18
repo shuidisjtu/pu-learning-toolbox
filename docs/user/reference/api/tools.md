@@ -170,19 +170,18 @@ The shared encoder builder for deep classifiers is defined in
 `from pu_toolbox import build_encoder`. Pass its result to a compatible classifier.
 
 ```python
-encoder = build_encoder(
-    architecture,             # "mlp" | "cnn"
-    *,
-    backbone="cnn13",         # "cnn13" / "cnn13_no_bn" / "resnet18" / "resnet50" (CNN only)
-    in_channels,              # Image channel count, e.g. RGB=3
-    normalization_mean=None,  # Per-channel means; default 0.5
-    normalization_std=None,   # Per-channel standard deviations; default 0.5
-)
+from pu_toolbox import build_encoder
+
+encoder = build_encoder("cnn", backbone="cnn13", in_channels=3)
 ```
 
+Set `in_channels` to the number of input channels: 3 for RGB in this example.
+`in_channels`, `backbone`, `normalization_mean`, and `normalization_std` are keyword-only.
+
 - `"mlp"` returns `None`, selecting the classifier's built-in MLP path for tabular data.
-- `"cnn"` returns a `build_wconpu_backbone(...)` image backbone for 4-D NCHW input,
-  including channel normalization.
+- `"cnn"` builds an image encoder for 4-D NCHW input. Available backbones are `cnn13`
+  (default), `cnn13_no_bn`, `resnet18`, and `resnet50`. The normalization mean and
+  standard deviation each default to 0.5 per channel.
 - An invalid `architecture` raises `ValueError`.
 
 ## profile_pu_data

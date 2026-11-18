@@ -913,10 +913,22 @@ LBEClassifier(*, max_iter=1000, n_em_iter=20, C=1.0)
 | `n_em_iter` | `int` | `20` | Number of EM iterations |
 | `C` | `float` | `1.0` | Inverse regularization strength; finite and greater than 0 |
 
-- Optional Chinese research background: [LBE method card](../../../research/method_cards/LBE.md).
-- This is linear logistic EM, not the authors' dual-MLP/Adam implementation; `fit(class_prior=...)` affects U posterior initialization only.
-- After fitting, `n_iter_` / `converged_` record actual EM iterations and posterior stopping. `observed_log_likelihood_history_` records the sum of observed log likelihoods per iteration, not the regularized optimization objective, and is not guaranteed monotonic.
-- `predict_proba` returns class probabilities; `predict_label_proba` returns labeling probabilities. All prediction entry points require a successful fit.
+`LBEClassifier` fits two logistic branches by EM. `fit(class_prior=...)` sets the initial
+positive posterior for unlabeled rows. After fitting:
+
+- `predict_proba(X)` returns the fitted class probabilities in negative, positive order.
+  Its positive column is the class branch's estimate of `P(Y=1 | X)`.
+- `predict_label_proba(X)` returns one fitted observed-label probability per row:
+  `P(S=1 | X) = P(Y=1 | X) × P(S=1 | Y=1, X)`. The second factor is the labeling
+  propensity among true positives.
+- `n_iter_` and `converged_` record EM iterations and posterior stopping.
+  `observed_log_likelihood_history_` tracks the sum of observed log likelihoods at each iteration.
+
+The observed-label likelihood depends on the product of the two branches and is unchanged
+when the branches are exchanged. Interpreting their fitted outputs separately as the true
+class posterior and labeling propensity requires an identifying assumption or additional
+supervision. See the [LBE method card](../../../research/method_cards/LBE.md) for source and
+implementation details.
 
 #### `NeuralLBEClassifier` (registered as `lbe_neural`, alias `neural_lbe`)
 
