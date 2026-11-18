@@ -136,7 +136,7 @@ A separate repository-wide style decision is needed for the following:
 5. A false positive requires a minimal reproduction test. Fix the gate rather than adding a
    permanent exemption.
 6. Keep `core/` and `losses/` pending for now. Whole-directory strictness would reject the
-   25 deliberately retained comments in section 3. Choosing a retention-exception table,
+   comments deliberately retained in section 3. Choosing a retention-exception table,
    rewriting them as preceding comments, or retaining advisory severity is a separate decision.
 
 ## 5. Language
