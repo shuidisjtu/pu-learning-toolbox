@@ -143,7 +143,6 @@ class TestSelfPUClassifier:
         }
         assert any(item["calibration_active"] for item in classifier.reweight_history_)
         assert any(item["active"] for item in classifier.distillation_history_)
-        assert classifier.get_pu_metadata()["implementation_status"] == "native"
         active_distillation = [item for item in classifier.distillation_history_ if item["active"]]
         assert all(item["scope"] == "untrusted_u" for item in active_distillation)
         assert all(item["student_rows"] == item["untrusted_u_rows"] for item in active_distillation)

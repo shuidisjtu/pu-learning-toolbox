@@ -17,6 +17,7 @@ from ..progress import (
     RunCancelledError,
     emit_progress,
 )
+from ..workflows._evaluation import resolve_metric_names, resolve_selection_metric
 from ..workflows.pipeline import DEFAULT_METRICS, PipelineError, PUPipeline
 from ..workflows.report import PipelineReport
 
@@ -71,7 +72,6 @@ class PUModelComparator:
         classifiers: Sequence[str],
         classifier_params: Mapping[str, Mapping[str, Any]] | None = None,
         scoring: str = "pu_zero_one_risk",
-        higher_is_better: bool | None = None,
         metrics: Sequence[str] | None = None,
         **pipeline_params: Any,
     ) -> None:
@@ -82,7 +82,9 @@ class PUModelComparator:
             raise ValueError("comparison classifiers must be explicit registered names.")
         if len(set(names)) != len(names):
             raise ValueError("comparison classifiers must be unique.")
-        forbidden = {"classifier", "classifier_params", "metrics"}.intersection(pipeline_params)
+        forbidden = {"classifier", "classifier_params", "metrics", "higher_is_better"}.intersection(
+            pipeline_params
+        )
         if forbidden:
             raise ValueError(f"pipeline_params cannot override {sorted(forbidden)}.")
         params = {name: dict(values) for name, values in (classifier_params or {}).items()}
@@ -90,33 +92,23 @@ class PUModelComparator:
         if unknown:
             raise ValueError(f"classifier_params contains unselected classifiers: {unknown}.")
 
-        metric_names = list(metrics or DEFAULT_METRICS)
-        if scoring not in metric_names:
-            metric_names.append(scoring)
+        scoring_name, self._higher_is_better = resolve_selection_metric(scoring)
+        metric_names = resolve_metric_names(metrics or DEFAULT_METRICS)
+        if scoring_name not in metric_names:
+            metric_names.append(scoring_name)
         # Construct every pipeline now so unknown methods or invalid parameters
         # fail before a potentially expensive comparison starts.
         for name in names:
             PUPipeline(
                 classifier=name,
                 classifier_params=params.get(name, {}),
-                metrics=[scoring],
+                metrics=[scoring_name],
                 **pipeline_params,
             )
-        validator = PUPipeline(
-            classifier=names[0],
-            classifier_params=params.get(names[0], {}),
-            metrics=[scoring],
-            **pipeline_params,
-        )
         self.classifiers = tuple(names)
         self.classifier_params = params
-        self.scoring = validator.metrics[0]
+        self.scoring = scoring_name
         self.metrics = metric_names
-        self.higher_is_better = (
-            self.scoring != "pu_zero_one_risk"
-            if higher_is_better is None
-            else bool(higher_is_better)
-        )
         self.pipeline_params = dict(pipeline_params)
 
     def fit(
@@ -190,7 +182,7 @@ class PUModelComparator:
             )
         best_score, best_classifier = (
             max(successful, key=lambda item: item[0])
-            if self.higher_is_better
+            if self._higher_is_better
             else min(successful, key=lambda item: item[0])
         )
         if cancellation_token is not None:
@@ -211,7 +203,7 @@ class PUModelComparator:
         )
         result = ModelComparisonResult(
             scoring=self.scoring,
-            higher_is_better=self.higher_is_better,
+            higher_is_better=self._higher_is_better,
             best_classifier=best_classifier,
             best_score=best_score,
             trials=tuple(trials),

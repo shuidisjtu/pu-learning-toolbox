@@ -43,12 +43,12 @@ def run_demo(args: argparse.Namespace) -> None:
     n_labeled = max(1, round(args.n * args.c))
     if n_labeled < 5:
         # The demo must be consumable by `run` with its default 5-fold CV:
-        # PUPipeline rejects n_labeled_positives < n_splits.  --cv 2 is the
+        # PUPipeline rejects n_labeled_positives < n_splits.  --evaluation-cv 2 is the
         # escape hatch for very small demos.
         raise ValueError(
             f"--n/--c produce {n_labeled} labeled positives, fewer than the "
             "default 5-fold CV requires; increase --n (e.g. --n 10 at c=0.5) "
-            f"or run with --cv 2. Got n={args.n}, c={args.c}."
+            f"or run with --evaluation-cv 2. Got n={args.n}, c={args.c}."
         )
     X, y_pu, y_true = make_scar_dataset(
         n=args.n,

@@ -21,7 +21,6 @@ from ...core.tags import (
     AlgorithmFamily,
     Assumption,
     Backend,
-    ImplementationStatus,
     Maturity,
     SampleWeightSupport,
     Scenario,
@@ -298,7 +297,6 @@ class SelfPUClassifier(BasePUClassifier):
     scenario = (Scenario.CASE_CONTROL,)
     requires_class_prior = True
     class_prior_target = "native_unlabeled"
-    implementation_status = ImplementationStatus.NATIVE
     source_status = SourceStatus.OFFICIAL_EXACT
     backend = Backend.TORCH
     maturity = Maturity.RESEARCH

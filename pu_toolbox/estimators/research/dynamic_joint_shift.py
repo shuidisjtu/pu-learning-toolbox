@@ -18,7 +18,6 @@ from pu_toolbox.core.tags import (
     AlgorithmFamily,
     Assumption,
     Backend,
-    ImplementationStatus,
     Maturity,
     SampleWeightSupport,
     Scenario,
@@ -175,7 +174,6 @@ class DynamicJointShiftPUClassifier(BasePUClassifier):
     assumption = (Assumption.SCAR,)
     scenario = (Scenario.SINGLE_TRAINING_SET,)
     requires_class_prior = True
-    implementation_status = ImplementationStatus.NATIVE
     source_status = SourceStatus.NOT_FOUND
     backend = Backend.TORCH
     maturity = Maturity.RESEARCH

@@ -21,7 +21,6 @@ from ...core.tags import (
     AlgorithmFamily,
     Assumption,
     Backend,
-    ImplementationStatus,
     Maturity,
     SampleWeightSupport,
     Scenario,
@@ -162,7 +161,6 @@ class PUSBKernelClassifier(BasePUClassifier):
     requires_class_prior = True
     class_prior_target = "training_table"
     risk_class_prior_target = "native_unlabeled"
-    implementation_status = ImplementationStatus.NATIVE
     source_status = SourceStatus.OFFICIAL_RELATED
     backend = Backend.NUMPY
     sample_weight_support = SampleWeightSupport.NOT_IMPLEMENTED

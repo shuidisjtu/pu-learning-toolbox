@@ -110,17 +110,16 @@ Do not delete them as redundant during cleanup.
 | `pu_toolbox/core/config.py` | Raising semantics of `MIN_POSITIVE_SAMPLES` | Severity: `validation.py` raises immediately |
 | `pu_toolbox/core/tags.py` | Probability definitions of `SCAR` and `SAR` | The formulas define these values |
 | `pu_toolbox/core/tags.py` | Criteria and numerical boundary for all four `TrainingCost` levels | Closed-form/convex, bounded iteration, fixed-epoch nonconvex, and unclassified neutral scoring; the boundary is approximately 1000 epochs |
-| `pu_toolbox/core/tags.py` | Meanings of `API_ONLY` and `NATIVE` | The former means no training logic; the latter identifies a clean-room implementation |
 | `pu_toolbox/losses/llsvm.py` | Thirteen shape annotations | Plain `np.ndarray` signatures carry no shape information; the project does not use shape type annotations |
 
-Section 3 retains 25 lines (**machine-checked anchor**:
+Section 3 retains 23 lines (**machine-checked anchor**:
 `tests/unit/scripts/test_check_comment_quality.py` compares the current trailing-comment counts
 with these values): `pu_toolbox/core/config.py` 4,
-`pu_toolbox/core/tags.py` 8, `pu_toolbox/losses/llsvm.py` 13.
+`pu_toolbox/core/tags.py` 6, `pu_toolbox/losses/llsvm.py` 13.
 
 A separate repository-wide style decision is needed for the following:
 
-- The nine `# ── X ──` section headings in `pu_toolbox/core/tags.py` repeat the class names
+- The eight `# ── X ──` section headings in `pu_toolbox/core/tags.py` repeat the class names
   immediately below them (four match exactly; the others differ only in case or spacing).
   The criteria in section 1 would remove them, but this style is widespread across modules.
   Changing one file alone would make the repository inconsistent, so this is outside a

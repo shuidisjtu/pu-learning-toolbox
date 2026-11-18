@@ -224,7 +224,8 @@ class ShiftAwarePUPipeline:
         Permit adaptation despite low effective sample size or boundary-heavy
         weights. Missing target PU labels can never be overridden.
     pipeline_params : keyword arguments
-        Forwarded to :class:`PUPipeline` when ``pipeline`` is omitted.
+        Forwarded to :class:`PUPipeline` when ``pipeline`` is omitted;
+        use ``evaluation_cv`` for evaluation folds, separate from ``shift_cv``.
     """
 
     def __init__(

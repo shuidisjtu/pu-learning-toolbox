@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
-from typing import Any
+from typing import Any, NamedTuple
 
 import numpy as np
 
@@ -50,19 +50,30 @@ _METRIC_ALIASES = {
     "ece": "expected_calibration_error",
 }
 
-# Spec tuples: (needs_scores, needs_prior, needs_y_true, needs_proba, basis)
+
+class _MetricSpec(NamedTuple):
+    needs_scores: bool
+    needs_prior: bool
+    needs_y_true: bool
+    needs_proba: bool
+    basis: str
+    higher_is_better: bool | None  # None marks a reporting-only metric.
+
+
 _METRIC_SPECS = {
-    "pu_zero_one_risk": (False, True, False, False, "class_prior_dependent"),
-    "pu_recall": (False, False, False, False, "pu_observed"),
-    "pu_estimated_precision": (False, True, False, False, "class_prior_dependent"),
-    "pu_auc_roc": (True, False, True, False, "supervised_oracle"),
-    "pu_accuracy": (False, False, True, False, "supervised_oracle"),
-    "pu_f1": (False, False, True, False, "supervised_oracle"),
-    "pu_negative_rate": (False, False, False, False, "pu_observed"),
-    "average_precision": (True, False, True, False, "supervised_oracle"),
-    "balanced_accuracy": (False, False, True, False, "supervised_oracle"),
-    "brier_score": (False, False, True, True, "probability_calibration"),
-    "expected_calibration_error": (False, False, True, True, "probability_calibration"),
+    "pu_zero_one_risk": _MetricSpec(False, True, False, False, "class_prior_dependent", False),
+    "pu_recall": _MetricSpec(False, False, False, False, "pu_observed", True),
+    "pu_estimated_precision": _MetricSpec(False, True, False, False, "class_prior_dependent", True),
+    "pu_auc_roc": _MetricSpec(True, False, True, False, "supervised_oracle", True),
+    "pu_accuracy": _MetricSpec(False, False, True, False, "supervised_oracle", True),
+    "pu_f1": _MetricSpec(False, False, True, False, "supervised_oracle", True),
+    "pu_negative_rate": _MetricSpec(False, False, False, False, "pu_observed", None),
+    "average_precision": _MetricSpec(True, False, True, False, "supervised_oracle", True),
+    "balanced_accuracy": _MetricSpec(False, False, True, False, "supervised_oracle", True),
+    "brier_score": _MetricSpec(False, False, True, True, "probability_calibration", False),
+    "expected_calibration_error": _MetricSpec(
+        False, False, True, True, "probability_calibration", False
+    ),
 }
 
 
@@ -83,6 +94,15 @@ def resolve_metric_names(metrics: Sequence[str] | None) -> list[str]:
     if not resolved:
         raise ValueError("metrics must contain at least one metric name.")
     return resolved
+
+
+def resolve_selection_metric(scoring: str) -> tuple[str, bool]:
+    """Return the canonical selection metric and its fixed direction."""
+    name = resolve_metric_names([scoring])[0]
+    higher_is_better = _METRIC_SPECS[name].higher_is_better
+    if higher_is_better is None:
+        raise ValueError(f"{name!r} is diagnostic only; use it in metrics, not scoring.")
+    return name, higher_is_better
 
 
 def run_cross_validation(
@@ -120,7 +140,7 @@ def run_cross_validation(
         name: CVMetric(
             name=name,
             per_fold=tuple(per_fold[name]),
-            basis=_METRIC_SPECS[name][4],
+            basis=_METRIC_SPECS[name].basis,
             reason=_aggregate_reason(
                 fold_reasons[name], all(value is None for value in per_fold[name])
             ),
@@ -175,16 +195,16 @@ def compute_metric(
     input_sampling: str = "os",
 ) -> tuple[float | None, str | None]:
     validate_input_sampling(input_sampling)
-    needs_scores, needs_prior, needs_y_true, needs_proba, _ = _METRIC_SPECS[name]
-    if needs_scores and scores is None:
+    spec = _METRIC_SPECS[name]
+    if spec.needs_scores and scores is None:
         return None, "score-based metric requires a decision function"
-    if needs_prior and prior is None:
+    if spec.needs_prior and prior is None:
         return None, "class-prior-dependent metric requires a class prior"
-    if needs_y_true and y_true_fold is None:
+    if spec.needs_y_true and y_true_fold is None:
         return None, "supervised-oracle metric requires y_true"
-    if needs_proba and proba is None:
+    if spec.needs_proba and proba is None:
         return None, "probabilistic metric requires predict_proba"
-    if needs_y_true and input_sampling == "ts":
+    if spec.needs_y_true and input_sampling == "ts":
         mask = y_pu_fold == 0
         pred = pred[mask]
         y_true_fold = y_true_fold[mask]

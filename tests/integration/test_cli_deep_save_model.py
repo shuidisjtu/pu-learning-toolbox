@@ -63,7 +63,7 @@ def test_basic_cli_save_model_cnn_roundtrip(tmp_path: Path, classifier: str, ext
             "cnn13",
             "--device",
             "cpu",
-            "--cv",
+            "--evaluation-cv",
             "2",
             "--class-prior",
             "0.3",

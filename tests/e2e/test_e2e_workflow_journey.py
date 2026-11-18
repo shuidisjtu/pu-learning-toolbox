@@ -66,7 +66,7 @@ def _run_report_payload(demo: Path, out_dir: Path) -> dict:
         str(out_dir),
         "--classifier",
         "upu",
-        "--cv",
+        "--evaluation-cv",
         "3",
     )
     assert proc.returncode == 0, proc.stderr

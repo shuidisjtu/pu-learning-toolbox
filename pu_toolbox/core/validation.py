@@ -23,6 +23,26 @@ from .exceptions import ValidationError
 from .labels import _check_y_1d, normalize_pnu_labels, normalize_pu_labels
 
 
+def validate_sample_weight(sample_weight: np.ndarray | None, n_samples: int) -> np.ndarray | None:
+    """Return a copy of finite, non-negative weights, or None."""
+    if sample_weight is None:
+        return None
+    try:
+        weights = np.asarray(sample_weight, dtype=float)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValidationError("sample_weight must contain numeric values.") from exc
+
+    if weights.shape != (n_samples,):
+        raise ValidationError(f"sample_weight must have shape ({n_samples},); got {weights.shape}.")
+    if not np.isfinite(weights).all():
+        raise ValidationError("sample_weight must contain only finite values.")
+    if np.any(weights < 0):
+        raise ValidationError("sample_weight must be non-negative.")
+    if not np.any(weights > 0):
+        raise ValidationError("sample_weight must contain at least one positive value.")
+    return weights.copy()
+
+
 def validate_input_sampling(input_sampling: str) -> None:
     """Validate the OS single-source or TS independent P/U input design."""
     if not isinstance(input_sampling, str) or input_sampling not in {"os", "ts"}:

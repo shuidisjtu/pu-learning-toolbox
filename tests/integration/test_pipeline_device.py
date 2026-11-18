@@ -21,7 +21,7 @@ def _table_data(n=24, n_features=4, seed=3):
 def test_basic_pipeline_device_default_none():
     from pu_toolbox import PUPipeline
 
-    pipe = PUPipeline(classifier="wconpu", cv=2)
+    pipe = PUPipeline(classifier="wconpu", evaluation_cv=2)
     assert pipe.device is None
 
 
@@ -57,7 +57,7 @@ def test_basic_fresh_estimator_skips_device_injection_when_default():
     from pu_toolbox import PUPipeline
 
     X, y_pu = _table_data()
-    pipe = PUPipeline(classifier="wconpu", cv=2)
+    pipe = PUPipeline(classifier="wconpu", evaluation_cv=2)
     clf = pipe._fresh_estimator(pipe._classifier_cls, None, 0.3)
     assert clf.device is None
 
@@ -104,13 +104,13 @@ def test_param_auto_has_gpu_follows_cuda_availability(monkeypatch):
         return _StubClf()
 
     monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
-    pipe = PUPipeline(classifier="auto", cv=2)
+    pipe = PUPipeline(classifier="auto", evaluation_cv=2)
     monkeypatch.setattr(pipe, "_fresh_estimator", stub_fresh)
     pipe.fit_evaluate(X, y_pu, class_prior=0.6)
     assert captured["has_gpu"] is False
 
     monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
-    pipe = PUPipeline(classifier="auto", cv=2)
+    pipe = PUPipeline(classifier="auto", evaluation_cv=2)
     monkeypatch.setattr(pipe, "_fresh_estimator", stub_fresh)
     pipe.fit_evaluate(X, y_pu, class_prior=0.6)
     assert captured["has_gpu"] is True
@@ -119,8 +119,8 @@ def test_param_auto_has_gpu_follows_cuda_availability(monkeypatch):
 def test_determ_repeated_default_construction_stable():
     from pu_toolbox import PUPipeline
 
-    pipe1 = PUPipeline(classifier="wconpu", cv=2)
-    pipe2 = PUPipeline(classifier="wconpu", cv=2)
+    pipe1 = PUPipeline(classifier="wconpu", evaluation_cv=2)
+    pipe2 = PUPipeline(classifier="wconpu", evaluation_cv=2)
     assert pipe1.device is None
     assert pipe2.device is None
 
@@ -130,7 +130,7 @@ def test_param_fresh_estimator_injects_max_epochs():
     from pu_toolbox import PUPipeline
 
     X, y_pu = _table_data()
-    pipe = PUPipeline(classifier="nnpu", cv=2, max_epochs=5)
+    pipe = PUPipeline(classifier="nnpu", evaluation_cv=2, max_epochs=5)
     clf = pipe._fresh_estimator(pipe._classifier_cls, None, 0.3)
     assert clf.max_epochs == 5
 
@@ -140,6 +140,6 @@ def test_edge_fresh_estimator_skips_max_epochs_without_signature():
     from pu_toolbox import PUPipeline
 
     X, y_pu = _table_data()
-    pipe = PUPipeline(classifier="upu", cv=2, max_epochs=5)
+    pipe = PUPipeline(classifier="upu", evaluation_cv=2, max_epochs=5)
     clf = pipe._fresh_estimator(pipe._classifier_cls, None, 0.3)
     assert not hasattr(clf, "max_epochs")

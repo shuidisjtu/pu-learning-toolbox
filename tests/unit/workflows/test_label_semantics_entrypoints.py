@@ -22,9 +22,8 @@ def data_files(tmp_path):
 
 def test_basic_cli_run_rejects_pnu_before_fit(data_files, tmp_path, monkeypatch):
     from pu_toolbox.cli import build_parser
-    from pu_toolbox.registry import get_algorithm, register_all_builtin_methods
+    from pu_toolbox.registry import get_algorithm
 
-    register_all_builtin_methods()
     monkeypatch.setattr(get_algorithm("pnu"), "fit", lambda *a, **k: pytest.fail("fit reached"))
     features, labels = data_files
     args = build_parser().parse_args(
@@ -38,7 +37,7 @@ def test_basic_cli_run_rejects_pnu_before_fit(data_files, tmp_path, monkeypatch)
             "pnu",
             "--class-prior",
             "0.4",
-            "--cv",
+            "--evaluation-cv",
             "2",
             "--out-dir",
             str(tmp_path / "result"),
@@ -86,11 +85,10 @@ def test_param_sensitivity_direct_fit_is_guarded(meaning, data_files, tmp_path, 
 
 @pytest.mark.parametrize("mode", ["pipeline", "comparison", "tuning"])
 def test_param_ui_dispatch_rejects_mismatch_without_history_or_fit(mode, monkeypatch):
-    from pu_toolbox.registry import get_algorithm, register_all_builtin_methods
+    from pu_toolbox.registry import get_algorithm
     from pu_toolbox.ui.execution import execute_analysis
     from pu_toolbox.workflows import PipelineError
 
-    register_all_builtin_methods()
     monkeypatch.setattr(get_algorithm("pnu"), "fit", lambda *a, **k: pytest.fail("fit reached"))
     with pytest.raises((ValueError, PipelineError), match="label_semantics='pnu'"):
         execute_analysis(
@@ -103,7 +101,7 @@ def test_param_ui_dispatch_rejects_mismatch_without_history_or_fit(mode, monkeyp
             tuning_grid={"reg_lambda": [0.1]} if mode == "tuning" else {},
             comparison_classifiers=["upu", "pnu"] if mode == "comparison" else [],
             scoring="pu_zero_one_risk",
-            pipeline_params={"cv": 2},
+            pipeline_params={"evaluation_cv": 2},
             cancellation_token=CancellationToken(),
             progress_callback=lambda event: None,
         )

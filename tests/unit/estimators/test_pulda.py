@@ -22,7 +22,7 @@ from pu_toolbox.estimators.risk.pulda import (  # noqa: E402
 from pu_toolbox.experiment.checkpoints import EpochCheckpointTrainer  # noqa: E402
 from pu_toolbox.experiment.method_ledger import load_ledger  # noqa: E402
 from pu_toolbox.experiment.training_views import resolve_training_view  # noqa: E402
-from pu_toolbox.registry import get_algorithm, register_all_builtin_methods  # noqa: E402
+from pu_toolbox.registry import get_algorithm  # noqa: E402
 from pu_toolbox.workflows import PUPipeline  # noqa: E402
 
 pytestmark = pytest.mark.unit
@@ -106,7 +106,6 @@ def test_basic_two_stage_fit_checkpoint_registry_and_probabilities(tmp_path):
     np.testing.assert_allclose(
         trajectory.checkpoints[-1].restore().decision_function(X), scores, atol=1e-6
     )
-    register_all_builtin_methods()
     assert get_algorithm("pulda") is PULDAClassifier
     assert get_algorithm("label_distribution_alignment") is PULDAClassifier
 
@@ -230,7 +229,7 @@ def test_basic_pipeline_resolves_pulda_with_prior():
             "unlabeled_batch_size": 7,
         },
         prior_estimator=None,
-        cv=2,
+        evaluation_cv=2,
         random_state=5,
     ).fit_evaluate(X, y, class_prior=0.5)
     assert isinstance(report.final_model, PULDAClassifier)

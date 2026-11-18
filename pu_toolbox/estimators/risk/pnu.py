@@ -25,7 +25,6 @@ from ...core.tags import (
     AlgorithmFamily,
     Assumption,
     Backend,
-    ImplementationStatus,
     Maturity,
     SampleWeightSupport,
     Scenario,
@@ -108,7 +107,6 @@ class PNUClassifier(BasePUClassifier):
     assumption: tuple[Assumption, ...] = (Assumption.SCAR,)
     scenario: tuple[Scenario, ...] = (Scenario.CASE_CONTROL,)
     requires_class_prior: bool = True
-    implementation_status: ImplementationStatus = ImplementationStatus.NATIVE
     source_status: SourceStatus = SourceStatus.OFFICIAL_EXACT
     backend: Backend = Backend.NUMPY
     maturity: Maturity = Maturity.RESEARCH

@@ -9,11 +9,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field, fields
 from enum import Enum
 
+from ..core.exceptions import ValidationError
 from ..core.tags import (
     AlgorithmFamily,
     Assumption,
     Backend,
-    ImplementationStatus,
     Maturity,
     Scenario,
     SourceStatus,
@@ -75,9 +75,6 @@ class AlgorithmMetadata:
     maturity: Maturity = Maturity.STABLE
     """Implementation stability level."""
 
-    implementation_status: ImplementationStatus = ImplementationStatus.API_ONLY
-    """How the algorithm is implemented in the toolbox."""
-
     source_status: SourceStatus = SourceStatus.UNKNOWN
     """Availability of author/official source code."""
 
@@ -122,15 +119,6 @@ class AlgorithmMetadata:
     """Target of an optional independent risk_class_prior fit parameter."""
 
     @property
-    def trainable(self) -> bool:
-        """``True`` when the algorithm has a working implementation.
-
-        Derived from :attr:`implementation_status` — safe to query after
-        mutating ``implementation_status`` in-place.
-        """
-        return self.implementation_status not in (ImplementationStatus.API_ONLY,)
-
-    @property
     def is_tabular_only(self) -> bool:
         """True when the algorithm natively supports only 2-D table input."""
         return self.native_architectures == frozenset()
@@ -149,28 +137,41 @@ class AlgorithmMetadata:
                 result[f.name] = value.value
             else:
                 result[f.name] = value
-        # Include derived property
-        result["trainable"] = self.trainable
         return result
 
 
 def _validate_metadata(meta: AlgorithmMetadata) -> None:
     """Validate required fields on AlgorithmMetadata (called by __post_init__)."""
-    if not meta.name or not meta.name.strip():
-        raise ValueError("AlgorithmMetadata.name must be a non-empty string")
-    if not meta.paper:
-        raise ValueError(f"AlgorithmMetadata.paper must be a non-empty string (got {meta.name!r})")
+    if not isinstance(meta.name, str) or not meta.name.strip():
+        raise ValidationError("AlgorithmMetadata.name must be a non-empty string")
+    if not isinstance(meta.paper, str) or not meta.paper.strip():
+        raise ValidationError(
+            f"AlgorithmMetadata.paper must be a non-empty string (got {meta.name!r})"
+        )
     if not isinstance(meta.label_semantics, str) or meta.label_semantics not in {"pu", "pn", "pnu"}:
-        raise ValueError("AlgorithmMetadata.label_semantics must be 'pu', 'pn', or 'pnu'")
+        raise ValidationError("AlgorithmMetadata.label_semantics must be 'pu', 'pn', or 'pnu'")
     if not isinstance(meta.requires_clean_support, bool):
-        raise ValueError("AlgorithmMetadata.requires_clean_support must be a boolean")
-    if meta.class_prior_target not in {"population", "native_unlabeled", "training_table"}:
-        raise ValueError("Invalid AlgorithmMetadata.class_prior_target")
-    if meta.risk_class_prior_target not in {None, "population", "native_unlabeled"}:
-        raise ValueError("Invalid AlgorithmMetadata.risk_class_prior_target")
-    unknown_deprecated = set(meta.deprecated_aliases) - set(meta.aliases)
+        raise ValidationError("AlgorithmMetadata.requires_clean_support must be a boolean")
+    if not isinstance(meta.class_prior_target, str) or meta.class_prior_target not in {
+        "population",
+        "native_unlabeled",
+        "training_table",
+    }:
+        raise ValidationError("Invalid AlgorithmMetadata.class_prior_target")
+    risk_target = meta.risk_class_prior_target
+    if risk_target is not None and (
+        not isinstance(risk_target, str) or risk_target not in {"population", "native_unlabeled"}
+    ):
+        raise ValidationError("Invalid AlgorithmMetadata.risk_class_prior_target")
+    if any(
+        not isinstance(alias, str) or not alias.strip()
+        for alias in (*meta.aliases, *meta.deprecated_aliases)
+    ):
+        raise ValidationError("AlgorithmMetadata aliases must be non-empty strings")
+    aliases = {alias.lower() for alias in meta.aliases}
+    unknown_deprecated = {alias.lower() for alias in meta.deprecated_aliases} - aliases
     if unknown_deprecated:
-        raise ValueError(
+        raise ValidationError(
             "AlgorithmMetadata.deprecated_aliases must be a subset of aliases "
             f"(unknown: {sorted(unknown_deprecated)!r})"
         )

@@ -7,26 +7,22 @@ import inspect
 from typing import Any
 
 from pu_toolbox.core.base import BasePUClassifier
-from pu_toolbox.registry import get_algorithm, list_algorithms, register_all_builtin_methods
+from pu_toolbox.registry import get_algorithm, list_algorithms
 
 _MANAGED_PARAMS = {"class_prior", "random_state", "encoder", "device"}
 
 
 def cnn_candidates() -> set[str]:
-    """Return trainable classifier names whose capability declaration includes cnn."""
-    register_all_builtin_methods()
+    """Return classifier names whose capability declaration includes cnn."""
     return {
-        metadata.name
-        for metadata in list_algorithms(trainable_only=True)
-        if "cnn" in metadata.native_architectures
+        metadata.name for metadata in list_algorithms() if "cnn" in metadata.native_architectures
     }
 
 
 def classifier_catalog() -> list[dict[str, Any]]:
-    """Return trainable classifier metadata and constructor fields for the UI."""
-    register_all_builtin_methods()
+    """Return classifier metadata and constructor fields for the UI."""
     catalog: list[dict[str, Any]] = []
-    for metadata in sorted(list_algorithms(trainable_only=True), key=lambda item: item.name):
+    for metadata in sorted(list_algorithms(), key=lambda item: item.name):
         try:
             cls = get_algorithm(metadata.name)
         except Exception:  # noqa: BLE001 - unavailable optional implementations

@@ -15,7 +15,7 @@ torch = pytest.importorskip("torch")
 from pu_toolbox.core.exceptions import NotFittedError, ValidationError  # noqa: E402
 from pu_toolbox.estimators.risk.vpu import VPUClassifier, vpu_objective  # noqa: E402
 from pu_toolbox.experiment.checkpoints import EpochCheckpointTrainer  # noqa: E402
-from pu_toolbox.registry import get_algorithm, register_all_builtin_methods  # noqa: E402
+from pu_toolbox.registry import get_algorithm  # noqa: E402
 from pu_toolbox.workflows import PUPipeline  # noqa: E402
 
 pytestmark = pytest.mark.unit
@@ -82,7 +82,6 @@ def test_fit_normalization_checkpoint_and_registry(tmp_path):
     np.testing.assert_allclose(
         trajectory.checkpoints[-1].restore().decision_function(X), scores, atol=1e-6
     )
-    register_all_builtin_methods()
     assert get_algorithm("vpu") is VPUClassifier
     assert get_algorithm("variational_pu") is VPUClassifier
 
@@ -170,7 +169,7 @@ def test_pipeline_resolves_vpu_without_prior():
         classifier_params={"hidden_dim": 8, "batch_size": 5},
         prior_estimator=None,
         max_epochs=2,
-        cv=2,
+        evaluation_cv=2,
         random_state=7,
     ).fit_evaluate(X, y)
     assert isinstance(report.final_model, VPUClassifier)

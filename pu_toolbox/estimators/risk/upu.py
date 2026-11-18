@@ -30,7 +30,6 @@ from ...core.tags import (
     AlgorithmFamily,
     Assumption,
     Backend,
-    ImplementationStatus,
     Maturity,
     SampleWeightSupport,
     Scenario,
@@ -149,7 +148,6 @@ class UPUClassifier(BasePUClassifier):
     scenario: tuple[Scenario, ...] = (Scenario.CASE_CONTROL,)
     requires_class_prior: bool = True
     class_prior_target = "native_unlabeled"
-    implementation_status: ImplementationStatus = ImplementationStatus.NATIVE
     source_status: SourceStatus = SourceStatus.OFFICIAL_BUNDLE
     backend: Backend = Backend.NUMPY
     maturity: Maturity = Maturity.STABLE

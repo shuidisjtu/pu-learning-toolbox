@@ -15,7 +15,7 @@ from pu_toolbox.estimators.risk.puet import (
 )
 from pu_toolbox.experiment.method_ledger import load_ledger
 from pu_toolbox.experiment.training_views import resolve_training_view
-from pu_toolbox.registry import get_algorithm, register_all_builtin_methods
+from pu_toolbox.registry import get_algorithm
 from pu_toolbox.workflows import PUPipeline
 
 pytestmark = pytest.mark.unit
@@ -60,7 +60,6 @@ def test_basic_fit_vote_margin_registry_and_importances():
     assert len(model.trees_) == model.n_estimators
     assert np.all(model.n_leaves_ >= 1)
     assert np.all(model.tree_depths_ <= model.max_depth)
-    register_all_builtin_methods()
     assert get_algorithm("puet") is PUExtraTreesClassifier
     assert get_algorithm("pu_extra_trees") is PUExtraTreesClassifier
 
@@ -206,7 +205,7 @@ def test_basic_pipeline_resolves_puet_with_explicit_prior():
         classifier="puet",
         classifier_params={"n_estimators": 3, "max_depth": 3},
         prior_estimator=None,
-        cv=2,
+        evaluation_cv=2,
         random_state=8,
     ).fit_evaluate(X, y, class_prior=0.4)
     assert isinstance(report.final_model, PUExtraTreesClassifier)

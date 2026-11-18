@@ -48,8 +48,10 @@ def _arguments(tmp_path):
         "0.5",
         "--out-dir",
         str(tmp_path / "out"),
-        "--cv",
+        "--evaluation-cv",
         "2",
+        "--shift-cv",
+        "3",
         "--quiet",
     ]
 
@@ -61,6 +63,8 @@ def test_basic_shift_run_writes_comparison_artifacts(tmp_path):
     out = tmp_path / "out"
     payload = json.loads((out / "shift_comparison.json").read_text(encoding="utf-8"))
     assert payload["analysis_type"] == "shift_adaptation_comparison"
+    assert payload["baseline"]["source_pipeline"]["cv_provenance"]["n_splits"] == 2
+    assert payload["shift"]["provenance"]["n_splits"] == 3
     assert (out / "shift_comparison.md").is_file()
     assert (out / "shift_report.json").is_file()
     assert (out / "source_importance_weights.csv").is_file()

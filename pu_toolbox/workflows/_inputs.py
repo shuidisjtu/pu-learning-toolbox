@@ -4,8 +4,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Any
+from collections.abc import Iterable
+from numbers import Integral
+from typing import Any, Protocol
 
 import numpy as np
 
@@ -15,6 +16,27 @@ from ..core.validation import validate_pu_X_y, validate_true_binary_labels
 from ._models import cnn_capable_classifier_names
 
 
+class EvaluationSplitter(Protocol):
+    def split(self, X: Any, y: np.ndarray) -> Iterable[tuple[np.ndarray, np.ndarray]]: ...
+
+    def get_n_splits(self, X: Any, y: np.ndarray) -> int: ...
+
+
+def validate_evaluation_cv(evaluation_cv: int | EvaluationSplitter | None) -> None:
+    if evaluation_cv is None:
+        return
+    if isinstance(evaluation_cv, Integral):
+        if evaluation_cv < 2:
+            raise ValidationError(f"evaluation_cv must be >= 2 folds; got {evaluation_cv}.")
+        return
+    if not all(
+        callable(getattr(evaluation_cv, method, None)) for method in ("split", "get_n_splits")
+    ):
+        raise ValidationError(
+            "evaluation_cv must be an integer or a splitter with split() and get_n_splits()."
+        )
+
+
 def prepare_pipeline_inputs(
     X: Any,
     y_pu: np.ndarray,
@@ -22,7 +44,7 @@ def prepare_pipeline_inputs(
     *,
     is_deep: bool,
     architecture: str,
-    resolve_splitter: Callable[[Any, np.ndarray], Any],
+    splitter: EvaluationSplitter,
 ) -> tuple[Any, np.ndarray, np.ndarray | None, Any, Any, int]:
     """Validate data once, build the splitter, and enforce fold feasibility."""
     X, y_pu = validate_pu_X_y(
@@ -49,8 +71,12 @@ def prepare_pipeline_inputs(
     if y_true is not None:
         y_true = _validate_y_true(y_true, X.shape[0])
 
-    splitter = resolve_splitter(X, y_pu)
-    n_splits = resolved_n_splits(splitter, X, y_pu)
+    n_splits = splitter.get_n_splits(X, y_pu)
+    if isinstance(n_splits, bool) or not isinstance(n_splits, Integral) or n_splits < 1:
+        raise ValidationError(
+            f"evaluation_cv.get_n_splits() must return a positive integer; got {n_splits!r}."
+        )
+    n_splits = int(n_splits)
     n_pos = int((y_pu == POSITIVE_LABEL).sum())
     if n_pos < n_splits:
         raise ValidationError(
@@ -68,15 +94,6 @@ def _validate_y_true(y_true: np.ndarray, n_samples: int) -> np.ndarray:
         )
     validate_true_binary_labels(y_true, estimator_name="y_true")
     return y_true.astype(int, copy=False)
-
-
-def resolved_n_splits(splitter: Any, X: Any, y_pu: np.ndarray) -> int:
-    if hasattr(splitter, "get_n_splits"):
-        return int(splitter.get_n_splits(X, y_pu))
-    raise ValueError(
-        f"cv splitter {type(splitter).__name__} must implement "
-        "get_n_splits(X, y) so the pipeline can validate fold counts."
-    )
 
 
 def cv_provenance(splitter: Any, n_splits: int) -> dict[str, Any]:

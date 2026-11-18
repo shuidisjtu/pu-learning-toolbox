@@ -44,7 +44,7 @@ def test_nnpu_cnn_pipeline_reports_native_cnn_provenance():
         classifier="nnpu",
         architecture="cnn",
         backbone="cnn13",
-        cv=2,
+        evaluation_cv=2,
         max_epochs=1,
         random_state=42,
         device="cpu",
@@ -62,7 +62,7 @@ def test_nnpu_mlp_pipeline_reports_native_mlp_provenance():
     report = PUPipeline(
         classifier="nnpu",
         architecture="mlp",
-        cv=2,
+        evaluation_cv=2,
         max_epochs=1,
         random_state=42,
     ).fit_evaluate(X, y_pu, class_prior=0.3, refit=False)

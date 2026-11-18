@@ -17,7 +17,7 @@ def main() -> None:
                 prior_estimator="pen_l1",
                 prior_params={"sigma": 0.5},
                 input_sampling=sampling,
-                cv=2,
+                evaluation_cv=2,
             )
             report = pipeline.fit_evaluate(
                 features, y_pu, class_prior=0.4 if source == "known" else None

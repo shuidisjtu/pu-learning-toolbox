@@ -24,7 +24,6 @@ from .tags import (
     AlgorithmFamily,
     Assumption,
     Backend,
-    ImplementationStatus,
     Maturity,
     SampleWeightSupport,
     Scenario,
@@ -68,7 +67,6 @@ class BasePUClassifier(BaseEstimator, ClassifierMixin, ABC):
     # this contract; workflows convert their population prior at fit time.
     class_prior_target: str = "population"
     risk_class_prior_target: str | None = None
-    implementation_status: ImplementationStatus = ImplementationStatus.API_ONLY
     source_status: SourceStatus = SourceStatus.UNKNOWN
     backend: Backend = Backend.NUMPY
     maturity: Maturity = Maturity.EXPERIMENTAL
@@ -217,11 +215,7 @@ class BasePUClassifier(BaseEstimator, ClassifierMixin, ABC):
     # ── Metadata ───────────────────────────────────────────────────
 
     def get_pu_metadata(self) -> dict:
-        """Return PU-specific metadata dict.
-
-        Includes assumption, scenario, class prior (if known),
-        implementation status, source status, and diagnostics.
-        """
+        """Return PU assumptions, prior information, capabilities, and fit metadata."""
         return {
             "family": self.family.value,
             "assumption": [a.value for a in self.assumption],
@@ -230,7 +224,6 @@ class BasePUClassifier(BaseEstimator, ClassifierMixin, ABC):
             "class_prior_target": self.class_prior_target,
             "risk_class_prior_target": self.risk_class_prior_target,
             "class_prior": self._class_prior,
-            "implementation_status": self.implementation_status.value,
             "source_status": self.source_status.value,
             "backend": self.backend.value,
             "maturity": self.maturity.value,
@@ -275,7 +268,6 @@ class BasePriorEstimator(BaseEstimator, ABC):
     ``estimation_pool`` records the data used to estimate that target.
     """
 
-    implementation_status: ImplementationStatus = ImplementationStatus.API_ONLY
     estimate_target: str = "population"
     estimation_pool: str = "input"
 

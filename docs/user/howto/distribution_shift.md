@@ -76,7 +76,7 @@ from pu_toolbox.workflows import ShiftAwarePUPipeline
 
 workflow = ShiftAwarePUPipeline(
     classifier="elkan_noto",  # Default; the method must actually use sample_weight.
-    cv=5,
+    evaluation_cv=5,
     shift_cv=5,
     random_state=42,
 )
@@ -122,11 +122,13 @@ pu-toolbox shift-run \
   --target-labels target/y_pu.csv \
   --target-class-prior 0.30 \
   --classifier elkan_noto \
-  --cv 5 \
+  --evaluation-cv 5 --shift-cv 5 \
   --out-dir shift_comparison/
 ```
 
-The command compares unweighted and weighted arms on the same target set. It writes
+The command compares unweighted and weighted arms on the same target set.
+`--evaluation-cv` controls source-model evaluation; `--shift-cv` controls domain-model folds
+used to estimate the importance weights. It writes
 `shift_comparison.json/.md`, `shift_report.json`, `source_importance_weights.csv`, and
 `target_predictions.csv`. With `--target-true-labels`, the default decision uses oracle AUC;
 otherwise it can use target-prior-dependent PU risk. With neither, it still provides comparison

@@ -22,7 +22,6 @@ from ...core.tags import (
     AlgorithmFamily,
     Assumption,
     Backend,
-    ImplementationStatus,
     Maturity,
     SampleWeightSupport,
     Scenario,
@@ -39,7 +38,6 @@ class LBEClassifier(BasePUClassifier):
     class_prior_target = "native_unlabeled"
     assumption = (Assumption.SAR,)
     scenario = (Scenario.SINGLE_TRAINING_SET, Scenario.SELECTION_BIASED)
-    implementation_status = ImplementationStatus.NATIVE
     source_status = SourceStatus.OFFICIAL_EXACT
     backend = Backend.SKLEARN
     maturity = Maturity.RESEARCH

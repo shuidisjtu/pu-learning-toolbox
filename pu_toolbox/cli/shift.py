@@ -70,7 +70,7 @@ def build_shift_parser(sub: argparse._SubParsersAction) -> None:
         help="compare unweighted and covariate-weighted PU models on one target domain",
     )
     for action in parser._actions[1:]:
-        if action.dest in {"help", "probability_clip", "quiet"}:
+        if action.dest in {"help", "probability_clip", "cv", "quiet"}:
             continue
         required = action.dest in {"source_data", "source_labels", "target_data", "out_dir"}
         kwargs = {
@@ -94,6 +94,8 @@ def build_shift_parser(sub: argparse._SubParsersAction) -> None:
     run.add_argument("--prior-estimator", default="pen_l1", help="source prior estimator")
     run.add_argument("--classifier", default="elkan_noto", help="weighted-capable classifier")
     run.add_argument("--classifier-param", action="append", default=None, metavar="KEY=VALUE")
+    run.add_argument("--evaluation-cv", type=int, default=5, help="model evaluation folds")
+    run.add_argument("--shift-cv", type=int, default=5, help="domain density-ratio folds")
     run.add_argument("--metrics", default=None, help="comma-separated metrics")
     run.add_argument("--primary-metric", default=None, help="target metric used for recommendation")
     run.add_argument(
@@ -165,14 +167,14 @@ def run_shift_run(args: argparse.Namespace) -> None:
         classifier=args.classifier,
         classifier_params=_parse_classifier_params(args.classifier_param),
         prior_estimator=None if args.prior_estimator == "none" else args.prior_estimator,
-        cv=args.cv,
+        evaluation_cv=args.evaluation_cv,
         metrics=metrics,
         random_state=args.seed,
     )
     comparison = ShiftAwarePUPipeline(
         pipeline=pipeline,
         alpha=args.alpha,
-        shift_cv=args.cv,
+        shift_cv=args.shift_cv,
         allow_unstable=args.allow_unstable,
     ).compare(
         source,

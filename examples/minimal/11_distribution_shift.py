@@ -28,7 +28,7 @@ def main() -> None:
 
     report = ShiftAwarePUPipeline(
         classifier="elkan_noto",
-        cv=3,
+        evaluation_cv=3,
         shift_cv=3,
         random_state=42,
     ).fit_evaluate(

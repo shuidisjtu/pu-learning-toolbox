@@ -23,7 +23,7 @@ def main() -> None:
     # This is not evidence that covariate-shift assumptions hold.
     X_target += 0.2
 
-    workflow = ShiftAwarePUPipeline(classifier="elkan_noto", cv=3, shift_cv=3)
+    workflow = ShiftAwarePUPipeline(classifier="elkan_noto", evaluation_cv=3, shift_cv=3)
     # Target truth makes this an oracle validation/audit comparison, not a final test.
     comparison = workflow.compare(
         X_source,

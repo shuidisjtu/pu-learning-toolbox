@@ -88,7 +88,7 @@ automatic analysis uses the Pipeline to resolve the chain. See
 For raw images, use finite NCHW arrays and an explicit compatible CNN classifier, for example:
 
 ```bash
-pu-toolbox run --data X.npy --labels y_pu.csv --classifier nnpu --architecture cnn --class-prior 0.4 --device cpu --max-epochs 2 --cv 2 --out-dir work/images
+pu-toolbox run --data X.npy --labels y_pu.csv --classifier nnpu --architecture cnn --class-prior 0.4 --device cpu --max-epochs 2 --evaluation-cv 2 --out-dir work/images
 ```
 
 For custom encoder and frozen-feature lifecycles, see

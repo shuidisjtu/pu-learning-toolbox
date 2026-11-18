@@ -103,16 +103,10 @@ def recommend_from_profile(
 
     cfg = config or DEFAULT_CONFIG
 
-    # register_all_builtin_methods is idempotent (registry-level dedup),
-    # so calling it per recommendation is safe and never goes stale.
-    from ..registry.builtin_methods import register_all_builtin_methods
-
-    register_all_builtin_methods()
-
     scenario_enum = _resolve_enum(scenario, Scenario) if scenario is not None else None
     assumption_enum = _resolve_enum(assumption, Assumption) if assumption is not None else None
 
-    all_methods = list_algorithms(trainable_only=True)
+    all_methods = list_algorithms()
 
     filters_applied: dict[str, Any] = {}
     filtered = [m for m in all_methods if m.maturity != Maturity.DEPRECATED]

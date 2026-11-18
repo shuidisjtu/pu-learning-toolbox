@@ -21,14 +21,16 @@ def test_basic_named_classifier_parameters_are_applied(rng):
     report = PUPipeline(
         classifier="upu",
         classifier_params={"reg_lambda": 0.25, "max_iter": 50},
-        cv=2,
+        evaluation_cv=2,
     ).fit_evaluate(X, y_pu, class_prior=0.4)
     assert report.final_model.reg_lambda == pytest.approx(0.25)
     assert report.provenance["classifier_params"] == {
         "reg_lambda": 0.25,
         "max_iter": 50,
     }
-    cv_only = PUPipeline(classifier="upu", cv=2).fit_evaluate(X, y_pu, class_prior=0.4, refit=False)
+    cv_only = PUPipeline(classifier="upu", evaluation_cv=2).fit_evaluate(
+        X, y_pu, class_prior=0.4, refit=False
+    )
     assert cv_only.final_model is None
     assert cv_only.diagnostic is None
     assert cv_only.to_dict()["final_model"]["class"] is None
@@ -59,7 +61,7 @@ def test_basic_cli_imports_ui_configuration(
                 "classifier_params": classifier_params,
                 "prior_estimator": "pen_l1",
                 "class_prior": 0.4,
-                "cv": 2,
+                "evaluation_cv": 2,
                 "metrics": ["pu_zero_one_risk"],
                 "random_state": 9,
                 "architecture": "mlp",
@@ -119,7 +121,7 @@ def test_deterministic_tuning_grid_selects_same_result(rng):
     kwargs = {
         "classifier": "upu",
         "param_grid": {"reg_lambda": [0.001, 0.1], "max_iter": [100]},
-        "cv": 2,
+        "evaluation_cv": 2,
         "random_state": 42,
     }
     first = PUTuner(**kwargs).fit(X, y_pu, class_prior=0.4)
@@ -130,9 +132,9 @@ def test_deterministic_tuning_grid_selects_same_result(rng):
 
 def test_deterministic_model_comparison_returns_fitted_best_report(rng):
     X, y_pu, _ = make_scar_data(rng, n=60, separation=4.0)
-    comparison = PUModelComparator(classifiers=["upu", "pusb"], cv=2, random_state=42).fit(
-        X, y_pu, class_prior=0.4
-    )
+    comparison = PUModelComparator(
+        classifiers=["upu", "pusb"], evaluation_cv=2, random_state=42
+    ).fit(X, y_pu, class_prior=0.4)
     assert comparison.best_classifier in {"upu", "pusb"}
     assert all(trial.status == "ok" for trial in comparison.trials)
     assert comparison.best_report.final_model is not None
@@ -141,7 +143,7 @@ def test_deterministic_model_comparison_returns_fitted_best_report(rng):
 def test_param_pipeline_reports_progress_and_honours_cancellation(rng):
     X, y_pu, _ = make_scar_data(rng, n=60, separation=4.0)
     updates = []
-    report = PUPipeline(classifier="upu", cv=2).fit_evaluate(
+    report = PUPipeline(classifier="upu", evaluation_cv=2).fit_evaluate(
         X, y_pu, class_prior=0.4, progress_callback=updates.append
     )
     assert report.final_model is not None
@@ -151,6 +153,6 @@ def test_param_pipeline_reports_progress_and_honours_cancellation(rng):
     token = CancellationToken()
     token.cancel()
     with pytest.raises(RunCancelledError):
-        PUPipeline(classifier="upu", cv=2).fit_evaluate(
+        PUPipeline(classifier="upu", evaluation_cv=2).fit_evaluate(
             X, y_pu, class_prior=0.4, cancellation_token=token
         )

@@ -24,7 +24,6 @@ from pu_toolbox.registry import (  # noqa: E402
     AlgorithmMetadata,
     get_algorithm,
     get_metadata,
-    register_all_builtin_methods,
 )
 
 pytestmark = pytest.mark.unit
@@ -176,7 +175,6 @@ def test_ledger_does_not_claim_calibration_or_pa_eligibility():
 
 def test_registry_declares_support_and_pu_only_recommender_excludes_lagam():
     X, y, _ = _data()
-    register_all_builtin_methods()
     assert get_algorithm("lagam") is LaGAMClassifier
     assert get_algorithm("la_gam") is LaGAMClassifier
     assert get_metadata("lagam").requires_clean_support is True

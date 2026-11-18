@@ -6,7 +6,6 @@ import argparse
 
 from ..core.base import BasePriorEstimator, BasePUClassifier
 from ..core.exceptions import RegistryError
-from ..registry.builtin_methods import register_all_builtin_methods
 from ..registry.registry import get_algorithm, list_algorithms
 from ..workflows.pipeline import _missing_required_params
 
@@ -29,8 +28,7 @@ def build_info_parser(sub: argparse._SubParsersAction) -> None:
 
 def run_list_methods(args: argparse.Namespace) -> None:
     """Print a table of registered classifiers with auto-instantiability."""
-    register_all_builtin_methods()
-    rows: list[tuple[str, str, str, str, str, str, str, str]] = []
+    rows: list[tuple[str, str, str, str, str, str, str]] = []
     for meta in list_algorithms():
         cls = _resolve_class(meta.name)
         if cls is None or not issubclass(cls, BasePUClassifier):
@@ -52,7 +50,6 @@ def run_list_methods(args: argparse.Namespace) -> None:
                     name,
                     meta.family.value,
                     "yes" if meta.requires_class_prior else "no",
-                    meta.implementation_status.value,
                     input_dims,
                     arch,
                     meta.label_semantics,
@@ -61,20 +58,18 @@ def run_list_methods(args: argparse.Namespace) -> None:
             )
     rows.sort(key=lambda row: row[0])
     if not rows:
-        # Defensive: no registered classifier (e.g. a future api_only-only
-        # registry) should print an empty table, not crash on max().
         print("No registered classifiers.")
         return
     # Dynamic Name width so long canonical names and aliases stay aligned.
     name_width = max(len(row[0]) for row in rows) + 2
     print(
-        f"{'Name':<{name_width}}{'Family':<22}{'Prior':<6}{'Status':<8}"
+        f"{'Name':<{name_width}}{'Family':<22}{'Prior':<6}"
         f"{'Input':<7}{'Arch':<11}{'Labels':<8}{'Auto-inst':<10}"
     )
-    print("-" * (name_width + 72))
-    for name, family, prior, status, input_dims, arch, labels, auto in rows:
+    print("-" * (name_width + 64))
+    for name, family, prior, input_dims, arch, labels, auto in rows:
         print(
-            f"{name:<{name_width}}{family:<22}{prior:<6}{status:<8}"
+            f"{name:<{name_width}}{family:<22}{prior:<6}"
             f"{input_dims:<7}{arch:<11}{labels:<8}{auto:<10}"
         )
 
@@ -86,7 +81,6 @@ def run_list_priors(args: argparse.Namespace) -> None:
     aliases (e.g. ``class_prior_estimation (aliases: cpe, pe [deprecated], pen_l1)``)
     so users can tell estimators apart instead of seeing 8 flat names.
     """
-    register_all_builtin_methods()
     entries: dict[str, list[str]] = {name: [] for name in _PRIOR_NAMES}
     for meta in list_algorithms():
         cls = _resolve_class(meta.name)

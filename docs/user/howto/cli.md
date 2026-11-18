@@ -40,7 +40,7 @@ pu-toolbox run --data demo/X.csv --labels demo/y_pu.csv --out-dir results/
 | `--backbone` | No | `cnn13` in CNN mode | `cnn13` / `cnn13_no_bn` / `resnet18` / `resnet50`; rejected in MLP mode |
 | `--device` | No | `auto` | Torch device: `auto` / `cpu` / `cuda`; auto selects CUDA when available |
 | `--max-epochs` | No | Estimator default | Epoch cap for constructors accepting `max_epochs`, e.g. WConPU, Self-PU, or nnPU |
-| `--cv` | No | `5` | Number of CV folds |
+| `--evaluation-cv` | No | `5` | Number of evaluation CV folds (integer) |
 | `--metrics` | No | Four default metrics | Comma-separated names or aliases, e.g. `pu_risk,recall,auc` |
 | `--seed` | No | `42` | Random seed |
 | `--save-model` | No | Off | Save the final model as `model.pkl` using pickle |
@@ -52,8 +52,8 @@ uses OS input semantics; independent TS analyses use the Python API with `input_
 
 ### Supporting commands
 
-- `list-methods`: lists registered classifiers in eight columns: name, family, prior requirement,
-  implementation status, Input dimensionality, native Arch, main-input Labels, and Auto-inst.
+- `list-methods`: lists registered classifiers by name, family, prior requirement, input
+  dimensionality, native architecture, main-input labels, and auto-instantiability.
   Capabilities come from registry metadata. Labels can be pu/pn/pnu; Auto-inst describes
   construction, not eligibility for PU workflows. `run`, tuning/comparison, and `sensitivity`
   require PU main-input semantics, so PNU is excluded from these binary-PU entry points.
@@ -79,7 +79,7 @@ uses OS input semantics; independent TS analyses use the Python API with `input_
   uses an OOF domain classifier to audit source/target differences. Writes `shift_report.json`,
   `shift_report.md`, and `source_importance_weights.csv`. Detection and adaptation are separate;
   marginal weights have covariate-shift guarantees. See [distribution shift](distribution_shift.md).
-- `shift-run --source-data source.csv --source-labels source_labels.csv --target-data target.csv --target-labels target_labels.csv [--target-true-labels y_true.csv | --target-class-prior 0.3] --out-dir shift_results/`:
+- `shift-run --source-data source.csv --source-labels source_labels.csv --target-data target.csv --target-labels target_labels.csv [--target-true-labels y_true.csv | --target-class-prior 0.3] [--evaluation-cv 5 --shift-cv 5] --out-dir shift_results/`:
   compares weighted and unweighted models on the same target set. Only oracle or prior-dependent
   metrics drive automatic recommendations. Outputs comparison/shift reports, source weights,
   and target predictions from both arms.
@@ -108,7 +108,7 @@ injection; nnPU, WConPU, and InfoMax PU are examples. Discover the current set t
   methods without encoder injection, such as Self-PU, cannot use this pipeline CNN path.
   A method may impose additional backbone constraints.
 - Deep training can be expensive. WConPU defaults to 100 epochs; use `--max-epochs` where
-  supported and reduce `--cv` when appropriate.
+  supported and reduce `--evaluation-cv` when appropriate.
 
 ## Exit codes
 
@@ -146,8 +146,10 @@ an estimator's declared target and converts the prior for each training consumer
 ## Relationship to Python APIs
 
 A plain `pu-toolbox run` delegates to
-`PUPipeline(classifier=..., prior_estimator=..., cv=..., metrics=..., random_state=...).fit_evaluate(X, y_pu, y_true=..., class_prior=...)`.
-Pass a UI-exported configuration with `run --config`. A parameter grid selects the `PUTuner`
+`PUPipeline(classifier=..., prior_estimator=..., evaluation_cv=..., metrics=..., random_state=...).fit_evaluate(X, y_pu, y_true=..., class_prior=...)`.
+Pass a UI-exported configuration with `run --config`. `RunConfiguration.evaluation_cv` and
+the `run --evaluation-cv` option use an integer fold count; custom splitters are available
+through the Python `PUPipeline` API. A parameter grid selects the `PUTuner`
 branch and produces `tuning.json`; a multi-model configuration selects `PUModelComparator`
 and produces `comparison.json`. Use the Python APIs for custom searches or CV splitters.
 See [model tuning](model_tuning.md), or use the [UI](ui.md).

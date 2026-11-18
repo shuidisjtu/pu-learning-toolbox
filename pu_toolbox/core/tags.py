@@ -37,16 +37,6 @@ class Assumption(str, Enum):
     UNKNOWN = "unknown"
 
 
-# ── Implementation status ──────────────────────────────────────────
-
-
-class ImplementationStatus(str, Enum):
-    """How an algorithm is implemented in the toolbox."""
-
-    API_ONLY = "api_only"  # placeholder, no training logic
-    NATIVE = "native"  # clean-room implementation
-
-
 # ── Source status ──────────────────────────────────────────────────
 
 

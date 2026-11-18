@@ -31,7 +31,7 @@ import numpy as np
 def _make_elkan_noto():
     from pu_toolbox.estimators.classic.elkan_noto import ElkanNotoClassifier
 
-    return ElkanNotoClassifier(n_cv_folds=3, random_state=42)
+    return ElkanNotoClassifier(internal_cv_folds=3, random_state=42)
 
 
 def _make_llsvm():

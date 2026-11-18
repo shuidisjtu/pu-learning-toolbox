@@ -17,7 +17,7 @@ from pu_toolbox.estimators.deep.pan import (  # noqa: E402
     pan_discriminator_loss,
 )
 from pu_toolbox.experiment.checkpoints import EpochCheckpointTrainer  # noqa: E402
-from pu_toolbox.registry import get_algorithm, register_all_builtin_methods  # noqa: E402
+from pu_toolbox.registry import get_algorithm  # noqa: E402
 
 pytestmark = pytest.mark.unit
 
@@ -77,7 +77,6 @@ def test_fit_epoch_recovery_clone_and_pickle(tmp_path):
     restored = pickle.loads(pickle.dumps(fitted))
     np.testing.assert_array_equal(restored.decision_function(X), fitted.decision_function(X))
     np.testing.assert_allclose(fitted.predict_proba(X).sum(axis=1), 1)
-    register_all_builtin_methods()
     assert get_algorithm("pan") is PANClassifier
     assert get_algorithm("predictive_adversarial_pu") is PANClassifier
 

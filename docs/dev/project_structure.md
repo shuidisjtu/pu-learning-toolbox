@@ -65,7 +65,7 @@ pu_toolbox/
     config.py                             (shared: label constants (+1/0/-1), probability clipping, and PU ratio thresholds)
     exceptions.py                         (shared: PULearningError family with Validation/NotFitted/Registry subclasses)
     random.py                             (shared: sklearn-compatible check_random_state seed normalization)
-    tags.py                               (shared: typed Scenario/Assumption/ImplementationStatus enums)
+    tags.py                               (shared: typed Scenario/Assumption/SourceStatus/Maturity enums)
     device.py                             (shared: resolve_device/resolve_device_name CUDA autodetection)
     training_views.py                     (shared: neutral TrainingView/build_training_view construction of P/raw-U/loss-U roles and source indices; independent of ledgers, method names, and manifests)
     fit_state.py                          # opt-in state invalidation after failed fits
@@ -166,7 +166,7 @@ pu_toolbox/
     __init__.py                           (public re-exports; __getattr__ lazily forwards advisor symbols to avoid import cycles)
     registry.py                           (implemented: thread-safe register_method/get_algorithm central registry and alias resolution)
     metadata.py                           (public: AlgorithmMetadata contract shared by registry and documentation generation)
-    builtin_methods.py                    (implemented: register_all_builtin_methods registers built-in algorithm metadata; consult the registry for the current set)
+    builtin_methods.py                    (implemented: built-in metadata and concrete class paths; loaded on demand, with optional explicit prewarm)
   advisor/
     __init__.py                           (public recommendation engine and result data structures)
     recommender.py                        (implemented: recommend_methods/recommend_from_profile data-profile → registered-method recommendations)
@@ -259,7 +259,7 @@ pu_toolbox/
 
 ```text
 tests/
-  contract/                             # reusable contracts for all NATIVE classifiers
+  contract/                             # reusable contracts for registered classifiers
     test_classifier_baseline.py         # fit/predict/decision_function/get_params
     test_capability_declarations.py     # four groups of capability invariants
     test_build_encoder_export.py        # build_encoder dual exports: mlp→None, ValueError, structural consistency
@@ -423,7 +423,7 @@ tests/
       test_check_doc_links_docs_scope.py # expanded reverse rule-2 scope after docs generator integration
       test_generate_structure_docs_scope.py # per-root suffix coverage and grouped-subtree exemptions
       test_check_comment_quality_partitions.py # coverage assertions, empty-scan rejection, partition severity, monotone ratchet
-      test_check_doc_links_rule3.py     # architecture-table/registry NATIVE checks fail on missing extraction; separate file respects 15-test limit
+      test_check_doc_links_rule3.py     # architecture-table/registry checks fail on missing extraction; separate file respects 15-test limit
       test_check_project_metadata.py    # synthetic-repository main() failure paths; each mutation exits nonzero
       test_check_test_quality_matcher.py # category-token boundaries and collisions; prefixes cannot be sole coverage credit
       test_check_survey_recipe_registry.py # main() rejects malformed data, missing profiles, bad schema

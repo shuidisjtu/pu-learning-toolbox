@@ -15,7 +15,7 @@ torch = pytest.importorskip("torch")
 from pu_toolbox import NeuralLBEClassifier  # noqa: E402
 from pu_toolbox.core.exceptions import NotFittedError, ValidationError  # noqa: E402
 from pu_toolbox.estimators.deep import lbe_neural  # noqa: E402
-from pu_toolbox.registry import get_algorithm, register_all_builtin_methods  # noqa: E402
+from pu_toolbox.registry import get_algorithm  # noqa: E402
 
 pytestmark = pytest.mark.unit
 
@@ -50,7 +50,6 @@ def test_basic_fit_clone_pickle_probabilities_and_registry_are_separate():
     assert np.all(fitted._latent_positive_probability_[:4] == 1)
     restored = pickle.loads(pickle.dumps(fitted))
     np.testing.assert_array_equal(fitted.predict_label_proba(x), restored.predict_label_proba(x))
-    register_all_builtin_methods()
     assert get_algorithm("lbe_neural") is NeuralLBEClassifier
     assert get_algorithm("neural_lbe") is NeuralLBEClassifier
     assert get_algorithm("lbe") is not NeuralLBEClassifier
@@ -219,7 +218,7 @@ def test_basic_ledger_view_gate_and_public_pipeline_access():
     pipeline = PUPipeline(
         classifier="lbe_neural",
         prior_estimator=None,
-        cv=2,
+        evaluation_cv=2,
         device="cpu",
         classifier_params={
             "hidden_dim": 4,

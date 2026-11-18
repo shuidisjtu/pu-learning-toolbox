@@ -19,7 +19,6 @@ from ...core.tags import (
     AlgorithmFamily,
     Assumption,
     Backend,
-    ImplementationStatus,
     Maturity,
     SampleWeightSupport,
     Scenario,
@@ -35,7 +34,6 @@ class PUSBClassifier(BasePUClassifier):
     label_semantics = "pu"
     assumption = (Assumption.SAR,)
     scenario = (Scenario.CASE_CONTROL, Scenario.SELECTION_BIASED)
-    implementation_status = ImplementationStatus.NATIVE
     source_status = SourceStatus.OFFICIAL_RELATED
     backend = Backend.SKLEARN
     maturity = Maturity.RESEARCH

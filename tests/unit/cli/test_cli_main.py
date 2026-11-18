@@ -46,7 +46,7 @@ def test_basic_run_subcommand_registered_with_defaults():
     assert args.config is None
     assert args.classifier == "auto"
     assert args.prior_estimator == "pen_l1"
-    assert args.cv == 5
+    assert args.evaluation_cv == 5
     assert args.seed == 42
     assert args.save_model is False
     assert args.quiet is False
@@ -72,7 +72,7 @@ def test_param_run_parser_accepts_portable_config():
 
 @pytest.mark.unit
 def test_param_invalid_cv_value_exits_two():
-    """A non-integer --cv is an argparse type error (exit 2)."""
+    """A non-integer --evaluation-cv is an argparse type error (exit 2)."""
     with pytest.raises(SystemExit) as exc:
         main(
             [
@@ -83,7 +83,7 @@ def test_param_invalid_cv_value_exits_two():
                 "y.csv",
                 "--out-dir",
                 "out",
-                "--cv",
+                "--evaluation-cv",
                 "abc",
             ]
         )

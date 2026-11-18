@@ -73,7 +73,7 @@ def test_basic_demo_output_consumable_by_run(tmp_path):
             str(demo_dir / "y_pu.csv"),
             "--out-dir",
             str(out),
-            "--cv",
+            "--evaluation-cv",
             "3",
             "--seed",
             "42",

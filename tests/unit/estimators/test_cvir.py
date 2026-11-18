@@ -14,7 +14,7 @@ from pu_toolbox.estimators.risk.cvir import CVIRClassifier, select_cvir_negative
 from pu_toolbox.experiment.checkpoints import EpochCheckpointTrainer  # noqa: E402
 from pu_toolbox.experiment.method_ledger import load_ledger  # noqa: E402
 from pu_toolbox.experiment.training_views import resolve_training_view  # noqa: E402
-from pu_toolbox.registry import get_algorithm, register_all_builtin_methods  # noqa: E402
+from pu_toolbox.registry import get_algorithm  # noqa: E402
 
 pytestmark = pytest.mark.unit
 
@@ -64,7 +64,6 @@ def test_fit_seed_determinism_checkpoint_registry_and_prior_gate(tmp_path):
     assert np.isfinite(scores).all() and scores.shape == (len(y),)
     np.testing.assert_array_equal(_model().fit(X, y).decision_function(X), scores)
     np.testing.assert_allclose(trajectory.checkpoints[-1].restore().decision_function(X), scores)
-    register_all_builtin_methods()
     assert get_algorithm("cvir") is CVIRClassifier
     assert get_algorithm("conditional_value_ignoring_risk") is CVIRClassifier
 

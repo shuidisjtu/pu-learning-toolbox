@@ -947,9 +947,8 @@ def _declared_components(method: str) -> tuple[str, ...]:
     """
     if method == PN_ORACLE:
         return _ORACLE_COMPONENTS
-    from pu_toolbox.registry import get_algorithm, register_all_builtin_methods
+    from pu_toolbox.registry import get_algorithm
 
-    register_all_builtin_methods()
     declared = getattr(get_algorithm(method), "epoch_components", _ORACLE_COMPONENTS)
     return tuple(declared)
 

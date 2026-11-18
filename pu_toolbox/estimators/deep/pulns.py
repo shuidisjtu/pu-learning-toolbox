@@ -18,7 +18,6 @@ from ...core.tags import (
     AlgorithmFamily,
     Assumption,
     Backend,
-    ImplementationStatus,
     Maturity,
     SampleWeightSupport,
     Scenario,
@@ -74,7 +73,6 @@ class PULNSClassifier(BasePUClassifier):
     scenario = (Scenario.CASE_CONTROL,)
     requires_class_prior = False
     requires_clean_support = True
-    implementation_status = ImplementationStatus.NATIVE
     source_status = SourceStatus.NOT_FOUND
     backend = Backend.TORCH
     maturity = Maturity.EXPERIMENTAL

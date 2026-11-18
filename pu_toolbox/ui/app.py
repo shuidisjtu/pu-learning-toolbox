@@ -204,7 +204,9 @@ def main() -> None:
             )
 
     settings = st.columns(4)
-    cv = settings[0].number_input("交叉验证折数", min_value=2, max_value=20, value=5, key="cv")
+    evaluation_cv = settings[0].number_input(
+        "评估交叉验证折数", min_value=2, max_value=20, value=5, key="evaluation_cv"
+    )
     seed = settings[1].number_input("随机种子", min_value=0, value=42, key="seed")
     prior_method = settings[2].selectbox(
         "类先验", ["自动估计", "手动输入", "不使用"], key="prior_method"
@@ -311,7 +313,7 @@ def main() -> None:
         classifier_params=classifier_params,
         prior_estimator=prior_estimator,
         class_prior=class_prior,
-        cv=int(cv),
+        evaluation_cv=int(evaluation_cv),
         metrics=tuple(metrics),
         random_state=int(seed),
         architecture="cnn" if X.ndim == 4 else "mlp",
@@ -343,7 +345,7 @@ def main() -> None:
 
     common = {
         "prior_estimator": prior_estimator,
-        "cv": int(cv),
+        "evaluation_cv": int(evaluation_cv),
         "metrics": metrics,
         "random_state": int(seed),
         "architecture": "cnn" if X.ndim == 4 else "mlp",

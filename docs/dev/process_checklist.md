@@ -1,6 +1,6 @@
 # 进度清单
 
-> 总体策略：**framework-first**——先完成稳定框架与 API 契约，用 mock estimator 跑通链路，再逐个集成论文算法。当前全部注册方法均有 clean-room 核心实现（NATIVE）；另有一个隔离的联合漂移 research 求解器。实现可运行与论文数值复现、研究结果审核分别判断；Survey 的当前能力与实验状态见 [Survey README](../research/pu_survey/README.md)。
+> 总体策略：**framework-first**——先完成稳定框架与 API 契约，用 mock estimator 跑通链路，再逐个集成论文算法。当前全部注册方法均有 clean-room 核心实现；另有一个隔离的联合漂移 research 求解器。实现可运行与论文数值复现、研究结果审核分别判断；Survey 的当前能力与实验状态见 [Survey README](../research/pu_survey/README.md)。
 > **Method Card 为可选文档**，新算法接入不要求必写。
 
 ## 阶段历史（已闭环）
@@ -15,6 +15,31 @@ Phase 0-9 已闭环（框架 → 核心风险估计 → 机制 → 推荐诊断 
 - ⚠️ v1 范围外：Phase 2 三经典包装器 + TIcE/AlphaMax 类先验估计
 
 ## 发布状态
+
+### 未发布（输入校验与评估折数命名）
+
+- [x] 工作流、Elkan–Noto 的评估折数和样本权重校验，以及注册元数据校验，统一抛出
+  `ValidationError`；同时保留 `PULearningError` 与 `ValueError` 捕获路径。
+- [x] 外层评估用 `evaluation_cv`，Elkan–Noto 拟合内部用 `internal_cv_folds`；
+  `shift-run` 分别设置评估和漂移折数。
+
+### 未发布（注册表只登记可用实现）
+
+- [x] 首次查询、发现或登记时加载内置算法，导入本身不初始化；用户不再需要手动预热。
+- [x] 元数据与具体估计器一并登记，拒绝没有实现或抽象实现的条目。
+  删除占位状态和重复的可训练过滤，保留来源、成熟度及能力声明。
+- [x] 移除公开的手动初始化入口；脚本和安装验收通过查询自动初始化。
+
+### 未发布（注册表命名与冲突检查）
+
+- [x] 注册条目和别名统一为小写；查询仍不区分大小写，仅大小写不同的拼写不再登记为独立别名。
+- [x] 一次校验全部名称后再写入；冲突不留注册残余。
+
+### 未发布（模型选择指标方向）
+
+- [x] `PUTuner` 与 `PUModelComparator` 按指标固定选优方向：风险、Brier 和 ECE 取最小值。
+- [x] 移除 `higher_is_better` 构造参数；结果和序列化字段保留实际方向。
+  `pu_negative_rate` 和别名仅供报告，不再用作 `scoring`。
 
 ### 未发布（对外文档英语化：贡献者入口）
 

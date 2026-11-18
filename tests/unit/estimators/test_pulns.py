@@ -19,7 +19,6 @@ from pu_toolbox.estimators.deep.pulns import (  # noqa: E402
 from pu_toolbox.registry import (  # noqa: E402
     get_algorithm,
     get_metadata,
-    register_all_builtin_methods,
 )
 
 pytestmark = pytest.mark.unit
@@ -93,7 +92,6 @@ def test_fit_cloning_pickle_seed_registry_and_auto_recommendation_exclusion():
     assert set(fitted.selected_negative_indices_) <= set(np.flatnonzero(y == 0))
     restored = pickle.loads(pickle.dumps(fitted))
     np.testing.assert_array_equal(restored.predict_proba(X), fitted.predict_proba(X))
-    register_all_builtin_methods()
     assert get_algorithm("pulns") is PULNSClassifier
     assert get_metadata("pulns").requires_clean_support
     recommendation = recommend_methods(X, y, class_prior=0.4, top_k=100)

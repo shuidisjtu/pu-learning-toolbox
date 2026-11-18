@@ -15,6 +15,7 @@ Unlabeled Data."  KDD, 2008.
 from __future__ import annotations
 
 import warnings
+from numbers import Integral, Real
 from typing import Literal
 
 import numpy as np
@@ -26,35 +27,21 @@ from sklearn.utils.validation import check_is_fitted as _sklearn_check_is_fitted
 
 from ...core.base import BasePUClassifier
 from ...core.config import CLASS_PRIOR_CLIP_EPS, PROPENSITY_CLIP_EPS
+from ...core.exceptions import ValidationError
 from ...core.tags import (
     AlgorithmFamily,
     Assumption,
     Backend,
-    ImplementationStatus,
     Maturity,
     SampleWeightSupport,
     Scenario,
     SourceStatus,
 )
-from ...core.validation import validate_pu_X_y
+from ...core.validation import validate_pu_X_y, validate_sample_weight
 
 
 class ElkanNotoClassifier(BasePUClassifier):
     """Elkan–Noto PU classifier with probability correction or weighted retraining.
-
-    Under the SCAR assumption, a positive example is labeled with constant
-    probability ``c = P(s=1 | y=1)``.  This classifier first trains a
-    probabilistic model ``g(x) ≈ P(s=1 | x)``, then estimates ``c`` via
-    stratified K-fold out-of-fold predictions on the labeled positives.
-    The traditional positive-class probability is recovered as
-    ``f(x) = g(x) / c``.
-
-    Two modes are available:
-
-    * ``"probability_correction"`` (default) — return ``f(x)`` directly.
-    * ``"weighted_retraining"`` — replicate each unlabeled sample as
-      weighted positive + negative copies and refit a fresh estimator.
-
     Parameters
     ----------
     base_estimator : sklearn estimator, optional
@@ -63,7 +50,7 @@ class ElkanNotoClassifier(BasePUClassifier):
     calibration_method : {"sigmoid", "isotonic"}, default "sigmoid"
         Probability calibration method used when the base estimator is
         not a linear model with natural probabilistic output.
-    n_cv_folds : int, default 3
+    internal_cv_folds : int, default 3
         Number of stratified cross-validation folds for estimating
         ``c`` via out-of-fold predictions.  Must be ≥ 2.
     eps : float, default 1e-12
@@ -101,7 +88,6 @@ class ElkanNotoClassifier(BasePUClassifier):
     assumption: tuple[Assumption, ...] = (Assumption.SCAR,)
     scenario: tuple[Scenario, ...] = (Scenario.SINGLE_TRAINING_SET,)
     requires_class_prior: bool = False
-    implementation_status: ImplementationStatus = ImplementationStatus.NATIVE
     source_status: SourceStatus = SourceStatus.THIRD_PARTY_ONLY
     backend: Backend = Backend.SKLEARN
     maturity: Maturity = Maturity.STABLE
@@ -111,7 +97,7 @@ class ElkanNotoClassifier(BasePUClassifier):
         self,
         base_estimator=None,
         calibration_method: Literal["sigmoid", "isotonic"] = "sigmoid",
-        n_cv_folds: int = 3,
+        internal_cv_folds: int = 3,
         eps: float = 1e-12,
         mode: Literal["probability_correction", "weighted_retraining"] = "weighted_retraining",
         random_state=None,
@@ -124,12 +110,14 @@ class ElkanNotoClassifier(BasePUClassifier):
         self.random_state = random_state
 
         # ── Parameter validation ──────────────────────────────────
-        if n_cv_folds < 2:
-            raise ValueError(f"n_cv_folds must be >= 2 for stratified K-fold; got {n_cv_folds}.")
-        self.n_cv_folds = n_cv_folds
+        if not isinstance(internal_cv_folds, Integral) or internal_cv_folds < 2:
+            raise ValidationError(
+                f"internal_cv_folds must be an integer >= 2; got {internal_cv_folds!r}."
+            )
+        self.internal_cv_folds = internal_cv_folds
 
-        if eps <= 0:
-            raise ValueError(f"eps must be > 0; got {eps}.")
+        if not isinstance(eps, Real) or not eps > 0:
+            raise ValidationError(f"eps must be > 0; got {eps!r}.")
 
     # ── Public fit API ──────────────────────────────────────────────
 
@@ -166,22 +154,17 @@ class ElkanNotoClassifier(BasePUClassifier):
         self._X_shape_ = (n_samples, n_features)
         self.classes_ = np.array([0, 1])
 
-        # Validate and canonicalise sample_weight early
-        sw: np.ndarray | None = None
-        if sample_weight is not None:
-            sw = np.asarray(sample_weight, dtype=float)
-            if sw.shape != (n_samples,):
-                raise ValueError(f"sample_weight must have shape ({n_samples},); got {sw.shape}.")
+        sw = validate_sample_weight(sample_weight, n_samples)
 
         mask_pos = y_pu == 1
         mask_unl = y_pu == 0
         n_labeled = int(np.sum(mask_pos))
 
-        if n_labeled < self.n_cv_folds:
-            raise ValueError(
-                f"Need at least n_cv_folds={self.n_cv_folds} labeled positives "
+        if n_labeled < self.internal_cv_folds:
+            raise ValidationError(
+                f"Need at least internal_cv_folds={self.internal_cv_folds} labeled positives "
                 f"for stratified K-fold, but only {n_labeled} were found. "
-                "Reduce n_cv_folds or collect more labeled data."
+                "Reduce internal_cv_folds or collect more labeled data."
             )
 
         # ── Build calibrated g(x) classifier ────────────────────────
@@ -271,9 +254,7 @@ class ElkanNotoClassifier(BasePUClassifier):
         meta["mode"] = self.mode
         return meta
 
-    # ═════════════════════════════════════════════════════════════════
     # Private helpers
-    # ═════════════════════════════════════════════════════════════════
 
     def _resolve_base_estimator(self):
         """Return the base estimator, defaulting to LogisticRegression."""
@@ -297,7 +278,7 @@ class ElkanNotoClassifier(BasePUClassifier):
         return CalibratedClassifierCV(
             estimator=base,
             method=self.calibration_method,
-            cv=min(self.n_cv_folds, 5),
+            cv=min(self.internal_cv_folds, 5),
         )
 
     # NOTE: CalibratedClassifierCV with integer cv uses StratifiedKFold
@@ -314,7 +295,7 @@ class ElkanNotoClassifier(BasePUClassifier):
     ) -> float:
         """Estimate ``c = P(s=1 | y=1)`` via stratified K-fold out-of-fold.
 
-        Splits labeled positives into ``n_cv_folds`` folds, trains
+        Splits labeled positives into ``internal_cv_folds`` folds, trains
         ``g(x)`` on the complement of each fold, and averages the
         predicted probabilities on the held-out positives.
 
@@ -328,7 +309,7 @@ class ElkanNotoClassifier(BasePUClassifier):
         dummy_y = np.ones(n_pos, dtype=int)
 
         skf = StratifiedKFold(
-            n_splits=self.n_cv_folds,
+            n_splits=self.internal_cv_folds,
             shuffle=True,
             random_state=self.random_state,
         )
@@ -355,7 +336,7 @@ class ElkanNotoClassifier(BasePUClassifier):
             s_train = np.hstack([np.zeros(n_unl, dtype=int), np.ones(len(train_idx), dtype=int)])
 
             # Sqrt-balanced fold weights: a fold's labeled-positive share
-            # (~n_pos/n_cv_folds of the training stack) is far below the
+            # (~n_pos/internal_cv_folds of the training stack) is far below the
             # full-data share, which shifts LR probabilities down and
             # under-estimates c.  Scale labeled positives by
             # sqrt(n_unl / n_pos_fold), the geometric midpoint between
@@ -463,4 +444,4 @@ class ElkanNotoClassifier(BasePUClassifier):
             )
 
         w = (1.0 - c) * g / (c * (1.0 - g))
-        return w
+        return np.clip(w, 0.0, 1.0)

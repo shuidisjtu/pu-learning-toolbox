@@ -109,7 +109,7 @@ def test_basic_run_configuration_populates_widget_state():
         classifier="upu",
         classifier_params={"loss": "logistic", "max_iter": 50},
         class_prior=0.4,
-        cv=3,
+        evaluation_cv=3,
         metrics=("pu_zero_one_risk",),
         tuning_grid={"reg_lambda": [0.01, 0.1]},
     )

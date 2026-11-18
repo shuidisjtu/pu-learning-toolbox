@@ -40,7 +40,7 @@ from pu_toolbox.core.base import BasePUClassifier
 from pu_toolbox.core.exceptions import NotFittedError
 from pu_toolbox.core.tags import Backend
 from pu_toolbox.preprocessing.pu_labeling import make_pnu_labels, make_pu_labels
-from pu_toolbox.registry import get_algorithm, list_algorithms, register_all_builtin_methods
+from pu_toolbox.registry import get_algorithm, list_algorithms
 from tests.estimator_factories import FACTORY_MAP, fit_kwargs
 
 pytestmark = pytest.mark.integration
@@ -71,10 +71,9 @@ _SKIP_REASONS: dict[str, str] = {
 
 def _candidate_metadata():
     """Registered native classifiers that have a factory, in registry order."""
-    register_all_builtin_methods()
     return [
         meta
-        for meta in list_algorithms(trainable_only=True)
+        for meta in list_algorithms()
         if meta.name in FACTORY_MAP and issubclass(get_algorithm(meta.name), BasePUClassifier)
     ]
 

@@ -31,7 +31,7 @@ class _FixedEstimator:
         return self.scores
 
     def get_pu_metadata(self):
-        return {"implementation_status": "native", "iteration": np.int64(3)}
+        return {"maturity": "stable", "iteration": np.int64(3)}
 
 
 class _ProbabilityEstimator:

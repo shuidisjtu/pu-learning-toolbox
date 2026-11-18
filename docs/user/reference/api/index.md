@@ -98,7 +98,7 @@ provide optional Chinese research background.
 |---|---|---|---|---|
 | [`class_prior_estimation`](classifiers.md#classpriorestimator-class_prior_estimation-aliases-cpe--pen_l1) (`cpe`, `pen_l1`) | [`ClassPriorEstimator`](classifiers.md#classpriorestimator-class_prior_estimation-aliases-cpe--pen_l1) | class-prior | `sigma` / `reg_lambda` / `theta_grid` / `n_centers` | [class_prior_estimation](../../../research/method_cards/class_prior_estimation.md) |
 | [`recpe`](classifiers.md#recpeestimator-recpe-alias-re_cpe) (`re_cpe`) | [`ReCPEEstimator`](classifiers.md#recpeestimator-recpe-alias-re_cpe) | class-prior | `copy_fraction` / `base_estimator` | [ReCPE](../../../research/method_cards/ReCPE.md) |
-| [`elkan_noto`](classifiers.md#elkannotoclassifier-elkan_noto-alias-en) (`en`) | [`ElkanNotoClassifier`](classifiers.md#elkannotoclassifier-elkan_noto-alias-en) | classic | `base_estimator` / `calibration_method` / `n_cv_folds` / `eps` | [Elkan_Noto](../../../research/method_cards/Elkan_Noto.md) |
+| [`elkan_noto`](classifiers.md#elkannotoclassifier-elkan_noto-alias-en) (`en`) | [`ElkanNotoClassifier`](classifiers.md#elkannotoclassifier-elkan_noto-alias-en) | classic | `base_estimator` / `calibration_method` / `internal_cv_folds` / `eps` | [Elkan_Noto](../../../research/method_cards/Elkan_Noto.md) |
 | [`upu`](classifiers.md#upuclassifier-upu-alias-convex_pu) (`convex_pu`) | [`UPUClassifier`](classifiers.md#upuclassifier-upu-alias-convex_pu) | risk | `class_prior` / `loss` / `reg_lambda` | [Convex uPU](../../../research/method_cards/Convex_Formulation_for_PU_DATA_Learning.md) |
 | [`nnpu`](classifiers.md#nonnegativepuclassifier-nnpu-alias-nn-pu) (`nn-pu`) | [`NonNegativePUClassifier`](classifiers.md#nonnegativepuclassifier-nnpu-alias-nn-pu) | risk | `model` / `encoder` / `class_prior` / `loss` / `optimizer` | [nnPU](../../../research/method_cards/nnpu.md) |
 | [`pnu`](classifiers.md#pnuclassifier-pnu) | [`PNUClassifier`](classifiers.md#pnuclassifier-pnu) | risk | `class_prior` / `eta` / `reg_lambda` | [PNU](../../../research/method_cards/PNU.md) |
@@ -131,8 +131,16 @@ provide optional Chinese research background.
 | [`dgpu`](classifiers.md#dgpuclassifier-registered-as-dgpu) | [`DGPUClassifier`](classifiers.md#dgpuclassifier-registered-as-dgpu) | deep | `class_prior` / `generator` / `model` / `hidden_dim` | [DGPU](../../../research/method_cards/DGPU.md) |
 | — (`km1` / `km2` variant) | [`KernelMeanPriorEstimator`](classifiers.md#kernelmeanpriorestimator-km1--km2-variants) | class-prior | `variant="km1"/"km2"` and other kernel-mean settings; supported by `PUPipeline.prior_estimator` | [Kernel_Mean](../../../research/method_cards/Kernel_Mean_Class_Prior.md) |
 
-> Registered classifier names work in `PUPipeline(classifier="...")` and CLI `--classifier`;
-> aliases are case-insensitive. The family column uses friendly abbreviations. CLI and JSON use
+> Registered classifier names work in `PUPipeline(classifier="...")` and CLI `--classifier`.
+> `get_algorithm(name)` and `get_metadata(name)` discover built-ins on first use without manual
+> initialization. Importing the registry alone does not load the built-in catalog.
+> `clear_registry()` resets the registry; the next public use reloads the built-ins.
+> Custom `register_method(metadata, estimator_cls)` requires a concrete implementation class;
+> unimplemented placeholders cannot be registered. Runtime registration does not run tests.
+> The registry stores lowercase IDs and resolves names and aliases case-insensitively, so `nnPU`
+> resolves to `nnpu` without a separate alias. Custom registrations with duplicate or conflicting
+> names or aliases raise `RegistryError` without changing the registry. The family column uses
+> friendly abbreviations. CLI and JSON use
 > enum values `class_prior_estimation` / `classic_calibration` / `risk_estimation` / `bias_aware` /
 > `deep_pu`. Use `classifier_params` for required constructor arguments other than `class_prior`;
 > a configured instance can supply Python-object protocol dependencies. The old prior alias `pe`

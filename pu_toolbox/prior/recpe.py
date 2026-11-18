@@ -25,7 +25,6 @@ from ..core.tags import (
     AlgorithmFamily,
     Assumption,
     Backend,
-    ImplementationStatus,
     Maturity,
     Scenario,
     SourceStatus,
@@ -103,7 +102,6 @@ class ReCPEEstimator(BasePriorEstimator):
     assumption: tuple[Assumption, ...] = (Assumption.SCAR,)
     scenario: tuple[Scenario, ...] = (Scenario.SINGLE_TRAINING_SET, Scenario.CASE_CONTROL)
     requires_class_prior: bool = False
-    implementation_status: ImplementationStatus = ImplementationStatus.NATIVE
     source_status: SourceStatus = SourceStatus.OFFICIAL_EXACT
     backend: Backend = Backend.NUMPY
     maturity: Maturity = Maturity.STABLE

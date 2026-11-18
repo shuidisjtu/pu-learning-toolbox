@@ -50,7 +50,7 @@ def cnn_capable_classifier_names() -> tuple[str, ...]:
     return tuple(
         sorted(
             meta.name
-            for meta in list_algorithms(trainable_only=True)
+            for meta in list_algorithms()
             if "cnn" in meta.native_architectures
             and 4 in meta.input_ndims
             and meta.encoder_parameter is not None

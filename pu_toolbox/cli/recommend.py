@@ -45,9 +45,7 @@ def _estimate_prior(name: str, X, y_pu) -> float:
         from ..core.base import BasePriorEstimator
         from ..core.exceptions import PULearningError
         from ..registry import get_algorithm
-        from ..registry.builtin_methods import register_all_builtin_methods
 
-        register_all_builtin_methods()
         try:
             est_cls = get_algorithm(name)
         except PULearningError as exc:

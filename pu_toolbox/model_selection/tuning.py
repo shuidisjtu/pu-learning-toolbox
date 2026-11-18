@@ -17,6 +17,7 @@ from ..progress import (
     RunCancelledError,
     emit_progress,
 )
+from ..workflows._evaluation import resolve_metric_names, resolve_selection_metric
 from ..workflows.pipeline import DEFAULT_METRICS, PipelineError, PUPipeline
 from ..workflows.report import PipelineReport
 
@@ -83,13 +84,14 @@ class PUTuner:
         classifier: str,
         param_grid: Mapping[str, Sequence[Any]] | Sequence[Mapping[str, Sequence[Any]]],
         scoring: str = "pu_zero_one_risk",
-        higher_is_better: bool | None = None,
         metrics: Sequence[str] | None = None,
         **pipeline_params: Any,
     ) -> None:
         if not isinstance(classifier, str) or classifier == "auto":
             raise ValueError("PUTuner requires an explicit registered classifier name.")
-        forbidden = {"classifier", "classifier_params", "metrics"}.intersection(pipeline_params)
+        forbidden = {"classifier", "classifier_params", "metrics", "higher_is_better"}.intersection(
+            pipeline_params
+        )
         if forbidden:
             raise ValueError(f"pipeline_params cannot override {sorted(forbidden)}.")
         try:
@@ -99,13 +101,7 @@ class PUTuner:
         if not candidates:
             raise ValueError("param_grid must produce at least one candidate.")
 
-        from ..workflows._evaluation import resolve_metric_names
-
-        # Normalize scoring and metrics independently. If scoring is set to
-        # ``pu_recall`` without explicit metrics, the first default metric is
-        # ``pu_zero_one_risk``; using it for selection would optimize the wrong
-        # objective (P0 regression guard).
-        scoring_name = resolve_metric_names([scoring])[0]
+        scoring_name, self._higher_is_better = resolve_selection_metric(scoring)
         metric_names = resolve_metric_names(metrics or DEFAULT_METRICS)
         if scoring_name not in metric_names:
             metric_names.append(scoring_name)
@@ -117,11 +113,6 @@ class PUTuner:
         self.param_grid = candidates
         self.scoring = scoring_name
         self.metrics = metric_names
-        self.higher_is_better = (
-            self.scoring != "pu_zero_one_risk"
-            if higher_is_better is None
-            else bool(higher_is_better)
-        )
         self.pipeline_params = dict(pipeline_params)
 
     def fit(
@@ -194,7 +185,7 @@ class PUTuner:
             )
         best_score, best_params = (
             max(successful, key=lambda item: item[0])
-            if self.higher_is_better
+            if self._higher_is_better
             else min(successful, key=lambda item: item[0])
         )
         # Only the selected configuration pays for a full-data fit and model
@@ -223,7 +214,7 @@ class PUTuner:
         result = TuningResult(
             classifier=self.classifier,
             scoring=self.scoring,
-            higher_is_better=self.higher_is_better,
+            higher_is_better=self._higher_is_better,
             best_params=best_params,
             best_score=best_score,
             trials=tuple(trials),

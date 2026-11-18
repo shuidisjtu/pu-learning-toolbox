@@ -58,8 +58,8 @@ are documented alongside the directory trees in
 | `estimators/` | PU classifiers grouped into `classic/`, `risk/`, `bias_aware/`, `deep/`, and `research/` | [Exports](../../pu_toolbox/estimators/__init__.py) |
 
 The registry's [built-in table](../../pu_toolbox/registry/builtin_methods.py)
-(`_BUILTINS`) is authoritative for algorithm-to-module mappings and implementation
-status (NATIVE / api_only / `official_exact` adapter). [Method cards
+records each built-in's metadata and implementation class path together. Source status and
+maturity describe provenance and stability independently of registry availability. [Method cards
 (Chinese)](../research/method_cards/) explain individual algorithms.
 
 ### Evaluation — evaluation and diagnostics used by Orchestration
@@ -298,36 +298,47 @@ Independent test evaluation + manifest               [runner → manifest]
 ## 4. Algorithm registration and recommendation
 
 Algorithms register metadata in `registry`: name/aliases/family/scenario/assumption/
-requires_class_prior/requires_clean_support/backend/maturity/source_status/
-implementation_status, plus architecture capabilities
+requires_class_prior/requires_clean_support/backend/maturity/source_status,
+plus architecture capabilities
 `native_architectures` / `input_ndims` / `encoder_parameter` / `trains_encoder`.
 `pu_toolbox/core/tags.py` is authoritative for field semantics and enums;
-`pu_toolbox/registry/builtin_methods.py` records built-ins, module mappings,
-and implementation status.
+`pu_toolbox/registry/builtin_methods.py` records each built-in metadata entry alongside
+its concrete implementation class path.
+
+The registry stores lowercase method IDs and aliases. Case variants resolve to the same ID
+and must not be declared as aliases. A registration checks its entire namespace for conflicts
+before adding metadata, classes, or aliases. `register_method(metadata, estimator_cls)`
+registers metadata and a concrete class together; placeholders are not registrable.
+
+Importing `registry` does not load the built-in catalog. The first public lookup, discovery,
+or registration initializes it on demand, so `get_algorithm` and `get_metadata` work without
+manual initialization. `clear_registry()` resets state for on-demand initialization on the
+next public operation.
+Admission requires merge-time tests of the API and declared capabilities, not runtime tests.
+Source status and maturity remain independent of whether an implementation is registered.
 
 Estimator class attributes are authoritative for declared capabilities.
-`_sync_class_metadata_to_registry` in `registry/registry.py` synchronizes the fields
+`_sync_estimator_metadata` in `registry/registry.py` synchronizes the fields
 listed in `_SYNC_FIELDS`, including architecture capabilities, entry metadata,
 `label_semantics`, and prior-target declarations. Only declarations on the concrete
 class or non-abstract ancestors count; defaults inherited from `BasePUClassifier`
 or `BasePriorEstimator` do not count as authoritative declarations.
 
 Decide what belongs in each built-in entry **field by field**, rather than by whether
-a class is bound:
+a concrete class is registered:
 
 - **Do not repeat class-declared fields in entry literals.** Synchronization would
   overwrite them, making them dead writes. The guard is
   `tests/test_builtin_methods.py::test_static_entries_do_not_redeclare_class_fields`.
 - **Explicitly supply entry fields that the class does not declare.** Their literals
   are the sole source; missing or incorrect values can silently fall back to
-  dataclass defaults. This applies to the eight entry fields `family`,
-  `assumption`, `scenario`, `requires_class_prior`, `implementation_status`,
-  `source_status`, `backend`, and `maturity`.
-- Binding is not a reason to omit all literals. For example,
-  `class_prior_estimation` is bound but its class declares none of those eight
-  fields, so all eight must be supplied. `pusb` and `lbe` likewise need explicit
+  dataclass defaults. This applies to the seven entry fields `family`,
+  `assumption`, `scenario`, `requires_class_prior`, `source_status`, `backend`,
+  and `maturity`.
+- A registered class is not a reason to omit all literals. For example,
+  `class_prior_estimation` declares none of those seven fields, so all seven
+  must be supplied. `pusb` and `lbe` likewise need explicit
   `requires_class_prior` literals when they only inherit the base default.
-  Unbound `api_only` entries must supply all eight.
 - Architecture capabilities and `label_semantics` come from class attributes or
   defaults rather than entry literals. The current `_SYNC_FIELDS` definition is
   authoritative for the complete synchronization surface.

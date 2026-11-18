@@ -20,7 +20,7 @@ from pu_toolbox.estimators.deep.robust_pu import (  # noqa: E402
 from pu_toolbox.experiment.checkpoints import EpochCheckpointTrainer  # noqa: E402
 from pu_toolbox.experiment.method_ledger import load_ledger  # noqa: E402
 from pu_toolbox.experiment.training_views import resolve_training_view  # noqa: E402
-from pu_toolbox.registry import get_algorithm, register_all_builtin_methods  # noqa: E402
+from pu_toolbox.registry import get_algorithm  # noqa: E402
 from pu_toolbox.workflows import PUPipeline  # noqa: E402
 
 pytestmark = pytest.mark.unit
@@ -98,7 +98,6 @@ def test_fit_predict_checkpoint_registry_and_determinism(tmp_path):
     assert len(model.history_["pretrain_risk"]) == 2
     assert len(model.history_["episode_loss"]) == 3
     assert model.history_["threshold_p"][0] == 0.1
-    register_all_builtin_methods()
     assert get_algorithm("robust_pu") is RobustPUClassifier
     assert get_algorithm("robust-pu") is RobustPUClassifier
 
@@ -225,7 +224,7 @@ def test_pipeline_resolves_robust_pu_with_prior():
     report = PUPipeline(
         classifier=_estimator(pretrain_epochs=1, episodes=1, batch_size=8),
         prior_estimator=None,
-        cv=2,
+        evaluation_cv=2,
         random_state=3,
     ).fit_evaluate(X, y)
     assert isinstance(report.final_model, RobustPUClassifier)

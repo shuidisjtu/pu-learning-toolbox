@@ -16,7 +16,7 @@ from pu_toolbox.estimators.classic.rank_pruning import (
     confident_positive_noise_rate,
     rank_pruning_pu_mask,
 )
-from pu_toolbox.registry import get_algorithm, register_all_builtin_methods
+from pu_toolbox.registry import get_algorithm
 
 pytestmark = pytest.mark.unit
 
@@ -158,7 +158,6 @@ def test_fit_crossfit_isolation_reweighting_pickle_and_registry():
     restored = pickle.loads(pickle.dumps(fitted))
     np.testing.assert_array_equal(restored.predict_proba(X), fitted.predict_proba(X))
     np.testing.assert_array_equal(fitted.predict(X), fitted.predict_proba(X)[:, 1] >= 0.5)
-    register_all_builtin_methods()
     assert get_algorithm("rp") is RankPruningClassifier
     assert get_algorithm("rank_pruning") is RankPruningClassifier
 

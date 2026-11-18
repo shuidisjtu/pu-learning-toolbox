@@ -11,7 +11,7 @@ from sklearn.base import clone
 torch = pytest.importorskip("torch")
 
 from pu_toolbox.estimators.deep.pulns import PULNSClassifier  # noqa: E402
-from pu_toolbox.registry import get_metadata, register_all_builtin_methods  # noqa: E402
+from pu_toolbox.registry import get_metadata  # noqa: E402
 
 pytestmark = pytest.mark.unit
 
@@ -209,7 +209,6 @@ def test_edge_missing_reward_support_and_registry_keep_pu_only_exclusion():
     features, labels, _, encoder = problem()
     with pytest.raises(ValueError, match="PA-ineligible"):
         model(encoder).fit(features, labels)
-    register_all_builtin_methods()
     meta = get_metadata("pulns")
     assert meta.requires_clean_support and meta.trains_encoder
     assert meta.native_architectures == frozenset({"mlp", "cnn"})

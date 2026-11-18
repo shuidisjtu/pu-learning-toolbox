@@ -127,9 +127,7 @@ def _prior_estimator(name: str | BasePriorEstimator) -> BasePriorEstimator:
         return KernelMeanPriorEstimator(variant=name)
     from pu_toolbox.core.exceptions import PULearningError
     from pu_toolbox.registry import get_algorithm
-    from pu_toolbox.registry.builtin_methods import register_all_builtin_methods
 
-    register_all_builtin_methods()
     try:
         cls = get_algorithm(name)
     except PULearningError as exc:

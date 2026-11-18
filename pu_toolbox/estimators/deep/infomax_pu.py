@@ -17,7 +17,6 @@ from ...core.tags import (
     AlgorithmFamily,
     Assumption,
     Backend,
-    ImplementationStatus,
     Maturity,
     SampleWeightSupport,
     Scenario,
@@ -316,7 +315,6 @@ class InfoMaxPUClassifier(BasePUClassifier):
     scenario = (Scenario.CASE_CONTROL,)
     requires_class_prior = False
     class_prior_target = "native_unlabeled"
-    implementation_status = ImplementationStatus.NATIVE
     source_status = SourceStatus.NOT_FOUND
     backend = Backend.TORCH
     maturity = Maturity.RESEARCH

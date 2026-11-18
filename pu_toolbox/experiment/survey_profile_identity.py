@@ -34,9 +34,8 @@ def validate_profile_identities(protocol):
         raise ValueError("profile identity schema requires explicit survey-v3.2")
     from ..core.base import BasePUClassifier
     from ..core.exceptions import RegistryError
-    from ..registry import get_algorithm, get_algorithm_registry, register_all_builtin_methods
+    from ..registry import get_algorithm, get_algorithm_registry
 
-    register_all_builtin_methods()
     registered = get_algorithm_registry()
     reserved = {name: name for name in registered}
     reserved.update(

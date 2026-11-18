@@ -261,7 +261,7 @@ def test_basic_public_cnn_pipeline_routes_encoder_and_explicit_alpha(monkeypatch
         architecture="cnn",
         prior_estimator=None,
         device="cpu",
-        cv=2,
+        evaluation_cv=2,
         classifier_params=dict(
             unlabeled_positive_prior=0.3,
             hidden_dim=4,

@@ -738,7 +738,7 @@ def _versioned_main(args, c_values, seed_values) -> int:
         unit_checkpoint_bytes,
         validate_parameters,
     )
-    from pu_toolbox.registry import get_algorithm, get_metadata, register_all_builtin_methods
+    from pu_toolbox.registry import get_algorithm, get_metadata
 
     method = "pn_oracle" if args.oracle else args.method or "upu"
     # Shared with the pilot driver: the two resolve ``--protocol`` to the same
@@ -838,7 +838,6 @@ def _versioned_main(args, c_values, seed_values) -> int:
                 binding_schema_version=args.recipe_binding_schema_version,
             )
         ledger = load_ledger(LEDGER_PATH)
-        register_all_builtin_methods()
         prior = (
             None
             if args.oracle
@@ -1216,9 +1215,8 @@ def main(argv: list[str] | None = None) -> int:
         estimator_class = None
         if not args.oracle:
             from pu_toolbox.core.exceptions import RegistryError
-            from pu_toolbox.registry import get_algorithm, register_all_builtin_methods
+            from pu_toolbox.registry import get_algorithm
 
-            register_all_builtin_methods()  # idempotent; standalone scripts need the registry
             try:
                 estimator_class = get_algorithm(method)
             except RegistryError as exc:
@@ -1264,13 +1262,8 @@ def main(argv: list[str] | None = None) -> int:
         method = args.method or "upu"
         try:
             from pu_toolbox.core.exceptions import RegistryError
-            from pu_toolbox.registry import (
-                get_algorithm,
-                get_metadata,
-                register_all_builtin_methods,
-            )
+            from pu_toolbox.registry import get_algorithm, get_metadata
 
-            register_all_builtin_methods()  # idempotent; standalone scripts need the registry
             class_prior = resolve_class_prior(
                 ledger,
                 method,

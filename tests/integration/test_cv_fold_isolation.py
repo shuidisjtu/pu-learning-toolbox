@@ -46,7 +46,7 @@ def test_cv_folds_do_not_leak_encoder_weights(classifier_name):
         classifier=classifier_name,
         architecture="cnn",
         backbone="cnn13_no_bn" if classifier_name == "gradpu" else "cnn13",
-        cv=2,
+        evaluation_cv=2,
         max_epochs=1,
         random_state=42,
         device="cpu",

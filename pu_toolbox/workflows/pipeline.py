@@ -14,6 +14,7 @@ import contextlib
 import warnings
 from collections.abc import Sequence
 from dataclasses import replace
+from numbers import Integral
 from typing import Any
 
 import numpy as np
@@ -26,6 +27,7 @@ from ..core.validation import (
     check_scalar_in_range,
     validate_input_sampling,
     validate_label_semantics,
+    validate_sample_weight,
 )
 from ..diagnostics.report import PUDiagnosticReport, build_diagnostic_report
 from ..estimators.deep.vision import CNN_BACKBONES
@@ -44,7 +46,7 @@ from ._evaluation import (
     resolve_metric_names,
     run_cross_validation,
 )
-from ._inputs import prepare_pipeline_inputs
+from ._inputs import EvaluationSplitter, prepare_pipeline_inputs, validate_evaluation_cv
 from ._models import (
     check_architecture_capability,
     cnn_capable_classifier_names,
@@ -69,19 +71,6 @@ _MANAGED_CLASSIFIER_PARAMS = {"class_prior", "random_state", "encoder"}
 # Sentinel distinguishing the documented default ``"pen_l1"`` from an
 # explicit user choice (affects ``PriorInfo.auto_selected``).
 _UNSET = object()
-
-
-def _ensure_registered() -> None:
-    """Register builtin methods.
-
-    ``register_all_builtin_methods`` is idempotent (registry-level dedup),
-    so calling it repeatedly is safe and never goes stale -- unlike the
-    old module-level ``_BUILTINS_REGISTERED`` flag, which made the
-    pipeline silently run an empty registry after ``clear_registry()``.
-    """
-    from ..registry.builtin_methods import register_all_builtin_methods
-
-    register_all_builtin_methods()
 
 
 class PUPipeline:
@@ -113,9 +102,9 @@ class PUPipeline:
         Since 1.2.1 the default is ``"pen_l1"`` (auto-sigma); ``"recpe"``
         remains available but is best kept for irreducibility-failure
         scenarios.
-    cv : int or PU-stratified splitter or None (default None)
-        Number of folds (``>= 2``) or a splitter instance with a ``split``
-        method (e.g. :class:`~pu_toolbox.model_selection.PUStratifiedKFold`).
+    evaluation_cv : int or splitter or None (default None)
+        Outer evaluation fold count (``>= 2``) or a splitter implementing
+        ``split`` and ``get_n_splits``.
         ``None`` uses ``PUStratifiedKFold(5, shuffle=True, random_state=...)``.
     metrics : sequence of str or None (default None)
         Metric names to aggregate per fold; ``None`` uses
@@ -167,7 +156,7 @@ class PUPipeline:
         classifier_params: dict[str, Any] | None = None,
         prior_estimator: str | BasePriorEstimator | None | object = _UNSET,
         prior_params: dict[str, Any] | None = None,
-        cv: int | Any | None = None,
+        evaluation_cv: int | EvaluationSplitter | None = None,
         metrics: Sequence[str] | None = None,
         random_state: int | None = 42,
         architecture: str = "mlp",
@@ -176,7 +165,6 @@ class PUPipeline:
         max_epochs: int | None = None,
         input_sampling: str = "os",
     ) -> None:
-        _ensure_registered()
         validate_input_sampling(input_sampling)
         self.input_sampling = input_sampling
         self.classifier = classifier
@@ -282,15 +270,8 @@ class PUPipeline:
             )
         self._prior_cls = self._resolve_prior_estimator_class(self._prior_estimator)
 
-        # -- CV ----------------------------------------------------------
-        self.cv = cv
-        if isinstance(cv, int):
-            if cv < 2:
-                raise ValueError(f"cv must be >= 2 folds, got {cv}.")
-        elif cv is not None and not hasattr(cv, "split"):
-            raise TypeError(
-                f"cv must be an int or a splitter with a split() method; got {type(cv).__name__}."
-            )
+        validate_evaluation_cv(evaluation_cv)
+        self.evaluation_cv = evaluation_cv
 
     # ── Constructor helpers ────────────────────────────────────────────
 
@@ -307,7 +288,6 @@ class PUPipeline:
                 from ..prior.kernel_mean import KernelMeanPriorEstimator
 
                 return KernelMeanPriorEstimator
-            _ensure_registered()
             try:
                 cls = get_algorithm(prior_estimator)
             except RegistryError as exc:
@@ -383,7 +363,7 @@ class PUPipeline:
             message="校验输入并准备交叉验证",
         )
         X, y_pu, y_true, analysis_X, splitter, n_splits = self._prepare_inputs(X, y_pu, y_true)
-        sample_weight = _validate_sample_weight(sample_weight, X.shape[0])
+        sample_weight = validate_sample_weight(sample_weight, X.shape[0])
         total_steps = n_splits + (4 if refit else 3)
 
         # -- Resolve classifier ------------------------------------------
@@ -857,12 +837,12 @@ class PUPipeline:
             input_sampling=self.input_sampling,
         )
 
-    def _resolved_splitter(self, X: Any, y_pu: np.ndarray) -> Any:
-        if isinstance(self.cv, int):
-            return PUStratifiedKFold(n_splits=self.cv, shuffle=True, random_state=self.random_state)
-        if self.cv is None:
-            return PUStratifiedKFold(n_splits=5, shuffle=True, random_state=self.random_state)
-        return self.cv
+    def _resolved_splitter(self) -> EvaluationSplitter:
+        evaluation_cv = self.evaluation_cv
+        if evaluation_cv is not None and not isinstance(evaluation_cv, Integral):
+            return evaluation_cv
+        n_splits = 5 if evaluation_cv is None else int(evaluation_cv)
+        return PUStratifiedKFold(n_splits=n_splits, shuffle=True, random_state=self.random_state)
 
     def _prepare_inputs(
         self,
@@ -877,7 +857,7 @@ class PUPipeline:
             y_true,
             is_deep=self._is_deep,
             architecture=self.architecture,
-            resolve_splitter=self._resolved_splitter,
+            splitter=self._resolved_splitter(),
         )
 
     def _fit_and_evaluate_one(
@@ -904,7 +884,7 @@ class PUPipeline:
         scores = extract_scores(estimator, X_test)
         proba = (
             extract_proba(estimator, X_test)
-            if any(_METRIC_SPECS[name][3] for name in self.metrics)
+            if any(_METRIC_SPECS[name].needs_proba for name in self.metrics)
             else None
         )
         return {
@@ -931,33 +911,5 @@ def _missing_required_params(cls: type, *, provided_params: set[str] | None = No
 
 
 def _validate_prior_value(value: float, name: str) -> None:
-    """Validate a user-supplied class prior (caller error -> ValueError).
-
-    ``PipelineError`` is reserved for orchestration failures (unresolvable
-    classifier/prior, failed estimation); a bad user input is a plain
-    ``ValueError`` like every other constructor-argument check in the
-    pipeline (cv, metrics, architecture).
-    """
+    """Validate a user-supplied class prior before it enters the workflow."""
     check_scalar_in_range(value, 0.0, 1.0, name, inclusive=False)
-
-
-def _validate_sample_weight(
-    sample_weight: np.ndarray | None,
-    n_samples: int,
-) -> np.ndarray | None:
-    """Validate and copy workflow-level sample weights."""
-    if sample_weight is None:
-        return None
-    try:
-        weights = np.asarray(sample_weight, dtype=float)
-    except (TypeError, ValueError) as exc:
-        raise ValueError("sample_weight must contain numeric values.") from exc
-    if weights.shape != (n_samples,):
-        raise ValueError(f"sample_weight must have shape ({n_samples},); got {weights.shape}.")
-    if not np.isfinite(weights).all():
-        raise ValueError("sample_weight must contain only finite values.")
-    if np.any(weights < 0.0):
-        raise ValueError("sample_weight must be non-negative.")
-    if not np.any(weights > 0.0):
-        raise ValueError("sample_weight must contain at least one positive value.")
-    return weights.copy()

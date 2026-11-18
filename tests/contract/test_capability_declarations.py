@@ -16,11 +16,10 @@ import numpy as np
 import pytest
 
 from pu_toolbox.core.base import BasePUClassifier
-from pu_toolbox.core.tags import AlgorithmFamily, Backend, ImplementationStatus
+from pu_toolbox.core.tags import AlgorithmFamily, Backend
 from pu_toolbox.registry import (
     AlgorithmMetadata,
     list_algorithms,
-    register_all_builtin_methods,
     register_method,
     unregister_method,
 )
@@ -33,7 +32,6 @@ _LEGAL_ARCHS = {"mlp", "cnn"}
 
 def _classifier_entries():
     """Yield (metadata, class) for every registered PU classifier."""
-    register_all_builtin_methods()
     for meta in list_algorithms():
         cls = get_algorithm(meta.name)
         if isinstance(cls, type) and issubclass(cls, BasePUClassifier):
@@ -136,7 +134,6 @@ _EXPECTED_DECLARATIONS = {
 
 @pytest.mark.contract
 def test_deep_capability_declarations():
-    register_all_builtin_methods()
     for name, (archs, ndims, enc_param, trains) in _EXPECTED_DECLARATIONS.items():
         cls = get_algorithm(name)
         assert cls.native_architectures == archs, name
@@ -151,7 +148,6 @@ def test_basic_tedn_registration_is_experimental_native_ts():
     from pu_toolbox.estimators.deep import TEDnClassifier
     from pu_toolbox.registry import get_algorithm, get_metadata
 
-    register_all_builtin_methods()
     metadata = get_metadata("tedn")
     assert get_algorithm("tedn") is TEDnClassifier is PublicTEDnClassifier
     assert get_algorithm("transform-estimate-discard") is TEDnClassifier
@@ -212,7 +208,6 @@ def test_encoder_parameter_metadata_never_drives_encoder_injection():
             name=name,
             paper="Contract-test fixture for issue #45 (route B).",
             family=AlgorithmFamily.CLASSIC_CALIBRATION,
-            implementation_status=ImplementationStatus.NATIVE,
             native_architectures=frozenset({"cnn"}),
             input_ndims=frozenset({2, 4}),
             encoder_parameter="foo",

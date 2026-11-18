@@ -25,7 +25,7 @@ report = PUPipeline(
         "reg_lambda": 0.01,
         "max_iter": 2000,
     },
-    cv=5,
+    evaluation_cv=5,
 ).fit_evaluate(X, y_pu, class_prior=0.4)
 ```
 
@@ -67,7 +67,7 @@ tuner = PUTuner(
         "reg_lambda": [0.001, 0.01, 0.1],
     },
     scoring="pu_zero_one_risk",
-    cv=5,
+    evaluation_cv=5,
     random_state=42,
 )
 result = tuner.fit(X, y_pu, class_prior=0.4)
@@ -77,17 +77,27 @@ print(result.best_score)
 best_model = result.best_report.final_model
 ```
 
-The default minimizes `pu_zero_one_risk` and maximizes other metrics; override explicitly with
-`higher_is_better=` when needed. Failed combinations and combinations with unavailable metrics
-remain in `result.trials`. If none produces a usable score, the tuner raises `PipelineError`.
+Choose `scoring` according to what you want from the selected model:
+
+| Goal | Starting point |
+|---|---|
+| Minimize classification error with PU labels and a credible class prior | `pu_zero_one_risk` (default; lower is better) |
+| Rank positives ahead of negatives with clean validation labels | `average_precision` (higher is better) |
+| Select accurate positive-class probabilities with clean validation labels | `brier_score` (lower is better) |
+
+Direction is fixed by the metric, so remove `higher_is_better` from existing calls. Use `metrics`
+for additional reporting, including `pu_negative_rate`, which cannot be used as `scoring`. See the
+[API reference](../reference/api/tools.md#selection-metrics) for all supported selection metrics.
+Failed combinations and combinations with unavailable metrics remain in `result.trials`. If no
+trial produces a usable score, the tuner raises `PipelineError`.
 
 Each search trial computes PU-stratified CV only. After choosing the best combination, the tuner
 performs one full-data refit and builds diagnostics. `result.best_report.final_model` is therefore
 ready for prediction without fitting a final model for every candidate.
 
-Scoring with `pu_auc_roc`, `pu_accuracy`, or `pu_f1` requires `y_true` in `fit`. Supplying it makes
-selection use clean-label supervision; use only labels permitted by your study's validation
-budget, and keep final test truth separate. Without clean labels, consider `pu_zero_one_risk`
+Truth-based selection metrics such as `average_precision` and `brier_score` require `y_true` in
+`fit`. Brier score also requires usable predicted probabilities. Use only labels permitted by your
+study's validation budget, and keep final test truth separate. Without clean labels, consider `pu_zero_one_risk`
 and inspect the reliability of its prior and assumptions. Assess the selected configuration
 on independent test data after fixing the choice.
 
@@ -108,7 +118,7 @@ from pu_toolbox.model_selection import PUModelComparator
 comparison = PUModelComparator(
     classifiers=["upu", "pusb"],
     scoring="pu_zero_one_risk",
-    cv=5,
+    evaluation_cv=5,
     random_state=42,
 ).fit(X, y_pu, class_prior=0.4)
 
@@ -122,7 +132,7 @@ best_model = comparison.best_report.final_model
 # y_pu contains {1, 0} PU labels; PNU requires {+1, -1, 0} for P/N/U.
 # Construction rejects this combination before any model is trained.
 try:
-    PUModelComparator(classifiers=["upu", "pnu", "pusb"], cv=5)
+    PUModelComparator(classifiers=["upu", "pnu", "pusb"], evaluation_cv=5)
 except ValueError as error:
     print(error)  # declares label_semantics='pnu', ... requires 'pu'
 ```

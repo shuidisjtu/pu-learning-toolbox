@@ -19,7 +19,7 @@ def test_basic_tuner_returns_fitted_best_report(rng):
         classifier="upu",
         param_grid={"reg_lambda": [0.001, 0.1], "max_iter": [50]},
         scoring="pu_risk",
-        cv=2,
+        evaluation_cv=2,
         random_state=42,
     ).fit(X, y_pu, class_prior=0.4)
 
@@ -47,7 +47,7 @@ def test_edge_tuner_rejects_unavailable_scoring_and_isolates_runtime_failure(rng
         classifier="upu",
         param_grid={"reg_lambda": [0.01]},
         scoring="pu_auc_roc",
-        cv=2,
+        evaluation_cv=2,
     )
     with pytest.raises(PipelineError, match="No tuning candidate"):
         tuner.fit(X, y_pu, class_prior=0.4)
@@ -113,7 +113,7 @@ def test_edge_tuner_isolates_invalid_first_candidate(rng):
     tuner = PUTuner(
         classifier="upu",
         param_grid={"loss": ["not_a_loss", "logistic"], "reg_lambda": [0.01]},
-        cv=2,
+        evaluation_cv=2,
         random_state=42,
     )
     result = tuner.fit(X, y_pu, class_prior=0.4)
@@ -132,7 +132,7 @@ def test_edge_tuner_required_params_may_come_from_grid(rng):
     tuner = PUTuner(
         classifier="ldce",
         param_grid={"flip_probability": [0.2, 0.3]},
-        cv=2,
+        evaluation_cv=2,
         random_state=42,
     )
     result = tuner.fit(X, y_pu, class_prior=0.4)
@@ -149,12 +149,12 @@ def test_tuner_honors_custom_scoring(rng):
         classifier="upu",
         param_grid={"reg_lambda": [0.01]},
         scoring="pu_recall",
-        cv=2,
+        evaluation_cv=2,
         random_state=42,
     )
 
     assert tuner.scoring == "pu_recall"
-    assert tuner.higher_is_better is True  # not pu_zero_one_risk -> maximize
     assert "pu_recall" in tuner.metrics
     result = tuner.fit(X, y_pu, y_true=y_true, class_prior=0.4)
     assert result.scoring == "pu_recall"
+    assert result.higher_is_better is True

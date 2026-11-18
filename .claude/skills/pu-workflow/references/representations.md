@@ -17,9 +17,8 @@ the prior consumed by each loss.
 Query installed capabilities before choosing an image method:
 
 ```python
-from pu_toolbox.registry import get_algorithm, register_all_builtin_methods
+from pu_toolbox.registry import get_algorithm
 
-register_all_builtin_methods()
 model_class = get_algorithm("nnpu")
 print(model_class.native_architectures, model_class.input_ndims,
       model_class.encoder_parameter, model_class.trains_encoder)
@@ -30,7 +29,7 @@ injection and CNN input support. Example for headered PU labels and a finite
 float NCHW array saved as `X.npy`, with a known population prior:
 
 ```bash
-pu-toolbox run --data X.npy --labels y_pu.csv --classifier nnpu --architecture cnn --backbone cnn13_no_bn --device cpu --class-prior 0.4 --max-epochs 2 --cv 2 --out-dir image-output
+pu-toolbox run --data X.npy --labels y_pu.csv --classifier nnpu --architecture cnn --backbone cnn13_no_bn --device cpu --class-prior 0.4 --max-epochs 2 --evaluation-cv 2 --out-dir image-output
 ```
 
 Use `uv run pu-toolbox ...` in a uv-managed project. Choose device, epochs,

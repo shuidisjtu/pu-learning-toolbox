@@ -39,7 +39,7 @@ For a supplied population prior of 0.4:
 ```bash
 pu-toolbox profile --data X.csv --labels y_pu.csv --out-dir work/profile
 pu-toolbox recommend --profile work/profile/profile.json --class-prior 0.4 --out-dir work/recommend
-pu-toolbox run --data X.csv --labels y_pu.csv --class-prior 0.4 --classifier auto --cv 3 --seed 42 --out-dir work/run
+pu-toolbox run --data X.csv --labels y_pu.csv --class-prior 0.4 --classifier auto --evaluation-cv 3 --seed 42 --out-dir work/run
 ```
 
 Read `profile.json` for `selection_diagnostic`, `issues`, and input counts.
@@ -51,7 +51,7 @@ For authorized automatic prior estimation, let the Pipeline resolve the estimato
 target, recommendation, and training values together:
 
 ```bash
-pu-toolbox run --data X.csv --labels y_pu.csv --classifier auto --prior-estimator pen_l1 --cv 3 --seed 42 --out-dir work/estimated
+pu-toolbox run --data X.csv --labels y_pu.csv --classifier auto --prior-estimator pen_l1 --evaluation-cv 3 --seed 42 --out-dir work/estimated
 ```
 
 Carry a requested estimator or explicit prior into the run. For a selected method
@@ -84,7 +84,7 @@ report = PUPipeline(
     classifier="upu",
     classifier_params={"loss": "logistic", "max_iter": 500},
     input_sampling="ts",
-    cv=3,
+    evaluation_cv=3,
     random_state=42,
 ).fit_evaluate(X, y_pu, class_prior=metadata["population_class_prior"])
 report.save(out / "report.json")
@@ -117,7 +117,7 @@ tuned = PUTuner(
     param_grid={"loss": ["logistic"], "reg_lambda": [0.01, 0.1]},
     scoring="pu_zero_one_risk",
     input_sampling="ts",
-    cv=3,
+    evaluation_cv=3,
     random_state=42,
 ).fit(X, y_pu, class_prior=0.4)
 (out / "tuning.json").write_text(
@@ -142,7 +142,7 @@ compared = PUModelComparator(
     classifiers=["upu", "pusb"],
     scoring="pu_zero_one_risk",
     input_sampling="ts",
-    cv=3,
+    evaluation_cv=3,
     random_state=42,
 ).fit(X, y_pu, class_prior=0.4)
 (out / "comparison.json").write_text(

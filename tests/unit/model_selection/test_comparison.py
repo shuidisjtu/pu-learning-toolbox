@@ -49,9 +49,7 @@ def test_basic_comparison_refits_only_best_classifier(monkeypatch):
 
 def test_param_comparison_can_maximize_score(monkeypatch):
     _fake_pipeline(monkeypatch, {"upu": 0.3, "pnu": 0.2})
-    result = PUModelComparator(
-        classifiers=["upu", "pnu"], scoring="pu_recall", higher_is_better=True
-    ).fit([[0]], [1])
+    result = PUModelComparator(classifiers=["upu", "pnu"], scoring="pu_recall").fit([[0]], [1])
     assert result.best_classifier == "upu"
 
 
@@ -80,14 +78,16 @@ def test_deterministic_comparison_preserves_input_order(monkeypatch):
 
 def test_pnu_is_rejected_at_semantic_preflight_before_comparison():
     with pytest.raises(ValueError, match="PNUClassifier.*label_semantics='pnu'.*requires 'pu'"):
-        PUModelComparator(classifiers=["upu", "pnu"], cv=2, random_state=42)
+        PUModelComparator(classifiers=["upu", "pnu"], evaluation_cv=2, random_state=42)
 
 
 def test_non_label_error_is_not_rewritten(rng, monkeypatch):
     """A non-PNU failure must keep its original error text (no false labeling)."""
     from pu_toolbox.model_selection import PUModelComparator
 
-    comparator = PUModelComparator(classifiers=["upu", "elkan_noto"], cv=2, random_state=42)
+    comparator = PUModelComparator(
+        classifiers=["upu", "elkan_noto"], evaluation_cv=2, random_state=42
+    )
 
     def broken_pipeline(name):
         if name == "elkan_noto":

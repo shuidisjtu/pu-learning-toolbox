@@ -14,8 +14,8 @@ pipe = PUPipeline(
     prior_estimator="pen_l1",   # "pen_l1"/"recpe"/"km1"/"km2" (the last two map to
                                 # KernelMeanPriorEstimator), estimator instance, or None.
     prior_params=None,          # Args for a named prior estimator, e.g. {"variant": "km2"}; not an instance.
-    cv=5,                       # PU-stratified folds or custom splitter.
-                                # The actual default cv=None resolves to 5-fold PUStratifiedKFold.
+    evaluation_cv=5,            # PU-stratified folds or custom splitter.
+                                # The actual default evaluation_cv=None resolves to 5-fold PUStratifiedKFold.
     metrics=DEFAULT_METRICS,    # Metric names from the table below.
                                 # The actual default metrics=None resolves to DEFAULT_METRICS.
     random_state=42,
@@ -43,7 +43,7 @@ report = pipe.fit_evaluate(
 | `classifier_params` | `dict \| None` | `None` | Explicit named classifier's constructor arguments; unavailable for auto/instances |
 | `prior_estimator` | `str \| instance \| None` | `"pen_l1"` | Prior estimator; see precedence below |
 | `prior_params` | `dict \| None` | `None` | Named prior estimator's constructor arguments |
-| `cv` | `int \| splitter \| None` | `None` (→5 folds) | PU-stratified CV |
+| `evaluation_cv` | `int \| splitter \| None` | `None` (→5 folds) | PU-stratified evaluation CV |
 | `metrics` | `Sequence[str] \| None` | `None` (→DEFAULT_METRICS) | Metric names |
 | `random_state` | `int \| None` | `42` | Random seed |
 | `architecture` | `str` | `"mlp"` | `"mlp"` / `"cnn"` |
@@ -154,7 +154,7 @@ Contracts for `architecture` / `backbone` / `device`:
 - CNN integration requires an `encoder` constructor parameter accepting a feature extractor and matching native CNN / 4-D / encoder capability declarations. The pipeline injects `build_encoder` output under signature guards; unsupported paths fail during construction.
 - Compatible explicit names pass required-argument checks when supplied appropriately. The prior follows explicit input before estimation. In CNN mode, `fit_evaluate` lazily builds `build_encoder("cnn", backbone=..., in_channels=...)` and injects it.
 - Input dimensions: 4-D NCHW + explicit compatible deep classifier + CNN is accepted. Prior estimation/profiling use a flattened view, and CV splits indices. 4-D with MLP or a nondeep classifier, and 2-D with CNN, raise `PipelineError`.
-- Deep methods with `cv>1` produce a training-cost warning (n_splits+1 fits with refit). Reduce folds when appropriate; minimum cv is 2.
+- Deep methods with `evaluation_cv>1` produce a training-cost warning (n_splits+1 fits with refit). Reduce folds when appropriate; minimum evaluation fold count is 2.
 - Auto uses GPU availability and data size as recommendation scoring inputs. Lower CPU/small-data scores do not categorically exclude deep methods. A selected deep method still receives torch seeding and training-cost warnings.
 
 ### Error cases
@@ -166,11 +166,12 @@ Contracts for `architecture` / `backbone` / `device`:
 | No positives / fewer than `MIN_POSITIVE_SAMPLES` | `ValidationError` |
 | Fewer positives than CV folds | `ValidationError` suggesting fewer folds |
 | Required prior ultimately unavailable | `PipelineError` |
-| User `class_prior` outside (0,1) | `ValueError`, as for invalid constructor settings such as cv/metrics/architecture |
+| User `class_prior` outside (0,1) | `ValueError`, as for invalid constructor settings such as metrics/architecture |
 | Estimated prior outside (0,1) | Auto degrades to prior-free recommendations; explicit classifier raises `PipelineError` |
 | Prior-estimator exception | Auto degrades, recording prior.degraded; explicit classifier raises `PipelineError` |
-| Unknown metric / invalid CV | `ValueError` / `TypeError` during construction |
-| Invalid sample_weight shape/values | `ValueError` |
+| Unknown metric | `ValueError` during construction |
+| Invalid `evaluation_cv` | `ValidationError` |
+| Invalid sample_weight shape/values | `ValidationError` |
 | Classifier ignores or does not implement sample_weight | `PipelineError`, without silent weighted-training failure |
 
 ### PipelineReport (return object)
@@ -245,7 +246,7 @@ workflow = ShiftAwarePUPipeline(
     alpha=0.1,
     shift_cv=5,
     allow_unstable=False,
-    cv=5,                        # Remaining keywords pass to PUPipeline.
+    evaluation_cv=5,             # Remaining keywords pass to PUPipeline.
     random_state=42,
 )
 result = workflow.fit_evaluate(
@@ -413,15 +414,14 @@ tuner = PUTuner(
     classifier="nnpu",          # Explicit registry name required; "auto" raises an error.
     param_grid={...},           # Each combination expanded by ParameterGrid.
     scoring="pu_zero_one_risk", # Selection metric.
-    higher_is_better=None,      # By default only pu_zero_one_risk is minimized.
     metrics=None,               # Reported metrics.
-    **pipeline_params,          # cv / prior_estimator / random_state / architecture, etc.
+    **pipeline_params,          # evaluation_cv / prior_estimator / random_state / architecture, etc.
 )
 result = tuner.fit(X, y_pu, y_true=None, class_prior=None)
 ```
 
 Runs PU-stratified Pipeline CV for each `sklearn.model_selection.ParameterGrid` combination.
-`pipeline_params` accepts `cv`, `prior_estimator`, `random_state`, `architecture`, and related
+`pipeline_params` accepts `evaluation_cv`, `prior_estimator`, `random_state`, `architecture`, and related
 workflow settings. Trials use `refit=False`; only the selected combination receives full-data
 refit and diagnostics.
 
@@ -433,11 +433,25 @@ Returns `TuningResult`:
 | `best_report` | Selected combination's complete PipelineReport with full-data refit model |
 | `trials` | Every TuningTrial with status ok / unavailable / failed |
 | `scoring` | Canonical metric name |
-| `higher_is_better` | Selection direction; by default only pu_zero_one_risk is minimized |
+| `higher_is_better` | Records the metric's fixed selection direction; not a constructor option |
 
 Raises `PipelineError` if no trial can compute the selection metric. Scoring with truth-based
 metrics uses clean-label supervision; provide only permitted validation truth, keeping final
 test truth separate. Full example: [model-tuning guide](../../howto/model_tuning.md).
+
+### Selection metrics
+
+Both `PUTuner` and `PUModelComparator` resolve aliases and derive the direction from `scoring`.
+
+| Direction | Recommended starting points | Other supported selection metrics |
+|---|---|---|
+| Minimize | `pu_zero_one_risk` (default; aliases `pu_risk`, `risk`), `brier_score` (`brier`) | `expected_calibration_error` (`ece`) |
+| Maximize | `average_precision` (`ap`) | `pu_recall` (`recall`), `pu_estimated_precision` (`precision`), `pu_auc_roc` (`auc`, `roc_auc`), `pu_accuracy` (`accuracy`), `pu_f1` (`f1`), `balanced_accuracy` (`bacc`) |
+
+`pu_negative_rate` (`negative_rate`) measures how often U is predicted negative, not how often
+those predictions are correct. Use it in `metrics` for reporting; passing it as `scoring` raises
+`ValueError`. Remove `higher_is_better` from existing constructor calls; the result still records
+the direction used. `brier_score` and `expected_calibration_error` now select the lowest value.
 
 ## PUModelComparator
 
@@ -446,7 +460,6 @@ cmp = PUModelComparator(
     classifiers=["nnpu", "upu"], # At least two explicit registry names; "auto" raises an error.
     classifier_params=None,      # Per-model constructor arguments: {name: params}.
     scoring="pu_zero_one_risk",
-    higher_is_better=None,
     metrics=None,
     **pipeline_params,
 )
@@ -455,8 +468,9 @@ result = cmp.fit(X, y_pu, y_true=None, class_prior=None)
 
 Compares at least two explicit registry names under the same PU-aware CV settings. Returns
 `ModelComparisonResult` with `best_classifier`, `best_score`, per-model `trials`, and a
-full-data-fitted `best_report`. Failed models are isolated and recorded; nonwinning models run
-CV only.
+full-data-fitted `best_report`. The result also records the canonical `scoring` name and its
+`higher_is_better` direction. The same [selection metrics](#selection-metrics) apply. Failed models
+are isolated and recorded; nonwinning models run CV only.
 
 ## Progress and cancellation
 

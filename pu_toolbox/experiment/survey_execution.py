@@ -432,9 +432,8 @@ def assemble_model(
                 raise ValueError("CNN oracle requires an explicit image encoder")
             return PilotOracleCNN(encoder=encoder, **constructor, random_state=seed, device=device)
         return PilotOracleMLP(**constructor, random_state=seed, device=device)
-    from pu_toolbox.registry import get_algorithm, register_all_builtin_methods
+    from pu_toolbox.registry import get_algorithm
 
-    register_all_builtin_methods()
     cls = get_algorithm(algorithm)
     import inspect
 

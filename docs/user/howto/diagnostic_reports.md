@@ -45,7 +45,7 @@ report = build_diagnostic_report(
 
 The report calls `predict` and prefers `decision_function`. If absent, it reads binary
 `predict_proba(X)[:, 1]`. If the estimator exposes `get_pu_metadata()`, its assumptions,
-implementation status, and training diagnostics also enter `model.metadata`.
+maturity, and training diagnostics also enter `model.metadata`.
 
 The report builder does not call `fit`. An unfitted sklearn estimator produces an explicit
 `ValueError`, keeping the underlying `NotFittedError` out of batch-report workflows.

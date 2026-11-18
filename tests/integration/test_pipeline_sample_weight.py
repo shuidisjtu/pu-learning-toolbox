@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 from pu_toolbox.core.base import BasePUClassifier
+from pu_toolbox.core.exceptions import ValidationError
 from pu_toolbox.core.tags import SampleWeightSupport
 from pu_toolbox.estimators.risk.upu import UPUClassifier
 from pu_toolbox.workflows import PipelineError, PUPipeline
@@ -39,7 +40,7 @@ def test_basic_weights_reach_each_training_fold_and_refit(rng):
     _RecordingWeightedClassifier.observed_weights = []
     report = PUPipeline(
         classifier=_RecordingWeightedClassifier(),
-        cv=3,
+        evaluation_cv=3,
     ).fit_evaluate(X, y_pu, sample_weight=weights)
 
     observed = _RecordingWeightedClassifier.observed_weights
@@ -68,8 +69,8 @@ def test_param_invalid_weights_fail_before_training(rng, case, message):
         weights[-1] = np.nan
     else:
         weights[:] = 0.0
-    with pytest.raises(ValueError, match=message):
-        PUPipeline(classifier=_RecordingWeightedClassifier(), cv=3).fit_evaluate(
+    with pytest.raises(ValidationError, match=message):
+        PUPipeline(classifier=_RecordingWeightedClassifier(), evaluation_cv=3).fit_evaluate(
             X, y_pu, sample_weight=weights
         )
 
@@ -77,12 +78,14 @@ def test_param_invalid_weights_fail_before_training(rng, case, message):
 def test_edge_classifier_that_ignores_weights_is_rejected(rng):
     X, y_pu, _ = make_scar_data(rng, n=90, separation=2.0)
     with pytest.raises(PipelineError, match="declared support is 'ignored'"):
-        PUPipeline(classifier=UPUClassifier(class_prior=0.4), cv=3).fit_evaluate(
+        PUPipeline(classifier=UPUClassifier(class_prior=0.4), evaluation_cv=3).fit_evaluate(
             X, y_pu, sample_weight=np.ones(len(X))
         )
 
 
 def test_determ_unweighted_provenance_remains_explicit(rng):
     X, y_pu, _ = make_scar_data(rng, n=90, separation=2.0)
-    report = PUPipeline(classifier=UPUClassifier(class_prior=0.4), cv=3).fit_evaluate(X, y_pu)
+    report = PUPipeline(classifier=UPUClassifier(class_prior=0.4), evaluation_cv=3).fit_evaluate(
+        X, y_pu
+    )
     assert report.provenance["sample_weight"] == {"supplied": False}

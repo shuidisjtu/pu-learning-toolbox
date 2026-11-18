@@ -81,7 +81,7 @@ class TestPriorTargets:
         X = np.random.RandomState(7).normal(size=(25, 2))
         y = np.r_[np.ones(5, dtype=int), np.zeros(20, dtype=int)]
         report = PUPipeline(
-            classifier=RecordingClassifier(), prior_estimator=NativeUPrior(), cv=2
+            classifier=RecordingClassifier(), prior_estimator=NativeUPrior(), evaluation_cv=2
         ).fit_evaluate(X, y)
         assert report.prior.value == pytest.approx(0.4)
         assert report.final_model.received_prior_ == pytest.approx(0.25)
@@ -104,7 +104,7 @@ class TestPriorTargets:
             classifier=RecordingClassifier(),
             prior_estimator=NativeUPrior(),
             input_sampling=input_sampling,
-            cv=2,
+            evaluation_cv=2,
         ).fit_evaluate(X, y)
         assert report.prior.value == pytest.approx(expected)
         assert report.final_model.received_prior_ == pytest.approx(0.25)
@@ -122,7 +122,7 @@ class TestPriorTargets:
         X = np.random.RandomState(7).normal(size=(25, 2))
         y = np.r_[np.ones(5, dtype=int), np.zeros(20, dtype=int)]
         report = PUPipeline(
-            classifier=PopulationClassifier(), prior_estimator=PopulationPrior(), cv=2
+            classifier=PopulationClassifier(), prior_estimator=PopulationPrior(), evaluation_cv=2
         ).fit_evaluate(X, y)
         assert report.prior.value == 0.25
         assert report.final_model.received_prior_ == 0.25
@@ -135,9 +135,9 @@ class TestPriorTargets:
         X = np.random.RandomState(7).normal(size=(25, 2))
         y = np.r_[np.ones(5, dtype=int), np.zeros(20, dtype=int)]
         classifier = RecordingClassifier(class_prior=0.25)
-        report = PUPipeline(classifier=classifier, prior_estimator=FailPrior(), cv=2).fit_evaluate(
-            X, y, class_prior=explicit
-        )
+        report = PUPipeline(
+            classifier=classifier, prior_estimator=FailPrior(), evaluation_cv=2
+        ).fit_evaluate(X, y, class_prior=explicit)
         assert report.prior.value == pytest.approx(population)
         assert report.prior.source == source
         assert report.final_model.received_prior_ == pytest.approx((population - 0.2) / 0.8)
@@ -168,7 +168,7 @@ class TestPriorTargets:
         X = np.random.RandomState(7).normal(size=(25, 2))
         y = np.r_[np.ones(5, dtype=int), np.zeros(20, dtype=int)]
         pipeline = PUPipeline(
-            classifier=RecordingClassifier(), prior_estimator=NativeUPrior(), cv=2
+            classifier=RecordingClassifier(), prior_estimator=NativeUPrior(), evaluation_cv=2
         )
         first = pipeline.fit_evaluate(X, y).prior.to_dict()
         second = pipeline.fit_evaluate(X, y).prior.to_dict()
@@ -231,7 +231,7 @@ class TestPriorTargets:
         X = np.random.RandomState(7).normal(size=(60, 2))
         y = np.r_[np.ones(12, dtype=int), np.zeros(48, dtype=int)]
         report = PUPipeline(
-            classifier=method, classifier_params=params, prior_estimator=None, cv=2
+            classifier=method, classifier_params=params, prior_estimator=None, evaluation_cv=2
         ).fit_evaluate(X, y, class_prior=0.4)
         assert len(consumed) == 3
         for q, value in consumed:
@@ -250,7 +250,7 @@ class TestPriorTargets:
             classifier="pusb_kernel",
             prior_estimator=None,
             input_sampling=input_sampling,
-            cv=2,
+            evaluation_cv=2,
             classifier_params={"n_basis": 8, "cv": 2, "sigma_grid": (1.0,), "reg_grid": (0.1,)},
         ).fit_evaluate(X, y, class_prior=0.4)
         assert report.final_model._class_prior == pytest.approx(table_prior)
@@ -268,7 +268,7 @@ class TestPriorTargets:
             classifier="upu",
             param_grid={"fit_intercept": [False]},
             input_sampling="ts",
-            cv=2,
+            evaluation_cv=2,
         ).fit(X, y, class_prior=0.4)
         assert tuner.best_report.prior.input_sampling == "ts"
         assert tuner.best_report.final_model._class_prior == pytest.approx(0.4)
@@ -276,6 +276,6 @@ class TestPriorTargets:
             classifiers=["upu", "elkan_noto"],
             classifier_params={"upu": {"fit_intercept": False}},
             input_sampling="ts",
-            cv=2,
+            evaluation_cv=2,
         ).fit(X, y, class_prior=0.4)
         assert comparison.best_report.prior.input_sampling == "ts"

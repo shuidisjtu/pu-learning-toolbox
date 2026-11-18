@@ -201,7 +201,7 @@ def test_basic_public_pipeline_accepts_injected_cnn(monkeypatch):
     report = PUPipeline(
         classifier="vpu",
         prior_estimator=None,
-        cv=2,
+        evaluation_cv=2,
         device="cpu",
         architecture="cnn",
         classifier_params=dict(max_epochs=1, hidden_dim=4, iterations_per_epoch=1, batch_size=4),

@@ -606,9 +606,8 @@ def _missing_priors(
     script enforces this per run, so finding out batch by batch would mean
     paying for every run that happened to come first.
     """
-    from pu_toolbox.registry import get_metadata, register_all_builtin_methods
+    from pu_toolbox.registry import get_metadata
 
-    register_all_builtin_methods()
     missing = {
         run.dataset
         for run in runs
@@ -648,9 +647,8 @@ def expected_run_views(
     from pu_toolbox.core.exceptions import RegistryError
     from pu_toolbox.experiment.method_ledger import load_ledger
     from pu_toolbox.experiment.training_views import resolve_training_view
-    from pu_toolbox.registry import get_algorithm, register_all_builtin_methods
+    from pu_toolbox.registry import get_algorithm
 
-    register_all_builtin_methods()
     ledger = load_ledger()
     #: A run's view is a property of its method and the request, not of its seed
     #: or c token, so the same resolution serves every unit of one method.

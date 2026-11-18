@@ -27,16 +27,18 @@ A new algorithm must:
    | `encoder_parameter` | `None` or a constructor parameter name | Parameter receiving an injected encoder; declarative metadata. Pipeline injection follows the constructor signature, rather than reading this field |
    | `trains_encoder` | `bool` | Whether the injected encoder is trained end to end |
 
-3. Register `AlgorithmMetadata` in `pu_toolbox/registry/builtin_methods.py`.
-   Set `implementation_status` to `NATIVE` only when real training logic exists;
-   unimplemented methods must use `API_ONLY`. Item 5 explains where to declare this field.
+3. Add the `AlgorithmMetadata` and concrete implementation class path together in
+   `pu_toolbox/registry/builtin_methods.py`. Only implemented algorithms that satisfy their
+   declared interfaces and capabilities may be registered; do not register placeholders.
+   Registration associates metadata and class in one `register_method(metadata, estimator_cls)`
+   operation. `source_status` and `maturity` still describe provenance and maturity.
 4. Declare the registry-only fields in the entry literal: `aliases`, `deprecated_aliases`,
    `paper`, `supports_sparse`, `supports_gpu`, `upstream_url`, `license`, and
    `training_cost`. If a method requires an additional support set with clean labels, set
    `requires_clean_support=True` and make `fit` fail immediately when that support set is absent.
-5. Choose the source of each of these eight entry fields **individually**:
-   `family`, `assumption`, `scenario`, `requires_class_prior`, `implementation_status`,
-   `source_status`, `backend`, and `maturity`.
+5. Choose the source of each of these seven entry fields **individually**:
+   `family`, `assumption`, `scenario`, `requires_class_prior`, `source_status`,
+   `backend`, and `maturity`.
 
    If the estimator class declares the field, registration synchronizes it into the registry;
    do not repeat it in `AlgorithmMetadata(...)`, where it would be overwritten.
@@ -44,17 +46,15 @@ A new algorithm must:
    will apply. A declaration inherited from a concrete estimator class also counts; defaults
    inherited from `BasePUClassifier` or `BasePriorEstimator` do not.
 
-   Binding a class therefore does not mean omitting every field. For example,
-   `class_prior_estimation` has a bound class that declares none of these fields, so all eight
-   belong in its literal. The same rule puts `requires_class_prior` in the `pusb` and `lbe`
-   literals. An unimplemented (`api_only`) method has no bound class and must put all eight
-   fields in its literal.
+   Registering a class does not mean omitting every field. For example,
+   `class_prior_estimation` declares none of these fields, so all seven belong in its
+   literal. The same rule puts `requires_class_prior` in the `pusb` and `lbe` literals.
 
    `test_static_entries_do_not_redeclare_class_fields` in `tests/test_builtin_methods.py`
    enforces both cases. **Known boundary:** class-only fields must never appear in entry
    literals. These are the four architecture fields, `label_semantics`,
-   `class_prior_target`, and `risk_class_prior_target`; an `api_only` method consequently
-   uses their dataclass defaults. The internal [single-source map](single_source_map.md)
+   `class_prior_target`, and `risk_class_prior_target`. The internal
+   [single-source map](single_source_map.md)
    records background in Chinese; the rules above are sufficient for external contributors.
 6. If the method consumes a class prior, declare its target distribution consistently with the
    default fit risk view. `class_prior_target` accepts `"population"`,
@@ -80,10 +80,10 @@ These shared checks already exist; a contributor does not need to recreate them:
 - `tests/contract/test_classifier_baseline.py`: API contract and baseline behavior.
 - Rule 1 of `scripts/check_doc_links.py`: referenced repository paths must exist.
 
-Add algorithm-specific tests as well as satisfying the shared contracts.
-Register a small estimator factory in `tests/estimator_factories.py` so the baseline suite
-can construct the new trainable method; its coverage guard checks that every trainable
-registered method has a factory.
+Before merging, add algorithm-specific tests for the public interface and declared capabilities,
+including relevant edge cases, as well as satisfying the shared contracts. Tests are not run
+during registration or lookup. Register a small estimator factory in
+`tests/estimator_factories.py` so the baseline suite can construct the registered method.
 
 ## 3. Declaring CNN support
 

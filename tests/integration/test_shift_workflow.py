@@ -28,7 +28,7 @@ def _domains(rng, n=80, shift=0.1):
 
 def test_basic_weighted_workflow_separates_source_and_target_metrics(rng):
     X_source, y_source, y_true_source, X_target, y_target, y_true_target = _domains(rng)
-    workflow = ShiftAwarePUPipeline(classifier="elkan_noto", cv=3, shift_cv=3)
+    workflow = ShiftAwarePUPipeline(classifier="elkan_noto", evaluation_cv=3, shift_cv=3)
     report = workflow.fit_evaluate(
         X_source,
         y_source,
@@ -48,7 +48,9 @@ def test_basic_weighted_workflow_separates_source_and_target_metrics(rng):
 
 def test_param_audit_only_mode_runs_without_target_pu(rng):
     X_source, y_source, _, X_target, _, _ = _domains(rng)
-    report = ShiftAwarePUPipeline(classifier="elkan_noto", cv=2, shift_cv=2).fit_evaluate(
+    report = ShiftAwarePUPipeline(
+        classifier="elkan_noto", evaluation_cv=2, shift_cv=2
+    ).fit_evaluate(
         X_source,
         y_source,
         X_target,
@@ -63,12 +65,12 @@ def test_param_audit_only_mode_runs_without_target_pu(rng):
 
 def test_edge_missing_target_labels_and_ignored_weight_classifier_fail(rng):
     X_source, y_source, _, X_target, y_target, _ = _domains(rng)
-    workflow = ShiftAwarePUPipeline(classifier="elkan_noto", cv=2, shift_cv=2)
+    workflow = ShiftAwarePUPipeline(classifier="elkan_noto", evaluation_cv=2, shift_cv=2)
     with pytest.raises(PipelineError, match="requires target-domain PU labels"):
         workflow.fit_evaluate(X_source, y_source, X_target)
 
     ignored = ShiftAwarePUPipeline(
-        pipeline=PUPipeline(classifier=UPUClassifier(class_prior=0.5), cv=2),
+        pipeline=PUPipeline(classifier=UPUClassifier(class_prior=0.5), evaluation_cv=2),
         shift_cv=2,
     )
     with pytest.raises(PipelineError, match="declared support is 'ignored'"):
@@ -78,14 +80,16 @@ def test_edge_missing_target_labels_and_ignored_weight_classifier_fail(rng):
 def test_edge_unstable_overlap_requires_explicit_override(rng):
     X_source, y_source, _, _, y_target, _ = _domains(rng)
     X_target = X_source + 20.0
-    workflow = ShiftAwarePUPipeline(classifier="elkan_noto", cv=2, shift_cv=2)
+    workflow = ShiftAwarePUPipeline(classifier="elkan_noto", evaluation_cv=2, shift_cv=2)
     with pytest.raises(PipelineError, match="unstable importance weights"):
         workflow.fit_evaluate(X_source, y_source, X_target, y_target_pu=y_target)
 
 
 def test_determ_combined_report_saves_strict_json_and_markdown(rng, tmp_path):
     X_source, y_source, _, X_target, y_target, _ = _domains(rng)
-    report = ShiftAwarePUPipeline(classifier="elkan_noto", cv=2, shift_cv=2).fit_evaluate(
+    report = ShiftAwarePUPipeline(
+        classifier="elkan_noto", evaluation_cv=2, shift_cv=2
+    ).fit_evaluate(
         X_source,
         y_source,
         X_target,

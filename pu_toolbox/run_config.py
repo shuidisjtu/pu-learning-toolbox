@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from .core.exceptions import ValidationError
 from .estimators.deep.vision import CNN_BACKBONES
 from .workflows import DEFAULT_METRICS
 
@@ -22,7 +23,7 @@ class RunConfiguration:
     classifier_params: dict[str, Any] = field(default_factory=dict)
     prior_estimator: str | None = "pen_l1"
     class_prior: float | None = None
-    cv: int = 5
+    evaluation_cv: int = 5
     metrics: tuple[str, ...] = tuple(DEFAULT_METRICS)
     random_state: int = 42
     architecture: str = "mlp"
@@ -52,7 +53,7 @@ class RunConfiguration:
         classifier_params = value.get("classifier_params", {})
         prior_estimator = value.get("prior_estimator", "pen_l1")
         class_prior = value.get("class_prior")
-        cv = value.get("cv", 5)
+        evaluation_cv = value.get("evaluation_cv", 5)
         metrics = value.get("metrics", list(DEFAULT_METRICS))
         random_state = value.get("random_state", 42)
         architecture = value.get("architecture", "mlp")
@@ -75,8 +76,12 @@ class RunConfiguration:
             class_prior = float(class_prior)
             if not 0.0 < class_prior < 1.0:
                 raise ValueError("class_prior must be in (0, 1).")
-        if isinstance(cv, bool) or not isinstance(cv, int) or cv < 2:
-            raise ValueError("cv must be an integer >= 2.")
+        if (
+            isinstance(evaluation_cv, bool)
+            or not isinstance(evaluation_cv, int)
+            or evaluation_cv < 2
+        ):
+            raise ValidationError("evaluation_cv must be an integer >= 2.")
         if (
             not isinstance(metrics, list)
             or not metrics
@@ -117,7 +122,7 @@ class RunConfiguration:
             classifier_params=dict(classifier_params),
             prior_estimator=prior_estimator,
             class_prior=class_prior,
-            cv=cv,
+            evaluation_cv=evaluation_cv,
             metrics=tuple(metrics),
             random_state=random_state,
             architecture=architecture,
@@ -158,7 +163,7 @@ class RunConfiguration:
             "classifier_params": dict(self.classifier_params),
             "prior_estimator": self.prior_estimator,
             "class_prior": self.class_prior,
-            "cv": self.cv,
+            "evaluation_cv": self.evaluation_cv,
             "metrics": list(self.metrics),
             "random_state": self.random_state,
             "architecture": self.architecture,

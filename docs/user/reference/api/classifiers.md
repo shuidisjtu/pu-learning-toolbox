@@ -288,7 +288,7 @@ Elkan-Noto empirical-estimation wrapper: single-model calibration followed by pr
 correction or weighted retraining.
 
 ```python
-ElkanNotoClassifier(base_estimator=None, calibration_method="sigmoid", n_cv_folds=3,
+ElkanNotoClassifier(base_estimator=None, calibration_method="sigmoid", internal_cv_folds=3,
                     eps=1e-12, mode="weighted_retraining", random_state=None)
 ```
 
@@ -296,7 +296,7 @@ ElkanNotoClassifier(base_estimator=None, calibration_method="sigmoid", n_cv_fold
 |---|---|---|---|
 | `base_estimator` | sklearn estimator | `None` (`LogisticRegression()`) | Base binary classifier; must implement `predict_proba` |
 | `calibration_method` | `"sigmoid"` / `"isotonic"` | `"sigmoid"` | Calibration for base estimators other than LogisticRegression; LogisticRegression is used directly |
-| `n_cv_folds` | `int` | `3` | OOF stratified CV folds for estimating `c`; must be ≥ 2 |
+| `internal_cv_folds` | `int` | `3` | OOF folds for estimating `c`; probability calibration uses `min(internal_cv_folds, 5)` folds; must be ≥ 2 |
 | `eps` | `float` | `1e-12` | Clipping threshold against division by zero in weights |
 | `mode` | `"probability_correction"` / `"weighted_retraining"` | `"weighted_retraining"` | Probability correction (`g(x)/c`) or weighted retraining; the toolbox defaults to weighted retraining (ADR-0016) |
 | `random_state` | `int \| None` | `None` | K-fold split seed |

@@ -57,7 +57,7 @@ def test_basic_cnn_pipeline_fits_and_reports_encoder_provenance(method):
         classifier=method,
         architecture="cnn",
         backbone="cnn13_no_bn" if method == "gradpu" else "cnn13",
-        cv=2,
+        evaluation_cv=2,
         max_epochs=1,
         classifier_params=small_params(method),
         random_state=3,
@@ -82,7 +82,7 @@ def test_determ_seeded_pipeline_fresh_estimators_roundtrip_without_template_leak
         classifier=method,
         architecture="cnn",
         backbone="cnn13_no_bn" if method == "gradpu" else "cnn13",
-        cv=2,
+        evaluation_cv=2,
         max_epochs=1,
         classifier_params=small_params(method),
         random_state=3,
@@ -106,7 +106,7 @@ def test_determ_seeded_pipeline_fresh_estimators_roundtrip_without_template_leak
 
 def test_param_edge_cnn_not_silently_enabled_for_mlp_only_algorithms():
     with pytest.raises(PipelineError, match="cnn"):
-        PUPipeline(classifier="upu", architecture="cnn", cv=2, max_epochs=1)
+        PUPipeline(classifier="upu", architecture="cnn", evaluation_cv=2, max_epochs=1)
 
 
 @pytest.mark.parametrize("backbone", ["cnn13", "resnet18"])
@@ -117,7 +117,7 @@ def test_basic_genpu_pixel_tanh_recipe_runs_through_public_cnn_pipeline(backbone
         classifier="genpu",
         architecture="cnn",
         backbone=backbone,
-        cv=2,
+        evaluation_cv=2,
         max_epochs=1,
         classifier_params={**small_params("genpu"), "generator_output": "tanh"},
         random_state=3,
@@ -138,7 +138,7 @@ def test_basic_holistic_reinitialization_is_available_through_public_pipeline(ba
         classifier="holistic_pu",
         architecture="cnn",
         backbone=backbone,
-        cv=2,
+        evaluation_cv=2,
         max_epochs=1,
         classifier_params=params,
         random_state=3,
@@ -164,7 +164,7 @@ def test_basic_holistic_lzo_recipe_is_explicit_in_pipeline_parameters(initializa
         classifier="holistic_pu",
         architecture="cnn",
         backbone="cnn13",
-        cv=2,
+        evaluation_cv=2,
         max_epochs=1,
         classifier_params=params,
         random_state=3,

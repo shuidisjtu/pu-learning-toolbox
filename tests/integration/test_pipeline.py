@@ -120,10 +120,10 @@ class TestPipelineParameterErrors:
         assert pipe.metrics == ["pu_auc_roc"]
 
     def test_invalid_cv_raises(self):
-        with pytest.raises(ValueError, match=">= 2"):
-            PUPipeline(cv=1)
-        with pytest.raises(TypeError, match="split"):
-            PUPipeline(cv=object())
+        with pytest.raises(ValidationError, match=">= 2"):
+            PUPipeline(evaluation_cv=1)
+        with pytest.raises(ValidationError, match="split"):
+            PUPipeline(evaluation_cv=object())
 
     def test_param_cnn_error_hint_lists_registered_cnn_methods(self):
         """Regression (issue #45): the cnn hint was hardcoded to
@@ -232,7 +232,7 @@ class TestPipelineProvenanceE2E:
 
     def test_mlp_run_reports_native_mlp_provenance(self):
         X, y_pu = _table_data(n=40)
-        report = PUPipeline(classifier="upu", cv=2, random_state=42).fit_evaluate(
+        report = PUPipeline(classifier="upu", evaluation_cv=2, random_state=42).fit_evaluate(
             X, y_pu, class_prior=0.3, refit=False
         )
         p = report.provenance
@@ -249,7 +249,7 @@ class TestPipelineProvenanceE2E:
             classifier="wconpu",
             architecture="cnn",
             backbone="cnn13",
-            cv=2,
+            evaluation_cv=2,
             max_epochs=1,
             random_state=42,
             device="cpu",

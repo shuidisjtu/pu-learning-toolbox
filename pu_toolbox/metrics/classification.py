@@ -181,8 +181,8 @@ def pu_estimated_precision(
 def pu_negative_rate(y_pu: np.ndarray, y_pred: np.ndarray) -> float:
     """Fraction of unlabeled samples predicted as negative.
 
-    Useful for PU model diagnostics: this rate should be higher than
-    ``1 - class_prior`` when the model is working properly.
+    This is a diagnostic prediction rate, not an accuracy measure. A model
+    that predicts every unlabeled sample as negative gives a rate of 1.0.
 
     Parameters
     ----------

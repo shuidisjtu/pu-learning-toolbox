@@ -21,7 +21,6 @@ from ...core.tags import (
     AlgorithmFamily,
     Assumption,
     Backend,
-    ImplementationStatus,
     Maturity,
     SampleWeightSupport,
     Scenario,
@@ -76,7 +75,6 @@ class RankPruningClassifier(BasePUClassifier):
     assumption = (Assumption.SCAR,)
     scenario = (Scenario.SINGLE_TRAINING_SET,)
     requires_class_prior = False
-    implementation_status = ImplementationStatus.NATIVE
     source_status = SourceStatus.OFFICIAL_RELATED
     backend = Backend.SKLEARN
     maturity = Maturity.EXPERIMENTAL

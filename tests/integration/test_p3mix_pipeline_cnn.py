@@ -74,7 +74,7 @@ def test_basic_determ_three_variants_train_independent_cv_encoders_and_roundtrip
             "batching_policy": batching_policy,
         },
         architecture="cnn",
-        cv=2,
+        evaluation_cv=2,
         random_state=19,
         device="cpu",
         metrics=("pu_zero_one_risk",),

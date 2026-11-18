@@ -15,7 +15,6 @@ from pathlib import Path
 from ..core.validation import validate_label_semantics
 from ..diagnostics.sensitivity import analyze_pu_sensitivity
 from ..registry import get_algorithm, get_metadata
-from ..registry.builtin_methods import register_all_builtin_methods
 from .run import _load_features, _load_label_column
 
 __all__ = ["build_sensitivity_parser", "run_sensitivity"]
@@ -60,7 +59,6 @@ def run_sensitivity(args: argparse.Namespace) -> None:
     """Write ``sensitivity.json`` into ``--out-dir``; raise on user errors."""
     X = _load_features(Path(args.data))
     y_pu = _load_label_column(Path(args.labels), "labels")
-    register_all_builtin_methods()
     meta = get_metadata(args.classifier)
     if meta.requires_class_prior:
         raise ValueError(

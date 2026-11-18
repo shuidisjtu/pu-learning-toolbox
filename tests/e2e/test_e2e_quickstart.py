@@ -90,7 +90,7 @@ def test_determ_quickstart_report_reproducible(tmp_path):
             str(out),
             "--classifier",
             "upu",
-            "--cv",
+            "--evaluation-cv",
             "3",
         )
         assert proc.returncode == 0, proc.stderr

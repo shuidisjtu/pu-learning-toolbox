@@ -1,8 +1,8 @@
 # ruff: noqa: B017, N802, N803, N806
-"""Unified contract tests for ALL registered NATIVE algorithms.
+"""Unified contract tests for all registered algorithms.
 
 Covers API contract compliance (architecture.md §5) plus baseline
-basic/param/edge/determ categories.  New NATIVE algorithms get full
+basic/param/edge/determ categories.  New algorithms get full
 contract coverage by adding a factory entry to ``FACTORY_MAP``.
 """
 
@@ -19,7 +19,6 @@ from pu_toolbox.registry import (
     clear_registry,
     get_algorithm_registry,
     list_algorithms,
-    register_all_builtin_methods,
 )
 from tests.estimator_factories import FACTORY_MAP, fit_kwargs
 
@@ -98,7 +97,7 @@ def _fit(clf, X, y):
 
 @pytest.mark.contract
 class TestBaseline:
-    """Baseline coverage for every NATIVE algorithm."""
+    """Runtime checks for representative methods and factory coverage for all methods."""
 
     def test_pusb_kernel_contract_fit_converges(self, rng):
         """The contract factory's BFGS solves must converge.
@@ -112,18 +111,15 @@ class TestBaseline:
         clf.fit(X, y, class_prior=0.5)
         assert np.all(clf.cv_convergence_), "pusb_kernel contract fit did not converge"
 
-    def test_every_trainable_method_has_factory(self):
-        """Every registered trainable method must have a contract factory.
+    def test_every_registered_method_has_factory(self):
+        """Every registered method must have a contract factory.
 
-        Guards against silent zero-coverage drift (e.g. llsvm was registered
-        NATIVE but missing from FACTORY_MAP). New methods only need the
-        factory entry; _REPRESENTATIVE_ALGOS is a performance pick.
+        New methods need a factory entry; _REPRESENTATIVE_ALGOS is a performance pick.
         """
-        register_all_builtin_methods()
-        trainable = {m.name for m in list_algorithms(trainable_only=True)}
-        assert set(FACTORY_MAP) == trainable, (
-            f"factory map mismatch: missing={trainable - set(FACTORY_MAP)}, "
-            f"extra={set(FACTORY_MAP) - trainable}"
+        registered = {m.name for m in list_algorithms()}
+        assert set(FACTORY_MAP) == registered, (
+            f"factory map mismatch: missing={registered - set(FACTORY_MAP)}, "
+            f"extra={set(FACTORY_MAP) - registered}"
         )
 
     @pytest.mark.parametrize("algo_name", _ALL_PARAMS)
@@ -221,7 +217,6 @@ class TestAPIContract:
         meta = clf.get_pu_metadata()
         assert meta["is_fitted"] is True
         assert "family" in meta
-        assert "implementation_status" in meta
         assert "sample_weight_support" in meta
 
     @pytest.mark.parametrize("algo_name", _CLF_PARAMS)
@@ -261,21 +256,18 @@ class TestAPIContract:
 
 @pytest.mark.contract
 class TestRegistryClassBinding:
-    """Every NATIVE registry entry has a valid bound class."""
+    """Every registry entry has a valid bound class."""
 
     @pytest.fixture(autouse=True)
     def _setup(self):
         clear_registry()
-        register_all_builtin_methods()
         yield
         clear_registry()
 
-    def test_all_native_entries_have_trainable_class(self):
+    def test_all_entries_have_estimator_class(self):
         from pu_toolbox.registry import get_algorithm
 
         for meta in get_algorithm_registry().values():
-            if not meta.trainable:
-                continue
             estimator = get_algorithm(meta.name)
             assert estimator is not None
             assert hasattr(estimator, "fit")

@@ -41,7 +41,6 @@ from ...core.tags import (
     AlgorithmFamily,
     Assumption,
     Backend,
-    ImplementationStatus,
     Maturity,
     SampleWeightSupport,
     Scenario,
@@ -865,7 +864,6 @@ class KLDCEClassifier(BasePUClassifier):
     scenario: tuple[Scenario, ...] = (Scenario.SINGLE_TRAINING_SET,)
     requires_class_prior: bool = False
     class_prior_target = "training_table"
-    implementation_status: ImplementationStatus = ImplementationStatus.NATIVE
     source_status: SourceStatus = SourceStatus.NOT_FOUND
     backend: Backend = Backend.NUMPY
     maturity: Maturity = Maturity.RESEARCH

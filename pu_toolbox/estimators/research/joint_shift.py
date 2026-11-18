@@ -21,7 +21,6 @@ from pu_toolbox.core.tags import (
     AlgorithmFamily,
     Assumption,
     Backend,
-    ImplementationStatus,
     Maturity,
     SampleWeightSupport,
     Scenario,
@@ -56,7 +55,6 @@ class JointShiftPUClassifier(BasePUClassifier):
     assumption = (Assumption.SCAR,)
     scenario = (Scenario.SINGLE_TRAINING_SET,)
     requires_class_prior = True
-    implementation_status = ImplementationStatus.NATIVE
     source_status = SourceStatus.NOT_FOUND
     backend = Backend.SKLEARN
     maturity = Maturity.RESEARCH
@@ -192,7 +190,7 @@ class JointShiftPUClassifier(BasePUClassifier):
 
     def _new_pu_model(self) -> ElkanNotoClassifier:
         return ElkanNotoClassifier(
-            n_cv_folds=self.n_cv_folds,
+            internal_cv_folds=self.n_cv_folds,
             random_state=self.random_state,
         )
 

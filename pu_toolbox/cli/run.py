@@ -15,7 +15,6 @@ import pandas as pd
 
 from ..estimators.deep.vision import CNN_BACKBONES
 from ..model_selection import PUModelComparator, PUTuner
-from ..registry.builtin_methods import register_all_builtin_methods
 from ..run_config import RunConfiguration
 from ..workflows import PUPipeline
 from ..workflows._models import cnn_capable_classifier_names
@@ -61,7 +60,6 @@ def _cnn_classifier_hint() -> str:
     sync with capability declarations (regression: the hardcoded
     ``wconpu/infomax_pu`` silently dropped nnpu once it gained CNN support).
     """
-    register_all_builtin_methods()
     return "/".join(cnn_capable_classifier_names()) or "none registered"
 
 
@@ -149,7 +147,9 @@ def build_run_parser(sub: argparse._SubParsersAction) -> None:
         help="max epochs for deep estimators whose signature accepts it "
         "(e.g. wconpu, self_pu, nnpu)",
     )
-    parser.add_argument("--cv", type=int, default=5, help="number of CV folds (default: 5)")
+    parser.add_argument(
+        "--evaluation-cv", type=int, default=5, help="evaluation CV folds (default: 5)"
+    )
     parser.add_argument("--metrics", type=str, default=None, help="comma-separated metric names")
     parser.add_argument("--seed", type=int, default=42, help="random seed (default: 42)")
     parser.add_argument(
@@ -202,7 +202,7 @@ def _run(args: argparse.Namespace) -> None:
     class_prior = args.class_prior
     if class_prior is None and config is not None:
         class_prior = config.class_prior
-    cv = _configured_value(args.cv, 5, config, "cv")
+    evaluation_cv = _configured_value(args.evaluation_cv, 5, config, "evaluation_cv")
     seed = _configured_value(args.seed, 42, config, "random_state")
     architecture = _configured_value(args.architecture, "mlp", config, "architecture")
     backbone = args.backbone or (config.backbone if config is not None else "cnn13")
@@ -214,7 +214,7 @@ def _run(args: argparse.Namespace) -> None:
     common = {
         "prior_estimator": prior_estimator,
         "prior_params": prior_params,
-        "cv": cv,
+        "evaluation_cv": evaluation_cv,
         "metrics": metrics,
         "random_state": seed,
         "architecture": architecture,

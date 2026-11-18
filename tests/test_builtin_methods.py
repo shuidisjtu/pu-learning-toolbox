@@ -8,6 +8,7 @@ reviewed manually rather than parsed here.
 """
 
 from contextlib import nullcontext
+from inspect import isabstract
 from pathlib import Path
 
 import pytest
@@ -16,17 +17,16 @@ from pu_toolbox.core.tags import (
     AlgorithmFamily,
     Assumption,
     Backend,
-    ImplementationStatus,
     Maturity,
     Scenario,
     SourceStatus,
 )
 from pu_toolbox.registry import (
     clear_registry,
+    get_algorithm,
     get_algorithm_registry,
     get_metadata,
     list_algorithms,
-    register_all_builtin_methods,
 )
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -52,27 +52,25 @@ class TestBuiltinRegistration:
     """Invariant checks for the built-in method entries."""
 
     def test_basic_registration_is_consistent(self):
-        """Registration count equals registry size (no magic number)."""
-        n = register_all_builtin_methods()
-        assert n == len(get_algorithm_registry())
+        from pu_toolbox.registry.builtin_methods import _BUILTIN
 
-    def test_basic_implementation_status_distribution(self):
-        """Every built-in method must be natively implemented (no placeholders)."""
-        register_all_builtin_methods()
-        for meta in get_algorithm_registry().values():
-            assert meta.implementation_status == ImplementationStatus.NATIVE, (
-                f"{meta.name} must be NATIVE, got {meta.implementation_status}"
-            )
+        assert len(_BUILTIN) == len(get_algorithm_registry())
+        assert get_metadata("nnPU") is get_metadata("nnpu")
+
+    def test_basic_every_builtin_resolves_to_a_concrete_class(self):
+        from pu_toolbox.registry.builtin_methods import _BUILTIN
+
+        assert len(list_algorithms()) == len(_BUILTIN)
+        for meta in list_algorithms():
+            assert not isabstract(get_algorithm(meta.name))
 
     def test_basic_family_distribution(self):
         """All five algorithm families must be present (counts are free)."""
-        register_all_builtin_methods()
         families = {m.family.value for m in get_algorithm_registry().values()}
         assert families >= _KNOWN_FAMILIES, f"missing families: {_KNOWN_FAMILIES - families}"
 
     def test_semantic_assumption_anchors(self):
         """Anchors: selection-biased methods are SAR-only, classic ones SCAR-only."""
-        register_all_builtin_methods()
         pusb = get_metadata("pusb")
         assert [a.value for a in pusb.assumption] == ["SAR"]
         elkan_noto = get_metadata("elkan_noto")
@@ -80,9 +78,6 @@ class TestBuiltinRegistration:
 
     def test_all_aliases_resolve_to_canonical(self):
         """Every alias of every entry resolves back to its canonical name."""
-        register_all_builtin_methods()
-        from pu_toolbox.registry import get_algorithm
-
         for meta in get_algorithm_registry().values():
             for alias in meta.aliases:
                 warning = FutureWarning if alias in meta.deprecated_aliases else None
@@ -96,14 +91,6 @@ class TestBuiltinRegistration:
                         f"alias {alias!r} resolves to a different class than {meta.name}"
                     )
 
-    def test_edge_list_trainable_only(self):
-        """Native implementations are trainable (set derived, no literal list)."""
-        register_all_builtin_methods()
-        trainable = list_algorithms(trainable_only=True)
-        expected = {m.name for m in get_algorithm_registry().values() if m.trainable}
-        assert {m.name for m in trainable} == expected
-        assert trainable  # registry must never be empty
-
     def test_basic_ldce_kldce_resolve_to_distinct_classes(self):
         """kldce must resolve to the kernelized class, not the linear LDCE.
 
@@ -112,9 +99,7 @@ class TestBuiltinRegistration:
         """
         from pu_toolbox.estimators.risk.kldce import KLDCEClassifier
         from pu_toolbox.estimators.risk.ldce import LDCEClassifier
-        from pu_toolbox.registry import get_algorithm, get_metadata
 
-        register_all_builtin_methods()
         assert get_algorithm("kldce") is KLDCEClassifier
         assert get_algorithm("ldce") is LDCEClassifier
         assert get_algorithm("centroid_pu") is LDCEClassifier
@@ -124,7 +109,6 @@ class TestBuiltinRegistration:
 
     def test_basic_list_by_family(self):
         """Family filter is consistent with the registry (counts free)."""
-        register_all_builtin_methods()
         for family in _KNOWN_FAMILIES:
             listed = list_algorithms(family=family)
             expected = [m for m in get_algorithm_registry().values() if m.family.value == family]
@@ -132,7 +116,6 @@ class TestBuiltinRegistration:
 
     def test_param_list_by_assumption(self):
         """Assumption filter matches the registry's SAR-tagged methods."""
-        register_all_builtin_methods()
         sar_methods = list_algorithms(assumption="SAR")
         expected = {
             m.name
@@ -142,14 +125,12 @@ class TestBuiltinRegistration:
         assert {m.name for m in sar_methods} == expected
 
     def test_basic_every_method_has_paper_title(self):
-        register_all_builtin_methods()
         for meta in get_algorithm_registry().values():
             assert meta.paper, f"{meta.name} is missing paper title"
             assert len(meta.paper) > 10, f"{meta.name} paper title too short"
 
     def test_edge_official_exact_have_upstream_url(self):
         """Every official_exact method must have an upstream URL."""
-        register_all_builtin_methods()
         for meta in get_algorithm_registry().values():
             if meta.source_status == SourceStatus.OFFICIAL_EXACT:
                 assert meta.upstream_url is not None, (
@@ -157,13 +138,12 @@ class TestBuiltinRegistration:
                 )
 
     def test_metadata_synced_from_class_attributes(self):
-        """After binding, registry metadata matches class-level attributes.
+        """After registration, registry metadata matches class-level attributes.
 
         Only checks fields explicitly declared on the class itself (not
         inherited defaults from the abstract bases).
         """
         from pu_toolbox.core.base import BasePriorEstimator, BasePUClassifier
-        from pu_toolbox.registry import get_algorithm, get_metadata
 
         _bases = (BasePUClassifier, BasePriorEstimator)
 
@@ -174,15 +154,11 @@ class TestBuiltinRegistration:
                 if klass not in _bases and not issubclass(klass, type)
             )
 
-        register_all_builtin_methods()
         for meta in get_algorithm_registry().values():
-            if not meta.trainable:
-                continue
             cls = get_algorithm(meta.name)
             synced = get_metadata(meta.name)
             for field_name in (
                 "family",
-                "implementation_status",
                 "source_status",
                 "backend",
                 "maturity",
@@ -222,15 +198,13 @@ class TestBuiltinRegistration:
         import ast
 
         from pu_toolbox.core.base import BasePriorEstimator, BasePUClassifier
-        from pu_toolbox.registry import get_metadata
-        from pu_toolbox.registry.registry import _CLASSES, _SYNC_FIELDS
+        from pu_toolbox.registry.registry import _SYNC_FIELDS
 
         entry_fields = (
             "family",
             "assumption",
             "scenario",
             "requires_class_prior",
-            "implementation_status",
             "source_status",
             "backend",
             "maturity",
@@ -256,18 +230,12 @@ class TestBuiltinRegistration:
             )
 
         assert written, "the AST parse found no entries"
-        register_all_builtin_methods()
         for name, fields in written.items():
             for field_name in class_only_fields:
                 assert field_name not in fields, (
                     f"{name}.{field_name}: belongs to the class/dataclass, not to an entry literal"
                 )
-            cls = _CLASSES.get(name)
-            if cls is None:  # api_only: the literal is the only source
-                assert set(entry_fields) <= fields, (
-                    f"{name} has no bound class, so its literal must declare every entry field"
-                )
-                continue
+            cls = get_algorithm(name)
             for field_name in entry_fields:
                 # Exactly one of the two may hold: the class declares the field
                 # (so a literal is dead weight) XOR the literal carries it (the
@@ -281,15 +249,10 @@ class TestBuiltinRegistration:
                     )
                 )
 
-        # The one entry with no class declaration: its literals are the only
-        # source, and a typo there falls back to a dataclass default --
-        # `implementation_status` would flip `trainable` to False and drop the
-        # method from every trainable-only listing.  Pin the values, not "equals
-        # itself".
+        # The CPE entry supplies capabilities its class does not declare.
         cpe = get_metadata("class_prior_estimation")
         assert cpe.family == AlgorithmFamily.CLASS_PRIOR_ESTIMATION
         assert cpe.requires_class_prior is False
-        assert cpe.implementation_status == ImplementationStatus.NATIVE
         assert cpe.source_status == SourceStatus.OFFICIAL_RELATED
         assert cpe.backend == Backend.NUMPY
         assert cpe.maturity == Maturity.STABLE
@@ -304,7 +267,6 @@ class TestBuiltinRegistration:
         """All entries carry an explicit training-cost level (no UNKNOWN)."""
         from pu_toolbox.core.tags import TrainingCost
 
-        register_all_builtin_methods()
         for meta in get_algorithm_registry().values():
             assert meta.training_cost != TrainingCost.UNKNOWN, (
                 f"{meta.name} is missing an explicit training_cost"
@@ -327,7 +289,6 @@ class TestBuiltinRegistration:
         """
         from pu_toolbox.core.tags import TrainingCost
 
-        register_all_builtin_methods()
         high = {
             m.name
             for m in get_algorithm_registry().values()

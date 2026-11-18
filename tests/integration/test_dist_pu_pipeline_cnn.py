@@ -70,7 +70,7 @@ def test_basic_determ_pipeline_cnn_trains_isolated_cv_copies_and_preserves_templ
         classifier="dist_pu",
         classifier_params=staged_parameters(),
         architecture="cnn",
-        cv=2,
+        evaluation_cv=2,
         random_state=19,
         device="cpu",
         metrics=("pu_zero_one_risk",),
@@ -100,7 +100,7 @@ def test_param_pipeline_does_not_silently_switch_default_recipe_for_cnn(monkeypa
     features, labels = data()
     with pytest.raises(ValueError, match="encoder requires training_recipe='author_staged'"):
         PUPipeline(
-            classifier="dist_pu", architecture="cnn", cv=2, device="cpu", random_state=19
+            classifier="dist_pu", architecture="cnn", evaluation_cv=2, device="cpu", random_state=19
         ).fit_evaluate(features, labels, class_prior=0.4)
 
 
@@ -110,7 +110,7 @@ def test_basic_mlp_pipeline_keeps_default_clean_room_path():
     report = PUPipeline(
         classifier="dist_pu",
         classifier_params={"epochs": 2, "hidden_dim": 4},
-        cv=2,
+        evaluation_cv=2,
         random_state=19,
         device="cpu",
         metrics=("pu_zero_one_risk",),

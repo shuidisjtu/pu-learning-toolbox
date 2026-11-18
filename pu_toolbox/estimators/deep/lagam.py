@@ -20,7 +20,6 @@ from ...core.tags import (
     AlgorithmFamily,
     Assumption,
     Backend,
-    ImplementationStatus,
     Maturity,
     SampleWeightSupport,
     Scenario,
@@ -133,7 +132,6 @@ class LaGAMClassifier(BasePUClassifier):
     scenario = (Scenario.SINGLE_TRAINING_SET,)
     requires_class_prior = False
     requires_clean_support = True
-    implementation_status = ImplementationStatus.NATIVE
     source_status = SourceStatus.OFFICIAL_EXACT
     backend = Backend.TORCH
     maturity = Maturity.EXPERIMENTAL

@@ -21,7 +21,7 @@ source/target separability evidence and overlap diagnostics.
 For an authorized paired model comparison, use target PU labels:
 
 ```bash
-uv run pu-toolbox shift-run --source-data X_source.csv --source-labels y_source.csv --target-data X_target.csv --target-labels y_target.csv --classifier elkan_noto --cv 3 --out-dir work/shift-run
+uv run pu-toolbox shift-run --source-data X_source.csv --source-labels y_source.csv --target-data X_target.csv --target-labels y_target.csv --classifier elkan_noto --evaluation-cv 3 --shift-cv 3 --out-dir work/shift-run
 ```
 
 Supply source `--class-prior`, `--target-class-prior`, and source/target

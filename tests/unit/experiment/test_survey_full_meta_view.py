@@ -12,7 +12,7 @@ from pu_toolbox.experiment.method_ledger import load_ledger
 from pu_toolbox.experiment.pilot_plan import planned_runs
 from pu_toolbox.experiment.survey_profile_identity import profile_training_view_request
 from pu_toolbox.experiment.survey_protocol import PROTOCOL_PATHS, load_protocol
-from pu_toolbox.registry import get_algorithm, register_all_builtin_methods
+from pu_toolbox.registry import get_algorithm
 
 pytestmark = pytest.mark.unit
 
@@ -86,7 +86,6 @@ def test_basic_cli_resolves_profile_before_loading_any_data(
 def test_param_unit_and_resume_resolve_the_same_full_meta_view(
     protocol, raw_driver, survey_script, requested
 ):
-    register_all_builtin_methods()
     runs = tuple(run for run in planned_runs(protocol) if run.method == "self_pu_full_meta")
     expected = survey_script.resolve_training_view(
         load_ledger(),

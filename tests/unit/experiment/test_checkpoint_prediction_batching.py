@@ -74,9 +74,8 @@ def test_param_invalid_persisted_prediction_batch_size_is_refused(tmp_path, bad)
     "method", ["pulda", "pan", "gradpu", "robust_pu", "split_pu", "holistic_pu", "gen_pu"]
 )
 def test_basic_candidate_declares_its_actual_inference_chunk_size(method):
-    from pu_toolbox.registry import get_algorithm, register_all_builtin_methods
+    from pu_toolbox.registry import get_algorithm
 
-    register_all_builtin_methods()
     kwargs = (
         {"class_prior": 0.4, "positive_batch_size": 2, "unlabeled_batch_size": 7}
         if method == "pulda"

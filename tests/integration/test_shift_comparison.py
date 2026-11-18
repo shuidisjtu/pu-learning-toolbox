@@ -21,7 +21,7 @@ def _domains(rng, *, shift=0.2):
 
 def test_basic_comparison_runs_paired_arms_with_oracle_selection(rng):
     X, y_pu, y_true, target = _domains(rng)
-    report = ShiftAwarePUPipeline(classifier="elkan_noto", cv=2, shift_cv=2).compare(
+    report = ShiftAwarePUPipeline(classifier="elkan_noto", evaluation_cv=2, shift_cv=2).compare(
         X,
         y_pu,
         target,
@@ -40,7 +40,7 @@ def test_basic_comparison_runs_paired_arms_with_oracle_selection(rng):
 
 def test_param_target_prior_selects_risk_without_truth(rng):
     X, y_pu, _, target = _domains(rng)
-    report = ShiftAwarePUPipeline(classifier="elkan_noto", cv=2, shift_cv=2).compare(
+    report = ShiftAwarePUPipeline(classifier="elkan_noto", evaluation_cv=2, shift_cv=2).compare(
         X, y_pu, target, y_target_pu=y_pu, class_prior=0.5, target_class_prior=0.5
     )
     assert report.primary_metric == "pu_zero_one_risk"
@@ -48,7 +48,7 @@ def test_param_target_prior_selects_risk_without_truth(rng):
 
 def test_edge_no_selection_evidence_stays_audit_only(rng):
     X, y_pu, _, target = _domains(rng)
-    report = ShiftAwarePUPipeline(classifier="elkan_noto", cv=2, shift_cv=2).compare(
+    report = ShiftAwarePUPipeline(classifier="elkan_noto", evaluation_cv=2, shift_cv=2).compare(
         X, y_pu, target, y_target_pu=y_pu
     )
     assert report.primary_metric is None
@@ -58,14 +58,14 @@ def test_edge_no_selection_evidence_stays_audit_only(rng):
 def test_edge_pu_observed_primary_metric_is_rejected(rng):
     X, y_pu, _, target = _domains(rng)
     with pytest.raises(ValueError, match="PU-observed"):
-        ShiftAwarePUPipeline(classifier="elkan_noto", cv=2, shift_cv=2).compare(
+        ShiftAwarePUPipeline(classifier="elkan_noto", evaluation_cv=2, shift_cv=2).compare(
             X, y_pu, target, y_target_pu=y_pu, primary_metric="pu_recall"
         )
 
 
 def test_determ_report_serialization_is_stable(rng, tmp_path):
     X, y_pu, _, target = _domains(rng)
-    report = ShiftAwarePUPipeline(classifier="elkan_noto", cv=2, shift_cv=2).compare(
+    report = ShiftAwarePUPipeline(classifier="elkan_noto", evaluation_cv=2, shift_cv=2).compare(
         X, y_pu, target, y_target_pu=y_pu, class_prior=0.5, target_class_prior=0.5
     )
     report.save(tmp_path / "comparison.json")
