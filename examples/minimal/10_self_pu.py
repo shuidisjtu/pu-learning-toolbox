@@ -1,7 +1,7 @@
 # ruff: noqa: N806
 
 """Train Self-PU with a separate clean validation set."""
-# API reference (signatures, parameters, return contracts): docs/user/reference/api.md
+# API reference: docs/user/reference/api/classifiers.md#selfpuclassifier-registered-as-self_pu
 
 from sklearn.model_selection import train_test_split
 

@@ -1,6 +1,6 @@
 # Method Card: WConPU
 
-> 参数契约（签名、参数表、返回结构）以 [API 参考](../../user/reference/api.md) 为权威；本文档只记论文研究内容、实现边界与复现状态。
+> 参数契约（签名、参数表、返回结构）以 [API 参考](../../user/reference/api/classifiers.md#weightedcontrastivepuclassifier-registered-as-weighted_contrastive_pu-alias-wconpu) 为权威；本文档只记论文研究内容、实现边界与复现状态。
 
 ## 1. 论文信息
 

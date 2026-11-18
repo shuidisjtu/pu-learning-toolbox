@@ -93,7 +93,7 @@ uv run python examples/minimal/18_custom_encoders.py --backbone resnet18 --max-e
 ```
 
 ResNet requires torchvision and uses random initialization with `weights=None`. See the
-[build_encoder contract](../reference/api.md#build_encoder) for exact parameters.
+[build_encoder contract](../reference/api/tools.md#build_encoder) for exact parameters.
 
 ## 4. Train a traditional method with a frozen encoder
 

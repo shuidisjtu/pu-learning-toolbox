@@ -155,4 +155,4 @@ See [model tuning](model_tuning.md), or use the [UI](ui.md).
 ## Next steps
 
 - Python workflow, resolution, degradation, and metric evidence: [pipeline](pipeline.md).
-- Exact parameter contracts: [API reference](../reference/api.md).
+- Exact parameter contracts: [API reference](../reference/api/index.md).

@@ -114,7 +114,7 @@ A simulation record should include mechanism formula/parameters, auxiliary-score
 requested/realized counts and rates, sampling policy, seed, rounding/fallback rules, and source
 version. LBE metadata records counts, parameters, auxiliary-truth provenance, and
 `sampling_policy`. The general Bernoulli entry point can return propensity. See the
-[SAR simulation guide](../howto/sar_simulation.md) and [API reference](../reference/api.md)
+[SAR simulation guide](../howto/sar_simulation.md) and [API reference](../reference/api/tools.md#data-generation)
 for operational contracts.
 
 ## 7. Sources

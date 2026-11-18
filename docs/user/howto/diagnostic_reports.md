@@ -93,7 +93,7 @@ test truth is for final evaluation, never hyperparameter, classification-thresho
 
 Each `DiagnosticMetric` contains `value`, `basis`, `available`, and `reason`. The four basis values
 are `pu_observed`, `class_prior_dependent`, `supervised_oracle`, and `unavailable`; see the
-[API reference](../reference/api.md) for the fixed metric list.
+[API reference](../reference/api/tools.md#build_diagnostic_report) for the fixed metric list.
 
 PU-only metrics still have assumptions. Under SAR, labeled positives may not represent all true
 positives, so `labeled_positive_recall` describes only the observed labeled subset.
@@ -132,7 +132,7 @@ also pass `format="json"` or `format="markdown"` explicitly.
 ## 6. Issue codes
 
 The report inherits profiler issues and adds output checks such as `constant_predictions`,
-`nonfinite_scores`, and `constant_scores`; see the [API reference](../reference/api.md).
+`nonfinite_scores`, and `constant_scores`; see the [API reference](../reference/api/tools.md#report-issue-codes-model-output-checks).
 
 Missing predictions, prior, or truth makes a metric unavailable rather than indicating a data
 error. Its `reason` records this without generating repeated issues.
@@ -162,4 +162,4 @@ report with PU metrics, audit metrics, and selection evidence.
 ## Next steps
 
 - [Class-prior and propensity sensitivity](sensitivity_analysis.md).
-- [Exact API contracts](../reference/api.md).
+- [Exact API contracts](../reference/api/tools.md#build_diagnostic_report).

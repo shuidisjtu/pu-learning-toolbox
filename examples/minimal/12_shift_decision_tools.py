@@ -1,7 +1,7 @@
 # ruff: noqa: N806
 
 """Compare adaptation, monitor windows, and create a human-review queue."""
-# API reference (signatures, parameters, return contracts): docs/user/reference/api.md
+# API reference: docs/user/reference/api/tools.md#distribution-shift-api
 
 from pu_toolbox.diagnostics import (
     PUShiftMonitor,

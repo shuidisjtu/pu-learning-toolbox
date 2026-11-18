@@ -9,7 +9,7 @@ document describes the current architecture.
 dependency directions, data flow, recommendation, and registration conventions.
 [`project_structure.md`](project_structure.md) is authoritative for file inventories
 and directory structure. **API contracts**: exact signatures and method semantics
-belong in [the API reference](../user/reference/api.md), rather than being duplicated here.
+belong in [the API reference](../user/reference/api/index.md), rather than being duplicated here.
 
 **Research-setting semantics**: input sampling, labeling/selection policies, risk
 roles, prior targets, validation supervision, and representations are separate
@@ -358,7 +358,7 @@ for current fields.
 (trainability, scenario, sparsity, available class prior) → soft scoring
 (assumption match, maturity, trust, scale, cost, GPU, and label availability)
 → risk hints. Weights are configurable through `ScoringConfig`.
-The [API reference](../user/reference/api.md) defines recommendation structures and
+The [API reference](../user/reference/api/tools.md#recommend_methods--recommend_from_profile) defines recommendation structures and
 serialization; [method selection](../user/concepts/method_selection.md) explains
 user-facing decisions.
 

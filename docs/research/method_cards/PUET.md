@@ -1,6 +1,6 @@
 # Method Card: PU Extra Trees (PUET)
 
-> 参数签名以 [API 参考](../../user/reference/api.md) 为准。本卡区分论文/作者实现和工具箱当前子集；注册成功不表示 Survey P3.2 验收完成。
+> 参数签名以 [API 参考](../../user/reference/api/classifiers.md#puextratreesclassifier-puet-alias-pu_extra_trees) 为准。本卡区分论文/作者实现和工具箱当前子集；注册成功不表示 Survey P3.2 验收完成。
 
 ## 论文与来源
 

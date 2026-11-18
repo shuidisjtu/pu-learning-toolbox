@@ -38,7 +38,7 @@ single-training-set/OS；源码差异见[源码差异](#源码差异2026-10-18)�
 
 ## 接口与证据
 
-`PANClassifier`，注册 `pan` / `predictive_adversarial_pu`；参数见 [API](../../user/reference/api.md)。
+`PANClassifier`，注册 `pan` / `predictive_adversarial_pu`；参数见 [API](../../user/reference/api/classifiers.md#panclassifier-pan)。
 二维稠密输入或 4-D NCHW、可注入 C/D torch 网络、CPU/CUDA、clone、pickle、固定 seed、epoch callback。
 snapshot 仅保存推理所需 C，非训练续跑；D 和优化器预算要计入资源，不能因只保存 C 隐去训练成本。
 非空外部 sample_weight 报错；sigmoid 为模型分数，不承诺统计校准。

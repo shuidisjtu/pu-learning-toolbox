@@ -66,7 +66,7 @@ priors for OS and TS.
 
 Resolution follows explicit call input → classifier constructor input → automatic estimation →
 no prior when unnecessary. Constructor values follow the classifier's `class_prior_target`;
-see the [API reference](../reference/api.md) for exact priority rules.
+see the [API reference](../reference/api/tools.md#class-prior-resolution-precedence) for exact priority rules.
 
 - `prior_estimator` accepts `"pen_l1"` (default), `"recpe"`, `"km1"`, `"km2"`, or a configured
   estimator instance. KM names select `KernelMeanPriorEstimator` variants.
@@ -136,7 +136,7 @@ The default is
 Other metrics include `average_precision`, `balanced_accuracy`, `brier_score`, and
 `expected_calibration_error`. Their dependencies and evidence levels (`pu_observed`,
 `class_prior_dependent`, `supervised_oracle`, `probability_calibration`) are defined in the
-[API reference](../reference/api.md).
+[API reference](../reference/api/tools.md#metrics).
 
 Population risk and estimated precision use the complete validation table for OS and native U
 for TS. TS oracle metrics likewise use population-representative U rows. `pu_recall` and
@@ -152,7 +152,7 @@ AUC, skips only that fold. Means and standard deviations aggregate the computed 
 Unresolvable classifier/prior names and missing required constructor arguments fail early with
 `PipelineError`. Input validation rejects data such as no positive samples or fewer positives
 than CV folds with `ValidationError`. Invalid parameter combinations can also raise `ValueError`
-or `TypeError`; consult the [API reference](../reference/api.md) for exact exception and fallback
+or `TypeError`; consult the [API reference](../reference/api/tools.md#error-cases) for exact exception and fallback
 contracts.
 
 ## Compared with a manual workflow
@@ -166,4 +166,4 @@ information. To search several parameter combinations, use `PUTuner`; see [model
 
 - [Diagnostic reports](diagnostic_reports.md).
 - [Class-prior and propensity sensitivity](sensitivity_analysis.md).
-- [API reference](../reference/api.md).
+- [API reference](../reference/api/tools.md#pupipeline).

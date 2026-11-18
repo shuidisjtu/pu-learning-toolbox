@@ -34,7 +34,7 @@ their weights through `ScoringConfig`. The prior requirement is a **hard filter*
 `class_prior=None` excludes methods that require an external prior. The ordinary
 PU-only recommender also excludes methods requiring an additional clean support set
 and methods whose main-input label semantics are not PU. See the
-[API reference](../reference/api.md) for exact signatures and return structures.
+[API reference](../reference/api/classifiers.md#classifiers-and-estimators) for exact signatures and return structures.
 
 The recommender reasons about metadata without training models. After choosing a
 method, use `model_selection` for empirical hyperparameter search or configuration
@@ -129,4 +129,4 @@ does not currently implement them; they are listed here for context.
 ## Next steps
 
 - Run the selected method in a complete [pipeline](../howto/pipeline.md).
-- Check precise parameter contracts in the [API reference](../reference/api.md).
+- Check precise parameter contracts in the [API reference](../reference/api/classifiers.md#classifiers-and-estimators).

@@ -1,7 +1,7 @@
 # ruff: noqa: N806
 
 """Train the research dynamic joint-shift PU objective on two domains."""
-# API reference (signatures, parameters, return contracts): docs/user/reference/api.md
+# API reference: docs/user/reference/api/tools.md#dynamicjointshiftpuclassifier-research
 
 from pu_toolbox.estimators.research import DynamicJointShiftPUClassifier
 from pu_toolbox.preprocessing import make_gaussian_case_control_data

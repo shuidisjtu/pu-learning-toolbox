@@ -1,6 +1,6 @@
 # Method Card: Variational PU (VPU)
 
-> 参数签名与行为契约以 [API 参考](../../user/reference/api.md) 为准。本卡区分论文目标、工具箱适配和 Survey 验收状态。
+> 参数签名与行为契约以 [API 参考](../../user/reference/api/classifiers.md#vpuclassifier-vpu-alias-variational_pu) 为准。本卡区分论文目标、工具箱适配和 Survey 验收状态。
 
 ## 论文与来源
 

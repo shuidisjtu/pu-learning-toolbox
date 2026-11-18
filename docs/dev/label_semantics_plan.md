@@ -161,7 +161,7 @@ P3+P4 保持 P3 算法接入前置（Phase 2 深度 oracle 之前完成）。
    `registry/registry.py` 的 `_SYNC_FIELDS` 加字段名（漏加则注册表同步测试失败）
 2. 回填 17 条注册算法的显式声明（`pnu` → `"pnu"`，其余 `"pu"`）
 3. 契约测试：取值合法 + 全部注册方法显式声明 + 注册表同步（沿现有断言模式）
-4. 模板与文档：`new_algorithm_template.md` 能力表增列；`docs/user/reference/api.md` 契约段
+4. 模板与文档：`new_algorithm_template.md` 能力表增列；[API reference](../user/reference/api/index.md) 契约段
    改为指向字段
 
 **P2 —— experiment 层检查（修复 F2）**

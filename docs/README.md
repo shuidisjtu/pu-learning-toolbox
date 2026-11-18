@@ -10,7 +10,7 @@ continue in Chinese under the
 For library users, including developers integrating the public API into other repositories.
 Concepts explain the research model, how-to guides cover tasks, and reference pages define
 contracts. Start with the [quickstart](user/quickstart.md), concepts, and how-to guides, then
-consult the [API index](user/reference/index.md) for exact contracts.
+consult the [API index](user/reference/api/index.md) for exact contracts.
 
 | Category | Document | Purpose |
 |---|---|---|
@@ -37,8 +37,7 @@ consult the [API index](user/reference/index.md) for exact contracts.
 | How-to | [user/howto/sar_simulation.md](user/howto/sar_simulation.md) | SCAR/SAR data generation |
 | How-to | [user/howto/self_pu.md](user/howto/self_pu.md) | Training Self-PU |
 | How-to | [user/howto/using_skill.md](user/howto/using_skill.md) | Agent task routing, prior resolution, experiments, representations, and skill installation |
-| Reference | [user/reference/index.md](user/reference/index.md) | Symbols grouped by module, linking to API contracts |
-| Reference | [user/reference/api.md](user/reference/api.md) | Authoritative signatures, parameters, return structures, and minimal examples; coverage checked by `check_api_docs` |
+| Reference | [API index](user/reference/api/index.md) | Authoritative [API contracts](user/reference/api/): signatures, parameters, returns, and examples |
 
 ## External contributor guides (docs/dev/)
 

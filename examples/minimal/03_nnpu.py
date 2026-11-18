@@ -1,5 +1,5 @@
 """nnPU (non-negative PU) classifier — PyTorch backend."""
-# API reference (signatures, parameters, return contracts): docs/user/reference/api.md
+# API reference: docs/user/reference/api/classifiers.md#nonnegativepuclassifier-nnpu-alias-nn-pu
 
 import numpy as np
 from sklearn.metrics import accuracy_score

@@ -92,7 +92,7 @@ original machine's absolute paths to exist.
 
 For four-role data construction, parameter changes, and strategy extension through Python,
 see [custom experiments](../../user/howto/custom_experiments.md). Exact signatures are in the
-[API reference](../../user/reference/api.md#four-role-execution-and-strategy-injection).
+[API reference](../../user/reference/api/tools.md#four-role-execution-and-strategy-injection).
 
 ## Summarize and export results
 
@@ -101,7 +101,7 @@ validation supervision, and representation in `research_settings`. `summary.json
 the full settings per seed; `summary.md/csv`, workbooks, and diagnostic cards show summaries.
 Historical results are identified as records read under their original manifest settings
 and retain their original protocol identities. Field contracts are in the
-[API reference](../../user/reference/api.md).
+[API reference](../../user/reference/api/tools.md#result-reading-statistics-and-export-results--reporting).
 
 Summarize manifest files or directories directly, writing to a separate output directory:
 

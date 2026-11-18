@@ -62,7 +62,7 @@ assert model_class.encoder_parameter == "encoder"
 assert model_class.trains_encoder
 ```
 
-See the [API reference](../reference/api.md) for precise signatures, and the
+See the [API reference](../reference/api/tools.md#build_encoder) for precise signatures, and the
 [encoder tutorial](../howto/custom_encoders.md) and
 [example 18](../../../examples/minimal/18_custom_encoders.py) for injection,
 backbone replacement, and persistence.

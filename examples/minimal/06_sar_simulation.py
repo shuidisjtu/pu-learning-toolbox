@@ -1,5 +1,5 @@
 """Generate SCAR/SAR PU data and inspect the hidden labeling mechanism."""
-# API reference (signatures, parameters, return contracts): docs/user/reference/api.md
+# API reference: docs/user/reference/api/tools.md#data-generation
 
 
 # Example variables mirror the public estimator API.

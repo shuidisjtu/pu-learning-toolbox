@@ -105,7 +105,7 @@ provides optional per-method background in Chinese.
   come from the negative class. Its returned `n_p/(n_p+n_u)` is the true positive
   proportion in that concatenated table.
 - For OS teaching data with mixed U, use `make_scar_dataset`; see the
-  [API reference](../reference/api.md).
+  [API reference](../reference/api/tools.md#data-generation).
 - `make_gaussian_case_control_data` independently generates positive P and population-mixture
   U, returning the configured population prior, empirical U/training-table priors, and
   source identities. The [sampling tutorial](../howto/pu_sampling.md) provides runnable

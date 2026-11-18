@@ -1,10 +1,8 @@
 r"""Check the API reference covers every public API symbol (anti-drift gate).
 
-Public symbols drift out of the docs silently: a new public export or
-registered method that is never mentioned in ``docs/user/reference/api.md``
-means readers cannot find it.  This gate fails when the API reference is
-missing a symbol -- locally and in CI -- instead of waiting for a reader to
-report it.
+A public export or registered method must appear in a contract page under
+``docs/user/reference/api/``. The navigation index is required but does not
+count toward symbol coverage.
 
 Symbol sources (both parsed statically, no package import -- CI must not
 need torch or other optional deps):
@@ -30,7 +28,8 @@ import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-API_DOC = PROJECT_ROOT / "docs" / "user" / "reference" / "api.md"
+API_DIR = PROJECT_ROOT / "docs" / "user" / "reference" / "api"
+REQUIRED_PAGES = ("index.md", "classifiers.md", "tools.md", "errors.md")
 
 
 def extract_all_exports(root: Path) -> list[str]:
@@ -100,13 +99,27 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
     symbols = sorted(set(exports + registered))
-    missing = scan_text(API_DOC.read_text(encoding="utf-8"), symbols)
+    try:
+        pages = {path: path.read_text(encoding="utf-8") for path in sorted(API_DIR.rglob("*.md"))}
+    except (OSError, UnicodeError) as exc:
+        print(f"Could not read API reference under {API_DIR}: {exc}", file=sys.stderr)
+        return 1
+    if not pages:
+        print(f"No Markdown pages found under {API_DIR}.", file=sys.stderr)
+        return 1
+    for name in REQUIRED_PAGES:
+        if not pages.get(API_DIR / name, "").strip():
+            print(f"Required API reference page is missing or empty: {name}", file=sys.stderr)
+            return 1
+    # Navigation mentions alone do not document a public symbol.
+    contracts = "\n".join(text for path, text in pages.items() if path.name != "index.md")
+    missing = scan_text(contracts, symbols)
     if missing:
         for s in missing:
             print(f"  API doc missing symbol: {s}")
         print(f"Missing {len(missing)} of {len(symbols)} symbols")
         return 1
-    print(f"All {len(symbols)} public symbols covered by {API_DOC.name}")
+    print(f"All {len(symbols)} public symbols covered by the API reference")
     return 0
 
 

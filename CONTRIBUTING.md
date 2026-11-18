@@ -12,7 +12,7 @@ Use each source for its own subject:
 |---|---|
 | Python, dependencies, extras, and tool configuration | [`pyproject.toml`](pyproject.toml) |
 | Reproducible resolution for CI and local development | `uv.lock`; dependency declarations remain in `pyproject.toml` |
-| Public signatures, parameters, returns, and errors | [API reference](docs/user/reference/api.md) |
+| Public signatures, parameters, returns, and errors | [API reference](docs/user/reference/api/index.md) |
 | Module boundaries, dependency directions, and data flow | [Architecture](docs/dev/architecture.md) |
 | File layout and workspace asset boundaries | [Project structure](docs/dev/project_structure.md) |
 | Supported environments and CI responsibilities | [Compatibility](docs/dev/compatibility.md) |

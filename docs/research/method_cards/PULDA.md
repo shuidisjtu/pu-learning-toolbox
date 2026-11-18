@@ -1,6 +1,6 @@
 # Method Card: PULDA
 
-> 参数签名与行为契约以 [API 参考](../../user/reference/api.md) 为准。本卡区分论文方法、作者发布代码与工具箱 MLP/注入 CNN 适配；当前接入不表示 Survey P3.1 已验收。
+> 参数签名与行为契约以 [API 参考](../../user/reference/api/classifiers.md#puldaclassifier-pulda-alias-label_distribution_alignment) 为准。本卡区分论文方法、作者发布代码与工具箱 MLP/注入 CNN 适配；当前接入不表示 Survey P3.1 已验收。
 
 ## 论文与来源
 

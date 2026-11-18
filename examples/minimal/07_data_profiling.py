@@ -1,7 +1,7 @@
 # ruff: noqa: N806
 
 """Profile PU data quality and inspect SCAR/SAR evidence."""
-# API reference (signatures, parameters, return contracts): docs/user/reference/api.md
+# API reference: docs/user/reference/api/tools.md#profile_pu_data
 
 from pu_toolbox.preprocessing import make_sar_dataset, profile_pu_data
 

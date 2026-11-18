@@ -1,7 +1,7 @@
 # ruff: noqa: N806
 
 """Build a diagnostic report for a fitted PUSB classifier."""
-# API reference (signatures, parameters, return contracts): docs/user/reference/api.md
+# API reference: docs/user/reference/api/tools.md#build_diagnostic_report
 
 from sklearn.model_selection import train_test_split
 

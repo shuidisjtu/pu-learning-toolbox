@@ -82,5 +82,5 @@ inputs; legacy aliases preserve their original two-class validation. `make_gauss
 continues to provide the teaching case where all positives are visible and U comes from negatives;
 its third return value is the true positive proportion of that concatenated table.
 
-See the [API reference](../reference/api.md#data-generation) for valid parameter
+See the [API reference](../reference/api/tools.md#data-generation) for valid parameter
 domains and complete return fields.

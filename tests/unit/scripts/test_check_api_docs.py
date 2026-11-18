@@ -1,8 +1,8 @@
 """Tests for the API-doc coverage gate (anti-drift).
 
 The gate must extract symbols statically (no package import, so it runs
-in CI without optional deep deps), scan the real api.md from any cwd, and
-fail when a public symbol is missing from the reference doc.
+in CI without optional deep deps), scan the API reference from any cwd, and
+fail when a public symbol is missing from the contract pages.
 """
 
 from __future__ import annotations
@@ -37,7 +37,7 @@ def test_extract_registered_names_skips_deprecated_aliases():
 
 @pytest.mark.unit
 def test_real_api_doc_covers_every_symbol():
-    """The real api.md passes the gate from any cwd."""
+    """The real API reference covers every checked symbol."""
     rc = m.main([])
     assert rc == 0
 
@@ -51,17 +51,58 @@ def test_deterministic_scan_repeatable(tmp_path, monkeypatch):
     assert (rc1, rc2) == (0, 0)
 
 
+def _write_reference(tmp_path, monkeypatch, **pages):
+    monkeypatch.setattr(m, "API_DIR", tmp_path)
+    for path, content in pages.items():
+        dest = tmp_path / path
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text(content, encoding="utf-8")
+
+
 @pytest.mark.unit
-def test_missing_symbol_fails(tmp_path, monkeypatch, capsys):
-    """A doc that omits a public symbol must exit 1."""
-    doc = tmp_path / "api.md"
-    doc.write_text("# API 参考\n\n只有部分符号 PUPipeline。\n", encoding="utf-8")
-    monkeypatch.setattr(m, "API_DOC", doc)
-    rc = m.main([])
-    assert rc == 1
+def test_missing_symbol_fails_even_when_named_in_index(tmp_path, monkeypatch, capsys):
+    _write_reference(
+        tmp_path,
+        monkeypatch,
+        **{
+            "index.md": "# API index: UPUClassifier",
+            "classifiers.md": "# Classifiers",
+            "tools.md": "# Tools: PUPipeline",
+            "errors.md": "# Errors",
+        },
+    )
+    assert m.main([]) == 1
     out = capsys.readouterr().out
     assert "Missing" in out
-    assert "UPUClassifier" in out
+    assert "API doc missing symbol: UPUClassifier" in out
+    assert "API doc missing symbol: PUPipeline" not in out
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("content", [None, " \n"])
+def test_missing_or_empty_required_page_fails(tmp_path, monkeypatch, capsys, content):
+    pages = {name: "# Reference" for name in m.REQUIRED_PAGES if name != "errors.md"}
+    if content is not None:
+        pages["errors.md"] = content
+    _write_reference(tmp_path, monkeypatch, **pages)
+    assert m.main([]) == 1
+    assert "Required API reference page is missing or empty: errors.md" in capsys.readouterr().err
+
+
+@pytest.mark.unit
+def test_empty_reference_directory_fails(tmp_path, monkeypatch, capsys):
+    _write_reference(tmp_path, monkeypatch)
+    assert m.main([]) == 1
+    assert "No Markdown pages found" in capsys.readouterr().err
+
+
+@pytest.mark.unit
+def test_recursively_reads_nested_contracts(tmp_path, monkeypatch):
+    symbols = m.extract_all_exports(m.PROJECT_ROOT) + m.extract_registered_names(m.PROJECT_ROOT)
+    pages = dict.fromkeys(m.REQUIRED_PAGES, "# Reference")
+    pages["classifiers/details.md"] = "\n".join(symbols)
+    _write_reference(tmp_path, monkeypatch, **pages)
+    assert m.main([]) == 0
 
 
 @pytest.mark.unit

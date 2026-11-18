@@ -11,7 +11,8 @@ this module owns the two binary-content digests the experiment layer needs in
 order to name artifacts: :func:`array_hash` for an ndarray's dtype/shape/bytes
 and :func:`file_hash` for streamed file bytes.
 
-See ``docs/user/reference/api.md`` for the report serialization contract.
+See ``docs/user/reference/api/tools.md#pipelinereport-return-object`` for the report
+serialization contract.
 """
 
 from __future__ import annotations

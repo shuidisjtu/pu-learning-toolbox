@@ -29,7 +29,7 @@ print(analysis.metric_ranges)
 
 `y_pu` must normalize to `{1, 0}` and contain both labeled-positive and unlabeled groups.
 `y_pred` must use `{1, 0}`; single-class predictions are allowed. Supply `class_priors`,
-`label_propensities`, or both. See the [API reference](../reference/api.md) for valid domains
+`label_propensities`, or both. See the [API reference](../reference/api/tools.md#analyze_pu_sensitivity) for valid domains
 and `SensitivityPoint` fields.
 
 - Without `scores`, risk uses `+1/-1` scores mapped from `y_pred`. Estimated precision always
@@ -69,4 +69,4 @@ uv run python examples/minimal/09_sensitivity_analysis.py
 ## Next steps
 
 - Choose another task from the [user documentation](../README.md).
-- [Exact API contracts](../reference/api.md).
+- [Exact API contracts](../reference/api/tools.md#analyze_pu_sensitivity).

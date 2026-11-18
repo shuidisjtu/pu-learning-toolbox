@@ -41,7 +41,7 @@ All user documentation below is maintained in English at its existing paths.
    | Audit and handle source-to-target distribution shift | [Distribution shift](howto/distribution_shift.md) |
    | Train a Self-PU classifier | [Self-PU](howto/self_pu.md) |
 
-4. **[API reference](reference/api.md)**, for exact parameters and contracts.
+4. **[API reference](reference/api/index.md)**, for exact parameters and contracts.
 
 Start with the quickstart, read concepts as needed, and then choose a how-to guide for your task.
 Each how-to guide includes prerequisites and next steps.

@@ -1,6 +1,6 @@
 # Method Card: GradPU
 
-> 参数签名以 [API 参考](../../user/reference/api.md) 为准。本卡记录论文目标、工程实现和复现边界；当前接入不表示 Survey P3.2 验收完成。
+> 参数签名以 [API 参考](../../user/reference/api/classifiers.md#gradpuclassifier-registered-as-gradpu-alias-grad_pu) 为准。本卡记录论文目标、工程实现和复现边界；当前接入不表示 Survey P3.2 验收完成。
 
 2026-11-04 D56 候选修正：`build_wconpu_backbone` 对 `cnn13_no_bn` 新增显式
 `initialization="relu_gain"`（默认仍 `pytorch_default`）；将同 seed 的原 Conv 权重乘
