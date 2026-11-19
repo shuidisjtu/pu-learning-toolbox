@@ -42,14 +42,21 @@ def build_deployment_parser(sub: argparse._SubParsersAction) -> None:
         "review", help="create selective predictions and an active human-review queue"
     )
     review.add_argument(
-        "--model", required=True, help="trusted model.pkl produced by pu-toolbox run"
+        "--model", required=True, help="trusted pickle saved after explicitly fitting an estimator"
     )
     review.add_argument("--data", required=True)
     review.add_argument(
         "--labels", default=None, help="optional PU labels; excludes labeled positives"
     )
     review.add_argument("--true-labels", default=None)
-    review.add_argument("--importance-weights", default=None, help="headered one-column CSV")
+    review.add_argument(
+        "--importance-weights",
+        default=None,
+        help=(
+            "headered one-column CSV; one weight per --data row in the same order; "
+            "do not use shift-audit source weights for target rows"
+        ),
+    )
     review.add_argument("--out-dir", required=True)
     review.add_argument(
         "--min-confidence", type=float, default=0.5, help="abstain below this score confidence"

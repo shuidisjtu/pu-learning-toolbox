@@ -52,21 +52,24 @@ probe 使用独立行副本，避免自定义 in-place 网络污染式 (4) 输�
 checkpoint 与回收回归。
 这是技术接入验收，新增临时 batch 内存仍需在正式资源 profile 中实测。
 
-下面为显式短预算 CPU 接口示例，不是论文配方；`X_images` 为 NCHW，`s_observed` 为观测
-PU 标签。工程 backbone 不是论文的 7-layer CNN，正式选模与超参仍须独立批准。
-示例中的总体先验供 Pipeline 的 PU 风险评价使用，不进入 P3MIX 的训练目标。
+下面为短预算 CPU 训练示例，不是论文配方。`X_images` 为 NCHW，`s_observed` 为 OS
+观测 PU 标签；P3MIX 训练不需要类先验。工程 backbone 不是论文的 7-layer CNN，
+正式选模与超参仍须独立批准。
 
 ```python
-from pu_toolbox import PUPipeline
+from pu_toolbox import P3MixClassifier, build_encoder
 
-pipeline = PUPipeline(
-    classifier="p3mix", architecture="cnn", backbone="cnn13", device="cpu",
-    classifier_params={
-        "variant": "c", "max_epochs": 2, "batch_size": 16, "pool_size": 100,
-    },
-    cv=2, random_state=0,
+encoder = build_encoder("cnn", backbone="cnn13", in_channels=X_images.shape[1])
+model = P3MixClassifier(
+    encoder=encoder,
+    variant="c",
+    max_epochs=2,
+    batch_size=16,
+    pool_size=100,
+    random_state=0,
+    device="cpu",
 )
-# report = pipeline.fit_evaluate(X_images, s_observed, class_prior=pi_population)
+model.fit(X_images, s_observed)
 ```
 
 P3Mix 已注册为可训练的实验级分类器。论文映射和工程适配仍待方法负责人复核。

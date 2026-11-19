@@ -15,9 +15,6 @@ training, model-selection, or evaluation interface.
 
 Research records should include the value, target, source (known / estimated /
 sensitivity setting), estimation pool, input sampling design, and conversion basis.
-The public `PriorInfo` records the original input, resolved population value,
-conversions, and per-fold training consumption. See the [API reference](../reference/api/tools.md#class-prior-resolution-precedence)
-for its fields.
 
 ## 2. Probability-mass identities within one OS population
 

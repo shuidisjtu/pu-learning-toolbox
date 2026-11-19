@@ -111,6 +111,17 @@ def test_param_monitor_appends_compatible_previous_history(tmp_path):
     assert [row["window_id"] for row in payload["windows"]] == ["w1", "w2"]
 
 
+def test_basic_review_help_describes_model_and_weight_inputs(capsys):
+    with pytest.raises(SystemExit) as exc:
+        main(["review", "--help"])
+    assert exc.value.code == 0
+    help_text = " ".join(capsys.readouterr().out.split())
+    assert "trusted pickle saved after explicitly fitting an estimator" in help_text
+    assert "pu-toolbox run" not in help_text
+    assert "one weight per --data row in the same order" in help_text
+    assert "do not use shift-audit source weights for target rows" in help_text
+
+
 def test_basic_review_writes_selective_predictions_and_query_rows(tmp_path):
     parsed = build_parser().parse_args(_review_arguments(tmp_path))
     parsed.func(parsed)

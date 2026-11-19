@@ -50,9 +50,10 @@ uv run pu-toolbox review --model work/model.pkl --data X.csv --labels y_pu.csv -
 ```
 
 Optional inputs include `--true-labels` and a headered single-column
-`--importance-weights` file. The `shift_weighted` strategy uses those
-importance weights; the shift audit exports weights with a source-row
-column, so select its weight column when preparing this input.
+`--importance-weights` CSV for `shift_weighted`. Supply one weight per
+`review --data` row, in the same order. Use weights defined for the rows
+under review; the `shift-audit` source weight column cannot be used as
+target-row weights.
 
 Read `uncertainty.json`, `uncertainty.md` and `uncertainty_rows.csv`.
 Report coverage, selected query count, selection strategy and source-row
