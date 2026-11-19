@@ -51,7 +51,15 @@ def build_deployment_parser(sub: argparse._SubParsersAction) -> None:
     review.add_argument("--true-labels", default=None)
     review.add_argument("--importance-weights", default=None, help="headered one-column CSV")
     review.add_argument("--out-dir", required=True)
-    review.add_argument("--min-confidence", type=float, default=0.5)
+    review.add_argument(
+        "--min-confidence", type=float, default=0.5, help="abstain below this score confidence"
+    )
+    review.add_argument(
+        "--decision-threshold",
+        type=float,
+        default=0.0,
+        help="center decision scores for confidence when predict_proba is unavailable (default: 0)",
+    )
     review.add_argument("--query-budget", type=int, default=20)
     review.add_argument(
         "--query-strategy",
@@ -139,6 +147,7 @@ def run_review(args: argparse.Namespace) -> None:
         query_strategy=args.query_strategy,
         importance_weight=_load_weights(args.importance_weights),
         random_state=args.seed,
+        decision_threshold=args.decision_threshold,
     )
     out_dir = Path(args.out_dir)
     if out_dir.exists():

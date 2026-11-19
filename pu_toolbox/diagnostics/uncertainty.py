@@ -80,8 +80,8 @@ class PUUncertaintyReport:
                 "",
                 "## Interpretation Boundary",
                 "",
-                "- Margin uncertainty measures ambiguity of this model; it is not a calibrated "
-                "epistemic uncertainty interval.",
+                "- Accepted classes come from `predict()`. The score margin controls "
+                "abstention and ranking; it is not a calibrated confidence estimate.",
                 "- Abstention changes coverage and must be evaluated with downstream review cost.",
                 "- Active-review rankings propose rows; they do not create labels automatically.",
             ]
@@ -119,8 +119,16 @@ def analyze_pu_uncertainty(
     query_strategy: QueryStrategy = "uncertainty",
     importance_weight: Any | None = None,
     random_state: int | None = 42,
+    decision_threshold: float = 0.0,
 ) -> PUUncertaintyReport:
     """Build a selective prediction and active human-review plan.
+
+    Accepted classes come from ``estimator.predict(X)`` (one 0/1 label per row).
+    Confidence is ``2 * abs(score - 0.5)``. Use the class-1 ``predict_proba``
+    column (``classes_`` order, or columns 0/1 if absent), clipped to [0, 1].
+    If unavailable, use ``sigmoid(decision_function(X) - decision_threshold)``
+    on finite binary margins with larger scores indicating the positive class.
+    This mapping does not calibrate probabilities or change the model's classes.
 
     Labeled positives are excluded from queries when ``y_pu`` is supplied.
     ``shift_weighted`` prioritizes uncertain target-relevant rows, while
@@ -132,12 +140,23 @@ def analyze_pu_uncertainty(
         raise ValueError("query_budget must be an integer >= 0.")
     if query_strategy not in {"uncertainty", "shift_weighted", "diverse_uncertainty"}:
         raise ValueError("Unknown query_strategy.")
-    probability, score_source = _positive_probability(estimator, X)
-    n_samples = len(probability)
+    if not np.isfinite(decision_threshold):
+        raise ValueError("decision_threshold must be finite.")
+    n_samples = X.shape[0] if hasattr(X, "shape") else len(X)
+    if n_samples == 0:
+        raise ValueError("X must contain at least one row.")
+    predict = getattr(estimator, "predict", None)
+    if not callable(predict):
+        raise ValueError("estimator must implement predict(X).")
+    predictions = np.asarray(predict(X))
+    if predictions.shape != (n_samples,):
+        raise ValueError(f"estimator predict(X) must return {n_samples} labels in a 1-D array.")
+    validate_true_binary_labels(predictions, estimator_name="estimator predict(X)")
+
+    probability, score_source = _positive_score(estimator, X, n_samples, decision_threshold)
     confidence = 2.0 * np.abs(probability - 0.5)
     uncertainty = 1.0 - confidence
-    predictions = (probability >= 0.5).astype(int)
-    selective = predictions.copy()
+    selective = predictions.astype(int)
     selective[confidence < min_confidence] = -1
     labels = None
     if y_pu is not None:
@@ -182,8 +201,12 @@ def analyze_pu_uncertainty(
         query_indices=np.asarray(query_indices, dtype=int),
         summary=summary,
         provenance={
-            "uncertainty_method": "binary_probability_margin",
+            "uncertainty_method": "binary_score_margin",
+            "prediction_source": "predict",
             "score_source": score_source,
+            "decision_threshold": (
+                float(decision_threshold) if score_source == "decision_function_sigmoid" else None
+            ),
             "min_confidence": float(min_confidence),
             "query_strategy": query_strategy,
             "labeled_positives_excluded_from_queries": labels is not None,
@@ -192,24 +215,36 @@ def analyze_pu_uncertainty(
     )
 
 
-def _positive_probability(estimator: Any, X: Any) -> tuple[np.ndarray, str]:
-    if hasattr(estimator, "predict_proba"):
+def _positive_score(
+    estimator: Any, X: Any, n_samples: int, decision_threshold: float
+) -> tuple[np.ndarray, str]:
+    predict_proba = getattr(estimator, "predict_proba", None)
+    if callable(predict_proba):
         try:
-            values = np.asarray(estimator.predict_proba(X), dtype=float)
-            if values.ndim == 2 and values.shape[1] == 2:
-                probability = values[:, 1]
-                if np.isfinite(probability).all():
-                    return np.clip(probability, 0.0, 1.0), "predict_proba"
-        except (AttributeError, NotImplementedError):
+            result = predict_proba(X)
+        except NotImplementedError:
             pass
-    if not hasattr(estimator, "decision_function"):
+        else:
+            values = np.asarray(result, dtype=float)
+            if values.shape != (n_samples, 2) or not np.isfinite(values).all():
+                raise ValueError(
+                    f"estimator predict_proba(X) must return a finite ({n_samples}, 2) array."
+                )
+            classes = np.asarray(getattr(estimator, "classes_", [0, 1]))
+            if classes.shape != (2,) or not np.array_equal(np.sort(classes), [0, 1]):
+                raise ValueError("estimator classes_ must contain binary labels 0 and 1.")
+            probability = values[:, int(classes[1] == 1)]
+            return np.clip(probability, 0.0, 1.0), "predict_proba"
+
+    decision_function = getattr(estimator, "decision_function", None)
+    if not callable(decision_function):
         raise ValueError("estimator must implement predict_proba or decision_function.")
-    scores = np.asarray(estimator.decision_function(X), dtype=float)
-    if scores.ndim != 1 or not np.isfinite(scores).all():
-        raise ValueError("estimator decision scores must be a finite 1-D array.")
-    if np.all((scores >= 0.0) & (scores <= 1.0)):
-        return scores, "decision_function_probability"
-    return expit(scores), "decision_function_logit"
+    scores = np.asarray(decision_function(X), dtype=float)
+    if scores.shape != (n_samples,) or not np.isfinite(scores).all():
+        raise ValueError(
+            f"estimator decision_function(X) must return {n_samples} finite scores in a 1-D array."
+        )
+    return expit(scores - decision_threshold), "decision_function_sigmoid"
 
 
 def _validated_importance_weight(values: Any | None, n_samples: int) -> np.ndarray | None:

@@ -101,7 +101,7 @@ Builds a selective-prediction and active human-review plan for a fitted model.
 
 ```python
 report = analyze_pu_uncertainty(
-    estimator,                        # Fitted model; calls predict/predict_proba.
+    estimator,                        # Fitted model; predict(X) supplies binary classes.
     X,
     y_pu=None,                        # Supplied labeled positives are excluded from queries.
     y_true=None,                      # Enables supervised truth metrics when supplied.
@@ -110,25 +110,42 @@ report = analyze_pu_uncertainty(
     query_strategy="uncertainty",     # "uncertainty" / "shift_weighted" / "diverse_uncertainty".
     importance_weight=None,           # Required for shift_weighted; aligned with X rows.
     random_state=42,
+    decision_threshold=0.0,           # Reference for decision_function scores only.
 )
 ```
+
+Review keeps the class from `estimator.predict(X)` for every accepted row. It requires one
+0/1 prediction per row. Scores control abstention and review priority, never the class:
+
+- If `predict_proba(X)` is available, use the class-1 column of its finite two-column output.
+  Use `classes_` when exposed; otherwise columns must be ordered `[0, 1]`. Clip the chosen
+  column to `[0, 1]` so probability-like outputs such as Elkan–Noto's can still be used.
+- Otherwise, require one finite `decision_function(X)` score per row, larger meaning more
+  positive. Apply `sigmoid(score - decision_threshold)` regardless of the batch range. For a
+  nonzero decision boundary, pass its value explicitly (`review --decision-threshold` in the
+  CLI). The sigmoid rescales the margin; it does not calibrate it as a probability.
+
+For either source, confidence is `2 * abs(scaled_score - 0.5)` and uncertainty is
+`1 - confidence`. On the probability path this measures distance from 0.5, not distance from
+a model's custom classification threshold. Confidence is not the probability of a correct
+prediction.
 
 Returns `PUUncertaintyReport`, a dataclass publicly exported from `pu_toolbox`:
 
 | Field | Contents |
 |---|---|
-| `positive_probability` | Row-aligned positive probabilities or probability-like scores from the model |
-| `uncertainty` | Row-aligned probability-margin uncertainty |
-| `selective_predictions` | Row-aligned 0/1 predictions, with -1 for confidence below min_confidence |
+| `positive_probability` | Row-aligned scores scaled to [0, 1] as described above |
+| `uncertainty` | Row-aligned score-margin uncertainty |
+| `selective_predictions` | Model predictions (0/1), with -1 for confidence below `min_confidence` |
 | `query_indices` | Recommended review indices, ordered by query_strategy |
 | `summary` | Sample/abstention counts, coverage, query candidate count, requested-query result count, and selective accuracy when truth is supplied |
-| `provenance` | Method, score source, confidence threshold, query strategy, and label-exclusion settings |
+| `provenance` | Prediction and score sources, thresholds, query strategy, and label-exclusion settings |
 
 `importance_weight` must be finite, nonnegative, nonzero, and aligned with the rows being
 reviewed; source-row audit weights cannot replace a target-row vector.
-Probability, uncertainty, and selective-prediction arrays are omitted from `to_json()`;
+Score, uncertainty, and selective-prediction arrays are omitted from `to_json()`;
 `query_indices`, summary, artifact names, and provenance remain. CSV preserves per-row
-probabilities, uncertainty, selective predictions, and query flags.
+scores, uncertainty, selective predictions, and query flags.
 
 ### `JointShiftPUClassifier` (research)
 

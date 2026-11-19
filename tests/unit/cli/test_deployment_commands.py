@@ -12,6 +12,7 @@ import pandas as pd
 import pytest
 
 from pu_toolbox.cli import build_parser, main
+from pu_toolbox.estimators.risk.upu import UPUClassifier
 
 pytestmark = pytest.mark.unit
 
@@ -20,6 +21,9 @@ class _ProbabilityModel:
     def predict_proba(self, X):
         probability = 1.0 / (1.0 + np.exp(-np.asarray(X)[:, 0]))
         return np.column_stack([1.0 - probability, probability])
+
+    def predict(self, X):
+        return (np.asarray(X)[:, 0] >= 0).astype(int)
 
 
 def _monitor_arguments(tmp_path, *, out_name="out", window_id="w1", history=None):
@@ -115,6 +119,58 @@ def test_basic_review_writes_selective_predictions_and_query_rows(tmp_path):
     assert payload["summary"]["n_queries"] == 2
     rows = pd.read_csv(out / "uncertainty_rows.csv")
     assert rows["selected_for_review"].sum() == 2
+
+
+@pytest.mark.parametrize(
+    ("min_confidence", "threshold", "accepted", "queue"),
+    [
+        (0.0, None, [True, True, True], [1, 2]),
+        (0.05, None, [True, False, False], [1, 2]),
+        (0.05, 0.15, [False, True, False], [0, 2]),
+    ],
+)
+def test_param_review_preserves_fitted_upu_predictions(
+    tmp_path, min_confidence, threshold, accepted, queue
+):
+    X_train = np.array([[1.0], [2.0], [-2.0], [-1.0], [1.0], [2.0]])
+    y_pu = np.array([1, 1, 0, 0, 0, 0])
+    model = UPUClassifier(class_prior=0.5, fit_intercept=False).fit(X_train, y_pu, os_or_ts="ts")
+    data = np.array([[0.4], [0.1], [0.2]])
+    scores = model.decision_function(data)
+    assert np.all((scores > 0) & (scores < 0.5))
+    predictions = model.predict(data)
+    np.testing.assert_array_equal(predictions, [1, 1, 1])
+
+    model_path = tmp_path / "model.pkl"
+    data_path = tmp_path / "data.csv"
+    out_dir = tmp_path / "review"
+    model_path.write_bytes(pickle.dumps(model))
+    pd.DataFrame(data, columns=["feature"]).to_csv(data_path, index=False)
+    arguments = [
+        "review",
+        "--model",
+        str(model_path),
+        "--data",
+        str(data_path),
+        "--out-dir",
+        str(out_dir),
+        "--min-confidence",
+        str(min_confidence),
+        "--query-budget",
+        "2",
+        "--quiet",
+    ]
+    if threshold is not None:
+        arguments.extend(["--decision-threshold", str(threshold)])
+    main(arguments)
+
+    rows = pd.read_csv(out_dir / "uncertainty_rows.csv")
+    np.testing.assert_array_equal(rows["selective_prediction"], np.where(accepted, predictions, -1))
+    assert np.flatnonzero(rows["selected_for_review"]).tolist() == sorted(queue)
+    payload = json.loads((out_dir / "uncertainty.json").read_text(encoding="utf-8"))
+    assert payload["query_indices"] == queue
+    assert payload["summary"]["n_queries"] == 2
+    assert payload["summary"]["n_abstained"] == accepted.count(False)
 
 
 def test_edge_shift_weighted_review_requires_weights(tmp_path, capsys):
