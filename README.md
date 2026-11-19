@@ -155,6 +155,8 @@ uv run python scripts/prepare_clean_support.py --help
 uv run python scripts/run_clean_support_experiment.py --help
 uv run python scripts/run_genpu_recipe.py --help
 uv run python scripts/run_candidate_image_experiment.py --help
+uv run python -m scripts.run_survey_paired_resnet --help
+uv run python -m scripts.run_paired_resnet_campaign --help
 
 # SCAR row (PA + OA selection)
 uv run python scripts/run_survey_experiment.py path/to/splits \

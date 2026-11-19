@@ -265,6 +265,9 @@ class ExperimentRunner:
         t0 = time.perf_counter()
         bundle = DatasetBundle(train=train, pu_val=pu_val, clean_val=clean_val, test=test)
         validate_bundle(bundle)
+        max_attempts = self.config.get("candidate_max_attempts", 2)
+        if type(max_attempts) is not int or max_attempts not in (1, 2):
+            raise ValueError("candidate_max_attempts must be 1 or 2")
         # The per-epoch networks this estimator promises to write.  Resolved
         # once, before any candidate runs: a malformed declaration is a code
         # defect, and discovering it per candidate would report it as an
@@ -487,7 +490,7 @@ class ExperimentRunner:
             )
             errors = []
             attempt_resources = []
-            for attempt in (1, 2):
+            for attempt in range(1, max_attempts + 1):
                 attempt_t0 = time.perf_counter()
                 gpu_device = resource_tools.begin_peak_gpu_memory_measurement(model, params)
                 try:
@@ -575,7 +578,7 @@ class ExperimentRunner:
                         "trajectory_index": None,
                         "params": _artifact_value(params),
                         "seed": self.seed,
-                        "attempts": 2,
+                        "attempts": max_attempts,
                         "status": "excluded",
                         "resources": _candidate_resources(attempt_resources),
                     }
@@ -585,7 +588,7 @@ class ExperimentRunner:
                         "candidate_index": candidate_index,
                         "params": _artifact_value(params),
                         "seed": self.seed,
-                        "attempts": 2,
+                        "attempts": max_attempts,
                         "status": "excluded",
                         "errors": errors,
                     }
@@ -621,9 +624,9 @@ class ExperimentRunner:
                 "resources": resources,
             }
             self._write_manifest(manifest)
+            detail = "after one same-seed retry" if max_attempts == 2 else "without retry"
             raise RuntimeError(
-                "all candidate runs failed after one same-seed retry; "
-                "inspect manifest['failures'] for details."
+                f"all candidate runs failed {detail}; inspect manifest['failures'] for details."
             )
 
         # 4. offline selection: OA on the clean view; PA and any other protocol

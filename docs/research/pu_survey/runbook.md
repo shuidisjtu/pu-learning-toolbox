@@ -137,3 +137,29 @@ agreement or native-view groups.
 
 Reading and export use only information actually recorded in the inputs. They do not retrain,
 backfill original manifests, or automatically approve pending results.
+
+## Supplemental paired ResNet-18 study
+
+The standalone `paired-resnet18-scar-c03-v1` study is separate from frozen Survey v3.2
+and does not change historical results. Compare a randomly initialized online-frozen
+encoder with the same initialized trainable encoder, using the same method, split,
+SCAR labels, seed, head and training budget. Frozen parameters and BN buffers are
+checked at completed epochs. With trainable encoders, changes to weights and training
+behavior such as BN are both part of the contrast.
+
+The controller in `scripts/run_paired_resnet_campaign.py` is Linux-only for live
+GPU scheduling. Start with `--dry-run` to inspect the exact 120-fit plan: six methods,
+two image datasets, c=0.3, five seeds and two arms. Live dispatch requires a clean
+committed source checkout, verified split files, a permitted GPU pool and explicit
+enablement for methods that passed the short technical checks.
+
+`scripts/run_survey_paired_resnet.py` is the per-fit worker. A short `--probe` run is
+never a full-budget fit. Full-meta Self-PU requires the audited independent 500-row
+support product; its PA track is PA+clean-support. Both Dist-PU arms use the same
+staged histogram recipe and image-space mixup, not the historical clean-room
+full-batch recipe. These are project adaptations, not author numerical reproductions.
+
+Use a new result root. The controller requires both valid seed-zero receipts before
+dispatching a family's other seeds, records checkpoint replay and releases unrelated
+families if one fails. Inspect its JSON status, per-attempt logs and paired CSV.
+A finished execution or an automatic receipt is not formal admission.
