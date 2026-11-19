@@ -70,8 +70,10 @@ The prior above illustrates the current Spambase setting; use your split's own
 `class_prior.population`. Supply it explicitly to this prior-requiring single-unit method;
 the batch entry reads recorded split priors. For a PN oracle, replace `--method upu` with
 `--oracle` and remove `--class-prior`; selection is OA only. Support methods require the
-corresponding `--support-dir`. Each seed must use its own split; do not pass `split_0`
-as input for multiple seeds.
+corresponding `--support-dir`. The audited product keeps clean support as a fifth role,
+with original sample IDs disjoint from `train`, `pu_val`, `clean_val`, and `test`. The
+unit command verifies the product and its match to the actual split before training or
+evaluation. Each seed must use its own split; do not pass `split_0` as input for multiple seeds.
 
 Use the batch entry for deterministic grid execution and resumption:
 
@@ -83,7 +85,8 @@ Review the plan before removing `--dry-run`. Narrow the scope with `--datasets`,
 `--methods`, and `--training-paths`; `--plan-json` saves the dry-run plan. Repeating the same
 request skips runs whose manifests satisfy the completion and identity checks.
 `--keep-going` records a failure and continues. Methods requiring support need
-`--support-root`.
+`--support-root`. The batch driver checks all five role files and their sample IDs
+before planning or resuming runs.
 
 Batch runs store shared code/dependency evidence under `<results>/batch_evidence`, referenced
 by each manifest; single-unit execution records those identities directly. Retain shared

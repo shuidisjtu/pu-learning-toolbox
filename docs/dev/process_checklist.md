@@ -208,6 +208,8 @@ S1/S2 已按失败回归驱动完成实现；旧同池入口保留输出与随�
   IMDB、20News、ADNI（共 8 个数据集），文本从冻结 split 的 SBERT 特征 carve，ADNI 记录
   `group_policy="unverifiable"` 与 owner approval；配方注册表升至
   `survey-recipes-v1.3`。数据与监督预算按各次 manifest 解释，配方能力不自动代表数值复现。
+- **clean-support 执行门禁**：批量计划和续跑前检查五角色文件及原始样本 ID；单元运行在训练、
+  选模和测试前校验支持集制品，并核对它与实际四角色输入逐行一致。样本行隔离不代表受试者隔离。
 
 发布前检查：
 

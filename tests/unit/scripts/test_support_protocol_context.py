@@ -1,9 +1,11 @@
 """The support CLI preserves canonical c, receipt and protocol identities."""
 
 import json
+import shutil
 import sys
 from pathlib import Path
 
+import numpy as np
 import pytest
 from test_survey_image_support_execution import tabular_product
 
@@ -95,38 +97,44 @@ def test_determ_support_context_keeps_the_same_protocol_digest(monkeypatch, tmp_
     assert json.dumps(one["protocol_deviation"]) == json.dumps(two["protocol_deviation"])
 
 
-@pytest.mark.parametrize("method", ["lagam", "self_pu_full_meta"])
+def _support_argv(data_dir, receipt, support_dir, output, method):
+    return [
+        str(data_dir),
+        "--protocol",
+        "survey-v3.2",
+        "--dataset",
+        "spambase",
+        "--method",
+        method,
+        "--training-path",
+        "native_2d",
+        "--seeds",
+        "0",
+        "--c",
+        "0.3",
+        "--class-prior",
+        "0.5",
+        "--support-dir",
+        str(support_dir),
+        "--split-ref",
+        str(receipt),
+        "--device",
+        "cpu",
+        "--out-dir",
+        str(output),
+    ]
+
+
+@pytest.mark.parametrize("method", ["lagam", "pulns", "self_pu_full_meta"])
 def test_basic_real_support_cli_keeps_independent_selection_protocols(tmp_path, method):
     product = tabular_product(tmp_path / "product")
     output = tmp_path / "runs"
-    result = script.main(
-        [
-            str(product),
-            "--protocol",
-            "survey-v3.2",
-            "--dataset",
-            "spambase",
-            "--method",
-            method,
-            "--training-path",
-            "native_2d",
-            "--seeds",
-            "0",
-            "--c",
-            "0.3",
-            "--class-prior",
-            "0.5",
-            "--support-dir",
-            str(product),
-            "--split-ref",
-            str(product / "support_manifest.json"),
-            "--device",
-            "cpu",
-            "--out-dir",
-            str(output),
-        ]
+    assert (
+        script.main(
+            _support_argv(product, product / "support_manifest.json", product, output, method)
+        )
+        == 0
     )
-    assert result == 0
     manifests = list(output.rglob("manifest.json"))
     assert len(manifests) == 1
     manifest = json.loads(manifests[0].read_text())
@@ -144,3 +152,37 @@ def test_basic_real_support_cli_keeps_independent_selection_protocols(tmp_path, 
         manifest["protocol_deviation"]
     )
     assert all(run["status"] == "succeeded" for run in manifest["candidate_runs"])
+
+
+@pytest.mark.parametrize("method", ["lagam", "pulns"])
+@pytest.mark.parametrize("problem", ["missing", "different_features"])
+def test_edge_invalid_support_is_refused_before_training_and_evaluation(
+    tmp_path, monkeypatch, capsys, method, problem
+):
+    product = tabular_product(tmp_path / "product")
+    data_dir = support_dir = product
+    if problem == "missing":
+        support_dir = tmp_path / "missing_product"
+        expected_error = "missing_product"
+    else:
+        data_dir = shutil.copytree(product, tmp_path / "other_split")
+        train_path = data_dir / "train.npz"
+        with np.load(train_path, allow_pickle=False) as archive:
+            arrays = {name: archive[name] for name in archive.files}
+        arrays["X"][0, 0] += 1
+        np.savez(train_path, **arrays)
+        expected_error = "support artifact train does not match the loaded split"
+
+    def never(*args, **kwargs):
+        pytest.fail("training and evaluation must not start with invalid support")
+
+    monkeypatch.setattr(script, "run_one", never)
+    assert (
+        script.main(
+            _support_argv(
+                data_dir, product / "support_manifest.json", support_dir, tmp_path / "out", method
+            )
+        )
+        == 1
+    )
+    assert expected_error in capsys.readouterr().err

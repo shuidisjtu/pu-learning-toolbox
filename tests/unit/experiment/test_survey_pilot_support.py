@@ -16,6 +16,7 @@ digest rather than to the four-role split's.
 import json
 from pathlib import Path
 
+import numpy as np
 import pytest
 from _survey_pilot_helpers import (  # noqa: F401 - imported fixtures are used by name
     raw_driver,
@@ -31,6 +32,7 @@ from pu_toolbox.experiment.pilot_plan import (
     support_products,
 )
 from pu_toolbox.experiment.survey_protocol import PROTOCOL_PATHS, ROLES, load_protocol
+from pu_toolbox.utils.serialization import strict_canonical_hash
 
 pytestmark = pytest.mark.unit
 
@@ -73,9 +75,9 @@ def batch(*, seeds=(0,)) -> Batch:
 
 
 def support_product(
-    root: Path, *, seed=0, declared_seed=None, digest=SUPPORT_DIGEST, indices=True
+    root: Path, *, seed=0, declared_seed=None, digest=None, indices=True, invalid_support=None
 ) -> Path:
-    """A product directory, optionally with a receipt that misnames its own seed."""
+    """Write the receipt and index members needed by the batch preflight."""
     directory = root / "mnist" / f"split_{seed}"
     directory.mkdir(parents=True, exist_ok=True)
     payload = {
@@ -85,9 +87,18 @@ def support_product(
         "role_sizes": {"train": 10, "support": 5},
     }
     if indices:
-        payload["indices"] = {
-            role: list(range(index * 4, index * 4 + 4)) for index, role in enumerate(ROLES)
+        role_ids = {
+            role: list(range(index * 4, index * 4 + 4))
+            for index, role in enumerate((*ROLES, "support"))
         }
+        if invalid_support in ROLES:
+            role_ids["support"][0] = role_ids[invalid_support][0]
+        payload["indices"] = role_ids
+        if digest is None:
+            payload["indices_sha256"] = strict_canonical_hash(role_ids)
+        for role, ids in role_ids.items():
+            if role != "support" or invalid_support != "missing":
+                np.savez(directory / f"{role}.npz", indices=np.asarray(ids))
     (directory / "support_manifest.json").write_text(json.dumps(payload), encoding="utf-8")
     return root
 
@@ -172,6 +183,44 @@ def test_basic_a_support_plan_reads_the_artifacts(raw_driver, stub_protocol, tmp
     assert f"support: {len(planned)} run(s)" in out
     assert f"{len(products)} five-role product(s)" in out
     assert "pending:   " in out
+
+
+@pytest.mark.parametrize("invalid_support", ["missing", *ROLES])
+def test_param_invalid_support_is_refused_before_resuming(
+    raw_driver, stub_protocol, tmp_path, capsys, monkeypatch, invalid_support
+):
+    splits = splits_tree(tmp_path / "splits", prior=0.5, datasets=("mnist",))
+    for seed in {run.seed for run in raw_driver.planned_runs(stub_protocol)}:
+        support_product(tmp_path / "support", seed=seed, invalid_support=invalid_support)
+
+    def never(*args, **kwargs):
+        pytest.fail("resume must not inspect prior runs with an invalid support product")
+
+    monkeypatch.setattr(raw_driver, "pending_runs", never)
+    assert (
+        raw_driver.main(
+            [
+                "--protocol",
+                "survey-v3.2",
+                "--splits",
+                str(splits),
+                "--results",
+                str(tmp_path / "results"),
+                "--datasets",
+                "mnist",
+                "--methods",
+                "lagam",
+                "--support-root",
+                str(tmp_path / "support"),
+            ]
+        )
+        == 1
+    )
+    error = capsys.readouterr().err
+    if invalid_support == "missing":
+        assert "support.npz" in error
+    else:
+        assert f"indices overlap between support and {invalid_support}" in error
 
 
 def test_param_one_command_covers_the_batchs_seeds():

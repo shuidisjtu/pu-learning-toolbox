@@ -267,17 +267,19 @@ def _support_trainer(algorithm, view, support, manifest):
 
 
 def _require_same_support_split(source, support_bundle) -> None:
-    """The support artifact must describe the split the four roles came from.
+    """Bind the verified five-role product to the actual four Survey inputs.
 
-    A mismatched artifact would train on another split's support without any
-    error: the receipt only proves the artifact is intact, not that it belongs
-    to this split.
+    The product loader checks support IDs against its four roles. Matching
+    shapes and row numbers alone cannot transfer that check to another split:
+    different source arrays can reuse the same row numbers.
     """
     for role in ROLES:
         loaded = getattr(source, role)
         supplied = getattr(support_bundle, role)
-        if loaded.X.shape != supplied.X.shape or not np.array_equal(
-            loaded.indices, supplied.indices
+        if not (
+            np.array_equal(loaded.indices, supplied.indices)
+            and np.array_equal(loaded.X, supplied.X)
+            and np.array_equal(loaded.labels, supplied.labels)
         ):
             raise ValueError(f"support artifact {role} does not match the loaded split")
 
@@ -905,6 +907,10 @@ def _versioned_main(args, c_values, seed_values) -> int:
             if needs_support:
                 support_path = Path(str(args.support_dir).replace("{seed}", str(seed)))
                 support_bundle, support_part, support_manifest = load_support_dataset(support_path)
+                if (support_manifest["dataset"], support_manifest["seed"]) != (args.dataset, seed):
+                    raise ValueError(
+                        "support artifact dataset/seed does not match the loaded split"
+                    )
                 _require_same_support_split(source, support_bundle)
             image_manifest = adapter_manifest = encoder = preprocessing = None
             bundle = source
