@@ -106,16 +106,24 @@ assumptions = analyze_domain_assumptions(
     y_source_pu,
     X_target,
     y_target_pu,
-    source_class_prior=0.25,   # If omitted, estimate each domain separately with pen_l1.
+    input_sampling="os",
+    source_class_prior=0.25,   # Optional population prior for the source domain.
     target_class_prior=0.35,
 )
 print(assumptions.conclusion)
 print(assumptions.differences)
 ```
 
-The report uses `P(S=1)=π·c̄` to separate class prior from mean positive-labeling propensity,
-and provides a local 3×3 prior-sensitivity table. `c̄` is an aggregate: equal values across
-domains do not establish SCAR or exclude feature-dependent SAR.
+For OS data, the report separates population class prior from mean positive-labeling
+propensity using `P(S=1)=π·c̄`. When a prior is omitted, the default PenL1 estimator
+estimates the positive fraction in the native unlabeled pool. The report converts it to
+the population prior using that domain's observed label rate. Bootstrap replicates use
+their own label rates for the same conversion. The report also provides a local 3×3
+prior-sensitivity table. `c̄` averages over positives within each domain. Assess whether
+labeling depends on features separately.
+
+Passing `input_sampling="ts"` raises an error because the P/U mixing ratio is set by sampling.
+Estimating mean labeling propensity requires a labeling rate measured in the population.
 
 ## Abstention and active review
 

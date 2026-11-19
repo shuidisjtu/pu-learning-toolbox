@@ -13,8 +13,9 @@ import numpy as np
 
 from pu_toolbox.core.base import BasePriorEstimator
 from pu_toolbox.core.labels import normalize_pu_labels
-from pu_toolbox.core.validation import check_scalar_in_range
+from pu_toolbox.core.validation import check_scalar_in_range, validate_input_sampling
 from pu_toolbox.preprocessing.data_profiler import ProfileIssue
+from pu_toolbox.prior.semantics import native_unlabeled_to_population
 from pu_toolbox.utils.serialization import format_from_suffix, json_safe
 
 MechanismConclusion = Literal[
@@ -138,14 +139,25 @@ def _prior_estimator(name: str | BasePriorEstimator) -> BasePriorEstimator:
 
 
 def _resolve_prior(
-    X: Any, y_pu: np.ndarray, value: float | None, estimator: str | BasePriorEstimator
+    X: Any,
+    y_pu: np.ndarray,
+    value: float | None,
+    estimator: str | BasePriorEstimator,
+    *,
+    observed_label_rate: float,
 ) -> tuple[float, str]:
     if value is not None:
         check_scalar_in_range(value, 0.0, 1.0, "class_prior", inclusive=False)
         return float(value), "user"
     fitted = _prior_estimator(estimator).fit(X, y_pu)
     estimate = float(fitted.estimate())
-    check_scalar_in_range(estimate, 0.0, 1.0, "estimated class_prior", inclusive=False)
+    if fitted.estimate_target == "native_unlabeled":
+        estimate = native_unlabeled_to_population(
+            estimate, observed_label_rate, input_sampling="os"
+        )
+    elif fitted.estimate_target != "population":
+        raise ValueError(f"Unsupported prior estimate target: {fitted.estimate_target!r}.")
+    check_scalar_in_range(estimate, 0.0, 1.0, "estimated population class_prior", inclusive=False)
     return estimate, "estimated"
 
 
@@ -155,6 +167,7 @@ def analyze_domain_assumptions(
     X_target: Any,
     y_target_pu: Any,
     *,
+    input_sampling: str = "os",
     source_class_prior: float | None = None,
     target_class_prior: float | None = None,
     prior_estimator: str | BasePriorEstimator = "pen_l1",
@@ -165,7 +178,13 @@ def analyze_domain_assumptions(
     confidence: float = 0.95,
     random_state: int | None = 42,
 ) -> DomainAssumptionReport:
-    """Contrast prevalence and aggregate positive-labeling propensity by domain."""
+    """Contrast population prevalence and mean positive-label propensity for OS inputs."""
+    validate_input_sampling(input_sampling)
+    if input_sampling != "os":
+        raise ValueError(
+            "Domain assumption analysis requires OS input; the P/U mixing ratio in independent "
+            "TS does not provide a population labeling rate."
+        )
     for name, value in {
         "prior_shift_threshold": prior_shift_threshold,
         "propensity_shift_threshold": propensity_shift_threshold,
@@ -186,14 +205,22 @@ def analyze_domain_assumptions(
     target_labels = normalize_pu_labels(y_target_pu)
     if len(source_labels) != len(X_source) or len(target_labels) != len(X_target):
         raise ValueError("Each PU label vector must match its domain feature rows.")
-    source_prior, source_origin = _resolve_prior(
-        X_source, source_labels, source_class_prior, prior_estimator
-    )
-    target_prior, target_origin = _resolve_prior(
-        X_target, target_labels, target_class_prior, prior_estimator
-    )
     source_rate = float(np.mean(source_labels == 1))
     target_rate = float(np.mean(target_labels == 1))
+    source_prior, source_origin = _resolve_prior(
+        X_source,
+        source_labels,
+        source_class_prior,
+        prior_estimator,
+        observed_label_rate=source_rate,
+    )
+    target_prior, target_origin = _resolve_prior(
+        X_target,
+        target_labels,
+        target_class_prior,
+        prior_estimator,
+        observed_label_rate=target_rate,
+    )
     source_propensity = source_rate / source_prior
     target_propensity = target_rate / target_prior
     prior_delta = target_prior - source_prior
@@ -285,6 +312,8 @@ def analyze_domain_assumptions(
         uncertainty=uncertainty,
         issues=tuple(issues),
         provenance={
+            "input_sampling": input_sampling,
+            "class_prior_target": "population",
             "identity": "P(S=1)=P(Y=1)*E[P(S=1|Y=1,X)|Y=1]",
             "prior_estimator": (
                 prior_estimator
@@ -351,21 +380,23 @@ def _bootstrap_domain_uncertainty(
         target_indices = rng.integers(0, len(target_labels), size=len(target_labels))
         source_boot_labels = source_labels[source_indices]
         target_boot_labels = target_labels[target_indices]
+        source_rate = float(np.mean(source_boot_labels == 1))
+        target_rate = float(np.mean(target_boot_labels == 1))
         try:
             source_prior, _ = _resolve_prior(
                 _take_rows(X_source, source_indices),
                 source_boot_labels,
                 source_class_prior,
                 prior_estimator,
+                observed_label_rate=source_rate,
             )
             target_prior, _ = _resolve_prior(
                 _take_rows(X_target, target_indices),
                 target_boot_labels,
                 target_class_prior,
                 prior_estimator,
+                observed_label_rate=target_rate,
             )
-            source_rate = float(np.mean(source_boot_labels == 1))
-            target_rate = float(np.mean(target_boot_labels == 1))
             source_propensity = source_rate / source_prior
             target_propensity = target_rate / target_prior
             if source_propensity > 1.0 or target_propensity > 1.0:

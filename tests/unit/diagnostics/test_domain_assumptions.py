@@ -24,6 +24,17 @@ class _RatePriorEstimator(BasePriorEstimator):
         return self.value_
 
 
+class _FixedNativeUPriorEstimator(BasePriorEstimator):
+    estimate_target = "native_unlabeled"
+
+    def fit(self, X, y_pu):
+        self.value_ = float(X[0, 0])
+        return self
+
+    def estimate(self):
+        return self.value_
+
+
 def _domains():
     rng = np.random.default_rng(3)
     source = rng.normal(size=(100, 2))
@@ -44,6 +55,38 @@ def test_basic_separates_prior_and_propensity_shift():
     assert report.conclusion == "class_prior_shift"
     assert report.source["mean_label_propensity"] == pytest.approx(0.5)
     assert report.target["mean_label_propensity"] == pytest.approx(0.5)
+
+
+@pytest.mark.parametrize("source_prior", [None, 0.4])
+def test_param_native_u_estimates_are_converted_per_domain(source_prior):
+    Xs, ys, Xt, yt = _domains()
+    report = analyze_domain_assumptions(
+        np.full_like(Xs, 0.25),
+        ys,
+        np.full_like(Xt, 3 / 7),
+        yt,
+        source_class_prior=source_prior,
+        prior_estimator=_FixedNativeUPriorEstimator(),
+    )
+    assert report.conclusion == "class_prior_shift"
+    assert report.source["class_prior"] == pytest.approx(0.4)
+    assert report.target["class_prior"] == pytest.approx(0.6)
+    assert report.source["mean_label_propensity"] == pytest.approx(0.5)
+    assert report.target["mean_label_propensity"] == pytest.approx(0.5)
+
+
+def test_edge_zero_native_u_prior_means_all_positives_were_labeled():
+    Xs, ys, Xt, yt = _domains()
+    report = analyze_domain_assumptions(
+        np.zeros_like(Xs),
+        ys,
+        Xt,
+        yt,
+        target_class_prior=0.6,
+        prior_estimator=_FixedNativeUPriorEstimator(),
+    )
+    assert report.source["class_prior"] == pytest.approx(0.2)
+    assert report.source["mean_label_propensity"] == pytest.approx(1.0)
 
 
 def test_param_propensity_change_is_distinct_from_prior_change():
@@ -73,6 +116,8 @@ def test_determ_sensitivity_grid_and_serialization(tmp_path):
     path = report.save(tmp_path / "domain.json")
     payload = json.loads(path.read_text(encoding="utf-8"))
     assert payload["analysis_type"] == "cross_domain_pu_assumption_analysis"
+    assert payload["provenance"]["input_sampling"] == "os"
+    assert payload["provenance"]["class_prior_target"] == "population"
     report.save(tmp_path / "domain.md")
 
 
@@ -88,6 +133,11 @@ def test_edge_bad_threshold_and_row_mismatch_fail():
         )
 
 
+def test_edge_independent_ts_is_rejected_before_estimating_priors():
+    with pytest.raises(ValueError, match="OS input.*labeling rate"):
+        analyze_domain_assumptions(*_domains(), input_sampling="ts", prior_estimator="unknown")
+
+
 def test_basic_bootstrap_reestimates_both_priors_and_propagates_differences():
     Xs, ys, Xt, yt = _domains()
     report = analyze_domain_assumptions(
@@ -99,6 +149,8 @@ def test_basic_bootstrap_reestimates_both_priors_and_propagates_differences():
         bootstrap_replicates=40,
         random_state=9,
     )
+    assert report.source["class_prior"] == pytest.approx(0.45)
+    assert report.target["class_prior"] == pytest.approx(0.55)
     uncertainty = report.uncertainty
     assert uncertainty["n_valid"] == 40
     assert (
@@ -108,6 +160,26 @@ def test_basic_bootstrap_reestimates_both_priors_and_propagates_differences():
         uncertainty["differences"]["mean_label_propensity"]["low"]
         <= uncertainty["differences"]["mean_label_propensity"]["high"]
     )
+
+
+def test_determ_bootstrap_converts_using_each_resampled_label_rate():
+    Xs, ys, Xt, yt = _domains()
+    report = analyze_domain_assumptions(
+        np.full_like(Xs, 0.25),
+        ys,
+        np.full_like(Xt, 3 / 7),
+        yt,
+        prior_estimator=_FixedNativeUPriorEstimator(),
+        bootstrap_replicates=40,
+        random_state=9,
+    )
+    uncertainty = report.uncertainty
+    assert uncertainty["n_valid"] == 40
+    for domain, native_u_prior in (("source", 0.25), ("target", 3 / 7)):
+        stats = uncertainty[domain]
+        for bound in ("low", "high"):
+            q = stats["observed_label_rate"][bound]
+            assert stats["class_prior"][bound] == pytest.approx(q + (1 - q) * native_u_prior)
 
 
 def test_param_explicit_prior_has_degenerate_prior_ci_but_rate_uncertainty():

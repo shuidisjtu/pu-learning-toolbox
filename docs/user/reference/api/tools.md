@@ -72,7 +72,8 @@ and the current monitor.
 ```python
 report = analyze_domain_assumptions(
     X_source, y_source_pu, X_target, y_target_pu,
-    source_class_prior=None, target_class_prior=None,   # Estimate each domain independently if absent.
+    input_sampling="os",
+    source_class_prior=None, target_class_prior=None,
     prior_estimator="pen_l1",
     prior_shift_threshold=0.05, propensity_shift_threshold=0.05,
     sensitivity_radius=0.05, bootstrap_replicates=0,
@@ -80,14 +81,17 @@ report = analyze_domain_assumptions(
 )
 ```
 
-Accepts source/target features and PU labels with optional domain priors. Missing priors are
-estimated independently per domain. Returns `DomainAssumptionReport`, with conclusion
+Accepts OS source/target features and PU labels with optional population priors. Missing
+priors are estimated independently per domain; native-U estimates are converted using the
+domain's observed label rate. Passing `input_sampling="ts"` raises an error because the
+P/U mixing ratio is set by sampling. Returns `DomainAssumptionReport`, with conclusion
 `stable`, `class_prior_shift`, `labeling_mechanism_shift`, `both_shift`, or `inconclusive`.
-Mean labeling propensity does not identify SCAR/SAR.
+Mean labeling propensity averages over positives within a domain.
 
 With `bootstrap_replicates>=2`, each domain receives row-level nonparametric resampling and
-prior re-estimation per replicate. Percentile intervals propagate to priors, labeling rates,
-mean propensities, and the three domain differences. `uncertainty` records requested,
+prior re-estimation per replicate using its own observed label rate for any conversion.
+Percentile intervals propagate to priors, labeling rates, mean propensities, and the three
+domain differences. `uncertainty` records requested,
 successful, and failed replicates; this reflects sampling/estimator variation, not bias from
 identifiability assumptions.
 
