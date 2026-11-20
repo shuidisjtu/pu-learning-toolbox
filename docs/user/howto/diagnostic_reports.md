@@ -18,7 +18,7 @@ from pu_toolbox.diagnostics import build_diagnostic_report
 report = build_diagnostic_report(
     X,
     y_pu,
-    class_prior=0.30,
+    evaluation_prior=0.30,
     random_state=42,
 )
 ```
@@ -29,17 +29,17 @@ report with `basis="unavailable"` and a reason.
 ### 1.2 Fitted estimator
 
 Here `classifier` is an estimator supporting the supplied `fit` arguments. Its training prior
-must target the distribution required by that method; the report's `class_prior` is a population
+must target the distribution required by that method; the report's `evaluation_prior` is an evaluation-pool
 prior. The values below illustrate a method for which these calls are appropriate.
 
 ```python
-classifier.fit(X_train, y_train, class_prior=0.30)
+classifier.fit(X_train, y_train, risk_prior=0.30)
 
 report = build_diagnostic_report(
     X_valid,
     y_valid,
     estimator=classifier,
-    class_prior=0.30,
+    evaluation_prior=0.30,
 )
 ```
 
@@ -60,7 +60,7 @@ report = build_diagnostic_report(
     y_valid,
     y_pred=predictions,
     scores=decision_scores,
-    class_prior=0.30,
+    evaluation_prior=0.30,
 )
 ```
 
@@ -77,7 +77,7 @@ report = build_diagnostic_report(
     y_test_pu,
     estimator=classifier,
     y_true=y_test_true,
-    class_prior=0.30,
+    evaluation_prior=0.30,
 )
 ```
 
@@ -98,6 +98,8 @@ are `pu_observed`, `class_prior_dependent`, `supervised_oracle`, and `unavailabl
 PU-only metrics still have assumptions. Under SAR, labeled positives may not represent all true
 positives, so `labeled_positive_recall` describes only the observed labeled subset.
 
+Version 2.0 reports use `evaluation_prior` in the profile and provenance; existing version 1.0 files retain their original format.
+
 ## 4. Report structure
 
 `PUDiagnosticReport` contains:
@@ -111,7 +113,7 @@ positives, so `labeled_positive_recall` describes only the observed labeled subs
 | `issues` | Data/output issues, severity, and suggested actions |
 | `provenance` | Sample count, seed, truth/prior availability, and profiler parameters |
 
-The current `schema_version` is `1.0`, at the top level of `report.to_dict()`. Programs should
+The current `schema_version` is `2.0`, at the top level of `report.to_dict()`. Programs should
 parse by schema version rather than depending on Markdown text.
 
 ## 5. Output and persistence

@@ -59,7 +59,7 @@ def make_splits(data_dir: Path) -> None:
         )
     # Real split products carry a manifest, and §3.1 puts pi in it.  A method
     # that needs no prior still has one for PA to select with, which is exactly
-    # the path a run without --class-prior is supposed to take.
+    # the path a run without --population-prior is supposed to take.
     (data_dir / "split_manifest.json").write_text(
         json.dumps(
             {

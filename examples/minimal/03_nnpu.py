@@ -25,7 +25,7 @@ y_pu[:n][labeled_mask] = 1
 # The constructor also accepts class_prior.
 native_prior = population_to_native_unlabeled(class_prior, float(y_pu.mean()), input_sampling="os")
 clf = NonNegativePUClassifier(max_epochs=100, random_state=42, device="cpu")
-clf.fit(X, y_pu, class_prior=native_prior)
+clf.fit(X, y_pu, risk_prior=native_prior)
 
 y_pred = clf.predict(X)
 acc = accuracy_score(y_true, y_pred)

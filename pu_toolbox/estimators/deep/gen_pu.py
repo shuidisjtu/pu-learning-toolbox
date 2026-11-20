@@ -20,12 +20,14 @@ from ...core.tags import (
     Assumption,
     Backend,
     Maturity,
+    PriorConsumer,
     SampleWeightSupport,
     Scenario,
     SourceStatus,
 )
 from ...core.training_views import build_training_view
 from ...core.validation import validate_pu_X_y
+from ...prior._evidence import risk_pool_target, training_prior_uses
 from ._validation import validate_encoder_features
 
 
@@ -38,7 +40,7 @@ def genpu_discriminator_losses(
     du_p,
     du_n,
     *,
-    class_prior,
+    risk_prior,
     positive_weight,
     negative_weight,
     unlabeled_weight,
@@ -46,7 +48,7 @@ def genpu_discriminator_losses(
     """D maximizes each GAN value; D_n also maximizes, not minimizes."""
     from torch.nn import functional
 
-    prior = class_prior
+    prior = risk_prior
     return (
         -prior
         * positive_weight
@@ -64,18 +66,18 @@ def genpu_discriminator_losses(
 
 
 def genpu_generator_losses(
-    dp_fake, du_p, dn_fake, du_n, *, class_prior, positive_weight, negative_weight, unlabeled_weight
+    dp_fake, du_p, dn_fake, du_n, *, risk_prior, positive_weight, negative_weight, unlabeled_weight
 ):
     """Minimax G_p; G_n minimizes U value but maximizes N value (anti-GAN)."""
     from torch.nn import functional
 
     return (
-        class_prior
+        risk_prior
         * (
             positive_weight * functional.logsigmoid(-dp_fake).mean()
             + unlabeled_weight * functional.logsigmoid(-du_p).mean()
         ),
-        (1 - class_prior)
+        (1 - risk_prior)
         * (
             unlabeled_weight * functional.logsigmoid(-du_n).mean()
             - negative_weight * functional.logsigmoid(-dn_fake).mean()
@@ -95,8 +97,31 @@ class GenPUClassifier(BasePUClassifier):
     label_semantics = "pu"
     assumption = (Assumption.SCAR,)
     scenario = (Scenario.CASE_CONTROL,)
-    requires_class_prior = True
-    class_prior_target = "native_unlabeled"
+    _runner_prior_parameter = "risk_prior"
+    prior_consumers = (
+        PriorConsumer(
+            "genpu_discriminator_loss",
+            "native_unlabeled",
+            parameter="risk_prior",
+            requires_input=True,
+            ts_compatible_target="positive_union_unlabeled",
+        ),
+        PriorConsumer(
+            "genpu_generator_loss",
+            "native_unlabeled",
+            parameter="risk_prior",
+            requires_input=True,
+            ts_compatible_target="positive_union_unlabeled",
+        ),
+        PriorConsumer(
+            "genpu_synthetic_pn_risk",
+            "native_unlabeled",
+            parameter="risk_prior",
+            requires_input=True,
+            ts_compatible_target="positive_union_unlabeled",
+        ),
+    )
+    _prior_consumptions_ = ()
     source_status = SourceStatus.OFFICIAL_RELATED
     backend = Backend.TORCH
     maturity = Maturity.EXPERIMENTAL
@@ -115,7 +140,7 @@ class GenPUClassifier(BasePUClassifier):
     def __init__(
         self,
         *,
-        class_prior=None,
+        risk_prior=None,
         hidden_dim=128,
         latent_dim=100,
         max_epochs=100,
@@ -131,7 +156,7 @@ class GenPUClassifier(BasePUClassifier):
         device=None,
     ):
         super().__init__()
-        self.class_prior = class_prior
+        self.risk_prior = risk_prior
         self.hidden_dim = hidden_dim
         self.latent_dim = latent_dim
         self.max_epochs = max_epochs
@@ -153,7 +178,7 @@ class GenPUClassifier(BasePUClassifier):
 
     @invalidate_failed_fit
     def fit(
-        self, X, y_pu, *, class_prior=None, sample_weight=None, os_or_ts="os", epoch_callback=None
+        self, X, y_pu, *, risk_prior=None, sample_weight=None, os_or_ts="os", epoch_callback=None
     ):
         import torch
         from torch import nn
@@ -162,15 +187,11 @@ class GenPUClassifier(BasePUClassifier):
         self._is_fitted = False
         if sample_weight is not None:
             raise NotImplementedError("GenPU does not implement sample_weight")
-        prior = self.class_prior if class_prior is None else class_prior
+        prior = self.risk_prior if risk_prior is None else risk_prior
         if prior is None or not np.isfinite(prior) or not 0 < prior < 1:
-            raise ValueError("GenPU requires a risk-U class_prior in (0, 1)")
-        if (
-            self.class_prior is not None
-            and class_prior is not None
-            and self.class_prior != class_prior
-        ):
-            raise ValueError("fit class_prior differs from constructor class_prior")
+            raise ValueError("GenPU requires a risk-U risk_prior in (0, 1)")
+        if self.risk_prior is not None and risk_prior is not None and self.risk_prior != risk_prior:
+            raise ValueError("fit risk_prior differs from constructor risk_prior")
         for name in ("hidden_dim", "latent_dim", "max_epochs", "classifier_epochs", "batch_size"):
             if type(getattr(self, name)) is not int or getattr(self, name) < 1:
                 raise ValueError(f"{name} must be a positive integer")
@@ -250,7 +271,7 @@ class GenPUClassifier(BasePUClassifier):
             for net in discriminators + generators
         ]
         weights = dict(
-            class_prior=float(prior),
+            risk_prior=float(prior),
             positive_weight=self.positive_weight,
             negative_weight=self.negative_weight,
             unlabeled_weight=self.unlabeled_weight,
@@ -276,7 +297,16 @@ class GenPUClassifier(BasePUClassifier):
         self.n_loss_unlabeled_ = len(u_indices)
         self.training_view_ = os_or_ts
         self.calibration_applied_ = view.calibration_applied
-        self._class_prior = float(prior)
+        self.risk_prior_ = float(prior)
+        self._prior_consumptions_ = training_prior_uses(
+            "genpu_discriminator_loss",
+            "genpu_generator_loss",
+            "genpu_synthetic_pn_risk",
+            value=prior,
+            target=risk_pool_target(view.calibration_applied),
+            parameter="risk_prior",
+            fit_override=risk_prior,
+        )
         self.classes_ = np.array([0, 1])
         self.n_features_in_, self._X_shape_ = width, X.shape
         self.objective_variant_ = "paper_minimax_prior_weighted"

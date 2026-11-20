@@ -42,6 +42,8 @@ class RunTrajectory:
     best_epoch: int | None = None
     checkpoints: list[Any] = field(default_factory=list)
     checkpoint_owner: Any = field(default=None, repr=False, compare=False)
+    # A custom Trainer can report facts it used outside the estimator fit.
+    prior_consumptions: tuple[dict[str, Any], ...] | None = None
 
 
 @dataclass

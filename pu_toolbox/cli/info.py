@@ -32,7 +32,9 @@ def run_list_methods(args: argparse.Namespace) -> None:
             continue
         # List canonical names and aliases accepted by the registry.
         for name in (meta.name, *meta.aliases):
-            auto_inst = "yes" if not _requires_extra_params(cls) else "no"
+            auto_inst = (
+                "yes" if not _requires_extra_params(cls, meta.required_prior_parameters) else "no"
+            )
             input_dims = ",".join(str(d) for d in sorted(meta.input_ndims))
             # Display order per design doc §4.2 (mlp before cnn) — sorted()
             # would render "cnn,mlp", contradicting the documented order.
@@ -45,7 +47,7 @@ def run_list_methods(args: argparse.Namespace) -> None:
                 (
                     name,
                     meta.family.value,
-                    "yes" if meta.requires_class_prior else "no",
+                    ", ".join(meta.required_prior_parameters) or "-",
                     input_dims,
                     arch,
                     meta.label_semantics,
@@ -58,14 +60,16 @@ def run_list_methods(args: argparse.Namespace) -> None:
         return
     # Dynamic Name width so long canonical names and aliases stay aligned.
     name_width = max(len(row[0]) for row in rows) + 2
+    prior_title = "Required prior inputs"
+    prior_width = max(len(prior_title), *(len(row[2]) for row in rows)) + 2
     print(
-        f"{'Name':<{name_width}}{'Family':<22}{'Prior':<6}"
+        f"{'Name':<{name_width}}{'Family':<22}{prior_title:<{prior_width}}"
         f"{'Input':<7}{'Arch':<11}{'Labels':<8}{'Auto-inst':<10}"
     )
-    print("-" * (name_width + 64))
+    print("-" * (name_width + prior_width + 58))
     for name, family, prior, input_dims, arch, labels, auto in rows:
         print(
-            f"{name:<{name_width}}{family:<22}{prior:<6}"
+            f"{name:<{name_width}}{family:<22}{prior:<{prior_width}}"
             f"{input_dims:<7}{arch:<11}{labels:<8}{auto:<10}"
         )
 
@@ -95,10 +99,10 @@ def run_list_priors(args: argparse.Namespace) -> None:
             print(f"  {name}")
 
 
-def _requires_extra_params(cls: type) -> bool:
+def _requires_extra_params(cls: type, prior_parameters: tuple[str, ...] = ()) -> bool:
     """Whether a constructor requires settings beyond a prior and random seed."""
     return any(
-        name not in {"self", "class_prior", "random_state"}
+        name not in {"self", "random_state", *prior_parameters}
         and param.kind not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
         and param.default is inspect.Parameter.empty
         for name, param in inspect.signature(cls.__init__).parameters.items()

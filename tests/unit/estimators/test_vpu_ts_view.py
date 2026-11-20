@@ -190,20 +190,20 @@ def test_basic_the_view_request_is_always_the_train_role(monkeypatch):
 
 
 @pytest.mark.parametrize("bad", ["TS", "case_control", "", "ts ", "both"])
-def test_param_a_view_outside_os_ts_is_refused(bad):
+def test_param_edge_a_view_outside_os_ts_is_refused(bad):
     X, y_pu = _data()
     with pytest.raises(ValueError, match="os_or_ts"):
         _model().fit(X, y_pu, os_or_ts=bad)
 
 
-def test_edge_class_prior_does_not_enter_training():
+def test_determ_os_training():
     X, y_pu = _data()
-    without = _model().fit(X, y_pu, os_or_ts="os")
-    with_prior = _model().fit(X, y_pu, class_prior=0.4, os_or_ts="os")
+    first = _model().fit(X, y_pu, os_or_ts="os")
+    second = _model().fit(X, y_pu, os_or_ts="os")
 
-    np.testing.assert_array_equal(without.decision_function(X), with_prior.decision_function(X))
-    assert without.history_ == with_prior.history_
-    assert with_prior.get_pu_metadata()["class_prior"] is None
+    np.testing.assert_array_equal(first.decision_function(X), second.decision_function(X))
+    assert first.history_ == second.history_
+    assert second.get_pu_metadata()["prior_consumptions"] == []
 
 
 def test_determ_float64_input_trains_the_same_as_float32():

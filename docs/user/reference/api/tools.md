@@ -73,7 +73,7 @@ and the current monitor.
 report = analyze_domain_assumptions(
     X_source, y_source_pu, X_target, y_target_pu,
     input_sampling="os",
-    source_class_prior=None, target_class_prior=None,
+    source_population_prior=None, target_population_prior=None,
     prior_estimator="pen_l1",
     prior_shift_threshold=0.05, propensity_shift_threshold=0.05,
     sensitivity_radius=0.05, bootstrap_replicates=0,
@@ -154,11 +154,11 @@ clf = JointShiftPUClassifier(
     alpha=0.1, target_mix=0.5, max_iter=5, tolerance=1e-3,
     n_cv_folds=3, probability_clip=1e-5, random_state=42,
 )
-clf.fit(X, y_pu, X_target=..., y_target_pu=..., class_prior=..., target_class_prior=...)
+clf.fit(X, y_pu, X_target=..., y_target_pu=..., source_domain_prior=..., target_domain_prior=...)
 ```
 
 Import from `pu_toolbox.estimators.research`. Besides source X/y_pu, fit requires explicit
-`X_target`, `y_target_pu`, `class_prior`, and `target_class_prior`. It is outside the stable
+`X_target`, `y_target_pu`, `source_domain_prior`, and `target_domain_prior`. It is outside the stable
 registry. `get_pu_metadata()["guarantee"]` is fixed to
 `research_joint_shift_approximation`.
 
@@ -215,7 +215,7 @@ report = profile_pu_data(
     X,
     y_pu,
     y_true=None,               # Supplying truth enables identifying audit evidence.
-    class_prior=None,
+    evaluation_prior=None,
     input_sampling="os",      # Same-pool OS or independent P/population-U TS.
     min_labeled_positives=30,
     max_unlabeled_to_positive=100.0,
@@ -230,7 +230,7 @@ Every observation with `y_pu == 1` must also be positive in supplied `y_true`;
 otherwise the interface rejects the input. `input_sampling="os"` selects same-pool OS
 semantics; `"ts"` selects independent P and
 population-mixture U. Only OS interprets the labeled fraction divided by the population
-`class_prior` as an implied labeling frequency. TS records the extra-P table fraction
+`evaluation_prior` as an implied labeling frequency. TS records the extra-P table fraction
 and sets `implied_label_frequency=None`.
 
 ### Returned PUDataProfile
@@ -288,8 +288,8 @@ Examples: [06](../../../../examples/minimal/06_sar_simulation.py) and
 | `construct_pu_dataset` | `(source, labeling, *, positive_classes, negative_classes, excluded_classes=()) -> PUConstruction`: map and label one already-loaded `SourcePartition` without reshuffling or downloading |
 | `simulate_pu_dataset` | `(source, labeling) -> PUConstruction`: generate a clean binary `GaussianSourceConfig` source and apply the same OS labeling |
 | `make_sar_propensity` | `(X, y_true, *, mechanism="linear", label_frequency=0.5, strength=1.0, feature_weights=None) -> propensity`: per-sample labeling propensity `P(S=1|Y,X)`; true-negative entries are fixed at 0 |
-| `make_gaussian_case_control_data` | `(n_p=50, n_u=100, *, class_prior=0.5, n_features=5, separation=2.0, random_state=None) -> (X, y_pu, y_true, metadata)`: independent TS Gaussian P and population-mixture U |
-| `make_gaussian_pu_data` | `(n_p=50, n_u=100, n_features=5, separation=2.0, random_state=None) -> (X, y_pu, class_prior)`: all generated positives are visible and U comes from negatives; the third value is the true positive proportion of the concatenated table |
+| `make_gaussian_case_control_data` | `(n_p=50, n_u=100, *, population_prior=0.5, n_features=5, separation=2.0, random_state=None) -> (X, y_pu, y_true, metadata)`: independent TS Gaussian P and population-mixture U |
+| `make_gaussian_pu_data` | `(n_p=50, n_u=100, n_features=5, separation=2.0, random_state=None) -> (X, y_pu, training_table_prior)`: all generated positives are visible and U comes from negatives; the third value is the true positive proportion of the concatenated table |
 
 **Configuration-driven source acquisition and reading:**
 
@@ -341,12 +341,12 @@ IDs), `audit` (true and original labels, optional pre-top-up propensity), and `m
 priors are audit facts, not automatic fit parameters. OS constructors reject independent TS.
 
 For `make_gaussian_case_control_data`, `n_p/n_u/n_features` are positive integers excluding
-bool. `class_prior` is a finite real in `[0,1]`, and `separation` is a finite nonnegative real;
+bool. `population_prior` is a finite real in `[0,1]`, and `separation` is a finite nonnegative real;
 both reject bool and strings. Each U sample's true class is drawn independently, then its
 features are drawn from the corresponding Gaussian conditional distribution.
 Output rows are ordered P then U; `y_true` supports synthetic audits and evaluation.
 `metadata` contains `input_sampling="ts"`, `sampling_policy="independent_generative"`,
-`population_class_prior`, `unlabeled_class_prior`, `training_class_prior`,
+`design_population_prior`, `empirical_unlabeled_prior`, `empirical_training_table_prior`,
 `n_positive`, `n_unlabeled`, `source_distribution`, `sample_ids`, and `random_state`.
 `source_distribution` records family, positive_mean, negative_mean, identity covariance,
 and n_features. `sample_ids` are draw identities `positive:i` / `population:i`, unique within
@@ -374,18 +374,18 @@ analysis = analyze_pu_sensitivity(
     y_valid,
     y_pred,                              # Must use {0,1}.
     scores=None,                         # Finite 1-D array; zero is the PU zero-one risk threshold.
-    class_priors=None,                   # Each value in (0, 1).
+    population_priors=None,                   # Each value in (0, 1).
     label_propensities=None,             # Each value in (0, 1].
 )
 ```
 
-Supply at least one of `class_priors` and `label_propensities`; `y_pu` must contain both
+Supply at least one of `population_priors` and `label_propensities`; `y_pu` must contain both
 labeled-positive and unlabeled groups. Returns `PUSensitivityAnalysis`, with each point containing:
 
 | Field | Meaning |
 |---|---|
 | `axis`, `value` | Parameter being scanned and its assumed value |
-| `class_prior` | Assumed class prior or value implied by `q/c̄` |
+| `population_prior` | Assumed population prior or value implied by `q/c̄` |
 | `label_propensity` | Assumed mean propensity or value implied by `q/π` |
 | `is_consistent` | Whether probability bounds and the observational identity hold |
 | `consistency_reason` | Direct explanation of an inconsistency |
@@ -410,16 +410,16 @@ Workflows and diagnostics pass the same sampling design explicitly.
 
 ```python
 # Data only: runs profile_pu_data; prediction-based metrics have basis=unavailable.
-report = build_diagnostic_report(X, y_pu, class_prior=0.30, random_state=42)
+report = build_diagnostic_report(X, y_pu, evaluation_prior=0.30, random_state=42)
 
 # Fitted estimator: calls predict, preferring decision_function and falling back to predict_proba[:, 1].
 # Does not call fit; an unfitted estimator raises ValueError.
 report = build_diagnostic_report(X_valid, y_valid, estimator=classifier,
-                                 class_prior=0.30)
+                                 evaluation_prior=0.30)
 
 # Explicit outputs: estimator and y_pred/scores are mutually exclusive.
 report = build_diagnostic_report(X_valid, y_valid, y_pred=predictions,
-                                 scores=decision_scores, class_prior=0.30)
+                                 scores=decision_scores, evaluation_prior=0.30)
 ```
 
 Optional `y_true` enables identifying selection-dependence checks and computes
@@ -459,7 +459,8 @@ see [custom experiments](../../howto/custom_experiments.md) and the executable
 
 ```python
 ExperimentRunner(
-    *, seed=0, generator=None, protocols=None, class_prior=None,
+    *, seed=0, generator=None, protocols=None,
+    training_population_prior=None, validation_population_prior=None,
     threshold_candidates=None, manifest_path=None, config=None,
 )
 runner.fit(model, train, pu_val, clean_val, test) -> RunResult
@@ -471,16 +472,15 @@ The default generator is `SCARGenerator()`; the default selectors are
 `[ProtocolPA(), ProtocolOA()]`. `generator` and `protocols` accept strategy instances.
 Inject a trainer instance through `config["trainer"]`; the default is `DeepFitTrainer()`.
 Supply candidate parameters through `config["candidates"]`, default `[{}]`.
-PA receives the population prior from `class_prior` or
-`config["split_ref"]["class_prior"]["population"]`. For uPU with the built-in fit trainers
-and OS input, the runner converts its supplied population prior to the native-U prior
-using the realized labeled fraction in `train` when the estimator uses its `os` view.
-The `ts` view uses the complete OS pool and receives the population prior unchanged.
-Without a runner override, uPU's constructor or candidate prior is used as given;
-a split-only population prior supplies PA, not an override to uPU fit. Custom trainers
-still receive the original runner input and are responsible for their own prior routing.
-The manifest records the fit input and PA prior separately in `research_settings.prior`.
-Built-in OA selects on `clean_val` accuracy and has no selection prior. Use
+Set `training_population_prior` for the training distribution and `validation_population_prior`
+for PA. The two inputs are independent.
+PA falls back to `config["split_ref"]["class_prior"]["population"]` as its last source.
+For uPU with built-in fit trainers and OS input, the `os` view converts the training population
+prior to native U using the realized labeled fraction in `train`. The `ts` view passes that
+population prior unchanged to the complete OS risk pool. When the runner's training input is
+omitted, uPU uses its constructor or candidate prior. Custom trainers receive the training
+input as supplied and resolve the estimator prior for their own fit path.
+Built-in OA selects on `clean_val` accuracy. Use
 `protocols=[ProtocolOA()]` for SAR. The runner refuses built-in PA when `pu_val`
 is declared SAR or independently sampled TS; the PA formula is for OS under SCAR.
 
@@ -516,8 +516,9 @@ it does not request runner risk calibration.
 `CVIRPopulationPriorTrainer(population_prior_source=...)` independently supports engineering
 SCAR OS and TS-compatible paths. Constructor α_U/source must be unset: the adapter converts
 the population prior using actual PU counts for OS risk, while calibrated TS binds π.
-It does not pass population π to estimator `fit`. Actual priors, formulas, counts, and sources
-enter the manifest; constructor parameters are restored after fitting. A checkpoint byte bound
+`research_settings.prior` records α_U for negative selection and the weighted objective,
+along with its source and the observed inputs for the OS conversion. Constructor parameters
+are restored after fitting. A checkpoint byte bound
 is mandatory; formal Survey/SAR runs are rejected. See the
 [CVIR method card](../../../research/method_cards/CVIR.md) for optional Chinese background on
 calibration wiring and boundaries.
@@ -611,9 +612,9 @@ define parameter contracts and behavior.
 | `SARLBEAGenerator` | SAR-LBE-A: `p ∝ scores^k` (k=10) with 0.9/0.1 smoothing (PU-Bench 2d95a19) |
 | `SARLBEBGenerator` | SAR-LBE-B: `p ∝ (1.5 + shrink_coef − scores)^k`, clipping negatives and using uniform fallback for all-zero weights |
 | `CleanLabelGenerator` | PN oracle view: pass true labels unchanged (`n_L = n₊`), declare `output_view="clean"`; PA is structurally rejected by view validation. Record `c` without applying it; oracle behavior is constant over c |
-| `ProtocolPA` | Select run/epoch/threshold using only PU validation, with true labels structurally inaccessible; maximize proxy accuracy (Wang et al. 2026 Def. 1, OS branch; see `proxy_accuracy` below) on a min-max-normalized threshold grid; missing required `class_prior` raises an error |
+| `ProtocolPA` | Select a run, epoch, and threshold on PU validation using `validation_population_prior` and OS proxy accuracy (Wang et al. 2026 Def. 1) on a min-max-normalized threshold grid |
 | `ProtocolOA` | Oracle comparison: select run and threshold by true-label validation accuracy after min-max normalization |
-| `FitTrainer` | Single-point training for classical estimators without epochs; forward `class_prior` only if accepted |
+| `FitTrainer` | Single-point training for classical estimators without epochs; pass `risk_prior` for uPU. Other methods use the prior parameter in their fit signature. |
 | `DeepFitTrainer` | Prefer `pu_validation_data` without true-label leakage, otherwise probe `validation_data`; convert `history_` into selection trajectories. Successful validation-aware fitting without history produces one point without fitting again |
 | `SupervisedTrainer` | PN oracle: supervised baseline trained on true labels, declaring `trains_on_real_labels=True`. Use with `CleanLabelGenerator` and `protocols=[ProtocolOA()]`; the runner's default PU generation rejects this trainer before training |
 | `aggregate_resource_usage` | Aggregate all candidate-tuning costs and the overall peak GPU memory across seed manifests |
@@ -789,20 +790,38 @@ export(report, "reports/current")
 | `reporting.write_summary(report, out_dir)` | Write `summary.json/md/csv`, `coverage.csv`, and `refusals.json` |
 | `reporting.export(report, out_dir, *, literature=(), native_view=None)` | Write `survey_results.xlsx` with four result-sheet groups, diagnostic cards, and `conclusions.md/json`; requires the `report` extra; literature/method facts are optional inputs |
 
-New runs record `manifest['research_settings']`, schema `1.0`, after validating generation
-and training contracts. Saved manifests also retain it when all candidates fail training.
+Runs record `manifest['research_settings']` after validating generation and training contracts.
+Saved manifests retain it when all candidates fail training.
 
 | Setting field | Recorded content |
 |---|---|
 | `sampling` | Generator-declared `input_sampling` and `split_ref` |
 | `labeling` | Complete train/pu_val generation metadata, including requested/realized counts, mechanism parameters, and score sources |
 | `risk` | Requested `os_or_ts`, estimator default, and corresponding loss pool; algorithm-specific pools use `estimator_defined` |
-| `prior` | Base prior input/target declaration, effective candidate inputs and actual training provenance, and selection's population prior |
+| `prior` | Actual prior consumption in schema `2.0`, or prior inputs and training provenance in schema `1.0` |
 | `supervision` | Training label view, Trainer, actual validation role for every selector, and extra supervision |
 | `representation` | Input dimensionality, recorded training path/representation identity, and adapter/image metadata |
 | `summary` | Readable string combining these settings |
 
-`prior.training.value` takes the runner-supplied argument first, then estimator `class_prior`.
+uPU runs write schema `2.0`: each `prior` entry identifies the candidate or selection protocol,
+the consumer, partition, target pool, actual value, and source. OS conversion entries include
+the original population value, rule, and realized train labeled fraction `q`. The table records
+successful uPU fits and PA selection; OA and test use their own label supervision. Candidate
+parameters and fit failures remain in `candidate_runs`.
+
+PUSBKernel also writes schema `2.0`, with distinct training-table threshold, fit risk, and
+internal CV validation risk entries. Give the estimator or candidate a `training_table_prior`
+and a `risk_prior` to control the two values. The built-in runner uses the supplied training
+population prior as the default table value on OS input. Independent TS input takes its table
+prior from the estimator or candidate. The risk entries name the threshold consumer in
+`reused_from` when they share its value.
+
+LDCE and KLDCE record the training-table prior with either its override source or its
+observed-count derivation. CVIR records the prior used for negative selection and the weighted
+objective; PA records the validation population prior separately.
+
+Other methods in this migration stage use schema `1.0`. Its `prior.training.value` takes the
+explicit validation input first, then the population prior recorded in the split artifact.
 `declared_target` retains the estimator declaration. For `native_unlabeled` under a `ts` risk
 view, `target` is `risk_pool`. Candidate overrides are in `prior.candidate_parameters`, effective
 inputs in `prior.candidates`, and existing actual-training provenance in

@@ -252,8 +252,8 @@ def run_joint_shift_benchmark(
                 split["y_source_pu"],
                 X_target=split["X_target"],
                 y_target_pu=split["y_target_pu"],
-                class_prior=split["source_prior"],
-                target_class_prior=split["target_prior"],
+                source_domain_prior=split["source_prior"],
+                target_domain_prior=split["target_prior"],
             )
             prediction = estimator.predict(split["X_test"])
             score = estimator.decision_function(split["X_test"])

@@ -38,7 +38,7 @@ class TestGoldenRiskValues:
         u = np.array([0.0, 0.0, 0.0])
         pi = 0.5
 
-        risk = loss(p, u, class_prior=pi)
+        risk = loss(p, u, risk_prior=pi)
 
         # pos_term = −π·mean(scores) = −0.5·0 = 0
         # unlabeled_term = mean(softplus(0)) = log(1 + exp(0)) = log(2) ≈ 0.693147
@@ -53,7 +53,7 @@ class TestGoldenRiskValues:
         u = np.array([-3.0, -3.0, -3.0])
         pi = 0.4
 
-        risk = loss(p, u, class_prior=pi)
+        risk = loss(p, u, risk_prior=pi)
 
         # pos_term = −0.4·3 = −1.2
         # softplus(−3) = log(1 + exp(−3)) = log(1.049787) ≈ 0.048587
@@ -70,7 +70,7 @@ class TestGoldenRiskValues:
         u = np.array([0.0, 0.0])
         pi = 0.5
 
-        risk = loss(p, u, class_prior=pi)
+        risk = loss(p, u, risk_prior=pi)
 
         # pos_term = −0.5·0 = 0
         # unlabeled_term = ¼·mean((u + 1)²) = ¼·1² = 0.25
@@ -85,7 +85,7 @@ class TestGoldenRiskValues:
         u = np.array([-1.0, -1.0, -1.0, -1.0])
         pi = 0.5
 
-        risk = loss(p, u, class_prior=pi)
+        risk = loss(p, u, risk_prior=pi)
 
         # pos_term = −0.5·1 = −0.5
         # unlabeled_term = ¼·mean((−1 + 1)²) = 0
@@ -101,7 +101,7 @@ class TestGoldenRiskValues:
         pi = 0.3
         n_P, n_U = len(p), len(u)
 
-        dP, dU = loss.gradient(p, u, class_prior=pi)
+        dP, dU = loss.gradient(p, u, risk_prior=pi)
 
         # dP = −π/n_P * ones(n_P)
         assert dP.shape == (n_P,)
@@ -124,14 +124,14 @@ class TestRiskInvariants:
     def test_better_separation_lower_risk_logistic(self):
         """Well-separated class → lower PU risk (logistic loss)."""
         loss = UPULoss("logistic")
-        r_good = loss(np.array([2.0, 3.0]), np.array([-5.0, -4.0]), class_prior=0.5)
-        r_bad = loss(np.array([0.0, 0.0]), np.array([0.0, 0.0]), class_prior=0.5)
+        r_good = loss(np.array([2.0, 3.0]), np.array([-5.0, -4.0]), risk_prior=0.5)
+        r_bad = loss(np.array([0.0, 0.0]), np.array([0.0, 0.0]), risk_prior=0.5)
         assert r_good < r_bad
 
     @pytest.mark.property
     def test_higher_class_prior_lower_risk(self):
         """Higher π → more negative pos_term → lower total risk."""
         loss = UPULoss("logistic")
-        r_lo = loss(np.array([2.0, 2.0]), np.array([-1.0, -1.0]), class_prior=0.3)
-        r_hi = loss(np.array([2.0, 2.0]), np.array([-1.0, -1.0]), class_prior=0.7)
+        r_lo = loss(np.array([2.0, 2.0]), np.array([-1.0, -1.0]), risk_prior=0.3)
+        r_hi = loss(np.array([2.0, 2.0]), np.array([-1.0, -1.0]), risk_prior=0.7)
         assert r_lo > r_hi

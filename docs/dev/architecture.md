@@ -254,7 +254,7 @@ Independent test evaluation + manifest               [runner → manifest]
 ## 4. Algorithm registration and explicit selection
 
 Algorithms register metadata in `registry`: name/aliases/family/scenario/assumption/
-requires_class_prior/requires_clean_support/backend/maturity/source_status,
+prior_consumers/requires_clean_support/backend/maturity/source_status,
 plus architecture capabilities
 `native_architectures` / `input_ndims` / `encoder_parameter` / `trains_encoder`.
 `pu_toolbox/core/tags.py` is authoritative for field semantics and enums;
@@ -276,7 +276,7 @@ Source status and maturity remain independent of whether an implementation is re
 Estimator class attributes are authoritative for declared capabilities.
 `_sync_estimator_metadata` in `registry/registry.py` synchronizes the fields
 listed in `_SYNC_FIELDS`, including architecture capabilities, entry metadata,
-`label_semantics`, and prior-target declarations. Only declarations on the concrete
+`label_semantics`, and prior-consumer declarations. Only declarations on the concrete
 class or non-abstract ancestors count; defaults inherited from `BasePUClassifier`
 or `BasePriorEstimator` do not count as authoritative declarations.
 
@@ -288,13 +288,12 @@ a concrete class is registered:
   `tests/test_builtin_methods.py::test_static_entries_do_not_redeclare_class_fields`.
 - **Explicitly supply entry fields that the class does not declare.** Their literals
   are the sole source; missing or incorrect values can silently fall back to
-  dataclass defaults. This applies to the seven entry fields `family`,
-  `assumption`, `scenario`, `requires_class_prior`, `source_status`, `backend`,
+  dataclass defaults. This applies to the six entry fields `family`,
+  `assumption`, `scenario`, `source_status`, `backend`,
   and `maturity`.
 - A registered class is not a reason to omit all literals. For example,
-  `class_prior_estimation` declares none of those seven fields, so all seven
-  must be supplied. `pusb` and `lbe` likewise need explicit
-  `requires_class_prior` literals when they only inherit the base default.
+  `class_prior_estimation` declares none of those six fields, so all six
+  must be supplied.
 - Architecture capabilities and `label_semantics` come from class attributes or
   defaults rather than entry literals. The current `_SYNC_FIELDS` definition is
   authoritative for the complete synchronization surface.
@@ -307,15 +306,15 @@ support data with an independent label budget as specified for the method.
 
 `registry` is the **code-side source of truth**: `get_algorithm(name)` returns an
 algorithm **class** for callers to instantiate; `get_metadata(name)` returns
-metadata for capability/prior gates.
+metadata for capability and prior gates. `prior_consumers` describes possible uses;
+`required_prior_parameters` names the inputs that the default fit path needs.
+Manifest evidence records what actually ran, not what the registry permits.
 
 `pu_toolbox/experiment/method_ledger.json` is the **experiment-side source of truth
 for result annotations**. It records paper sources, native sampling assumptions,
 OS/TS calibration, adaptation levels, and review findings. Scripts use it to enforce
 Survey scope for `--method` (fail loudly outside the ledger), and to copy the entry
-into the run directory as `method_ledger_entry.json`. Overlapping fields
-(the four capabilities, `source_status`, and
-`requires_class_prior` ↔ `prior_semantics`) must mirror the registry, enforced by
+into the run directory as `method_ledger_entry.json`. Shared capabilities and source status must agree with the registry, as enforced by
 `tests/contract/test_ledger_registry_consistency.py`.
 See [protocol §4](../research/pu_survey/pu_survey_protocol.md#4-target-algorithms)
 for semantics and [the ledger](../../pu_toolbox/experiment/method_ledger.json)

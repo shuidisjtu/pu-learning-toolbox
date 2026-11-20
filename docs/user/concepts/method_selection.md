@@ -21,7 +21,7 @@ Use appropriate independent validation for explicit candidates; see [model selec
 - **Methods not requiring an external π:** Elkan-Noto estimates the labeling
   probability c; LBE can use an optional prior to initialize its posterior;
   InfoMax PU can estimate a prior internally. The current `pusb` baseline does not
-  consume the supplied prior. `requires_class_prior=False` means the caller may omit
+  consume the supplied prior. An empty `required_prior_parameters` means the caller may omit
   an external prior, rather than establishing that the method has no prior dependence.
 - **When π is unknown:** estimate it with recpe / pen_l1 / km1 / km2, or choose a
   method that accepts an omitted external prior. Connect prior estimation to training explicitly.

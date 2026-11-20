@@ -112,7 +112,7 @@ class HolisticPUClassifier(BasePUClassifier):
     label_semantics = "pu"
     assumption = (Assumption.SCAR,)
     scenario = (Scenario.SINGLE_TRAINING_SET,)
-    requires_class_prior = False
+    _prior_consumptions_ = ()
     source_status = SourceStatus.OFFICIAL_RELATED
     backend = Backend.TORCH
     maturity = Maturity.EXPERIMENTAL
@@ -166,9 +166,7 @@ class HolisticPUClassifier(BasePUClassifier):
         self.device = device
 
     @invalidate_failed_fit
-    def fit(
-        self, X, y_pu, *, class_prior=None, sample_weight=None, os_or_ts="os", epoch_callback=None
-    ):
+    def fit(self, X, y_pu, *, sample_weight=None, os_or_ts="os", epoch_callback=None):
         import torch
         from torch import nn
         from torch.nn import functional
@@ -206,8 +204,6 @@ class HolisticPUClassifier(BasePUClassifier):
         for name in ("learning_rate", "trend_scale"):
             if not np.isfinite(getattr(self, name)) or getattr(self, name) <= 0:
                 raise ValueError(f"{name} must be finite and positive")
-        if class_prior is not None and (not np.isfinite(class_prior) or not 0 < class_prior < 1):
-            raise ValueError("class_prior, if supplied, must be in (0,1); it is not used")
         X, y_pu = validate_pu_X_y(
             X, y_pu, accept_sparse=False, allow_nd=True, estimator_name="HolisticPUClassifier"
         )
@@ -237,7 +233,6 @@ class HolisticPUClassifier(BasePUClassifier):
         self.classes_ = np.array([0, 1])
         self.n_features_in_, self._X_shape_ = X.shape[1], X.shape
         self.input_shape_ = tuple(X.shape[1:])
-        self._class_prior = None
         self.training_view_, self.calibration_applied_ = "os", False
         self.n_positive_, self.n_unlabeled_ = len(positive), len(unlabeled)
         self.optimizer_steps_ = 0

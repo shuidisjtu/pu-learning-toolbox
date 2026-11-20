@@ -52,19 +52,21 @@ def test_basic_determ_prior_choice_direct_fit_and_pickle_parity(tmp_path, policy
     original = features.copy(), labels.copy()
     candidate = model()
     direct = clone(candidate).fit(
-        features, labels, **({"class_prior": 0.45} if policy == "population_override" else {})
+        features,
+        labels,
+        **({"training_table_prior": 0.45} if policy == "population_override" else {}),
     )
     adapter = trainer(tmp_path, policy)
     trajectory = adapter.fit(
-        candidate, features, labels, class_prior=0.45, val_pu=object(), os_or_ts="os"
+        candidate, features, labels, training_population_prior=0.45, val_pu=object(), os_or_ts="os"
     )
     receipt = candidate.training_provenance_
-    assert receipt["effective_training_prior"] == (
+    assert candidate.training_table_prior_ == (
         0.45 if policy == "population_override" else 6 / (24 * 0.8)
     )
-    assert receipt["preflight"]["external_class_prior_forwarded"] is (
-        policy == "population_override"
-    )
+    assert receipt["preflight"]["uses_population_override"] is (policy == "population_override")
+    (consumption,) = candidate._prior_consumptions_
+    assert ("derivation" in consumption) is (policy == "derived")
     assert not receipt["validation_used_for_training"] and not receipt["calibration_applied"]
     assert not trajectory.epochs and not trajectory.checkpoints
     assert receipt["neural_epoch_count"] == 0 and receipt["work_completed"] == 1
@@ -116,7 +118,7 @@ def test_param_invalid_native_configuration_never_starts_fit(
     monkeypatch.setattr(candidate, "fit", lambda *a, **k: pytest.fail("invalid KLDCE reached fit"))
     adapter = trainer(tmp_path, policy)
     with pytest.raises(ValueError):
-        adapter.fit(candidate, *data(), class_prior=prior, os_or_ts=view)
+        adapter.fit(candidate, *data(), training_population_prior=prior, os_or_ts=view)
     assert not candidate._is_fitted and adapter.last_receipt["work_started"] == 0
     assert adapter.last_receipt["acs_rounds_completed"] is None
 
@@ -180,13 +182,17 @@ def test_param_edge_equality_box_screen_matches_original_phase_one_lp(tmp_path, 
     lower = np.zeros(42)
     upper = np.r_[np.full(24, 1 / 24), np.full(18, 1 / 48)]
     if feasible:
-        screen = adapter.preflight(candidate, features, labels, class_prior=prior, os_or_ts="os")
+        screen = adapter.preflight(
+            candidate, features, labels, training_population_prior=prior, os_or_ts="os"
+        )
         point = _find_feasible_init(coefficients, rhs, lower, upper)
         assert screen["qp_equality_box_feasibility"]["rhs"] == rhs
         assert float((coefficients @ point).item()) == pytest.approx(rhs)
     else:
         with pytest.raises(ValueError, match="QP equality infeasible"):
-            adapter.preflight(candidate, features, labels, class_prior=prior, os_or_ts="os")
+            adapter.preflight(
+                candidate, features, labels, training_population_prior=prior, os_or_ts="os"
+            )
         with pytest.raises(RuntimeError, match="infeasible"):
             _find_feasible_init(coefficients, rhs, lower, upper)
 
@@ -242,7 +248,7 @@ def test_param_determ_numpy_flip_scalar_matches_native_prior_conversion(
         direct = clone(candidate).fit(features, labels)
         adapter = trainer(tmp_path)
         screen = adapter.preflight(candidate, features, labels, os_or_ts="os")
-        assert float(screen["effective_training_prior"]) == float(direct.class_prior_)
+        assert float(screen["planned_training_table_prior"]) == float(direct.training_table_prior_)
         adapter.fit(candidate, features, labels, os_or_ts="os")
         np.testing.assert_array_equal(
             candidate.decision_function(features), direct.decision_function(features)

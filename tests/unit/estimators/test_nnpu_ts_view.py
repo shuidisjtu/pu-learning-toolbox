@@ -61,7 +61,7 @@ def _fit(os_or_ts=None, **kwargs):
     torch.manual_seed(0)
     model = _RecordingModel(N_FEATURES)
     clf = NonNegativePUClassifier(model=model, max_epochs=1, batch_size=BATCH_SIZE, random_state=0)
-    fit_kwargs = dict(class_prior=N_P / (N_P + N_U), **kwargs)
+    fit_kwargs = dict(risk_prior=N_P / (N_P + N_U), **kwargs)
     if os_or_ts is not None:
         fit_kwargs["os_or_ts"] = os_or_ts
     clf.fit(X, y_pu, **fit_kwargs)
@@ -110,7 +110,7 @@ class TestViewGates:
             clf.fit(
                 X,
                 y_pu,
-                class_prior=N_P / (N_P + N_U),
+                risk_prior=N_P / (N_P + N_U),
                 sample_weight=np.ones(len(y_pu)),
                 os_or_ts="ts",
             )
@@ -128,9 +128,32 @@ class TestViewGates:
         clf.fit(
             X,
             y_pu,
-            class_prior=N_P / (N_P + N_U),
+            risk_prior=N_P / (N_P + N_U),
             validation_data=(X.copy(), y_pu.copy()),
             os_or_ts="ts",
         )
         # Validation scoring is one call over the full validation set.
         assert len(X) in clf.model_.batch_sizes
+
+
+@pytest.mark.parametrize("view", ["os", "ts"])
+@pytest.mark.parametrize("validation_prior", [None, 0.65])
+def test_param_validation_risk_prior_is_bound_to_native_u(view, validation_prior):
+    X, y = _make_data()
+    fitted = NonNegativePUClassifier(risk_prior=0.3, max_epochs=1, random_state=3)
+    fitted.fit(X, y, validation_data=(X, y), validation_risk_prior=validation_prior, os_or_ts=view)
+
+    expected = 0.3 if validation_prior is None else validation_prior
+    assert fitted.risk_prior_ == 0.3
+    assert fitted.validation_risk_prior_ == expected
+    assert fitted.history_["val_risk"] == pytest.approx(
+        [fitted.evaluate_pu_risk(X, y, risk_prior=expected)]
+    )
+    training, validation = fitted._prior_consumptions_
+    assert training["target"] == (
+        "positive_union_unlabeled" if view == "ts" else "native_unlabeled"
+    )
+    assert validation["partition"] == "pu_val" and validation["target"] == "native_unlabeled"
+    assert validation.get("reused_from") == (
+        "nnpu_training_risk" if validation_prior is None else None
+    )

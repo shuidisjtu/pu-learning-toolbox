@@ -1,6 +1,7 @@
 # ruff: noqa: N803, N806
 """Independent four-role synthetic runner access, not survey candidate admission."""
 
+import inspect
 import json
 from pathlib import Path
 
@@ -11,6 +12,19 @@ from pu_toolbox.experiment import DatasetPart
 from pu_toolbox.experiment.runner import ExperimentRunner
 
 pytestmark = pytest.mark.unit
+
+
+@pytest.mark.parametrize(
+    "classifier",
+    ["VPU", "PAN", "PULNS", "LaGAM", "P3Mix", "HolisticPU"],
+)
+def test_param_prior_free_methods_have_no_fit_prior(classifier):
+    pytest.importorskip("torch")
+    import pu_toolbox
+
+    estimator = getattr(pu_toolbox, f"{classifier}Classifier")
+    assert "class_prior" not in inspect.signature(estimator.fit).parameters
+    assert estimator._prior_consumptions_ == ()
 
 
 def parts():
@@ -45,7 +59,7 @@ def make_model(name):
         from pu_toolbox import GenPUClassifier
 
         return GenPUClassifier(
-            class_prior=0.5,
+            risk_prior=0.5,
             hidden_dim=4,
             latent_dim=2,
             max_epochs=1,
@@ -72,7 +86,8 @@ def test_basic_new_methods_four_role_runner_and_manifest(tmp_path, name, view, r
     path = tmp_path / "manifest.json"
     result = ExperimentRunner(
         seed=0,
-        class_prior=0.5,
+        training_population_prior=0.5,
+        validation_population_prior=0.5,
         manifest_path=str(path),
         config={
             "method": name,
@@ -86,6 +101,10 @@ def test_basic_new_methods_four_role_runner_and_manifest(tmp_path, name, view, r
     for metrics in result.test_metrics.values():
         assert np.isfinite(metrics["accuracy"]) and np.isfinite(metrics["auc"])
     manifest = json.loads(path.read_text(encoding="utf-8"))
+    if name != "genpu":
+        (pa,) = manifest["research_settings"]["prior"]
+        assert pa["protocol"] == "PA"
+        assert pa["value"] == 0.5
     assert manifest["run_view"] == f"{view}-compatible"
     assert manifest["calibration_applied"] is (view == "ts")
     assert manifest.get("execution_mode") != "versioned_pilot"
@@ -110,7 +129,8 @@ def test_basic_gradpu_manifest_records_actual_candidate_policy_batch_and_scope(t
     model = GradPUClassifier(hidden_dim=4, max_epochs=3, batch_size=5, alpha=0.0, device="cpu")
     result = ExperimentRunner(
         seed=0,
-        class_prior=0.5,
+        training_population_prior=0.5,
+        validation_population_prior=0.5,
         manifest_path=str(path),
         config={
             "method": "gradpu",
@@ -143,7 +163,8 @@ def test_seed_determinism_in_rank_pruning_four_role_runner():
     for _ in range(2):
         result = ExperimentRunner(
             seed=0,
-            class_prior=0.5,
+            training_population_prior=0.5,
+            validation_population_prior=0.5,
             config={"method": "rp", "c": 0.5, "os_or_ts": "os"},
         ).fit(make_model("rp"), *parts())
         metrics.append(result.test_metrics)
@@ -159,13 +180,12 @@ def test_param_edge_missing_pulns_support_cannot_steal_selection_labels(tmp_path
     )
     runner = ExperimentRunner(
         seed=0,
-        class_prior=0.5,
+        training_population_prior=0.5,
+        validation_population_prior=0.5,
         manifest_path=str(tmp_path / "manifest.json"),
         config={"method": "pulns", "c": 0.5, "os_or_ts": "os"},
     )
-    with pytest.raises(RuntimeError, match="all candidate runs failed"):
+    with pytest.raises(ValueError, match="clean_val is not support"):
         runner.fit(model, *parts())
-    manifest = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
-    assert "clean support_data" in json.dumps(manifest["failures"])
-    assert manifest["selection"] == {} and manifest["test_results"] == {}
+    assert not (tmp_path / "manifest.json").exists()
     assert not model._is_fitted

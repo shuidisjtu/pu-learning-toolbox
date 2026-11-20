@@ -154,7 +154,7 @@ def test_basic_cli_plan_entrypoint_is_read_only(tmp_path, capsys):
                 str(directory),
                 "--dataset",
                 "cifar10",
-                "--class-prior",
+                "--population-prior",
                 "0.5",
                 "--prior-source",
                 "synthetic selection prior",

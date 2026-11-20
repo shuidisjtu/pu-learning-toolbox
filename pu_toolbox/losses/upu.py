@@ -66,8 +66,6 @@ class UPULoss(BasePULoss):
     instead.
     """
 
-    requires_class_prior: bool = True
-
     def __init__(self, loss: str = "logistic") -> None:
         if loss not in ("logistic", "squared"):
             raise ValueError(
@@ -81,7 +79,7 @@ class UPULoss(BasePULoss):
         positive_scores: np.ndarray,
         unlabeled_scores: np.ndarray,
         *,
-        class_prior: float,
+        risk_prior: float,
     ) -> float:
         """Compute the uPU risk.
 
@@ -91,7 +89,7 @@ class UPULoss(BasePULoss):
             g(x) for labeled-positive samples.
         unlabeled_scores : np.ndarray of shape (n_U,)
             g(x) for unlabeled samples.
-        class_prior : float
+        risk_prior : float
             Class prior π = P(y=1).  Must satisfy 0 < π < 1.
 
         Returns
@@ -99,13 +97,13 @@ class UPULoss(BasePULoss):
         float
             Scalar risk value.
         """
-        check_scalar_in_range(class_prior, 0.0, 1.0, "class_prior", inclusive=False)
+        check_scalar_in_range(risk_prior, 0.0, 1.0, "risk_prior", inclusive=False)
         if len(positive_scores) == 0:
             raise ValueError("positive_scores must not be empty.")
         if len(unlabeled_scores) == 0:
             raise ValueError("unlabeled_scores must not be empty.")
 
-        pos_term = -class_prior * float(np.mean(positive_scores))
+        pos_term = -risk_prior * float(np.mean(positive_scores))
 
         if self.loss == "logistic":
             unlabeled_term = float(np.mean(_softplus_stable(unlabeled_scores)))
@@ -121,7 +119,7 @@ class UPULoss(BasePULoss):
         positive_scores: np.ndarray,
         unlabeled_scores: np.ndarray,
         *,
-        class_prior: float,
+        risk_prior: float,
     ) -> tuple[np.ndarray, np.ndarray]:
         """Return dJ/dg_P and dJ/dg_U for the current batch of scores.
 
@@ -140,7 +138,7 @@ class UPULoss(BasePULoss):
         if n_P == 0 or n_U == 0:
             raise ValueError("positive_scores and unlabeled_scores must be non-empty.")
 
-        dpos = np.full(n_P, -class_prior / n_P)
+        dpos = np.full(n_P, -risk_prior / n_P)
 
         if self.loss == "logistic":
             dunl = sigmoid_stable(unlabeled_scores) / n_U

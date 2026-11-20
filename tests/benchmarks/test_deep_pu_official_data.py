@@ -410,6 +410,6 @@ class TestOfficialDataBenchmark:
             class_prior=None,
             seed=7,
         )
-        assert estimator.class_prior is None
+        assert estimator.risk_prior is None
         assert isinstance(estimator.prior_estimator, KernelMeanPriorEstimator)
         assert estimator.prior_estimator.variant == "km2"

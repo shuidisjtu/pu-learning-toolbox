@@ -50,15 +50,10 @@ class CVIRKnownPriorTrainer(Trainer):
         if isinstance(alpha, bool) or not isinstance(alpha, Real) or not 0 < alpha < 1:
             raise ValueError("CVIR runner requires finite alpha_U in (0, 1)")
 
-    def fit(self, estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None):
-        """Do not forward population pi as alpha; use real epoch snapshots."""
+    def fit(self, estimator, X, y, *, val_pu=None, os_or_ts=None):
+        """Fit with the estimator's configured risk prior and record real snapshots."""
         self._validate(estimator, os_or_ts)
-        if class_prior is not None and (not math.isfinite(class_prior) or not 0 < class_prior < 1):
-            raise ValueError("selection population prior must be in (0, 1)")
-        result = EpochCheckpointTrainer().fit(estimator, X, y, val_pu=val_pu)
-        estimator.training_provenance_["runner_fit_population_prior_ignored"] = class_prior
-        estimator.training_provenance_["population_prior_forwarded_to_fit"] = False
-        return result
+        return EpochCheckpointTrainer().fit(estimator, X, y, val_pu=val_pu)
 
 
 def cvir_risk_prior(population_prior, *, n_samples, n_labeled, os_or_ts):
@@ -95,12 +90,24 @@ def cvir_risk_prior(population_prior, *, n_samples, n_labeled, os_or_ts):
     return float(alpha)
 
 
+def record_cvir_population_binding(estimator, population_prior, *, n_train, n_labeled, view):
+    """Attach the population input and the observed-count conversion to the fitted uses."""
+    for use in estimator._prior_consumptions_:
+        use["source"] = "trainer.training_population_prior"
+        if view == "os":
+            use["conversion"] = {
+                "rule": "population_to_native_unlabeled",
+                "original_value": float(population_prior),
+                "q": n_labeled / n_train,
+                "n_labeled": n_labeled,
+                "n_train": n_train,
+            }
+
+
 class CVIRPopulationPriorTrainer(EpochCheckpointTrainer):
     """Bind protocol population pi to the actual CVIR risk view, opt-in only.
 
-    Default CVIR and the older explicit-alpha OS adapter are unchanged. This
-    adapter never forwards population ``class_prior`` to estimator.fit; it
-    temporarily binds the resolved constructor alpha/source for that fit and
+    This adapter temporarily binds the resolved constructor alpha/source for fit and
     restores the caller's configuration even after an exception. The fitted
     ``unlabeled_positive_prior_`` and receipt retain the actual training alpha.
     """
@@ -160,7 +167,7 @@ class CVIRPopulationPriorTrainer(EpochCheckpointTrainer):
         """Include both stages and the largest candidate, not only the base model."""
         return self._epoch_bound
 
-    def fit(self, estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None):
+    def fit(self, estimator, X, y, *, training_population_prior=None, val_pu=None, os_or_ts=None):
         """Forward only train PU data; external selection remains OS and separate."""
         self._validate_model(estimator, os_or_ts)
         labels = np.asarray(y)
@@ -168,7 +175,9 @@ class CVIRPopulationPriorTrainer(EpochCheckpointTrainer):
             raise ValueError("CVIR prior conversion requires aligned binary observed PU labels")
         view = "os" if os_or_ts is None else os_or_ts
         count = int(np.count_nonzero(labels == 1))
-        alpha = cvir_risk_prior(class_prior, n_samples=len(labels), n_labeled=count, os_or_ts=view)
+        alpha = cvir_risk_prior(
+            training_population_prior, n_samples=len(labels), n_labeled=count, os_or_ts=view
+        )
         estimator.set_params(
             unlabeled_positive_prior=alpha, prior_source=self.population_prior_source
         )
@@ -176,18 +185,9 @@ class CVIRPopulationPriorTrainer(EpochCheckpointTrainer):
             result = super().fit(estimator, X, y, os_or_ts=view)
         finally:
             estimator.set_params(unlabeled_positive_prior=None, prior_source=None)
-        estimator.training_provenance_["population_prior_binding"] = {
-            "population_prior": float(class_prior),
-            "risk_pool_positive_prior": alpha,
-            "formula": "pi" if view == "ts" else "(pi*n-n_L)/(n-n_L)",
-            "n_train": len(labels),
-            "n_labeled_positive": count,
-            "prior_source": self.population_prior_source,
-            "source_verified": False,
-            "uses_hidden_training_labels": False,
-            "formal_admission": False,
-        }
-        estimator.training_provenance_["population_prior_forwarded_to_fit"] = False
+        record_cvir_population_binding(
+            estimator, training_population_prior, n_train=len(labels), n_labeled=count, view=view
+        )
         if hasattr(self, "_checkpoint_bytes_per_component") and any(
             Path(checkpoint.path).stat().st_size > self._checkpoint_bytes_per_component
             for checkpoint in result.checkpoints

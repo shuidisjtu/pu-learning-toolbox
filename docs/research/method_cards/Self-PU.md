@@ -416,7 +416,7 @@ L=L_{SP+Reweight}+L_{students}+L_{teachers}.
 
 | 参数 | 含义 | 论文对应 |
 |---|---|---|
-| `class_prior` | `pi_p` | 论文默认已知 |
+| `risk_prior` | `pi_p` | 论文默认已知 |
 | `warmup_epochs` | warm-up 时长 | 论文约 10 epochs |
 | `max_trust_ratio` | 最终 trusted/U 比例 | 论文研究 10%–40%，常用 25% |
 | `pace_1`, `pace_2` | 两个 student 的 sampling pace | 建议不同，例如 20%/30% |

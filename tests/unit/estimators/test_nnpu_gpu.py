@@ -31,7 +31,7 @@ def test_nnpu_cnn_trains_and_predicts_on_gpu():
     X, y_pu = _image_data()
     clf = NonNegativePUClassifier(
         encoder=build_encoder("cnn", backbone="cnn13", in_channels=3),
-        class_prior=0.4,
+        risk_prior=0.4,
         max_epochs=1,
         batch_size=16,
         device="cuda",

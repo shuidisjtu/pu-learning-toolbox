@@ -287,7 +287,7 @@ class TestBiasRecoveryClassSymmetry:
             random_state=0,
         )
         clf = KLDCEClassifier(flip_probability=0.5, random_state=0)
-        clf.fit(X, y_pu, class_prior=0.1)
+        clf.fit(X, y_pu, training_table_prior=0.1)
         pred = clf.predict(X)
         assert 0.005 < pred.mean() < 0.9
         assert pred[y_true == 1].mean() > 0.05

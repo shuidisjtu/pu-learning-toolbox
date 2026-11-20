@@ -25,17 +25,17 @@ class TestSensitivityMath:
         from pu_toolbox.metrics import pu_zero_one_risk
 
         y_pu, y_pred = sensitivity_data
-        result = analyze_pu_sensitivity(y_pu, y_pred, class_priors=[0.5])
+        result = analyze_pu_sensitivity(y_pu, y_pred, population_priors=[0.5])
         expected = pu_zero_one_risk(y_pu, y_pred, 0.5, input_sampling="os")
         assert result.points[0].pu_zero_one_risk == pytest.approx(expected)
 
     @pytest.mark.math
-    def test_basic_class_prior_golden_values(self, sensitivity_data):
+    def test_basic_population_prior_golden_values(self, sensitivity_data):
         y_pu, y_pred = sensitivity_data
         result = analyze_pu_sensitivity(
             y_pu,
             y_pred,
-            class_priors=[0.2, 0.25, 0.5],
+            population_priors=[0.2, 0.25, 0.5],
         )
 
         assert isinstance(result, PUSensitivityAnalysis)
@@ -58,25 +58,25 @@ class TestSensitivityMath:
         )
 
         inconsistent, boundary, middle, full = result.points
-        assert inconsistent.class_prior == pytest.approx(1.25)
+        assert inconsistent.population_prior == pytest.approx(1.25)
         assert inconsistent.is_consistent is False
         assert inconsistent.pu_estimated_precision is None
-        assert boundary.class_prior == pytest.approx(1.0)
+        assert boundary.population_prior == pytest.approx(1.0)
         assert boundary.is_consistent is True
         assert boundary.pu_zero_one_risk is None
-        assert middle.class_prior == pytest.approx(0.5)
-        assert full.class_prior == pytest.approx(0.25)
+        assert middle.population_prior == pytest.approx(0.5)
+        assert full.population_prior == pytest.approx(0.25)
 
     def test_basic_metric_ranges_use_only_consistent_available_points(self, sensitivity_data):
         y_pu, y_pred = sensitivity_data
         result = analyze_pu_sensitivity(
             y_pu,
             y_pred,
-            class_priors=[0.2, 0.25, 0.5],
+            population_priors=[0.2, 0.25, 0.5],
             label_propensities=[0.2, 0.5, 1.0],
         )
 
-        prior_precision = result.metric_ranges["class_prior"]["pu_estimated_precision"]
+        prior_precision = result.metric_ranges["population_prior"]["pu_estimated_precision"]
         assert prior_precision["n_available"] == 2
         assert prior_precision["minimum"] == pytest.approx(1.0 / 3.0)
         assert prior_precision["maximum"] == pytest.approx(2.0 / 3.0)
@@ -90,7 +90,7 @@ class TestSensitivityMath:
         result = analyze_pu_sensitivity(
             y_pu,
             y_pred,
-            class_priors=[0.5],
+            population_priors=[0.5],
             scores=scores,
         )
 
@@ -104,34 +104,34 @@ class TestSensitivityMath:
 class TestSensitivityValidation:
     def test_param_invalid_grids_raise_friendly_errors(self, sensitivity_data):
         y_pu, y_pred = sensitivity_data
-        with pytest.raises(ValueError, match="Supply class_priors"):
+        with pytest.raises(ValueError, match="Supply population_priors"):
             analyze_pu_sensitivity(y_pu, y_pred)
         with pytest.raises(ValueError, match=r"\(0, 1\)"):
-            analyze_pu_sensitivity(y_pu, y_pred, class_priors=[1.0])
+            analyze_pu_sensitivity(y_pu, y_pred, population_priors=[1.0])
         with pytest.raises(ValueError, match="duplicate"):
             analyze_pu_sensitivity(y_pu, y_pred, label_propensities=[0.5, 0.5])
         with pytest.raises(ValueError, match="cannot be empty"):
-            analyze_pu_sensitivity(y_pu, y_pred, class_priors=[])
+            analyze_pu_sensitivity(y_pu, y_pred, population_priors=[])
 
     def test_param_invalid_predictions_and_scores_raise(self, sensitivity_data):
         y_pu, y_pred = sensitivity_data
         with pytest.raises(ValueError, match="same length"):
-            analyze_pu_sensitivity(y_pu, y_pred[:-1], class_priors=[0.5])
+            analyze_pu_sensitivity(y_pu, y_pred[:-1], population_priors=[0.5])
         with pytest.raises(ValueError, match=r"only \{0, 1\}"):
-            analyze_pu_sensitivity(y_pu, np.full(8, -1), class_priors=[0.5])
+            analyze_pu_sensitivity(y_pu, np.full(8, -1), population_priors=[0.5])
         scores = np.ones(8)
         scores[0] = np.nan
         with pytest.raises(ValueError, match="finite"):
-            analyze_pu_sensitivity(y_pu, y_pred, class_priors=[0.5], scores=scores)
+            analyze_pu_sensitivity(y_pu, y_pred, population_priors=[0.5], scores=scores)
 
     @pytest.mark.parametrize("y_pu", [np.zeros(8, dtype=int), np.ones(8, dtype=int)])
     def test_edge_single_observed_group_raises(self, y_pu):
         with pytest.raises(ValueError, match="both labeled-positive and unlabeled"):
-            analyze_pu_sensitivity(y_pu, np.zeros(8), class_priors=[0.5])
+            analyze_pu_sensitivity(y_pu, np.zeros(8), population_priors=[0.5])
 
     def test_edge_unknown_axis_and_save_format_raise(self, sensitivity_data, tmp_path):
         y_pu, y_pred = sensitivity_data
-        result = analyze_pu_sensitivity(y_pu, y_pred, class_priors=[0.5])
+        result = analyze_pu_sensitivity(y_pu, y_pred, population_priors=[0.5])
         with pytest.raises(ValueError, match="axis must be"):
             result.to_frame(axis="unknown")
         with pytest.raises(ValueError, match="Cannot infer"):
@@ -143,9 +143,9 @@ class TestSensitivityRendering:
     @pytest.mark.parametrize(
         ("suffix", "expected"),
         [
-            (".json", '"schema_version": "1.0"'),
+            (".json", '"schema_version": "2.0"'),
             (".md", "# PU Assumption Sensitivity Analysis"),
-            (".csv", "axis,value,class_prior"),
+            (".csv", "axis,value,population_prior"),
         ],
     )
     def test_param_save_formats(self, sensitivity_data, tmp_path, suffix, expected):
@@ -153,7 +153,7 @@ class TestSensitivityRendering:
         result = analyze_pu_sensitivity(
             y_pu,
             y_pred,
-            class_priors=[0.25, 0.5],
+            population_priors=[0.25, 0.5],
             label_propensities=[0.5, 1.0],
         )
         path = tmp_path / f"sensitivity{suffix}"
@@ -164,7 +164,7 @@ class TestSensitivityRendering:
     def test_deterministic_json_markdown_and_frame(self, sensitivity_data):
         y_pu, y_pred = sensitivity_data
         kwargs = {
-            "class_priors": [0.25, 0.5],
+            "population_priors": [0.25, 0.5],
             "label_propensities": [0.5, 1.0],
         }
         first = analyze_pu_sensitivity(y_pu, y_pred, **kwargs)

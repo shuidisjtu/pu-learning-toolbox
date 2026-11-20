@@ -73,7 +73,8 @@ def test_basic_four_role_runner_uses_observed_train_labels_and_replayable_snapsh
     path = tmp_path / "manifest.json"
     result = ExperimentRunner(
         seed=0,
-        class_prior=0.5,
+        training_population_prior=0.5,
+        validation_population_prior=0.5,
         manifest_path=str(path),
         config={
             "method": "p3mix",

@@ -92,12 +92,13 @@ def test_param_invalid_optimizer_settings_rejected(observations, params):
 @pytest.mark.parametrize("prior", [0, 1, -0.1, np.nan, np.inf, True, [0.3], "0.3"])
 def test_param_invalid_initialization_prior_rejected(observations, prior):
     with pytest.raises(ValueError):
-        LBEClassifier().fit(*observations, class_prior=prior)
+        LBEClassifier().fit(*observations, initial_unlabeled_prior=prior)
 
 
 def test_basic_diagnostics_and_label_probability_use_final_models(observations):
     features, labels = observations
-    model = LBEClassifier(n_em_iter=3).fit(features, labels, class_prior=0.3)
+    model = LBEClassifier(n_em_iter=3).fit(features, labels, initial_unlabeled_prior=0.3)
+    assert model._prior_consumptions_[0]["value"] == pytest.approx(0.3)
     p = np.clip(model.predict_proba(features)[:, 1], 1e-5, 1 - 1e-5)
     c = np.clip(model.propensity_model_.predict_proba(features)[:, 1], 1e-5, 1 - 1e-5)
     np.testing.assert_allclose(
@@ -111,7 +112,7 @@ def test_basic_diagnostics_and_label_probability_use_final_models(observations):
     assert len(model.observed_log_likelihood_history_) == model.n_iter_
     expected = np.sum(labels * np.log(p * c) + (1 - labels) * np.log1p(-p * c))
     assert model.observed_log_likelihood_history_[-1] == pytest.approx(expected)
-    assert model._class_prior == pytest.approx(p.mean())
+    assert model.training_table_prior_estimate_ == pytest.approx(p.mean())
 
 
 def test_edge_failed_refit_invalidates_old_fitted_state(observations):
@@ -129,7 +130,7 @@ def test_edge_fixed_posterior_reports_early_stop(observations, monkeypatch):
         "_positive_posterior",
         staticmethod(lambda s, p, c: np.where(s == 1, 1.0, 0.3)),
     )
-    model = LBEClassifier(n_em_iter=5).fit(*observations, class_prior=0.3)
+    model = LBEClassifier(n_em_iter=5).fit(*observations, initial_unlabeled_prior=0.3)
     assert model.n_iter_ == 1
     assert model.converged_ is True
     assert len(model.observed_log_likelihood_history_) == 1

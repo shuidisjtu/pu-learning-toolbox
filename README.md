@@ -57,7 +57,7 @@ from pu_toolbox.prior import population_to_native_unlabeled
 
 # For an OS training pool with known population prior 0.5:
 pi_u = population_to_native_unlabeled(0.5, float(np.mean(y_train_pu == 1)))
-model = UPUClassifier(class_prior=pi_u, random_state=42)
+model = UPUClassifier(risk_prior=pi_u, random_state=42)
 model.fit(X_train, y_train_pu)
 predictions = model.predict(X_test)
 ```

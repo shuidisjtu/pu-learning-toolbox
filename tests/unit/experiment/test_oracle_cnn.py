@@ -109,7 +109,14 @@ def test_basic_current_protocol_assembles_the_admitted_native_cnn_oracle():
     assert row["backbone"] == "resnet18_end_to_end"
     assert row["oracle_alignment"] == "shared_resnet18_end_to_end_and_minibatch_budget"
     model = assemble_model(
-        protocol, row, 512, seed=0, params={}, class_prior=None, device="cpu", encoder=nn.Identity()
+        protocol,
+        row,
+        512,
+        seed=0,
+        params={},
+        population_prior=None,
+        device="cpu",
+        encoder=nn.Identity(),
     )
     assert isinstance(model, PilotOracleCNN)
     assert "class_prior" not in model.get_params()
@@ -169,7 +176,14 @@ def test_basic_the_native_cnn_oracle_passes_the_protocol_model_check(dataset):
     row = resolve_unit(protocol, dataset, "pn_oracle", "native_cnn")
     profile = protocol["method_profiles"][row["method"]]
     model = assemble_model(
-        protocol, row, 512, seed=0, params={}, class_prior=None, device="cpu", encoder=nn.Identity()
+        protocol,
+        row,
+        512,
+        seed=0,
+        params={},
+        population_prior=None,
+        device="cpu",
+        encoder=nn.Identity(),
     )
     _validate_model(model, profile, row, 0)
 

@@ -62,14 +62,14 @@ class DomainAssumptionReport:
             "# Cross-domain PU Assumption Report",
             "",
             f"- Conclusion: `{self.conclusion}`",
-            f"- Source class prior: `{self.source['class_prior']:.6f}`",
-            f"- Target class prior: `{self.target['class_prior']:.6f}`",
+            f"- Source class prior: `{self.source['population_prior']:.6f}`",
+            f"- Target class prior: `{self.target['population_prior']:.6f}`",
             f"- Source mean label propensity: `{self.source['mean_label_propensity']:.6f}`",
             f"- Target mean label propensity: `{self.target['mean_label_propensity']:.6f}`",
             "",
             "## Differences (target - source)",
             "",
-            f"- Class prior: `{self.differences['class_prior']:.6f}`",
+            f"- Class prior: `{self.differences['population_prior']:.6f}`",
             f"- Observed label rate: `{self.differences['observed_label_rate']:.6f}`",
             f"- Mean label propensity: `{self.differences['mean_label_propensity']:.6f}`",
         ]
@@ -83,8 +83,8 @@ class DomainAssumptionReport:
                     f"`{self.uncertainty['n_requested']}`",
                     f"- Confidence level: `{self.uncertainty['confidence']:.3f}`",
                     f"- Class-prior difference CI: "
-                    f"`[{self.uncertainty['differences']['class_prior']['low']:.6f}, "
-                    f"{self.uncertainty['differences']['class_prior']['high']:.6f}]`",
+                    f"`[{self.uncertainty['differences']['population_prior']['low']:.6f}, "
+                    f"{self.uncertainty['differences']['population_prior']['high']:.6f}]`",
                     f"- Propensity difference CI: "
                     f"`[{self.uncertainty['differences']['mean_label_propensity']['low']:.6f}, "
                     f"{self.uncertainty['differences']['mean_label_propensity']['high']:.6f}]`",
@@ -145,20 +145,32 @@ def _resolve_prior(
     estimator: str | BasePriorEstimator,
     *,
     observed_label_rate: float,
-) -> tuple[float, str]:
+) -> tuple[float, dict[str, Any] | None]:
     if value is not None:
-        check_scalar_in_range(value, 0.0, 1.0, "class_prior", inclusive=False)
-        return float(value), "user"
+        check_scalar_in_range(value, 0.0, 1.0, "population_prior", inclusive=False)
+        return float(value), None
     fitted = _prior_estimator(estimator).fit(X, y_pu)
     estimate = float(fitted.estimate())
+    evidence = {
+        "estimator": type(fitted).__qualname__,
+        "estimate_target": fitted.estimate_target,
+        "estimation_pool": fitted.estimation_pool,
+        "original_value": estimate,
+    }
     if fitted.estimate_target == "native_unlabeled":
+        evidence["conversion"] = {
+            "rule": "native_unlabeled_to_population",
+            "q": observed_label_rate,
+        }
         estimate = native_unlabeled_to_population(
             estimate, observed_label_rate, input_sampling="os"
         )
     elif fitted.estimate_target != "population":
         raise ValueError(f"Unsupported prior estimate target: {fitted.estimate_target!r}.")
-    check_scalar_in_range(estimate, 0.0, 1.0, "estimated population class_prior", inclusive=False)
-    return estimate, "estimated"
+    check_scalar_in_range(
+        estimate, 0.0, 1.0, "estimated population population_prior", inclusive=False
+    )
+    return estimate, evidence
 
 
 def analyze_domain_assumptions(
@@ -168,8 +180,8 @@ def analyze_domain_assumptions(
     y_target_pu: Any,
     *,
     input_sampling: str = "os",
-    source_class_prior: float | None = None,
-    target_class_prior: float | None = None,
+    source_population_prior: float | None = None,
+    target_population_prior: float | None = None,
     prior_estimator: str | BasePriorEstimator = "pen_l1",
     prior_shift_threshold: float = 0.05,
     propensity_shift_threshold: float = 0.05,
@@ -207,17 +219,17 @@ def analyze_domain_assumptions(
         raise ValueError("Each PU label vector must match its domain feature rows.")
     source_rate = float(np.mean(source_labels == 1))
     target_rate = float(np.mean(target_labels == 1))
-    source_prior, source_origin = _resolve_prior(
+    source_prior, source_estimate = _resolve_prior(
         X_source,
         source_labels,
-        source_class_prior,
+        source_population_prior,
         prior_estimator,
         observed_label_rate=source_rate,
     )
-    target_prior, target_origin = _resolve_prior(
+    target_prior, target_estimate = _resolve_prior(
         X_target,
         target_labels,
-        target_class_prior,
+        target_population_prior,
         prior_estimator,
         observed_label_rate=target_rate,
     )
@@ -257,8 +269,8 @@ def analyze_domain_assumptions(
             target_c = target_rate / target_candidate
             sensitivity.append(
                 {
-                    "source_class_prior": source_candidate,
-                    "target_class_prior": target_candidate,
+                    "source_population_prior": source_candidate,
+                    "target_population_prior": target_candidate,
                     "prior_difference": target_candidate - source_candidate,
                     "propensity_difference": target_c - source_c,
                     "is_feasible": source_c <= 1.0 and target_c <= 1.0,
@@ -271,8 +283,8 @@ def analyze_domain_assumptions(
             source_labels,
             X_target,
             target_labels,
-            source_class_prior=source_class_prior,
-            target_class_prior=target_class_prior,
+            source_population_prior=source_population_prior,
+            target_population_prior=target_population_prior,
             prior_estimator=prior_estimator,
             n_replicates=bootstrap_replicates,
             confidence=confidence,
@@ -291,19 +303,19 @@ def analyze_domain_assumptions(
         source={
             "n_samples": len(source_labels),
             "observed_label_rate": source_rate,
-            "class_prior": source_prior,
-            "class_prior_source": source_origin,
+            "population_prior": source_prior,
+            "population_prior_source": "user" if source_estimate is None else "estimated",
             "mean_label_propensity": source_propensity,
         },
         target={
             "n_samples": len(target_labels),
             "observed_label_rate": target_rate,
-            "class_prior": target_prior,
-            "class_prior_source": target_origin,
+            "population_prior": target_prior,
+            "population_prior_source": "user" if target_estimate is None else "estimated",
             "mean_label_propensity": target_propensity,
         },
         differences={
-            "class_prior": prior_delta,
+            "population_prior": prior_delta,
             "observed_label_rate": rate_delta,
             "mean_label_propensity": propensity_delta,
         },
@@ -313,7 +325,12 @@ def analyze_domain_assumptions(
         issues=tuple(issues),
         provenance={
             "input_sampling": input_sampling,
-            "class_prior_target": "population",
+            "prior_target": "population",
+            "prior_estimation": {
+                domain: evidence
+                for domain, evidence in (("source", source_estimate), ("target", target_estimate))
+                if evidence is not None
+            },
             "identity": "P(S=1)=P(Y=1)*E[P(S=1|Y=1,X)|Y=1]",
             "prior_estimator": (
                 prior_estimator
@@ -355,8 +372,8 @@ def _bootstrap_domain_uncertainty(
     X_target: Any,
     target_labels: np.ndarray,
     *,
-    source_class_prior: float | None,
-    target_class_prior: float | None,
+    source_population_prior: float | None,
+    target_population_prior: float | None,
     prior_estimator: str | BasePriorEstimator,
     n_replicates: int,
     confidence: float,
@@ -386,14 +403,14 @@ def _bootstrap_domain_uncertainty(
             source_prior, _ = _resolve_prior(
                 _take_rows(X_source, source_indices),
                 source_boot_labels,
-                source_class_prior,
+                source_population_prior,
                 prior_estimator,
                 observed_label_rate=source_rate,
             )
             target_prior, _ = _resolve_prior(
                 _take_rows(X_target, target_indices),
                 target_boot_labels,
-                target_class_prior,
+                target_population_prior,
                 prior_estimator,
                 observed_label_rate=target_rate,
             )
@@ -425,17 +442,17 @@ def _bootstrap_domain_uncertainty(
         "n_valid": n_valid,
         "n_failed": failed,
         "source": {
-            "class_prior": _interval(values["source_prior"], confidence),
+            "population_prior": _interval(values["source_prior"], confidence),
             "observed_label_rate": _interval(values["source_rate"], confidence),
             "mean_label_propensity": _interval(values["source_propensity"], confidence),
         },
         "target": {
-            "class_prior": _interval(values["target_prior"], confidence),
+            "population_prior": _interval(values["target_prior"], confidence),
             "observed_label_rate": _interval(values["target_rate"], confidence),
             "mean_label_propensity": _interval(values["target_propensity"], confidence),
         },
         "differences": {
-            "class_prior": _interval(values["prior_difference"], confidence),
+            "population_prior": _interval(values["prior_difference"], confidence),
             "observed_label_rate": _interval(values["rate_difference"], confidence),
             "mean_label_propensity": _interval(values["propensity_difference"], confidence),
         },

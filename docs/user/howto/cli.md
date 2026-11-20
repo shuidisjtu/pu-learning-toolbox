@@ -26,7 +26,7 @@ pu-toolbox list-methods
   separated demo classes.
 - `profile --data X.csv --labels y_pu.csv [--true-labels y_true.csv] [--out-dir .]`:
   profiles data and labeling-mechanism evidence, writing `profile.json`.
-- `sensitivity --data X.csv --labels y_pu.csv [--classifier elkan_noto] [--class-priors 0.1,...,0.9] [--seed 42] [--out-dir .]`:
+- `sensitivity --data X.csv --labels y_pu.csv [--classifier elkan_noto] [--population-priors 0.1,...,0.9] [--seed 42] [--out-dir .]`:
   scans class-prior/propensity assumptions and writes `sensitivity.json`.
 - `audit-benchmark --result-dir results/ [--output audit.json]`: checks required artifacts,
   configuration hashes, trial/seed completeness, duplicate rows, finite metrics, and official-data

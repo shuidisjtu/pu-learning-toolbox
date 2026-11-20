@@ -106,7 +106,7 @@ def test_basic_real_cli_uses_native_stage_costs_and_checkpoint_storage(
                 "0",
                 "--c",
                 "0.5",
-                "--class-prior",
+                "--population-prior",
                 "0.4",
                 "--os-or-ts",
                 view,
@@ -141,13 +141,15 @@ def test_determ_staged_verifier_preserves_native_weights_and_training(seed, algo
     torch = pytest.importorskip("torch")
     protocol = matrix(algorithm)
     row = protocol["execution_units"][0]
-    model = assemble_model(protocol, row, 3, seed=seed, params={}, class_prior=0.4, device="cpu")
+    model = assemble_model(
+        protocol, row, 3, seed=seed, params={}, population_prior=0.4, device="cpu"
+    )
     plain = copy.deepcopy(model)
     features = np.random.RandomState(0).normal(size=(18, 3)).astype("float32")
     y = np.r_[np.ones(3, int), np.zeros(15, int)]
-    plain.fit(features, y, class_prior=0.4, os_or_ts="ts")
+    plain.fit(features, y, risk_prior=0.4, os_or_ts="ts")
     trajectory = EpochCheckpointTrainer(checkpoint_dir=tmp_path).fit(
-        model, features, y, class_prior=0.4, os_or_ts="ts"
+        model, features, y, risk_prior=0.4, os_or_ts="ts"
     )
     receipt = verify_trajectory(
         model, trajectory, protocol["budgets"][row["budget"]][FIELD], features, y, "ts"
@@ -220,13 +222,13 @@ def test_param_actual_trajectory_faults_are_not_accepted(fault, tmp_path):
         3,
         seed=0,
         params={},
-        class_prior=0.4,
+        population_prior=0.4,
         device="cpu",
     )
     features = np.random.RandomState(0).normal(size=(18, 3)).astype("float32")
     y = np.r_[np.ones(3, int), np.zeros(15, int)]
     trajectory = EpochCheckpointTrainer(checkpoint_dir=tmp_path).fit(
-        model, features, y, class_prior=0.4, os_or_ts="os"
+        model, features, y, risk_prior=0.4, os_or_ts="os"
     )
     contract = protocol["budgets"]["explicit_stages"][FIELD]
     if fault == "stage":
@@ -269,13 +271,13 @@ def test_edge_zero_warmup_keeps_only_pu_snapshots_without_phantom_cost(tmp_path)
         3,
         seed=0,
         params={},
-        class_prior=0.4,
+        population_prior=0.4,
         device="cpu",
     )
     features = np.random.RandomState(0).normal(size=(18, 3)).astype("float32")
     labels = np.r_[np.ones(3, int), np.zeros(15, int)]
     trajectory = EpochCheckpointTrainer(checkpoint_dir=tmp_path).fit(
-        model, features, labels, class_prior=0.4, os_or_ts="ts"
+        model, features, labels, risk_prior=0.4, os_or_ts="ts"
     )
     receipt = verify_trajectory(model, trajectory, contract, features, labels, "ts")
     assert receipt["checkpoint_epoch_count"] == 2 and receipt["optimizer_steps"] == 4
@@ -288,7 +290,7 @@ def _model_with_encoder(algorithm):
     protocol = matrix(algorithm)
     row = protocol["execution_units"][0]
     model = assemble_model(
-        protocol, row, 4, seed=0, params={}, class_prior=0.4, device="cpu", encoder=None
+        protocol, row, 4, seed=0, params={}, population_prior=0.4, device="cpu", encoder=None
     )
     model.set_params(encoder=nn.Identity())
     return model, protocol["budgets"]["explicit_stages"][FIELD]

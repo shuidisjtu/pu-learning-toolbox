@@ -32,6 +32,7 @@ class PUSBClassifier(BasePUClassifier):
 
     family = AlgorithmFamily.BIAS_AWARE
     label_semantics = "pu"
+    _prior_consumptions_ = ()
     assumption = (Assumption.SAR,)
     scenario = (Scenario.CASE_CONTROL, Scenario.SELECTION_BIASED)
     source_status = SourceStatus.OFFICIAL_RELATED
@@ -45,7 +46,7 @@ class PUSBClassifier(BasePUClassifier):
         self.C = C
         self.max_iter = max_iter
 
-    def fit(self, X, y_pu, *, class_prior=None, sample_weight=None):
+    def fit(self, X, y_pu, *, sample_weight=None):
         X, y_pu = validate_pu_X_y(X, y_pu, accept_sparse=False, estimator_name="PUSBClassifier")
         if not 0.0 < self.threshold < 1.0 or self.C <= 0:
             raise ValueError("threshold must be in (0, 1) and C must be positive")
@@ -60,7 +61,6 @@ class PUSBClassifier(BasePUClassifier):
         fit_params = {} if weights is None else {"logisticregression__sample_weight": weights}
         self.model_.fit(X, y_pu, **fit_params)
         self.classes_ = np.array([0, 1])
-        self._class_prior = class_prior
         self._X_shape_ = X.shape
         self._is_fitted = True
         return self

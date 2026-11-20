@@ -66,7 +66,7 @@ y_pu = constructed.observations.labels
 pi_u = population_to_native_unlabeled(0.5, y_pu.mean(), input_sampling="os")
 initial_hash = encoder_state_sha256(template)
 model = NonNegativePUClassifier(
-    encoder=template, class_prior=pi_u, batch_size=8,
+    encoder=template, risk_prior=pi_u, batch_size=8,
     max_epochs=2, random_state=7, device="cpu",
 ).fit(X, y_pu)
 assert model.encoder_ is not template
@@ -137,7 +137,7 @@ features, representation = adapt_image_bundle_to_features(
     encoder_fit_scope="fixed_external", batch_size=8, device="cpu",
 )
 frozen_model = UPUClassifier(
-    class_prior=training_prior, fit_intercept=False, random_state=7,
+    risk_prior=training_prior, fit_intercept=False, random_state=7,
 ).fit(features.train.X, observed)
 (output / "frozen.pkl").write_bytes(pickle.dumps((template, frozen_model)))
 (output / "representation.json").write_text(

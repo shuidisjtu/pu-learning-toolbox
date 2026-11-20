@@ -78,15 +78,15 @@ pu_toolbox/
     _dataset_text.py                      (raw text directory and TAR readers)
     _sampling.py                          # shared fixed positive quotas and uniform labeling without replacement
     dataset_fetch.py                      (explicit checksum-verified artifact acquisition)
-    source_configs/                       (reviewed image, text and table source configurations)
     dataset_sources.py                    (local format dispatch, raw partitions and source identities)
-    pu_construction.py                   (OS constructors, source identity, observations and audit)
+    pu_construction.py                    (OS constructors, source identity, observations and audit)
     pu_labeling.py                        (PNU labels and separate Gaussian sampling designs)
     selection_bias.py                     (calibrated SCAR/SAR propensities for OS construction)
     profiling.py                          (pu_data_summary lightweight summaries and scar_diagnostic SCAR diagnostics)
     data_profiler.py                      (profile_pu_data structured summaries, issues, and assumption warnings)
   prior/
     __init__.py                           (public re-exports)
+    _evidence.py                          (actual training-prior use records)
     recpe.py                              (native: ReCPEEstimator regrouping prior estimation; default KM2 base estimator)
     pen_l1.py                             (native: ClassPriorEstimator penalized L1 closed-form prior with theta grid search)
     kernel_mean.py                        (native: KernelMeanPriorEstimator KM1/KM2 kernel-mean mixture proportion estimation)
@@ -268,6 +268,7 @@ tests/
       test_benchmark_audit.py           # persisted benchmark artifact audits
       test_shift.py                     # shift audits, relative weights, ESS, serialization
       test_domain_assumptions.py        # two-domain prior/mechanism decomposition, feasibility, serialization
+      test_prior_contract_migration.py  # named prior inputs and distinct diagnostic targets
       test_shift_monitor.py             # window deltas, alerts, history restoration, configuration gates
       test_uncertainty.py               # rejection coverage, three query policies, per-row artifacts
     estimators/
@@ -372,7 +373,7 @@ tests/
       test_bbe.py                       # independent tail formulas, confidence criteria, repeated scores, train/holdout isolation
       test_prior_semantics.py           # prior targets, mass identities, invalid domains, identifiable mixtures
     preprocessing/
-      test_dataset_delimited.py        # numeric table column selection and raw label contracts
+      test_dataset_delimited.py         # numeric table column selection and raw label contracts
       test_dataset_sources.py           # configuration-driven IDX/NPZ and source identities
       test_pu_construction.py           # Raw/synthetic OS construction contracts and fit smoke
       test_pu_labeling.py               # PNU and negative-only Gaussian construction contracts
@@ -599,6 +600,7 @@ tests/
   integration/                          # CLI + PUPipeline + registry + estimators
     test_joint_shift_classifier.py      # synthetic protocol, boundedness, determinism
     test_joint_shift_baselines.py       # four controls, ablations, boundaries, determinism
+    test_joint_shift_prior_contract.py  # source/target prior evidence and actual consumers
     test_iris_smoke.py                  # native classifier trainability/prediction smoke without accuracy assertions
     test_pulns_cnn_support.py           # built-in CNN, independent reward set, no test-label use by public workflows
     test_dist_pu_pipeline_cnn.py        # frozen pilot keeps DistPU defaults

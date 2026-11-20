@@ -33,6 +33,7 @@ from ...core.tags import (
     Assumption,
     Backend,
     Maturity,
+    PriorConsumer,
     SampleWeightSupport,
     Scenario,
     SourceStatus,
@@ -63,7 +64,7 @@ class NonNegativePUClassifier(BasePUClassifier):
         provided, ``model`` (if any) is used as the score head stacked
         on the encoder; otherwise a default ``nn.Linear(rep_dim, 1)``
         head is created.  ``encoder=None`` keeps the original behaviour.
-    class_prior : float or None, default None
+    risk_prior : float or None, default None
         Positive prior in native U for the default risk view, in (0, 1). Can also be
         supplied (or overridden) via :meth:`fit`.
     loss : {"sigmoid"}, default "sigmoid"
@@ -91,7 +92,7 @@ class NonNegativePUClassifier(BasePUClassifier):
     ----------
     model_ : torch.nn.Module
         Fitted model.
-    class_prior_ : float
+    risk_prior_ : float
         Class prior used during training.
     n_positive_ : int
         Number of labeled-positive samples.
@@ -113,8 +114,23 @@ class NonNegativePUClassifier(BasePUClassifier):
     label_semantics = "pu"
     assumption: tuple[Assumption, ...] = (Assumption.SCAR,)
     scenario: tuple[Scenario, ...] = (Scenario.CASE_CONTROL,)
-    requires_class_prior: bool = True
-    class_prior_target = "native_unlabeled"
+    _runner_prior_parameter = "risk_prior"
+    prior_consumers = (
+        PriorConsumer(
+            "nnpu_training_risk",
+            "native_unlabeled",
+            parameter="risk_prior",
+            requires_input=True,
+            ts_compatible_target="positive_union_unlabeled",
+        ),
+        PriorConsumer(
+            "nnpu_validation_risk",
+            "native_unlabeled",
+            parameter="validation_risk_prior",
+            partition="pu_val",
+        ),
+    )
+    _prior_consumptions_ = ()
     source_status: SourceStatus = SourceStatus.OFFICIAL_EXACT
     backend: Backend = Backend.TORCH
     maturity: Maturity = Maturity.STABLE
@@ -129,7 +145,7 @@ class NonNegativePUClassifier(BasePUClassifier):
         model: torch.nn.Module | None = None,  # noqa: F821
         *,
         encoder: torch.nn.Module | None = None,  # noqa: F821
-        class_prior: float | None = None,
+        risk_prior: float | None = None,
         loss: Literal["sigmoid"] = "sigmoid",
         beta: float = 0.0,
         gamma: float = 1.0,
@@ -143,7 +159,7 @@ class NonNegativePUClassifier(BasePUClassifier):
         super().__init__()
         self.model = model
         self.encoder = encoder
-        self.class_prior = class_prior
+        self.risk_prior = risk_prior
         self.loss = loss
         self.beta = beta
         self.gamma = gamma
@@ -162,9 +178,10 @@ class NonNegativePUClassifier(BasePUClassifier):
         X: np.ndarray,
         y_pu: np.ndarray,
         *,
-        class_prior: float | None = None,
+        risk_prior: float | None = None,
         sample_weight: np.ndarray | None = None,
         validation_data: tuple[np.ndarray, np.ndarray] | None = None,
+        validation_risk_prior: float | None = None,
         epoch_callback=None,
         os_or_ts: str = "os",
     ) -> NonNegativePUClassifier:
@@ -176,8 +193,8 @@ class NonNegativePUClassifier(BasePUClassifier):
             Feature matrix.
         y_pu : np.ndarray of shape (n_samples,)
             PU labels.  +1 = labeled positive, 0 = unlabeled.
-        class_prior : float, optional
-            Override the constructor's ``class_prior``.  Must be in (0, 1).
+        risk_prior : float, optional
+            Override the constructor's ``risk_prior``.  Must be in (0, 1).
         sample_weight : np.ndarray of shape (n_samples,), optional
             Per-sample weights.  Normalised independently within the
             P and U groups.
@@ -185,6 +202,8 @@ class NonNegativePUClassifier(BasePUClassifier):
             PU validation data for early stopping.  If provided,
             training stops after ``patience`` epochs without
             improvement in nnPU validation risk.
+        validation_risk_prior : float, optional
+            Prior of validation's native U pool. Omit it to reuse ``risk_prior``.
         epoch_callback : callable, optional
             Called as ``epoch_callback(epoch, self)`` after each completed
             epoch, before early-stop restoration. Exceptions propagate.
@@ -202,11 +221,13 @@ class NonNegativePUClassifier(BasePUClassifier):
         """
         import torch
 
+        self._prior_consumptions_ = ()
+        risk_source = "estimator.risk_prior" if risk_prior is None else "fit.risk_prior"
         # ── Resolve class prior ───────────────────────────────────
-        if class_prior is None:
-            class_prior = self.class_prior
-        if class_prior is None:
-            raise ValueError("class_prior must be provided either in __init__() or fit().")
+        if risk_prior is None:
+            risk_prior = self.risk_prior
+        if risk_prior is None:
+            raise ValueError("risk_prior must be provided either in __init__() or fit().")
 
         # ── Validate inputs ───────────────────────────────────────
         X, y_pu = validate_pu_X_y(
@@ -217,7 +238,13 @@ class NonNegativePUClassifier(BasePUClassifier):
         )
         if not np.isfinite(X).all():
             raise ValueError("X contains NaN or Inf values.")
-        check_scalar_in_range(class_prior, 0.0, 1.0, "class_prior", inclusive=False)
+        check_scalar_in_range(risk_prior, 0.0, 1.0, "risk_prior", inclusive=False)
+        if validation_risk_prior is not None:
+            if validation_data is None:
+                raise ValueError("validation_risk_prior requires validation_data.")
+            check_scalar_in_range(
+                validation_risk_prior, 0.0, 1.0, "validation_risk_prior", inclusive=False
+            )
         if self.beta < 0:
             raise ValueError(f"beta must be >= 0; got {self.beta}.")
         if not 0.0 <= self.gamma <= 1.0:
@@ -239,11 +266,11 @@ class NonNegativePUClassifier(BasePUClassifier):
             )
 
         # Warn if beta exceeds sigmoid upper bound
-        if self.beta > class_prior:
+        if self.beta > risk_prior:
             warnings.warn(
-                f"beta ({self.beta}) > class_prior ({class_prior}). "
+                f"beta ({self.beta}) > risk_prior ({risk_prior}). "
                 "With sigmoid loss (bounded by 1), the correction "
-                "branch may never activate. Consider beta <= class_prior.",
+                "branch may never activate. Consider beta <= risk_prior.",
                 UserWarning,
                 stacklevel=2,
             )
@@ -267,8 +294,8 @@ class NonNegativePUClassifier(BasePUClassifier):
 
         self.n_positive_ = n_P
         self.n_unlabeled_ = n_U
-        self._class_prior = class_prior
-        self.class_prior_ = class_prior
+        self.risk_prior_ = risk_prior
+        self.validation_risk_prior_ = None
         self._X_shape_ = X.shape
 
         # ── Sample weights ────────────────────────────────────────
@@ -362,6 +389,9 @@ class NonNegativePUClassifier(BasePUClassifier):
                 estimator_name="NonNegativePUClassifier[val]",
             )
             X_val_t = torch.tensor(X_val, dtype=torch.float32)
+            self.validation_risk_prior_ = (
+                risk_prior if validation_risk_prior is None else validation_risk_prior
+            )
 
         # ── Training loop ─────────────────────────────────────────
         calibrated_view = os_or_ts == "ts"
@@ -441,7 +471,7 @@ class NonNegativePUClassifier(BasePUClassifier):
                     R_p_plus,
                     R_p_minus,
                     R_u_minus,
-                    class_prior=class_prior,
+                    risk_prior=risk_prior,
                     beta=self.beta,
                     gamma=self.gamma,
                 )
@@ -478,7 +508,7 @@ class NonNegativePUClassifier(BasePUClassifier):
                 val_risk = evaluator(
                     val_scores[mask_val_P],
                     val_scores[~mask_val_P],
-                    class_prior=class_prior,
+                    risk_prior=self.validation_risk_prior_,
                     non_negative=True,
                 )
                 self.history_["val_risk"].append(float(val_risk))
@@ -501,6 +531,25 @@ class NonNegativePUClassifier(BasePUClassifier):
 
         # ── Finalise ──────────────────────────────────────────────
         self.classes_ = np.array([0, 1])
+        training = {
+            "consumer": "nnpu_training_risk",
+            "partition": "train",
+            "target": "positive_union_unlabeled" if calibrated_view else "native_unlabeled",
+            "source": risk_source,
+            "value": float(self.risk_prior_),
+        }
+        self._prior_consumptions_ = (training,)
+        if self.validation_risk_prior_ is not None:
+            validation = {
+                "consumer": "nnpu_validation_risk",
+                "partition": "pu_val",
+                "target": "native_unlabeled",
+                "source": "fit.validation_risk_prior",
+                "value": float(self.validation_risk_prior_),
+            }
+            if validation_risk_prior is None:
+                validation.update(source=risk_source, reused_from=training["consumer"])
+            self._prior_consumptions_ += (validation,)
         self._is_fitted = True
         return self
 
@@ -555,7 +604,7 @@ class NonNegativePUClassifier(BasePUClassifier):
         X: np.ndarray,
         y_pu: np.ndarray,
         *,
-        class_prior: float | None = None,
+        risk_prior: float | None = None,
         non_negative: bool = True,
     ) -> float:
         """Compute uPU or nnPU risk on the full dataset.
@@ -565,7 +614,7 @@ class NonNegativePUClassifier(BasePUClassifier):
         X : np.ndarray of shape (n_samples, n_features)
         y_pu : np.ndarray of shape (n_samples,)
             PU labels.
-        class_prior : float, optional
+        risk_prior : float, optional
             Override the stored class prior.
         non_negative : bool, default True
             If True, return nnPU risk R̃_pu (Eq. 6).
@@ -578,9 +627,9 @@ class NonNegativePUClassifier(BasePUClassifier):
         from ...core.labels import normalize_pu_labels
 
         self._check_is_fitted()
-        pi = class_prior if class_prior is not None else self._class_prior
+        pi = risk_prior if risk_prior is not None else self.risk_prior_
         if pi is None:
-            raise ValueError("class_prior must be provided (was not stored during fit).")
+            raise ValueError("risk_prior must be provided (was not stored during fit).")
 
         y_pu = normalize_pu_labels(y_pu)
         scores = self._decision_function(X)
@@ -590,7 +639,7 @@ class NonNegativePUClassifier(BasePUClassifier):
         return evaluator(
             scores[mask_P],
             scores[~mask_P],
-            class_prior=pi,
+            risk_prior=pi,
             non_negative=non_negative,
         )
 
@@ -616,6 +665,8 @@ class NonNegativePUClassifier(BasePUClassifier):
         meta = super().get_pu_metadata()
         meta.update(
             {
+                "risk_prior": getattr(self, "risk_prior_", None),
+                "validation_risk_prior": getattr(self, "validation_risk_prior_", None),
                 "loss": self.loss,
                 "beta": self.beta,
                 "gamma": self.gamma,

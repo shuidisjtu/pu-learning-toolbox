@@ -214,7 +214,7 @@ def _run_classifier(
 ) -> dict[str, float]:
     if method == "dist_pu":
         estimator = DistPUClassifier(
-            class_prior=true_prior,
+            distribution_prior=true_prior,
             random_state=seed,
             **parameters,
         )
@@ -225,7 +225,7 @@ def _run_classifier(
         estimator = LBEClassifier(**parameters).fit(
             X_train,
             y_pu,
-            class_prior=true_prior,
+            initial_unlabeled_prior=true_prior,
         )
 
     scores = np.asarray(estimator.predict_proba(X_test)[:, 1], dtype=float)

@@ -107,8 +107,8 @@ assumptions = analyze_domain_assumptions(
     X_target,
     y_target_pu,
     input_sampling="os",
-    source_class_prior=0.25,   # Optional population prior for the source domain.
-    target_class_prior=0.35,
+    source_population_prior=0.25,   # Optional population prior for the source domain.
+    target_population_prior=0.35,
 )
 print(assumptions.conclusion)
 print(assumptions.differences)

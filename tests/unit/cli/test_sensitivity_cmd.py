@@ -56,7 +56,7 @@ def test_param_custom_grid_size(tmp_path):
             str(X_path),
             "--labels",
             str(y_path),
-            "--class-priors",
+            "--population-priors",
             "0.2,0.4,0.6,0.8",
             "--out-dir",
             str(out_dir),
@@ -99,14 +99,14 @@ def test_edge_invalid_grid_reports_error(tmp_path, capsys):
                 str(X_path),
                 "--labels",
                 str(y_path),
-                "--class-priors",
+                "--population-priors",
                 "0.1,abc",
                 "--out-dir",
                 str(tmp_path / "out"),
             ]
         )
     assert exc.value.code == 1
-    assert "cannot parse class-priors grid" in capsys.readouterr().err
+    assert "cannot parse population-priors grid" in capsys.readouterr().err
 
 
 @pytest.mark.unit

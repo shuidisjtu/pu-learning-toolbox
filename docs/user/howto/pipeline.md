@@ -20,13 +20,13 @@ from pu_toolbox.prior import population_to_native_unlabeled
 pi_population = 0.4
 q_train = float(np.mean(y_train_pu == 1))
 pi_u = population_to_native_unlabeled(pi_population, q_train, input_sampling="os")
-model = UPUClassifier(class_prior=pi_u, random_state=42)
+model = UPUClassifier(risk_prior=pi_u, random_state=42)
 model.fit(X_train, y_train_pu)
 predictions = model.predict(X_test)
 ```
 
 With independent TS input the native U pool is a population sample and its prior is the
-population prior. For uPU on OS data, `fit(..., os_or_ts="ts", class_prior=pi_population)`
+population prior. For uPU on OS data, `fit(..., os_or_ts="ts", risk_prior=pi_population)`
 instead uses the complete training table as the marginal risk pool. That flag is not a
 declaration of independent TS input; other estimators can have different risk pools and
 prior targets. Recompute conversions within each training fold. See [prior semantics](../concepts/class_prior_semantics.md)

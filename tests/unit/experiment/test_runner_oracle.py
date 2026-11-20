@@ -97,7 +97,7 @@ def test_edge_oracle_trains_with_the_trainer_the_guard_approved():
 
 def test_clean_view_rejects_pu_estimator_even_with_supervised_trainer():
     """F2: the trainer cannot turn a PU risk estimator into a PN oracle."""
-    estimator = NonNegativePUClassifier(class_prior=0.3, max_epochs=2, random_state=0, device="cpu")
+    estimator = NonNegativePUClassifier(risk_prior=0.3, max_epochs=2, random_state=0, device="cpu")
     recorder = RecordingOracle()
     runner = ExperimentRunner(
         generator=CleanLabelGenerator(),

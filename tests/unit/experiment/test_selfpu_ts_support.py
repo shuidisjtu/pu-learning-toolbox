@@ -59,7 +59,8 @@ def run(directory, parts=None, support=None, **kwargs):
         parts, support = inputs()
     return ExperimentRunner(
         seed=0,
-        class_prior=0.5,
+        training_population_prior=0.5,
+        validation_population_prior=0.5,
         protocols=[ProtocolPACleanSupport(), ProtocolOA()],
         config=settings(trainer(support), **kwargs),
         manifest_path=str(directory / "manifest.json"),
@@ -95,7 +96,7 @@ def test_basic_actual_ts_meta_roles_both_teachers_cost_and_dual_selection(tmp_pa
     assert len(calls) == 1 and not result.failures
     features, observed, kwargs, fitted = calls[0]
     np.testing.assert_array_equal(features, parts[0].X)
-    assert set(kwargs) == {"class_prior", "validation_data", "os_or_ts", "epoch_callback"}
+    assert set(kwargs) == {"risk_prior", "validation_data", "os_or_ts", "epoch_callback"}
     assert kwargs["os_or_ts"] == "ts" and kwargs["validation_data"][0] is support.X
     np.testing.assert_array_equal(kwargs["validation_data"][1], support.labels)
     assert all(positive > 0 and untrusted > 0 and active for positive, untrusted, active in domains)
@@ -131,11 +132,13 @@ def test_determ_bridge_is_identical_to_same_full_meta_ts_native_fit(seed, tmp_pa
     plain.fit(
         parts[0].X,
         observed,
-        class_prior=0.5,
+        risk_prior=0.5,
         validation_data=(support.X, support.labels),
         os_or_ts="ts",
     )
-    adapter.fit(fitted, parts[0].X, observed, class_prior=0.5, os_or_ts="ts", val_pu=object())
+    adapter.fit(
+        fitted, parts[0].X, observed, training_population_prior=0.5, os_or_ts="ts", val_pu=object()
+    )
     assert plain.history_ == fitted.history_ and plain.training_history_ == fitted.training_history_
     assert plain.reweight_history_ == fitted.reweight_history_
     for component in ("student_1_", "student_2_", "teacher_1_", "teacher_2_"):
@@ -241,7 +244,9 @@ def test_edge_oversize_trajectory_refusal_revokes_model_and_keeps_evidence(tmp_p
     )
     adapter.bind_checkpoint_directory(tmp_path)
     with pytest.raises(ValueError, match="actual checkpoint exceeds"):
-        adapter.fit(fitted, parts[0].X, parts[0].labels, os_or_ts="ts", class_prior=0.5)
+        adapter.fit(
+            fitted, parts[0].X, parts[0].labels, os_or_ts="ts", training_population_prior=0.5
+        )
     assert not fitted._is_fitted and not hasattr(fitted, "training_provenance_")
     assert len(list(tmp_path.rglob("*.pt"))) == 6
 

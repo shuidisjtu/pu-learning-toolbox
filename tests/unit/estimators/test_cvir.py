@@ -72,7 +72,7 @@ def test_invalid_prior_or_unsupported_view_fails_loud():
     X, y = _data()
     with pytest.raises(ValueError, match="unlabeled_positive_prior"):
         _model(unlabeled_positive_prior=None).fit(X, y)
-    with pytest.raises(ValueError, match="class_prior is the population prior"):
+    with pytest.raises(TypeError, match="class_prior"):
         _model().fit(X, y, class_prior=0.4)
     with pytest.raises(NotImplementedError, match="sample_weight"):
         _model().fit(X, y, sample_weight=np.ones(len(y)))

@@ -151,7 +151,7 @@ def test_basic_cli_plan_entrypoint_does_not_train_or_create_output(tmp_path, cap
                 str(directory),
                 "--dataset",
                 "cifar10",
-                "--class-prior",
+                "--population-prior",
                 "0.5",
                 "--prior-source",
                 "synthetic selection prior",

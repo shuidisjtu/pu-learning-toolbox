@@ -36,7 +36,7 @@ def _data():
 
 def _model(**kwargs):
     params = {
-        "class_prior": 0.35,
+        "risk_prior": 0.35,
         "hidden_dim": 7,
         "depth": 1,
         "warmup_epochs": 1,
@@ -54,7 +54,7 @@ def test_distribution_alignment_matches_released_loss():
     logits = torch.tensor([0.4, -0.2, 0.7, -0.8], requires_grad=True)
     labels = torch.tensor([1, 1, 0, 0])
     total, positive, unlabeled = pulda_distribution_alignment(
-        logits, labels, class_prior=0.3, temperature=3.5
+        logits, labels, risk_prior=0.3, temperature=3.5
     )
     scores = torch.sigmoid(logits)
     expected_positive = 1 - scores[:2].mean()
@@ -73,7 +73,7 @@ def test_two_way_margin_matches_released_loss():
     logits = torch.tensor([0.4, -0.2, 0.7, -0.8], requires_grad=True)
     labels = torch.tensor([1, 1, 0, 0])
     total, positive, distribution = pulda_two_way_margin(
-        logits, labels, class_prior=0.3, margin=0.6, temperature=1.0
+        logits, labels, risk_prior=0.3, margin=0.6, temperature=1.0
     )
     pos = logits[:2]
     unl = logits[2:]
@@ -155,10 +155,14 @@ def test_ts_distribution_input_reuses_positive_logits_as_u_role(monkeypatch):
 def test_determ_seeded_fit_and_prior_override_are_stable():
     X, y = _data()
     first = _model().fit(X, y)
-    second = _model(class_prior=0.2).fit(X, y, class_prior=0.35)
+    second = _model(risk_prior=0.2).fit(X, y, risk_prior=0.35)
     np.testing.assert_array_equal(first.decision_function(X), second.decision_function(X))
     assert first.history_ == second.history_
-    assert second.get_pu_metadata()["class_prior"] == 0.35
+    assert {use["consumer"] for use in second._prior_consumptions_} == {
+        "pulda_warmup_risk",
+        "pulda_mixup_risk",
+    }
+    assert all(use["value"] == 0.35 for use in second._prior_consumptions_)
 
 
 @pytest.mark.parametrize(
@@ -186,8 +190,8 @@ def test_edge_invalid_inputs_and_weights_fail_loudly():
     X, y = _data()
     with pytest.raises(NotImplementedError, match="sample_weight"):
         _model().fit(X, y, sample_weight=np.ones(len(X)))
-    with pytest.raises(ValueError, match="class_prior"):
-        _model(class_prior=1).fit(X, y)
+    with pytest.raises(ValueError, match="risk_prior"):
+        _model(risk_prior=1).fit(X, y)
     with pytest.raises(ValidationError, match="2-D"):
         _model().fit(X[:, :, None], y)
     with pytest.raises(ValidationError, match="Sparse"):

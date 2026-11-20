@@ -31,7 +31,7 @@ class _SupportFitBinding:
     def __getattr__(self, name):
         return getattr(self.estimator, name)
 
-    def fit(self, X, y, *, class_prior=None, epoch_callback=None, os_or_ts=None):
+    def fit(self, X, y, *, risk_prior=None, epoch_callback=None, os_or_ts=None):
         self.adapter._require_prepared(self.estimator, X, os_or_ts)
 
         def completed_meta_epoch(epoch, fitted):
@@ -44,7 +44,7 @@ class _SupportFitBinding:
                 epoch_callback(epoch, fitted)
 
         self.adapter._fit_support_estimator(
-            self.estimator, X, y, class_prior=class_prior, epoch_callback=completed_meta_epoch
+            self.estimator, X, y, risk_prior=risk_prior, epoch_callback=completed_meta_epoch
         )
         return self
 
@@ -149,12 +149,15 @@ class _SupportCheckpointSelection:
             return "completed_episodes"
         return "completed_epochs" if self._capture_all_epochs else "completed_meta_epochs"
 
-    def fit(self, estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None):
+    def fit(self, estimator, X, y, *, val_pu=None, os_or_ts=None):
+        return self._fit(estimator, X, y, risk_prior=None, os_or_ts=os_or_ts)
+
+    def _fit(self, estimator, X, y, *, risk_prior, os_or_ts):
         self._require_prepared(estimator, X, os_or_ts)
         if not getattr(self, "_checkpoint_configured", False):
             raise ValueError("runner checkpoint preflight must bind the checkpoint directory")
         try:
-            return self._fit_checkpoint_trajectory(estimator, X, y, class_prior, os_or_ts)
+            return self._fit_checkpoint_trajectory(estimator, X, y, risk_prior, os_or_ts)
         except BaseException:
             # Post-fit byte/provenance refusal must not expose a fitted success.
             estimator._is_fitted = False
@@ -162,9 +165,9 @@ class _SupportCheckpointSelection:
                 del estimator.training_provenance_
             raise
 
-    def _fit_checkpoint_trajectory(self, estimator, X, y, class_prior, os_or_ts):
+    def _fit_checkpoint_trajectory(self, estimator, X, y, risk_prior, os_or_ts):
         trajectory = EpochCheckpointTrainer(checkpoint_dir=self._checkpoint_dir).fit(
-            _SupportFitBinding(estimator, self), X, y, class_prior=class_prior, os_or_ts=os_or_ts
+            _SupportFitBinding(estimator, self), X, y, risk_prior=risk_prior, os_or_ts=os_or_ts
         )
         sizes = [Path(row.path).stat().st_size for row in trajectory.checkpoints]
         if max(sizes) > self._checkpoint_bytes_per_component:
@@ -204,12 +207,17 @@ class _SupportCheckpointSelection:
         return trajectory
 
 
-class SelfPUCleanSupportCheckpointTrainer(_SupportCheckpointSelection, SelfPUCleanSupportTrainer):
+class _SelfPUCheckpointSelection(_SupportCheckpointSelection):
+    def fit(self, estimator, X, y, *, training_population_prior=None, val_pu=None, os_or_ts=None):
+        return self._fit(estimator, X, y, risk_prior=training_population_prior, os_or_ts=os_or_ts)
+
+
+class SelfPUCleanSupportCheckpointTrainer(_SelfPUCheckpointSelection, SelfPUCleanSupportTrainer):
     """SCAR OS full-meta Self-PU; independently select both EMA teacher streams."""
 
 
 class SelfPUTSCleanSupportCheckpointTrainer(
-    _SupportCheckpointSelection, _SelfPUTSCleanSupportTrainer
+    _SelfPUCheckpointSelection, _SelfPUTSCleanSupportTrainer
 ):
     """Explicit SCAR TS-compatible full-meta, not a formally admitted unit."""
 

@@ -49,7 +49,7 @@ def _domains():
 def test_basic_separates_prior_and_propensity_shift():
     Xs, ys, Xt, yt = _domains()
     report = analyze_domain_assumptions(
-        Xs, ys, Xt, yt, source_class_prior=0.4, target_class_prior=0.6
+        Xs, ys, Xt, yt, source_population_prior=0.4, target_population_prior=0.6
     )
     assert isinstance(report, DomainAssumptionReport)
     assert report.conclusion == "class_prior_shift"
@@ -65,12 +65,12 @@ def test_param_native_u_estimates_are_converted_per_domain(source_prior):
         ys,
         np.full_like(Xt, 3 / 7),
         yt,
-        source_class_prior=source_prior,
+        source_population_prior=source_prior,
         prior_estimator=_FixedNativeUPriorEstimator(),
     )
     assert report.conclusion == "class_prior_shift"
-    assert report.source["class_prior"] == pytest.approx(0.4)
-    assert report.target["class_prior"] == pytest.approx(0.6)
+    assert report.source["population_prior"] == pytest.approx(0.4)
+    assert report.target["population_prior"] == pytest.approx(0.6)
     assert report.source["mean_label_propensity"] == pytest.approx(0.5)
     assert report.target["mean_label_propensity"] == pytest.approx(0.5)
 
@@ -82,17 +82,22 @@ def test_edge_zero_native_u_prior_means_all_positives_were_labeled():
         ys,
         Xt,
         yt,
-        target_class_prior=0.6,
+        target_population_prior=0.6,
         prior_estimator=_FixedNativeUPriorEstimator(),
     )
-    assert report.source["class_prior"] == pytest.approx(0.2)
+    assert report.source["population_prior"] == pytest.approx(0.2)
     assert report.source["mean_label_propensity"] == pytest.approx(1.0)
+    evidence = report.provenance["prior_estimation"]["source"]
+    assert evidence["estimate_target"] == "native_unlabeled"
+    assert evidence["original_value"] == 0.0
+    assert evidence["conversion"]["q"] == pytest.approx(0.2)
+    assert "target" not in report.provenance["prior_estimation"]
 
 
 def test_param_propensity_change_is_distinct_from_prior_change():
     Xs, ys, Xt, yt = _domains()
     report = analyze_domain_assumptions(
-        Xs, ys, Xt, yt, source_class_prior=0.5, target_class_prior=0.5
+        Xs, ys, Xt, yt, source_population_prior=0.5, target_population_prior=0.5
     )
     assert report.conclusion == "labeling_mechanism_shift"
     assert report.differences["mean_label_propensity"] == pytest.approx(0.2)
@@ -101,7 +106,7 @@ def test_param_propensity_change_is_distinct_from_prior_change():
 def test_edge_infeasible_prior_is_explicitly_inconclusive():
     Xs, ys, Xt, yt = _domains()
     report = analyze_domain_assumptions(
-        Xs, ys, Xt, yt, source_class_prior=0.1, target_class_prior=0.2
+        Xs, ys, Xt, yt, source_population_prior=0.1, target_population_prior=0.2
     )
     assert report.conclusion == "inconclusive"
     assert report.issues[0].severity == "error"
@@ -110,14 +115,14 @@ def test_edge_infeasible_prior_is_explicitly_inconclusive():
 def test_determ_sensitivity_grid_and_serialization(tmp_path):
     Xs, ys, Xt, yt = _domains()
     report = analyze_domain_assumptions(
-        Xs, ys, Xt, yt, source_class_prior=0.4, target_class_prior=0.6
+        Xs, ys, Xt, yt, source_population_prior=0.4, target_population_prior=0.6
     )
     assert len(report.sensitivity) == 9
     path = report.save(tmp_path / "domain.json")
     payload = json.loads(path.read_text(encoding="utf-8"))
     assert payload["analysis_type"] == "cross_domain_pu_assumption_analysis"
     assert payload["provenance"]["input_sampling"] == "os"
-    assert payload["provenance"]["class_prior_target"] == "population"
+    assert payload["provenance"]["prior_target"] == "population"
     report.save(tmp_path / "domain.md")
 
 
@@ -125,11 +130,17 @@ def test_edge_bad_threshold_and_row_mismatch_fail():
     Xs, ys, Xt, yt = _domains()
     with pytest.raises(ValueError, match="prior_shift_threshold"):
         analyze_domain_assumptions(
-            Xs, ys, Xt, yt, source_class_prior=0.4, target_class_prior=0.6, prior_shift_threshold=-1
+            Xs,
+            ys,
+            Xt,
+            yt,
+            source_population_prior=0.4,
+            target_population_prior=0.6,
+            prior_shift_threshold=-1,
         )
     with pytest.raises(ValueError, match="match"):
         analyze_domain_assumptions(
-            Xs[:-1], ys, Xt, yt, source_class_prior=0.4, target_class_prior=0.6
+            Xs[:-1], ys, Xt, yt, source_population_prior=0.4, target_population_prior=0.6
         )
 
 
@@ -149,12 +160,13 @@ def test_basic_bootstrap_reestimates_both_priors_and_propagates_differences():
         bootstrap_replicates=40,
         random_state=9,
     )
-    assert report.source["class_prior"] == pytest.approx(0.45)
-    assert report.target["class_prior"] == pytest.approx(0.55)
+    assert report.source["population_prior"] == pytest.approx(0.45)
+    assert report.target["population_prior"] == pytest.approx(0.55)
     uncertainty = report.uncertainty
     assert uncertainty["n_valid"] == 40
     assert (
-        uncertainty["source"]["class_prior"]["low"] < uncertainty["source"]["class_prior"]["high"]
+        uncertainty["source"]["population_prior"]["low"]
+        < uncertainty["source"]["population_prior"]["high"]
     )
     assert (
         uncertainty["differences"]["mean_label_propensity"]["low"]
@@ -179,7 +191,7 @@ def test_determ_bootstrap_converts_using_each_resampled_label_rate():
         stats = uncertainty[domain]
         for bound in ("low", "high"):
             q = stats["observed_label_rate"][bound]
-            assert stats["class_prior"][bound] == pytest.approx(q + (1 - q) * native_u_prior)
+            assert stats["population_prior"][bound] == pytest.approx(q + (1 - q) * native_u_prior)
 
 
 def test_param_explicit_prior_has_degenerate_prior_ci_but_rate_uncertainty():
@@ -189,13 +201,13 @@ def test_param_explicit_prior_has_degenerate_prior_ci_but_rate_uncertainty():
         ys,
         Xt,
         yt,
-        source_class_prior=0.5,
-        target_class_prior=0.6,
+        source_population_prior=0.5,
+        target_population_prior=0.6,
         bootstrap_replicates=30,
         random_state=3,
     )
     source_ci = report.uncertainty["source"]
-    assert source_ci["class_prior"]["low"] == source_ci["class_prior"]["high"] == 0.5
+    assert source_ci["population_prior"]["low"] == source_ci["population_prior"]["high"] == 0.5
     assert source_ci["observed_label_rate"]["low"] < source_ci["observed_label_rate"]["high"]
 
 
@@ -203,19 +215,25 @@ def test_edge_invalid_bootstrap_configuration_is_rejected():
     Xs, ys, Xt, yt = _domains()
     with pytest.raises(ValueError, match="bootstrap_replicates"):
         analyze_domain_assumptions(
-            Xs, ys, Xt, yt, source_class_prior=0.5, target_class_prior=0.6, bootstrap_replicates=1
+            Xs,
+            ys,
+            Xt,
+            yt,
+            source_population_prior=0.5,
+            target_population_prior=0.6,
+            bootstrap_replicates=1,
         )
     with pytest.raises(ValueError, match="confidence"):
         analyze_domain_assumptions(
-            Xs, ys, Xt, yt, source_class_prior=0.5, target_class_prior=0.6, confidence=1.0
+            Xs, ys, Xt, yt, source_population_prior=0.5, target_population_prior=0.6, confidence=1.0
         )
 
 
 def test_determ_bootstrap_is_reproducible_with_fixed_seed():
     Xs, ys, Xt, yt = _domains()
     options = dict(
-        source_class_prior=0.5,
-        target_class_prior=0.6,
+        source_population_prior=0.5,
+        target_population_prior=0.6,
         bootstrap_replicates=20,
         random_state=11,
     )

@@ -31,6 +31,7 @@ from ...core.tags import (
     Assumption,
     Backend,
     Maturity,
+    PriorConsumer,
     SampleWeightSupport,
     Scenario,
     SourceStatus,
@@ -90,9 +91,9 @@ class UPUClassifier(BasePUClassifier):
 
     Parameters
     ----------
-    class_prior : float
-        Positive prior in native U for the default risk view. Required. May be overridden in
-        :meth:`fit` via the ``class_prior`` kwarg.
+    risk_prior : float, optional
+        Positive prior in the distribution carrying the unlabeled risk term. The default
+        view uses native U. Supply the value here or in :meth:`fit`.
     loss : {"double_hinge", "logistic", "squared"}, default "squared"
         * ``"double_hinge"`` — ℓ(z) = max{−z, 0, (1−z)/2}.  Convex QP.
           Recommended primary variant (C-DH).
@@ -146,11 +147,20 @@ class UPUClassifier(BasePUClassifier):
     label_semantics = "pu"
     assumption: tuple[Assumption, ...] = (Assumption.SCAR,)
     scenario: tuple[Scenario, ...] = (Scenario.CASE_CONTROL,)
-    requires_class_prior: bool = True
-    class_prior_target = "native_unlabeled"
     # Opt in to converting a supplied population prior in the built-in Runner path.
     # Direct fit still takes the prior of the pool used by the loss.
     _convert_os_population_prior = True
+    _runner_prior_parameter = "risk_prior"
+    prior_consumers = (
+        PriorConsumer(
+            "upu_risk",
+            "native_unlabeled",
+            parameter="risk_prior",
+            requires_input=True,
+            ts_compatible_target="positive_union_unlabeled",
+        ),
+    )
+    _prior_consumptions_ = ()
     source_status: SourceStatus = SourceStatus.OFFICIAL_BUNDLE
     backend: Backend = Backend.NUMPY
     maturity: Maturity = Maturity.STABLE
@@ -158,7 +168,7 @@ class UPUClassifier(BasePUClassifier):
 
     def __init__(
         self,
-        class_prior: float,
+        risk_prior: float | None = None,
         *,
         loss: Literal["double_hinge", "logistic", "squared"] = "squared",
         reg_lambda: float = 1e-3,
@@ -171,7 +181,7 @@ class UPUClassifier(BasePUClassifier):
         random_state: int | None = None,
     ) -> None:
         super().__init__()
-        self.class_prior = class_prior
+        self.risk_prior = risk_prior
         self.loss = loss
         self.reg_lambda = reg_lambda
         self.basis = basis
@@ -189,7 +199,7 @@ class UPUClassifier(BasePUClassifier):
         X: np.ndarray,
         y_pu: np.ndarray,
         *,
-        class_prior: float | None = None,
+        risk_prior: float | None = None,
         sample_weight: np.ndarray | None = None,
         os_or_ts: str = "os",
     ) -> UPUClassifier:
@@ -201,8 +211,8 @@ class UPUClassifier(BasePUClassifier):
             Feature matrix.
         y_pu : np.ndarray of shape (n_samples,)
             PU labels.  +1 = labeled positive, 0 = unlabeled.
-        class_prior : float, optional
-            Override the constructor's ``class_prior``. Must be in (0, 1) and
+        risk_prior : float, optional
+            Override the constructor's ``risk_prior``. Must be in (0, 1) and
             match the pool used by the unlabeled risk term: native U for
             ``"os"`` and the complete OS population pool for ``"ts"``.
         sample_weight : np.ndarray, optional
@@ -235,11 +245,10 @@ class UPUClassifier(BasePUClassifier):
         if not np.isfinite(y_pu).all():
             raise ValueError("y_pu contains NaN or Inf values.")
 
-        # ── Resolve class_prior ───────────────────────────────────────
-        pi = class_prior if class_prior is not None else self.class_prior
-        check_scalar_in_range(pi, 0.0, 1.0, "class_prior", inclusive=False)
-        self._class_prior = pi
-        self.class_prior_ = pi
+        pi = self.risk_prior if risk_prior is None else risk_prior
+        if pi is None:
+            raise ValueError("UPUClassifier requires a risk_prior in (0, 1).")
+        check_scalar_in_range(pi, 0.0, 1.0, "risk_prior", inclusive=False)
 
         # ── Parameter validation ─────────────────────────────────────
         if self.reg_lambda <= 0:
@@ -321,6 +330,16 @@ class UPUClassifier(BasePUClassifier):
         # ── Finalise ──────────────────────────────────────────────────
         self._X_shape_ = X.shape
         self.classes_ = np.array([0, 1])
+        self.risk_prior_ = pi
+        self._prior_consumptions_ = (
+            {
+                "consumer": "upu_risk",
+                "partition": "train",
+                "target": "positive_union_unlabeled" if calibrated else "native_unlabeled",
+                "source": "estimator.risk_prior" if risk_prior is None else "fit.risk_prior",
+                "value": pi,
+            },
+        )
         self._is_fitted = True
         return self
 
@@ -526,6 +545,7 @@ class UPUClassifier(BasePUClassifier):
                 "n_basis": getattr(self, "_n_basis_", None),
                 "n_iter": getattr(self, "n_iter_", None),
                 "opt_status": getattr(self, "opt_status_", None),
+                "risk_prior": getattr(self, "risk_prior_", None),
             }
         )
         return meta

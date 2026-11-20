@@ -145,7 +145,7 @@ def test_param_review_preserves_fitted_upu_predictions(
 ):
     X_train = np.array([[1.0], [2.0], [-2.0], [-1.0], [1.0], [2.0]])
     y_pu = np.array([1, 1, 0, 0, 0, 0])
-    model = UPUClassifier(class_prior=0.5, fit_intercept=False).fit(X_train, y_pu, os_or_ts="ts")
+    model = UPUClassifier(risk_prior=0.5, fit_intercept=False).fit(X_train, y_pu, os_or_ts="ts")
     data = np.array([[0.4], [0.1], [0.2]])
     scores = model.decision_function(data)
     assert np.all((scores > 0) & (scores < 0.5))

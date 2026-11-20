@@ -47,7 +47,7 @@ _ATOL = 1e-9
 _DEFAULT = object()
 
 _CONF = dict(
-    class_prior=1 / 3,
+    risk_prior=1 / 3,
     hidden_dim=4,
     warmup_epochs=0,
     self_paced_start=0,

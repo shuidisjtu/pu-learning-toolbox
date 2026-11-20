@@ -159,7 +159,7 @@ propensity 只对真实正类有意义。固定 `q_i` 后，正类相关样本�
 输入：X、s，其中 s=1 表示 labeled positive，s=0 表示 U
 
 1. 校验 P/U 均非空。
-2. 初始化 q_i：P 设为 1，U 设为 class_prior 或工程初值。
+2. 初始化 q_i：P 设为 1，U 设为 `initial_unlabeled_prior` 或工程初值。
 3. 重复 n_em_iter 次：
    a. 用 q 作为 soft target 更新 classifier: r_theta(x)=P(Y=1|x)；
    b. 根据 classifier 更新 propensity model: c_phi(x)=P(S=1|Y=1,x)；
@@ -185,7 +185,7 @@ propensity 只对真实正类有意义。固定 `q_i` 后，正类相关样本�
 本节线性说明对应 `lbe` / `LBEClassifier`；独立的 `lbe_neural` 变体见 §10，不替换本节实现或历史结果。
 
 - 当前实现用线性 logistic 模型和交替 soft-label 更新近似论文的 EM + Adam 框架，不能直接宣称复现论文神经网络实验。
-- 当前 `class_prior=None` 时使用工程初始化值；这不是论文给出的普适先验估计器，也不能替代 ReCPE/penL1。
+- 当前 `initial_unlabeled_prior=None` 时使用工程初始化值；这不是论文给出的普适先验估计器，也不能替代 ReCPE/penL1。
 - 实际论文使用其图模型对应的 likelihood parameterization；实现时应以论文完整公式和官方代码变量为最终核对依据。
 - 项目实现通过两份样本副本和权重 `q_i`、`1-q_i` 调用 sklearn logistic regression，得到可运行的 soft-label 更新。
 - 停止条件：latent posterior 最大变化量小于 `1e-5`，或达到 `n_em_iter`。论文的完整实现还涉及 Adam 优化、参数初始化和 likelihood 迭代细节；不能用当前停止条件替代论文实验 protocol。
@@ -233,7 +233,7 @@ S\sim Bernoulli(Y\cdot c(X)),
 | 参数 | 论文含义 |
 |---|---|
 | `n_em_iter` | EM 最大交替次数；论文需与 optimizer stop protocol 对齐 |
-| `class_prior` | U latent posterior 初始化先验；不是独立的 CPE |
+| `initial_unlabeled_prior` | U latent posterior 初始化先验；不是独立的 CPE |
 
 ---
 

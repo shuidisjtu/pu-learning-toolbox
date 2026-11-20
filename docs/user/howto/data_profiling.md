@@ -21,7 +21,7 @@ from pu_toolbox.preprocessing import profile_pu_data
 report = profile_pu_data(
     X,
     y_pu,
-    class_prior=0.30,
+    evaluation_prior=0.30,
     random_state=42,
 )
 
@@ -29,7 +29,7 @@ print(report.format_text())
 payload = report.to_dict()
 ```
 
-Public PU labels are normalized to `{1, 0}`. `class_prior` is a supplied or independently
+Public PU labels are normalized to `{1, 0}`. `evaluation_prior` is a supplied or independently
 estimated population $`P(Y=1)`$; the profiler does not estimate it from hidden truth.
 
 Enable audit mode when manual review, delayed outcomes, or a synthetic experiment provides truth:
@@ -39,7 +39,7 @@ audited_report = profile_pu_data(
     X,
     y_pu,
     y_true=y_true,
-    class_prior=0.30,
+    evaluation_prior=0.30,
     cv=5,
     scar_auc_threshold=0.65,
 )
@@ -62,7 +62,7 @@ See the [API reference](../reference/api/tools.md#returned-pudataprofile) for `P
 
 ## 3. Class-prior consistency
 
-For default OS input, supplying `class_prior=pi` makes the report compute:
+For default OS input, supplying `evaluation_prior=pi` makes the report compute:
 
 ```math
 \widehat c = \frac{n_{\mathrm{labeled}}/n}{\pi}.

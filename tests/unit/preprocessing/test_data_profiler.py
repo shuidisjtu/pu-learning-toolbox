@@ -27,7 +27,7 @@ class TestProfileStructure:
         X = rng.normal(size=(120, 4))
         y = np.r_[np.ones(40, dtype=int), np.zeros(80, dtype=int)]
 
-        report = profile_pu_data(X, y, class_prior=0.5)
+        report = profile_pu_data(X, y, evaluation_prior=0.5)
 
         assert isinstance(report, PUDataProfile)
         assert report.summary["n_samples"] == 120
@@ -100,12 +100,12 @@ class TestProfileLabelChecks:
         X = np.arange(40, dtype=float).reshape(20, 2)
         y = np.r_[np.ones(8, dtype=int), np.zeros(12, dtype=int)]
 
-        report = profile_pu_data(X, y, class_prior=0.3)
+        report = profile_pu_data(X, y, evaluation_prior=0.3)
         assert report.summary["implied_label_frequency"] == pytest.approx(4 / 3)
         assert "inconsistent_class_prior" in {issue.code for issue in report.issues}
 
-        with pytest.raises(ValueError, match="class_prior must be in"):
-            profile_pu_data(X, y, class_prior=1.0)
+        with pytest.raises(ValueError, match="evaluation_prior must be in"):
+            profile_pu_data(X, y, evaluation_prior=1.0)
         with pytest.raises(ValueError, match="must be 2-D"):
             profile_pu_data(np.arange(20), y)
         with pytest.raises(ValueError, match="y_pu has 19"):

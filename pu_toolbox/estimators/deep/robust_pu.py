@@ -20,6 +20,7 @@ from ...core.tags import (
     Assumption,
     Backend,
     Maturity,
+    PriorConsumer,
     SampleWeightSupport,
     Scenario,
     SourceStatus,
@@ -71,7 +72,7 @@ def _episode_weights(logits, pu_labels, *, threshold_p, threshold_n, temper_p, t
 class RobustPUClassifier(BasePUClassifier):
     """PU-only Robust-PU adaptation for dense tabular features.
 
-    ``class_prior`` is the positive fraction in the unlabeled distribution,
+    ``risk_prior`` is the positive fraction in the unlabeled distribution,
     as in the source's case-control sampling protocol. It is used only by
     nnPU warm-up. Later episodes weight the BCE of P=1 and U=0 pseudo-labels.
     """
@@ -80,8 +81,17 @@ class RobustPUClassifier(BasePUClassifier):
     label_semantics = "pu"
     assumption = (Assumption.SCAR,)
     scenario = (Scenario.CASE_CONTROL,)
-    requires_class_prior = True
-    class_prior_target = "native_unlabeled"
+    _runner_prior_parameter = "risk_prior"
+    prior_consumers = (
+        PriorConsumer(
+            "robust_pu_warmup_risk",
+            "native_unlabeled",
+            parameter="risk_prior",
+            requires_input=True,
+            ts_compatible_target="positive_union_unlabeled",
+        ),
+    )
+    _prior_consumptions_ = ()
     source_status = SourceStatus.OFFICIAL_EXACT
     backend = Backend.TORCH
     maturity = Maturity.EXPERIMENTAL
@@ -107,7 +117,7 @@ class RobustPUClassifier(BasePUClassifier):
 
     def __init__(
         self,
-        class_prior: float | None = None,
+        risk_prior: float | None = None,
         *,
         model=None,
         encoder=None,
@@ -131,7 +141,7 @@ class RobustPUClassifier(BasePUClassifier):
         device: str | None = None,
     ) -> None:
         super().__init__()
-        self.class_prior = class_prior
+        self.risk_prior = risk_prior
         self.model = model
         self.encoder = encoder
         self.hidden_dim = hidden_dim
@@ -159,7 +169,7 @@ class RobustPUClassifier(BasePUClassifier):
         X: np.ndarray,
         y_pu: np.ndarray,
         *,
-        class_prior: float | None = None,
+        risk_prior: float | None = None,
         sample_weight: np.ndarray | None = None,
         epoch_callback=None,
         os_or_ts: str = "os",
@@ -180,9 +190,7 @@ class RobustPUClassifier(BasePUClassifier):
         if self.encoder is not None and not isinstance(self.encoder, torch.nn.Module):
             raise TypeError("encoder must be a torch.nn.Module")
         view = build_training_view(X, y_pu, requested_view=os_or_ts)
-        prior = self.class_prior if class_prior is None else class_prior
-        if prior is None or not np.isfinite(prior) or not 0 < prior < 1:
-            raise ValueError("class_prior must be in (0, 1)")
+        prior = self.risk_prior if risk_prior is None else risk_prior
         for name in (
             "hidden_dim",
             "pretrain_epochs",
@@ -196,6 +204,10 @@ class RobustPUClassifier(BasePUClassifier):
                 raise ValueError(f"{name} must be a valid non-negative/positive integer")
         if view.calibration_applied and self.pretrain_epochs == 0:
             raise ValueError("os_or_ts='ts' requires pretrain_epochs > 0 for nnPU calibration")
+        if (self.pretrain_epochs or prior is not None) and (
+            prior is None or not np.isfinite(prior) or not 0 < prior < 1
+        ):
+            raise ValueError("risk_prior must be in (0, 1)")
         for name in (
             "pretrain_lr",
             "learning_rate",
@@ -259,7 +271,21 @@ class RobustPUClassifier(BasePUClassifier):
         data = torch.as_tensor(X)
         labels = torch.as_tensor(y_pu.astype(np.float32))
         self.model_ = model
-        self._class_prior = float(prior)
+        self.risk_prior_ = None
+        self._prior_consumptions_ = ()
+        if self.pretrain_epochs:
+            self.risk_prior_ = float(prior)
+            self._prior_consumptions_ = (
+                {
+                    "consumer": "robust_pu_warmup_risk",
+                    "partition": "train",
+                    "target": "positive_union_unlabeled"
+                    if view.calibration_applied
+                    else "native_unlabeled",
+                    "source": "estimator.risk_prior" if risk_prior is None else "fit.risk_prior",
+                    "value": self.risk_prior_,
+                },
+            )
         self._X_shape_ = X.shape
         self.n_features_in_ = X.shape[1]
         self.input_shape_ = tuple(X.shape[1:])
@@ -307,7 +333,7 @@ class RobustPUClassifier(BasePUClassifier):
                     torch.sigmoid(-pos).mean(),
                     torch.sigmoid(pos).mean(),
                     torch.sigmoid(loss_unl).mean(),
-                    class_prior=prior,
+                    risk_prior=prior,
                 )
                 if not torch.isfinite(loss):
                     raise FloatingPointError("Robust-PU pretrain loss became non-finite")

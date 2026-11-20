@@ -96,7 +96,7 @@ def test_edge_a_prior_contradicting_the_splits_is_refused(driver, unit_calls, tm
     """
     splits = splits_tree(tmp_path, prior=0.39)
     out = str(tmp_path / "out")
-    contradicted = ["--class-prior", "spambase=0.039,imdb=0.5,cifar10=0.1"]
+    contradicted = ["--population-prior", "spambase=0.039,imdb=0.5,cifar10=0.1"]
 
     assert driver.main(["--results", out, "--splits", str(splits), *contradicted]) == 1
     assert unit_calls == []
@@ -124,10 +124,10 @@ def test_basic_the_recorded_prior_reaches_the_unit_script(driver, unit_calls, tm
     for argv in unit_calls:
         script = " ".join(argv)
         if "--oracle" in argv:
-            assert "--class-prior" not in argv
+            assert "--population-prior" not in argv
         else:
-            assert "--class-prior" in argv
-            assert argv[argv.index("--class-prior") + 1] == "0.42", script
+            assert "--population-prior" in argv
+            assert argv[argv.index("--population-prior") + 1] == "0.42", script
 
 
 def test_basic_dry_run_reports_the_plan_without_starting_a_batch(
@@ -167,7 +167,7 @@ def test_basic_dry_run_reports_the_plan_without_starting_a_batch(
 
 
 def test_param_a_malformed_dimension_or_prior_is_reported_not_raised(driver, tmp_path, capsys):
-    for flag, value in (("--input-dims", "spambase"), ("--class-prior", "spambase=")):
+    for flag, value in (("--input-dims", "spambase"), ("--population-prior", "spambase=")):
         assert driver.main(["--dry-run", "--results", str(tmp_path), flag, value]) == 1
         assert capsys.readouterr().err.startswith("error: ")
 

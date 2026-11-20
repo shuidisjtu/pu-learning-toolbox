@@ -22,6 +22,7 @@ from ...core.tags import (
     Assumption,
     Backend,
     Maturity,
+    PriorConsumer,
     SampleWeightSupport,
     Scenario,
     SourceStatus,
@@ -32,6 +33,7 @@ from ...core.validation import (
     validate_pu_X_y,
     validate_true_binary_labels,
 )
+from ...prior._evidence import risk_pool_target, training_prior_uses
 
 __all__ = [
     "SelfPUClassifier",
@@ -295,8 +297,26 @@ class SelfPUClassifier(BasePUClassifier):
     epoch_components = ("teacher_1", "teacher_2")
     assumption = (Assumption.SCAR,)
     scenario = (Scenario.CASE_CONTROL,)
-    requires_class_prior = True
-    class_prior_target = "native_unlabeled"
+    _runner_prior_parameter = "risk_prior"
+    prior_consumers = (
+        PriorConsumer(
+            "self_pu_training_risk",
+            "native_unlabeled",
+            parameter="risk_prior",
+            requires_input=True,
+            ts_compatible_target="positive_union_unlabeled",
+        ),
+        PriorConsumer(
+            "self_pu_validation_risk",
+            "native_unlabeled",
+            parameter="validation_risk_prior",
+            partition="pu_val",
+        ),
+        PriorConsumer(
+            "self_pu_ablation_teacher_selection", "native_unlabeled", parameter="risk_prior"
+        ),
+    )
+    _prior_consumptions_ = ()
     source_status = SourceStatus.OFFICIAL_EXACT
     backend = Backend.TORCH
     maturity = Maturity.RESEARCH
@@ -308,7 +328,7 @@ class SelfPUClassifier(BasePUClassifier):
 
     def __init__(
         self,
-        class_prior: float,
+        risk_prior: float,
         *,
         backbone: Any | None = None,
         hidden_dim: int = 128,
@@ -336,7 +356,7 @@ class SelfPUClassifier(BasePUClassifier):
         device: str | None = None,
     ) -> None:
         super().__init__()
-        self.class_prior = class_prior
+        self.risk_prior = risk_prior
         self.backbone = backbone
         self.hidden_dim = hidden_dim
         self.warmup_epochs = warmup_epochs
@@ -362,8 +382,8 @@ class SelfPUClassifier(BasePUClassifier):
         self.random_state = random_state
         self.device = device
 
-    def _validate_parameters(self, class_prior: float) -> None:
-        real_parameters = {"class_prior": class_prior}
+    def _validate_parameters(self, risk_prior: float) -> None:
+        real_parameters = {"risk_prior": risk_prior}
         for name in (
             "max_trust_ratio",
             "pace_1",
@@ -389,7 +409,7 @@ class SelfPUClassifier(BasePUClassifier):
             if not finite:
                 raise ValueError(f"{name} must be a finite real scalar.")
 
-        check_scalar_in_range(class_prior, 0.0, 1.0, "class_prior", inclusive=False)
+        check_scalar_in_range(risk_prior, 0.0, 1.0, "risk_prior", inclusive=False)
         for name in (
             "hidden_dim",
             "max_epochs",
@@ -565,9 +585,10 @@ class SelfPUClassifier(BasePUClassifier):
         X: np.ndarray,
         y_pu: np.ndarray,
         *,
-        class_prior: float | None = None,
+        risk_prior: float | None = None,
         validation_data: tuple[np.ndarray, np.ndarray] | None = None,
         pu_validation_data: tuple[np.ndarray, np.ndarray] | None = None,
+        validation_risk_prior: float | None = None,
         sample_weight: np.ndarray | None = None,
         os_or_ts: str = "os",
         epoch_callback=None,
@@ -615,7 +636,7 @@ class SelfPUClassifier(BasePUClassifier):
         X = np.asarray(X, dtype=np.float32)
         if not np.isfinite(X).all():
             raise ValueError("X contains NaN or Inf values.")
-        resolved_prior = self.class_prior if class_prior is None else class_prior
+        resolved_prior = self.risk_prior if risk_prior is None else risk_prior
         self._validate_parameters(resolved_prior)
         if sample_weight is not None:
             raise NotImplementedError(
@@ -638,6 +659,13 @@ class SelfPUClassifier(BasePUClassifier):
             )
         if pu_validation_data is not None:
             pu_validation = self._validate_pu_validation(pu_validation_data, input_shape)
+        if validation_risk_prior is not None:
+            if pu_validation is None:
+                raise ValueError("validation_risk_prior requires pu_validation_data")
+            check_scalar_in_range(
+                validation_risk_prior, 0.0, 1.0, "validation_risk_prior", inclusive=False
+            )
+        val_prior = resolved_prior if validation_risk_prior is None else validation_risk_prior
 
         if self.random_state is not None:
             torch.manual_seed(self.random_state)
@@ -994,7 +1022,7 @@ class SelfPUClassifier(BasePUClassifier):
             )
             if tx_pu_val is not None and y_pu_val is not None:
                 teacher_val_risks = [
-                    _pu_validation_risk(teacher, tx_pu_val, y_pu_val, resolved_prior)
+                    _pu_validation_risk(teacher, tx_pu_val, y_pu_val, val_prior)
                     for teacher in teachers
                 ]
                 val_teacher_index = int(np.argmin(teacher_val_risks))
@@ -1066,14 +1094,45 @@ class SelfPUClassifier(BasePUClassifier):
         self.best_teacher_index_ = best_index + 1
         self.best_teacher_ = teachers[best_index]
         self.best_teacher_.eval()
-        self.class_prior_ = float(resolved_prior)
+        self.risk_prior_ = float(resolved_prior)
+        self.validation_risk_prior_ = None if pu_validation is None else float(val_prior)
+        self._prior_consumptions_ = training_prior_uses(
+            "self_pu_training_risk",
+            value=resolved_prior,
+            target=risk_pool_target(calibrated_view),
+            parameter="risk_prior",
+            fit_override=risk_prior,
+        )
+        if self.validation_risk_prior_ is not None:
+            self._prior_consumptions_ += (
+                {
+                    "consumer": "self_pu_validation_risk",
+                    "partition": "pu_val",
+                    "target": "native_unlabeled",
+                    "value": self.validation_risk_prior_,
+                    "source": (
+                        "training.risk_prior"
+                        if validation_risk_prior is None
+                        else "fit.validation_risk_prior"
+                    ),
+                },
+            )
+        elif clean_validation is None:
+            self._prior_consumptions_ += (
+                {
+                    "consumer": "self_pu_ablation_teacher_selection",
+                    "partition": "train",
+                    "target": "native_unlabeled",
+                    "value": self.risk_prior_,
+                    "source": "training.risk_prior",
+                },
+            )
         self.classes_ = np.array([0, 1])
         self.input_shape_ = input_shape
         self.n_features_in_ = X.shape[1] if X.ndim == 2 else int(np.prod(input_shape))
         self.device_ = device
         self.calibration_mode_ = "clean_validation_meta" if tx_val is not None else "ablation"
         self.distillation_scope_ = self.distillation_scope
-        self._class_prior = self.class_prior_
         self._X_shape_ = X.shape
         self._is_fitted = True
         return self
@@ -1139,9 +1198,9 @@ class SelfPUClassifier(BasePUClassifier):
         """Return all state required to audit or resume Self-PU training."""
         self._check_is_fitted()
         return {
-            "schema_version": "1.0",
+            "schema_version": "2.0",
             "estimator_params": copy.deepcopy(self.get_params(deep=False)),
-            "class_prior": self.class_prior_,
+            "prior_consumptions": copy.deepcopy(self._prior_consumptions_),
             "input_shape": self.input_shape_,
             "best_teacher_index": self.best_teacher_index_,
             "calibration_mode": self.calibration_mode_,
@@ -1166,7 +1225,7 @@ class SelfPUClassifier(BasePUClassifier):
         }
 
 
-def _pu_validation_risk(model: Any, X_val: Any, y_pu_val: np.ndarray, class_prior: float) -> float:
+def _pu_validation_risk(model: Any, X_val: Any, y_pu_val: np.ndarray, risk_prior: float) -> float:
     """Evaluate one teacher with nnPU risk using PU labels only."""
     import torch
 
@@ -1177,10 +1236,10 @@ def _pu_validation_risk(model: Any, X_val: Any, y_pu_val: np.ndarray, class_prio
             scores = _as_logits(_forward(model, X_val))
             positive = torch.as_tensor(y_pu_val == 1, device=scores.device)
             unlabeled = ~positive
-            positive_risk = class_prior * torch.sigmoid(-scores[positive]).mean()
+            positive_risk = risk_prior * torch.sigmoid(-scores[positive]).mean()
             negative_risk = (
                 torch.sigmoid(scores[unlabeled]).mean()
-                - class_prior * torch.sigmoid(scores[positive]).mean()
+                - risk_prior * torch.sigmoid(scores[positive]).mean()
             )
             risk = positive_risk + torch.clamp(negative_risk, min=0.0)
         return float(risk.cpu())

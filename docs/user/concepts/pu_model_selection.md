@@ -77,7 +77,7 @@ from pu_toolbox.experiment.strategies import proxy_accuracy
 
 scores = np.array([0.9, 0.8, 0.7, 0.1, 0.2])
 y_pu = np.array([1, 1, 0, 0, 0])
-pa = proxy_accuracy(scores, y_pu, threshold=0.5, class_prior=0.4)
+pa = proxy_accuracy(scores, y_pu, threshold=0.5, validation_population_prior=0.4)
 assert abs(pa - 1.2) < 1e-12  # 2 * 0.4 * 1 + 2 / 5
 ```
 

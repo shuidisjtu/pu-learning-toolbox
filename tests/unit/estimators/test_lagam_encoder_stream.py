@@ -152,11 +152,11 @@ def test_determ_legacy_resident_and_feature_stream_training_remain_equal():
     )
 
 
-def test_determ_cnn_clone_pickle_and_unused_prior_keep_scores():
+def test_determ_cnn_clone_and_pickle_keep_scores():
     X, y, support = data()
     template = model(encoder=ImageEncoder(), meta_update_bias=False)
     first = clone(template).fit(X, y, support_data=support)
-    second = clone(template).fit(X, y, support_data=support, class_prior=0.8)
+    second = clone(template).fit(X, y, support_data=support)
     assert first.history_ == second.history_
     np.testing.assert_array_equal(first.decision_function(X), second.decision_function(X))
     restored = pickle.loads(pickle.dumps(first))

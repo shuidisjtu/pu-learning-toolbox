@@ -24,7 +24,7 @@ def _data():
 
 def _nnpu(tmp_path, *, device="cpu"):
     X, y = _data()
-    model = NonNegativePUClassifier(class_prior=0.3, max_epochs=3, random_state=0, device=device)
+    model = NonNegativePUClassifier(risk_prior=0.3, max_epochs=3, random_state=0, device=device)
     return X, EpochCheckpointTrainer(checkpoint_dir=tmp_path).fit(model, X, y)
 
 
@@ -112,16 +112,16 @@ def test_param_callback_typeerror_does_not_trigger_bare_refit(tmp_path, monkeypa
     monkeypatch.setattr(torch, "save", failing_save)
     with pytest.raises(TypeError, match="snapshot failure"):
         EpochCheckpointTrainer(checkpoint_dir=tmp_path).fit(
-            NonNegativePUClassifier(class_prior=0.3, max_epochs=3, random_state=0), X, y
+            NonNegativePUClassifier(risk_prior=0.3, max_epochs=3, random_state=0), X, y
         )
     assert len(calls) == 1
 
 
 def test_determ_capture_does_not_change_training_seed_or_optimizer_updates(tmp_path):
     X, y = _data()
-    first = NonNegativePUClassifier(
-        class_prior=0.3, max_epochs=3, random_state=0, device="cpu"
-    ).fit(X, y)
+    first = NonNegativePUClassifier(risk_prior=0.3, max_epochs=3, random_state=0, device="cpu").fit(
+        X, y
+    )
     _, trajectory = _nnpu(tmp_path)
     np.testing.assert_array_equal(first.decision_function(X), trajectory.model.decision_function(X))
 
@@ -171,7 +171,7 @@ def test_basic_oracle_callback_receives_training_only_and_no_prior(tmp_path):
         trajectory.checkpoints[-1].restore().decision_function(X), model.decision_function(X)
     )
     with pytest.raises(ValueError, match="must not receive a PU class prior"):
-        EpochCheckpointTrainer(supervised=True).fit(model, X, y, class_prior=0.3)
+        EpochCheckpointTrainer(supervised=True).fit(model, X, y, risk_prior=0.3)
 
 
 def test_basic_selfpu_keeps_both_teachers_at_every_epoch(tmp_path, monkeypatch):

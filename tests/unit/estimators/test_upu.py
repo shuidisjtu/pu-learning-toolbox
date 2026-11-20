@@ -29,7 +29,7 @@ class TestWritebackDefaults:
     """
 
     def test_basic_writeback_defaults_and_overrides(self):
-        clf = UPUClassifier(class_prior=0.3)
+        clf = UPUClassifier(risk_prior=0.3)
         assert clf.loss == "squared"
         # other defaults unchanged by the write-back
         assert clf.reg_lambda == 1e-3
@@ -38,7 +38,7 @@ class TestWritebackDefaults:
         assert clf.max_iter == 1000
         assert clf.tol == 1e-6
         # explicit overrides still win
-        clf2 = UPUClassifier(class_prior=0.3, loss="double_hinge")
+        clf2 = UPUClassifier(risk_prior=0.3, loss="double_hinge")
         assert clf2.loss == "double_hinge"
 
 
@@ -68,12 +68,12 @@ class TestUPULoss:
     def test_basic_risk_and_prior_effect(self):
         """Well-separated scores → lower risk; higher π → lower risk."""
         loss = UPULoss("logistic")
-        r_good = loss(np.array([2.0, 3.0]), np.array([-5.0, -4.0]), class_prior=0.5)
-        r_bad = loss(np.array([0.0, 0.0]), np.array([0.0, 0.0]), class_prior=0.5)
+        r_good = loss(np.array([2.0, 3.0]), np.array([-5.0, -4.0]), risk_prior=0.5)
+        r_bad = loss(np.array([0.0, 0.0]), np.array([0.0, 0.0]), risk_prior=0.5)
         assert r_good < r_bad
 
-        r_lo = loss(np.array([2.0, 2.0]), np.array([-1.0, -1.0]), class_prior=0.3)
-        r_hi = loss(np.array([2.0, 2.0]), np.array([-1.0, -1.0]), class_prior=0.7)
+        r_lo = loss(np.array([2.0, 2.0]), np.array([-1.0, -1.0]), risk_prior=0.3)
+        r_hi = loss(np.array([2.0, 2.0]), np.array([-1.0, -1.0]), risk_prior=0.7)
         assert r_lo > r_hi
 
     def test_param_invalid_args_and_gradient(self):
@@ -82,21 +82,21 @@ class TestUPULoss:
             UPULoss("double_hinge")
         loss = UPULoss("logistic")
         for bad_prior in (0.0, 1.0, -0.5):
-            with pytest.raises(ValueError, match="class_prior"):
-                loss(np.array([1.0]), np.array([0.0]), class_prior=bad_prior)
+            with pytest.raises(ValueError, match="risk_prior"):
+                loss(np.array([1.0]), np.array([0.0]), risk_prior=bad_prior)
         with pytest.raises(ValueError, match="positive_scores"):
-            loss(np.array([]), np.array([0.0]), class_prior=0.5)
+            loss(np.array([]), np.array([0.0]), risk_prior=0.5)
         with pytest.raises(ValueError, match="unlabeled_scores"):
-            loss(np.array([0.0]), np.array([]), class_prior=0.5)
+            loss(np.array([0.0]), np.array([]), risk_prior=0.5)
 
         # Squared-loss analytical gradient vs finite differences
         loss_sq = UPULoss("squared")
         p, u, pi = np.array([1.0, -1.0]), np.array([0.5, -0.5, 0.0]), 0.5
         eps = 1e-6
-        dP, dU = loss_sq.gradient(p, u, class_prior=pi)
+        dP, dU = loss_sq.gradient(p, u, risk_prior=pi)
         assert dP.shape == (2,) and dU.shape == (3,)
-        f_plus = loss_sq(np.array([p[0] + eps, p[1]]), u, class_prior=pi)
-        f_minus = loss_sq(np.array([p[0] - eps, p[1]]), u, class_prior=pi)
+        f_plus = loss_sq(np.array([p[0] + eps, p[1]]), u, risk_prior=pi)
+        f_minus = loss_sq(np.array([p[0] - eps, p[1]]), u, risk_prior=pi)
         assert abs(dP[0] - (f_plus - f_minus) / (2 * eps)) < 1e-6
 
 
@@ -110,19 +110,21 @@ class TestUPUClassifier:
     """Core API contract and metadata."""
 
     def test_basic_metadata_and_api(self):
-        clf = UPUClassifier(class_prior=0.5)
+        clf = UPUClassifier(risk_prior=0.5)
         assert clf.loss == "squared"  # ADR-0016 step-6 write-back round 2
         assert clf.family.value == "risk_estimation"
-        assert clf.requires_class_prior is True
+        assert clf.prior_consumers[0].requires_input is True
         assert clf.get_pu_metadata()["is_fitted"] is False
         assert clf.get_params()["loss"] == "squared"
+        assert clf.get_params()["risk_prior"] == 0.5
+        assert "class_prior" not in clf.get_params()
         clf.set_params(reg_lambda=0.1)
         assert clf.reg_lambda == 0.1
 
     def test_basic_fit_and_predict(self, rng):
         """fit() sets all expected attributes with correct shapes."""
         X, y_pu = _make_separable_data(rng)
-        kw = dict(class_prior=0.5, loss="logistic", reg_lambda=1.0, max_iter=500, random_state=42)
+        kw = dict(risk_prior=0.5, loss="logistic", reg_lambda=1.0, max_iter=500, random_state=42)
         clf = UPUClassifier(**kw)
         clf.fit(X, y_pu)
         assert clf._is_fitted
@@ -134,8 +136,8 @@ class TestUPUClassifier:
         np.testing.assert_array_equal(clf.score_samples(X), scores)
         # Class prior overridable in fit
         clf2 = UPUClassifier(**kw)
-        clf2.fit(X, y_pu, class_prior=0.6)
-        assert clf2._class_prior == 0.6
+        clf2.fit(X, y_pu, risk_prior=0.6)
+        assert clf2.risk_prior_ == 0.6
         # Metadata
         meta = clf.get_pu_metadata()
         assert meta["is_fitted"] is True and meta["loss"] == "logistic" and meta["n_basis"] == 1
@@ -144,13 +146,13 @@ class TestUPUClassifier:
     def test_param_all_loss_variants_run(self, rng, loss_name):
         """Every loss variant fits and predicts on synthetic data."""
         X, y_pu = _make_separable_data(rng)
-        kw = dict(class_prior=0.5, loss=loss_name, reg_lambda=10.0, max_iter=500, random_state=42)
+        kw = dict(risk_prior=0.5, loss=loss_name, reg_lambda=10.0, max_iter=500, random_state=42)
         if loss_name == "squared":
             kw["fit_intercept"] = False
         clf = UPUClassifier(**kw)
         clf.fit(X, y_pu)
         assert clf.coef_ is not None
-        risk = pu_zero_one_risk(y_pu, clf.decision_function(X), clf.class_prior_)
+        risk = pu_zero_one_risk(y_pu, clf.decision_function(X), clf.risk_prior_)
         assert np.isfinite(risk)
 
     def test_source_quadratic_solution_matches_after_regularizer_scaling(self):
@@ -160,7 +162,7 @@ class TestUPUClassifier:
         pi = 0.35
         source_lambda = 0.4
         clf = UPUClassifier(
-            class_prior=pi,
+            risk_prior=pi,
             loss="squared",
             fit_intercept=False,
             reg_lambda=source_lambda / 2.0,
@@ -187,7 +189,7 @@ class TestSeparableBoundary:
         """Squared loss closed-form: boundary ∈ [-0.15, 0.15]."""
         X, y_pu = _make_separable_data(rng, n_p=200, n_u=400)
         clf = UPUClassifier(
-            class_prior=0.5,
+            risk_prior=0.5,
             loss="squared",
             fit_intercept=False,
             reg_lambda=1.0,
@@ -220,7 +222,7 @@ class TestSeparableBoundary:
                 X_tr = np.vstack([X[tr_P], X[tr_U]])
                 y_tr = np.concatenate([np.ones(len(tr_P)), np.zeros(len(tr_U))])
                 clf = UPUClassifier(
-                    class_prior=pi,
+                    risk_prior=pi,
                     loss=loss_name,
                     reg_lambda=lam,
                     max_iter=500,
@@ -229,13 +231,15 @@ class TestSeparableBoundary:
                 clf.fit(X_tr, y_tr)
                 fold_idx = np.concatenate([fP[k], fU[k]])
                 fold_y_pu = np.concatenate([np.ones(len(fP[k])), np.zeros(len(fU[k]))])
-                r = pu_zero_one_risk(fold_y_pu, clf.decision_function(X[fold_idx]), class_prior=pi)
+                r = pu_zero_one_risk(
+                    fold_y_pu, clf.decision_function(X[fold_idx]), evaluation_prior=pi
+                )
                 fold_risks.append(r)
             if (m := float(np.mean(fold_risks))) < best_risk:
                 best_risk, best_lam = m, lam
 
         clf = UPUClassifier(
-            class_prior=pi,
+            risk_prior=pi,
             loss=loss_name,
             reg_lambda=best_lam,
             max_iter=1000,
@@ -258,10 +262,11 @@ class TestErrorHandling:
     @pytest.mark.parametrize(
         "clf, match",
         [
-            (UPUClassifier(class_prior=0.0, reg_lambda=1.0), "class_prior"),
-            (UPUClassifier(class_prior=1.0, reg_lambda=1.0), "class_prior"),
-            (UPUClassifier(class_prior=0.5, reg_lambda=0.0), "reg_lambda"),
-            (UPUClassifier(class_prior=0.5, loss="hinge", reg_lambda=1.0), "Unknown loss"),
+            (UPUClassifier(), "requires a risk_prior"),
+            (UPUClassifier(risk_prior=0.0, reg_lambda=1.0), "risk_prior"),
+            (UPUClassifier(risk_prior=1.0, reg_lambda=1.0), "risk_prior"),
+            (UPUClassifier(risk_prior=0.5, reg_lambda=0.0), "reg_lambda"),
+            (UPUClassifier(risk_prior=0.5, loss="hinge", reg_lambda=1.0), "Unknown loss"),
         ],
     )
     def test_param_invalid_params_raise(self, rng, clf, match):
@@ -273,21 +278,21 @@ class TestErrorHandling:
         """RBF without kernel_width, NaN in X, no positives, predict_proba."""
         X, y_pu = _make_separable_data(rng)
         # RBF without kernel_width
-        clf_rbf = UPUClassifier(class_prior=0.5, basis="rbf")
+        clf_rbf = UPUClassifier(risk_prior=0.5, basis="rbf")
         with pytest.raises(ValueError, match="kernel_width"):
             clf_rbf.fit(X, y_pu)
         # NaN in X
         X_nan, y_nan = _make_separable_data(rng, n_p=10, n_u=20)
         X_nan[0, 0] = np.nan
-        clf_nan = UPUClassifier(class_prior=0.5, reg_lambda=1.0)
+        clf_nan = UPUClassifier(risk_prior=0.5, reg_lambda=1.0)
         with pytest.raises(ValueError, match="NaN"):
             clf_nan.fit(X_nan, y_nan)
         # No positives
         with pytest.raises(ValidationError):
-            UPUClassifier(class_prior=0.5).fit(np.array([[0.5], [0.6]]), np.array([0, 0]))
+            UPUClassifier(risk_prior=0.5).fit(np.array([[0.5], [0.6]]), np.array([0, 0]))
         # predict_proba not implemented
         clf = UPUClassifier(
-            class_prior=0.5, loss="logistic", reg_lambda=1.0, max_iter=500, random_state=42
+            risk_prior=0.5, loss="logistic", reg_lambda=1.0, max_iter=500, random_state=42
         )
         clf.fit(X, y_pu)
         with pytest.raises(NotImplementedError):
@@ -304,7 +309,7 @@ class TestRBFBasis:
     def test_basic_rbf_fit_and_coef_shape(self, rng):
         X, y_pu = _make_separable_data(rng, n_p=100, n_u=200)
         clf = UPUClassifier(
-            class_prior=0.5,
+            risk_prior=0.5,
             loss="squared",
             fit_intercept=False,
             basis="rbf",
@@ -332,14 +337,14 @@ class TestConvergenceAndSensitivity:
         for n in (100, 200):
             X, y_pu = _make_separable_data(rng, n_p=n // 2, n_u=n // 2)
             clf = UPUClassifier(
-                class_prior=0.5,
+                risk_prior=0.5,
                 loss="squared",
                 fit_intercept=False,
                 reg_lambda=1.0,
                 random_state=42,
             )
             clf.fit(X, y_pu)
-            risks.append(pu_zero_one_risk(y_pu, clf.decision_function(X), clf.class_prior_))
+            risks.append(pu_zero_one_risk(y_pu, clf.decision_function(X), clf.risk_prior_))
         assert risks[0] >= risks[1] - 0.1
 
     def test_deterministic_class_prior_sensitivity(self, rng):
@@ -352,7 +357,7 @@ class TestConvergenceAndSensitivity:
             if not (0.0 < pi < 1.0):
                 continue
             clf = UPUClassifier(
-                class_prior=pi,
+                risk_prior=pi,
                 loss="squared",
                 fit_intercept=False,
                 reg_lambda=1.0,
@@ -377,10 +382,10 @@ class TestValidationRisk:
         # Perfect: all P>0, all U≤0 → f_n=0, f_pu=0 → R = −π
         y_perfect = np.array([1, 1, 0, 0])
         scores_perfect = np.array([1.0, 2.0, -1.0, -2.0])
-        assert pu_zero_one_risk(y_perfect, scores_perfect, class_prior=0.5) == -0.5
+        assert pu_zero_one_risk(y_perfect, scores_perfect, evaluation_prior=0.5) == -0.5
         # Random: f_n=0.5, f_pu=0.5 → R = 2·0.5·0.5 + 0.5 − 0.5 = 0.5
         y_random = np.array([1, 1, 0, 0])
         scores_random = np.array([1.0, -1.0, 1.0, -1.0])
-        assert abs(pu_zero_one_risk(y_random, scores_random, class_prior=0.5) - 0.5) < 1e-9
+        assert abs(pu_zero_one_risk(y_random, scores_random, evaluation_prior=0.5) - 0.5) < 1e-9
         # Empty → inf
-        assert pu_zero_one_risk(np.array([0]), np.array([0.0]), class_prior=0.5) == np.inf
+        assert pu_zero_one_risk(np.array([0]), np.array([0.0]), evaluation_prior=0.5) == np.inf

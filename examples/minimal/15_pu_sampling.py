@@ -20,7 +20,7 @@ def compare_sampling(
 ) -> dict:
     """Use the TS population draw as the clean source pool of the OS condition."""
     features, ts_labels, ts_truth, ts_metadata = make_gaussian_case_control_data(
-        n_p=n_p, n_u=n_u, class_prior=class_prior, n_features=2, random_state=seed
+        n_p=n_p, n_u=n_u, population_prior=class_prior, n_features=2, random_state=seed
     )
     population = ts_labels == 0
     population_truth = ts_truth[population]
@@ -56,8 +56,8 @@ def compare_sampling(
         "ts": {
             "n_labeled": n_p,
             "n_unlabeled": n_u,
-            "unlabeled_empirical_prior": ts_metadata["unlabeled_class_prior"],
-            "training_empirical_prior": ts_metadata["training_class_prior"],
+            "unlabeled_empirical_prior": ts_metadata["empirical_unlabeled_prior"],
+            "training_empirical_prior": ts_metadata["empirical_training_table_prior"],
             "n_unique_sample_ids": len(set(ts_metadata["sample_ids"])),
             "sampling_policy": ts_metadata["sampling_policy"],
         },

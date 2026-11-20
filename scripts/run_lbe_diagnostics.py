@@ -136,7 +136,8 @@ def execute(plan, output):
             directory.mkdir(parents=True, exist_ok=False)
             runner = ExperimentRunner(
                 seed=pair["seed"],
-                class_prior=prior,
+                training_population_prior=prior,
+                validation_population_prior=prior,
                 protocols=[ProtocolPA(), ProtocolOA()],
                 manifest_path=str(directory / "manifest.json"),
                 config={

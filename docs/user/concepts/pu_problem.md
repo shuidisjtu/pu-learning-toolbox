@@ -69,7 +69,7 @@ Different method families use the prior differently:
   which can estimate π internally. The current `pusb` baseline does not consume a prior.
   Class-prior estimators themselves estimate a prior rather than requiring it as input.
 
-`requires_class_prior=False` means the caller may omit an external prior. It does not imply the
+An empty `required_prior_parameters` means the caller may omit an external prior. It does not imply the
 method has no prior-related quantities: LDCE/KLDCE derive a prior from the labeled fraction and
 `flip_probability`, and InfoMax can estimate one internally. For the current per-implementation
 inventory, see the [semantic baseline](../../dev/pu_research_semantics.md#4-历史-os_or_ts-的逐实现清单)

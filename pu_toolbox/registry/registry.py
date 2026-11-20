@@ -90,7 +90,6 @@ _SYNC_FIELDS = (
     "family",
     "assumption",
     "scenario",
-    "requires_class_prior",
     "source_status",
     "backend",
     "maturity",
@@ -99,8 +98,7 @@ _SYNC_FIELDS = (
     "encoder_parameter",
     "trains_encoder",
     "label_semantics",
-    "class_prior_target",
-    "risk_class_prior_target",
+    "prior_consumers",
 )
 
 
@@ -133,7 +131,11 @@ def _sync_estimator_metadata(metadata: AlgorithmMetadata, estimator_cls: _Estima
     for field_name in _SYNC_FIELDS:
         if any(field_name in cls.__dict__ for cls in declaring_classes):
             value = getattr(estimator_cls, field_name)
-            setattr(metadata, field_name, list(value) if isinstance(value, tuple) else value)
+            setattr(
+                metadata,
+                field_name,
+                list(value) if field_name in {"assumption", "scenario"} else value,
+            )
 
 
 def _get_registry() -> _Registry:

@@ -28,7 +28,7 @@ def command(data, out):
         "0.5",
         "--seeds",
         "0",
-        "--class-prior",
+        "--population-prior",
         "0.3",
         "--out-dir",
         str(out),

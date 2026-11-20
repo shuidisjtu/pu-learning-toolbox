@@ -67,9 +67,9 @@ mixture 估计按各方法的代表性/可辨识条件解释。
 训练分区中已标记正例占比为 `q`，则总体先验等于 `q + (1-q) * pi_U`；独立 TS 下原生 U
 本身来自总体。质量换算由 `prior.semantics` 提供，不检查方法是否满足代表性或可辨识条件。
 
-直接拟合时，按具体估计器和实际风险视图传参。`class_prior_target` 描述默认视图，
+直接拟合时，按具体估计器和实际风险视图传参。`prior_consumers` 分用途声明默认目标及可选 TS-compatible 目标，
 例如 uPU 默认消费原生 U 的先验；不能把该目标当作所有视图和参数的统一规则。PUSBKernel
-分别消费分位阈值的 `class_prior` 和风险的 `risk_class_prior`。验证与诊断另按其目标总体
+分别消费分位阈值的 `training_table_prior` 和风险的 `risk_prior`。验证与诊断另按其目标总体
 选取先验：OS 的总体评估池是完整输入，独立 TS 的总体评估池是原生 U。实验应记录输入设计、
 原始估计值、估计池、换算和每个消费者的实际值。
 
@@ -80,12 +80,12 @@ mixture 估计按各方法的代表性/可辨识条件解释。
 
 | 方法 | 默认 | 当前 ts 行为与先验消费 | 实现 |
 |---|---|---|---|
-| uPU | os | 完整池替换 U 风险；class_prior 不变，RBF 中心池随之变化 | [upu.py](../../pu_toolbox/estimators/risk/upu.py) |
-| nnPU | os | mini-batch 补回 P；class_prior 不变；拒绝与 sample_weight 同用 | [nnpu.py](../../pu_toolbox/estimators/risk/nnpu.py) |
-| VPU | ts | 使用完整风险池；class_prior 仅兼容校验，训练不使用 | [vpu.py](../../pu_toolbox/estimators/risk/vpu.py) |
-| CVIR | os | input_sampling 与风险视图分开；消费风险池 unlabeled_positive_prior，拒绝 class_prior | [cvir.py](../../pu_toolbox/estimators/risk/cvir.py) |
-| GradPU | os | 训练视图适配；class_prior 仅兼容，训练不使用 | [grad_pu.py](../../pu_toolbox/estimators/deep/grad_pu.py) |
-| RobustPU | os | 仅 warm-up 适配，后续 episode 仍取 native U；class_prior 指 warm-up U 风险的正类比例 | [robust_pu.py](../../pu_toolbox/estimators/deep/robust_pu.py) |
+| uPU | os | 完整池替换 U 风险；`risk_prior` 不变，RBF 中心池随之变化 | [upu.py](../../pu_toolbox/estimators/risk/upu.py) |
+| nnPU | os | mini-batch 补回 P；`risk_prior` 不变；拒绝与 sample_weight 同用 | [nnpu.py](../../pu_toolbox/estimators/risk/nnpu.py) |
+| VPU | ts | 使用完整风险池；训练不使用先验 | [vpu.py](../../pu_toolbox/estimators/risk/vpu.py) |
+| CVIR | os | input_sampling 与风险视图分别声明；负例筛选和加权目标使用实际风险池的 unlabeled_positive_prior | [cvir.py](../../pu_toolbox/estimators/risk/cvir.py) |
+| GradPU | os | 训练视图适配；U 承担负例角色，采用无先验目标 | [grad_pu.py](../../pu_toolbox/estimators/deep/grad_pu.py) |
+| RobustPU | os | 仅 warm-up 适配，后续 episode 仍取 native U；`risk_prior` 指 warm-up U 风险的正类比例 | [robust_pu.py](../../pu_toolbox/estimators/deep/robust_pu.py) |
 | GenPU | os | 支持风险适配并使用先验；生成/分类组件需分别解释 | [gen_pu.py](../../pu_toolbox/estimators/deep/gen_pu.py) |
 | SplitPU | os | 仅 teacher 的 nnPU marginal 补回 P；先验用于 teacher 风险；easy/hard 仍取原生 U | [split_pu.py](../../pu_toolbox/estimators/deep/split_pu.py) |
 | PULDA | os | 分布与 two-way margin 风险池补回 P；先验用于二者目标，伪标签空间不变 | [pulda.py](../../pu_toolbox/estimators/risk/pulda.py) |
@@ -93,12 +93,12 @@ mixture 估计按各方法的代表性/可辨识条件解释。
 | DistPU | os | expectation / histogram 对齐池补回 P；先验是被对齐分布的目标比例 | [dist_pu.py](../../pu_toolbox/estimators/risk/dist_pu.py) |
 | SelfPU | os | 负 PU 项补回 P，先验用于风险修正；可信集仍基于原生 U，clean support 单独记录 | [self_pu.py](../../pu_toolbox/estimators/deep/self_pu.py) |
 | PUSBKernel | os | 适配拟合风险池，先验同时用于风险和分位预测；中心池/CV/阈值池不变 | [pusb_kernel.py](../../pu_toolbox/estimators/bias_aware/pusb_kernel.py) |
-| RankPruning | os | 拒绝 ts；class_prior 仅兼容校验 | [rank_pruning.py](../../pu_toolbox/estimators/classic/rank_pruning.py) |
-| HolisticPU | os | 拒绝 ts；class_prior 仅兼容校验 | [holistic_pu.py](../../pu_toolbox/estimators/deep/holistic_pu.py) |
-| LBE-neural | os | 拒绝 ts；外部 class_prior 仅校验，内部先验为自身推断值 | [lbe_neural.py](../../pu_toolbox/estimators/deep/lbe_neural.py) |
-| P3Mix | os | 拒绝 ts；class_prior 仅兼容校验 | [p3mix.py](../../pu_toolbox/estimators/deep/p3mix.py) |
-| PAN | os | 拒绝 ts；class_prior 仅兼容校验 | [pan.py](../../pu_toolbox/estimators/deep/pan.py) |
-| PULNS | os | 拒绝 ts；class_prior 仅兼容校验 | [pulns.py](../../pu_toolbox/estimators/deep/pulns.py) |
+| RankPruning | os | 原生 OS；由折外概率估计噪声率 | [rank_pruning.py](../../pu_toolbox/estimators/classic/rank_pruning.py) |
+| HolisticPU | os | 拒绝 ts；训练不使用先验 | [holistic_pu.py](../../pu_toolbox/estimators/deep/holistic_pu.py) |
+| LBE-neural | os | 拒绝 ts；内部先验为自身推断值 | [lbe_neural.py](../../pu_toolbox/estimators/deep/lbe_neural.py) |
+| P3Mix | os | 拒绝 ts；训练不使用先验 | [p3mix.py](../../pu_toolbox/estimators/deep/p3mix.py) |
+| PAN | os | 拒绝 ts；训练不使用先验 | [pan.py](../../pu_toolbox/estimators/deep/pan.py) |
+| PULNS | os | 拒绝 ts；训练不使用先验 | [pulns.py](../../pu_toolbox/estimators/deep/pulns.py) |
 
 registry 的现行能力由实际类声明给出。
 
@@ -113,15 +113,15 @@ registry 的现行能力由实际类声明给出。
 | weighted_contrastive_pu | pu | 构造必需 pi，fit 可覆盖；初始化 `[1-pi,pi]`、对齐原生 U 正类均值并加权正项，无目标换算 | [weighted_contrastive_pu.py](../../pu_toolbox/estimators/deep/weighted_contrastive_pu.py) |
 | dgpu | pu | 构造必需 pi，fit 可覆盖；一个值用于原生 U 均值对齐、类别分布与生成样本配额，无 pool 参数 | [dgpu.py](../../pu_toolbox/estimators/deep/dgpu.py) |
 | infomax_pu | pu | 可指定 pi，缺省在学得表征上用 penL1（可替换）；直接传内部 nnPU 默认 os 风险，无目标换算 | [infomax_pu.py](../../pu_toolbox/estimators/deep/infomax_pu.py) |
-| tedn | pu | 拒绝 class_prior；构造必填 input_sampling=ts；内部 BBE 的 holdout alpha_U 用于负例筛选，有 prior_target，不做 OS 适配 | [tedn.py](../../pu_toolbox/estimators/deep/tedn.py) |
+| tedn | pu | 不接受外部先验；构造必填 input_sampling=ts；内部 BBE 的 holdout alpha_U 用于负例筛选，有 prior_target，不做 OS 适配 | [tedn.py](../../pu_toolbox/estimators/deep/tedn.py) |
 | elkan_noto | pu | 内部估计 c 后计算/裁剪 `n_L/(n*c)`，解释依赖 OS/SCAR；q 是 OS 总体的标记比例 | [elkan_noto.py](../../pu_toolbox/estimators/classic/elkan_noto.py) |
 | lbe | pu | 可选 pi 用于原生 U 潜在后验初始化，缺省 `clip(2*mean(S),0.05,0.95)`；不固定训练后的先验 | [lbe.py](../../pu_toolbox/estimators/bias_aware/lbe.py) |
 | pusb | pu | observed-P-vs-U LogisticRegression baseline；外部 pi 存储为属性，分类目标由观测 P/U 标签定义 | [pusb.py](../../pu_toolbox/estimators/bias_aware/pusb.py) |
 | lagam | pu | 外部 pi 仅兼容校验，训练不使用；support_data 是额外监督角色 | [lagam.py](../../pu_toolbox/estimators/deep/lagam.py) |
 
-`requires_class_prior=False` 表示调用者可省略外部先验；
+`required_prior_parameters` 为空表示调用者可省略外部先验；
 LDCE/KLDCE、InfoMax 和 LBE 分别展示派生、内部估计及初始化三类消费。
-DGPU/WConPU 等方法声明 `class_prior_target="native_unlabeled"`；直接训练时应针对允许使用的训练分区换算。
+DGPU/WConPU 的 `unlabeled_prior` 对应原生 U；直接训练时应针对允许使用的训练分区换算。
 当前没有注册 PN classifier；Survey 的私有 `PilotOracleMLP` 声明 pn，
 以真实标签优化监督 BCE，无 PU prior 或风险视图参数，入口为
 [survey_execution.py](../../pu_toolbox/experiment/survey_execution.py)。
@@ -400,7 +400,7 @@ uv run python examples/minimal/14_diy_experiment.py --output-dir tmp/pu-research
 
 ## 14. GenPU 的先验校验
 
-GenPU 声明 `class_prior_target="native_unlabeled"`，其先验必须是 `(0, 1)` 内的有限值。
+GenPU 的 `risk_prior` 在默认 OS 视图对应原生 U，且必须是 `(0, 1)` 内的有限值。
 `tests/unit/estimators/test_gen_pu.py` 覆盖缺失值、0、1 和非有限值。
 
 ## 15. PA 在 OS 采样设计下的参考实现差异

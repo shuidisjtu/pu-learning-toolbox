@@ -71,7 +71,7 @@ def _config():
 class _FakeWConPU:
     def __init__(self, parameters, class_prior, fit_sizes):
         self.parameters = parameters
-        self.class_prior_ = class_prior
+        self.unlabeled_prior_ = class_prior
         self.fit_sizes = fit_sizes
 
     def fit(self, X, y_pu):

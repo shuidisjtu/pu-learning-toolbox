@@ -23,7 +23,7 @@ def request(survey_script, tmp_path):
     parts = survey_script.load_split_parts(tmp_path)
     protocol = load_protocol()
     row = resolve_unit(protocol, "spambase", "upu", "native_2d")
-    model = assemble_model(protocol, row, 3, seed=0, params={}, class_prior=0.3, device="cpu")
+    model = assemble_model(protocol, row, 3, seed=0, params={}, population_prior=0.3, device="cpu")
     config = {
         "architecture": "mlp",
         "c": 0.5,
@@ -47,7 +47,13 @@ def test_basic_determ_runner_records_one_identity_on_run_candidate_and_both_sele
     survey_script, tmp_path
 ):
     model, parts, config = request(survey_script, tmp_path)
-    manifest = ExperimentRunner(class_prior=0.3, config=config).fit(model, *parts).manifest
+    manifest = (
+        ExperimentRunner(
+            training_population_prior=0.3, validation_population_prior=0.3, config=config
+        )
+        .fit(model, *parts)
+        .manifest
+    )
     assert (
         validate_manifest_binding(manifest, config["recipe_registry"], protocol=load_protocol())
         == []
@@ -55,7 +61,13 @@ def test_basic_determ_runner_records_one_identity_on_run_candidate_and_both_sele
     for entry in [*manifest["candidate_runs"], *manifest["selection"].values()]:
         for field in ("recipe_registry_sha256", "recipe_candidate_id", "resolved_params_sha256"):
             assert entry[field] == manifest[field]
-    again = ExperimentRunner(class_prior=0.3, config=config).fit(model, *parts).manifest
+    again = (
+        ExperimentRunner(
+            training_population_prior=0.3, validation_population_prior=0.3, config=config
+        )
+        .fit(model, *parts)
+        .manifest
+    )
     assert again["resolved_params_sha256"] == manifest["resolved_params_sha256"]
 
 
@@ -80,7 +92,12 @@ def test_param_rejected_recipe_never_generates_labels_or_fits(
     with pytest.raises(
         ValueError, match={"draft": "locked", "digest": "changed", "override": "override"}[defect]
     ):
-        ExperimentRunner(class_prior=0.3, config=config, manifest_path=str(path)).fit(model, *parts)
+        ExperimentRunner(
+            training_population_prior=0.3,
+            validation_population_prior=0.3,
+            config=config,
+            manifest_path=str(path),
+        ).fit(model, *parts)
     manifest = json.loads(path.read_text())
     assert manifest["execution_mode"] == "rejected_versioned_pilot"
     assert manifest["generation"] == {}
@@ -90,7 +107,13 @@ def test_param_rejected_recipe_never_generates_labels_or_fits(
 def test_edge_unbound_runner_is_not_retroactively_labelled(survey_script, tmp_path):
     model, parts, config = request(survey_script, tmp_path)
     del config["recipe_registry"]
-    manifest = ExperimentRunner(class_prior=0.3, config=config).fit(model, *parts).manifest
+    manifest = (
+        ExperimentRunner(
+            training_population_prior=0.3, validation_population_prior=0.3, config=config
+        )
+        .fit(model, *parts)
+        .manifest
+    )
     assert "recipe_binding_status" not in manifest
     assert "recipe_registry_sha256" not in manifest
 
@@ -100,7 +123,9 @@ def test_edge_partial_pin_without_registry_is_refused(survey_script, tmp_path):
     del config["recipe_registry"]
     config["expected_recipe_registry_sha256"] = "0" * 64
     with pytest.raises(ValueError, match="requires a recipe registry"):
-        ExperimentRunner(class_prior=0.3, config=config).fit(model, *parts)
+        ExperimentRunner(
+            training_population_prior=0.3, validation_population_prior=0.3, config=config
+        ).fit(model, *parts)
 
 
 def test_param_programmatic_estimator_cannot_hide_an_undeclared_tuned_parameter(
@@ -109,7 +134,9 @@ def test_param_programmatic_estimator_cannot_hide_an_undeclared_tuned_parameter(
     model, parts, config = request(survey_script, tmp_path)
     model.set_params(reg_lambda=0.005)
     with pytest.raises(ValueError, match="outside the resolved recipe/defaults: reg_lambda"):
-        ExperimentRunner(class_prior=0.3, config=config).fit(model, *parts)
+        ExperimentRunner(
+            training_population_prior=0.3, validation_population_prior=0.3, config=config
+        ).fit(model, *parts)
 
 
 def test_edge_candidate_pool_is_frozen_before_a_generator_can_mutate_config(
@@ -129,7 +156,13 @@ def test_edge_candidate_pool_is_frozen_before_a_generator_can_mutate_config(
 
     monkeypatch.setattr(SCARGenerator, "generate", generate)
 
-    manifest = ExperimentRunner(class_prior=0.3, config=config).fit(model, *parts).manifest
+    manifest = (
+        ExperimentRunner(
+            training_population_prior=0.3, validation_population_prior=0.3, config=config
+        )
+        .fit(model, *parts)
+        .manifest
+    )
     assert manifest["recipe_registry_sha256"] == expected
     assert manifest["candidate_runs"][0]["params"] == {}
     assert manifest["estimator_parameters"]["reg_lambda"] != 999

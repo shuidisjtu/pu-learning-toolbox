@@ -40,7 +40,13 @@ ESTIMATOR_CLASSES = {
 }
 # Keys the runner always injects (or that are required constructor args with
 # no default), so a locked config must not carry them.
-RUNNER_INJECTED_KEYS = {"random_state", "class_prior"}
+RUNNER_INJECTED_KEYS = {
+    "random_state",
+    "class_prior",
+    "risk_prior",
+    "population_prior",
+    "calibration_prior",
+}
 
 
 def _constructor_defaults(method: str) -> dict:

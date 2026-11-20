@@ -78,7 +78,7 @@ def _fit_encoder_clf(X, y_pu, *, encoder, model=None, seed=42, val=None):
     clf = NonNegativePUClassifier(
         model=model,
         encoder=encoder,
-        class_prior=0.3,
+        risk_prior=0.3,
         max_epochs=1,
         batch_size=16,
         random_state=seed,
@@ -124,7 +124,7 @@ def test_invalid_encoder_output_raises_value_error():
 def test_default_linear_model_preserved_without_encoder():
     X, y_pu = _table_data(d=5)
     clf = NonNegativePUClassifier(
-        class_prior=0.3, max_epochs=1, batch_size=16, random_state=42, device="cpu"
+        risk_prior=0.3, max_epochs=1, batch_size=16, random_state=42, device="cpu"
     )
     clf.fit(X, y_pu)
     assert isinstance(clf.model_, torch.nn.Linear)
@@ -141,7 +141,7 @@ def test_encoder_with_4d_input_trains_and_predicts():
 def test_4d_input_without_encoder_is_rejected():
     X, y_pu = _image_data()
     clf = NonNegativePUClassifier(
-        class_prior=0.3, max_epochs=1, batch_size=16, random_state=42, device="cpu"
+        risk_prior=0.3, max_epochs=1, batch_size=16, random_state=42, device="cpu"
     )
     with pytest.raises((ValidationError, ValueError)):
         clf.fit(X, y_pu)

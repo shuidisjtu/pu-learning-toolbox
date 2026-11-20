@@ -83,13 +83,13 @@ ESTIMATOR_FACTORY = {
         **params, random_state=seed
     ),
     "upu": lambda params, *, seed, prior, meta: UPUClassifier(
-        class_prior=prior, **params, random_state=seed
+        risk_prior=prior, **params, random_state=seed
     ),
     "nnpu": lambda params, *, seed, prior, meta: NonNegativePUClassifier(
-        class_prior=prior, **params, random_state=seed
+        risk_prior=prior, **params, random_state=seed
     ),
     "pnu": lambda params, *, seed, prior, meta: PNUClassifier(
-        class_prior=prior, **params, random_state=seed
+        population_prior=prior, **params, random_state=seed
     ),
     "ldce": lambda params, *, seed, prior, meta: LDCEClassifier(
         flip_probability=meta["real_h"], **params, random_state=seed
@@ -378,7 +378,14 @@ def _trial_body(row: dict, method_name: str, scenario_spec: dict, seed: int, con
     guard_fit_labels(y_fit, y_true)
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
-        estimator.fit(X, y_fit, class_prior=class_prior)
+        if method_name in ("ldce", "kldce"):
+            estimator.fit(X, y_fit, training_table_prior=class_prior)
+        elif method_name in ("nnpu", "upu", "elkan_noto", "pnu"):
+            estimator.fit(X, y_fit)
+        elif method_name == "llsvm":
+            estimator.fit(X, y_fit, calibration_prior=class_prior)
+        else:
+            raise ValueError(f"No fit prior contract for {method_name!r}")
     row["warning_count"] = int(len(caught))
     row.update(_extract_diagnostics(estimator, method_name))
     if getattr(estimator, "converged_", None) is not None and not estimator.converged_:

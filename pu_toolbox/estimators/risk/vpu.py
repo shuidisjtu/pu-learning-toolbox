@@ -64,7 +64,7 @@ class VPUClassifier(BasePUClassifier):
     label_semantics = "pu"
     assumption = (Assumption.SCAR,)
     scenario = (Scenario.CASE_CONTROL,)
-    requires_class_prior = False
+    _prior_consumptions_ = ()
     source_status = SourceStatus.OFFICIAL_RELATED
     backend = Backend.TORCH
     maturity = Maturity.EXPERIMENTAL
@@ -117,7 +117,6 @@ class VPUClassifier(BasePUClassifier):
         X,
         y_pu,
         *,
-        class_prior=None,
         sample_weight=None,
         pu_validation_data=None,
         epoch_callback=None,
@@ -135,7 +134,6 @@ class VPUClassifier(BasePUClassifier):
             return self._fit_impl(
                 X,
                 y_pu,
-                class_prior=class_prior,
                 sample_weight=sample_weight,
                 pu_validation_data=pu_validation_data,
                 epoch_callback=epoch_callback,
@@ -150,7 +148,6 @@ class VPUClassifier(BasePUClassifier):
         X,
         y_pu,
         *,
-        class_prior,
         sample_weight,
         pu_validation_data,
         epoch_callback,
@@ -166,8 +163,8 @@ class VPUClassifier(BasePUClassifier):
         ``"os"`` restricts the pool to the unlabeled rows; that is a
         protocol-defined ablation, not a native reading of VPU.
 
-        ``class_prior`` is accepted only for the common estimator interface;
-        it never enters VPU's loss. ``pu_validation_data`` may be a PU-view
+        The objective does not use a class prior.
+        ``pu_validation_data`` may be a PU-view
         DatasetPart or ``(X_val, y_pu_val)`` and is used only for epoch risk,
         which is a source diagnostic and does not follow the training view
         (decision D22).
@@ -191,8 +188,6 @@ class VPUClassifier(BasePUClassifier):
         X = _finite_features(X, name="X", allow_nd=self.encoder is not None)
         if self.encoder is not None and not isinstance(self.encoder, nn.Module):
             raise TypeError("encoder must be a torch.nn.Module")
-        if class_prior is not None and (not np.isfinite(class_prior) or not 0 < class_prior < 1):
-            raise ValueError("class_prior, if supplied, must be in (0, 1)")
         if os_or_ts not in RUN_VIEWS:
             raise ValueError(f"os_or_ts must be 'os' or 'ts'; got {os_or_ts!r}.")
         self._validate_parameters()
@@ -290,7 +285,6 @@ class VPUClassifier(BasePUClassifier):
         self.n_features_in_ = X.shape[1]
         self.input_shape_ = tuple(X.shape[1:])
         self._X_shape_ = X.shape
-        self._class_prior = None
         self._is_fitted = False
         self.device_ = device
 

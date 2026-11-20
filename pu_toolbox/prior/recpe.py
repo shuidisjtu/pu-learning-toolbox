@@ -101,7 +101,6 @@ class ReCPEEstimator(BasePriorEstimator):
     family: AlgorithmFamily = AlgorithmFamily.CLASS_PRIOR_ESTIMATION
     assumption: tuple[Assumption, ...] = (Assumption.SCAR,)
     scenario: tuple[Scenario, ...] = (Scenario.SINGLE_TRAINING_SET, Scenario.CASE_CONTROL)
-    requires_class_prior: bool = False
     source_status: SourceStatus = SourceStatus.OFFICIAL_EXACT
     backend: Backend = Backend.NUMPY
     maturity: Maturity = Maturity.STABLE
@@ -165,7 +164,7 @@ class ReCPEEstimator(BasePriorEstimator):
         self.classifier_ = ranker
         self.selected_indices_ = selected
         self.copy_count_ = n_copy
-        self.class_prior_ = float(np.clip(base.estimate(), 0.0, 1.0))
+        self.unlabeled_prior_estimate_ = float(np.clip(base.estimate(), 0.0, 1.0))
         self.n_features_in_ = X.shape[1]
         self._is_fitted = True
         return self
@@ -173,7 +172,7 @@ class ReCPEEstimator(BasePriorEstimator):
     def estimate(self) -> float:
         if not getattr(self, "_is_fitted", False):
             raise NotFittedError("ReCPEEstimator is not fitted. Call fit() first.")
-        return self.class_prior_
+        return self.unlabeled_prior_estimate_
 
     def get_metadata(self) -> dict[str, Any]:
         """Return implementation diagnostics for reproducibility."""
@@ -183,7 +182,7 @@ class ReCPEEstimator(BasePriorEstimator):
             "method": "ReCPE",
             "copy_fraction": self.copy_fraction,
             "copy_count": self.copy_count_,
-            "class_prior": self.class_prior_,
+            "unlabeled_prior_estimate": self.unlabeled_prior_estimate_,
             "base_estimator": self.base_estimator_.__class__.__name__,
             "estimate_target": self.estimate_target,
             "estimation_pool": self.estimation_pool,

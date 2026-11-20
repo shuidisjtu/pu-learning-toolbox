@@ -51,7 +51,7 @@ class TestGoldenRiskValues:
         u = np.array([0.0, 0.0, 0.0, 0.0, 0.0])
         pi = 0.5
 
-        info = NonNegativePULoss().evaluate(p, u, class_prior=pi)
+        info = NonNegativePULoss().evaluate(p, u, risk_prior=pi)
 
         # σ(0) = 0.5 for all scores
         # R_p^+ = mean(σ(-0)) = 0.5
@@ -76,7 +76,7 @@ class TestGoldenRiskValues:
         u = np.array([-8.0, -8.0])
         pi = 0.3
 
-        info = NonNegativePULoss().evaluate(p, u, class_prior=pi)
+        info = NonNegativePULoss().evaluate(p, u, risk_prior=pi)
 
         # Hand calculation:
         # R_p^+ = σ(−8) ≈ 0.000335
@@ -103,7 +103,7 @@ class TestGoldenRiskValues:
         u = np.array([3.0, -0.5])
         pi = 0.4
 
-        info = NonNegativePULoss().evaluate(p, u, class_prior=pi)
+        info = NonNegativePULoss().evaluate(p, u, risk_prior=pi)
 
         # R_p^+ = σ(−g_p): σ(−(−2))=σ(2)≈0.8808, σ(−1)≈0.2689 → mean≈0.5749
         R_p_plus_h = 0.5 * (_σ(2.0) + _σ(-1.0))
@@ -142,7 +142,7 @@ class TestRiskInvariants:
             p = rng.uniform(-20, 20, size=rng.randint(2, 50))
             u = rng.uniform(-20, 20, size=rng.randint(2, 50))
             pi = rng.uniform(0.05, 0.95)
-            info = loss.evaluate(p, u, class_prior=pi)
+            info = loss.evaluate(p, u, risk_prior=pi)
             assert 0.0 <= info["positive_risk"] <= 1.0, (
                 f"R_p^+ = {info['positive_risk']} not in [0, 1]"
             )
@@ -156,7 +156,7 @@ class TestRiskInvariants:
             p = rng.uniform(-20, 20, size=rng.randint(2, 30))
             u = rng.uniform(-20, 20, size=rng.randint(2, 30))
             pi = rng.uniform(0.05, 0.95)
-            nnpu = loss(p, u, class_prior=pi, non_negative=True)
+            nnpu = loss(p, u, risk_prior=pi, non_negative=True)
             assert nnpu >= -1e-12, f"nnPU risk negative: {nnpu}"
 
     @pytest.mark.property
@@ -168,8 +168,8 @@ class TestRiskInvariants:
             p = rng.uniform(-20, 20, size=rng.randint(2, 30))
             u = rng.uniform(-20, 20, size=rng.randint(2, 30))
             pi = rng.uniform(0.05, 0.95)
-            r_nn = loss(p, u, class_prior=pi, non_negative=True)
-            r_upu = loss(p, u, class_prior=pi, non_negative=False)
+            r_nn = loss(p, u, risk_prior=pi, non_negative=True)
+            r_upu = loss(p, u, risk_prior=pi, non_negative=False)
             assert r_nn >= r_upu - 1e-12, f"nnPU ({r_nn}) < uPU ({r_upu})"
 
     @pytest.mark.property
@@ -179,8 +179,8 @@ class TestRiskInvariants:
         p = np.array([1.0, -0.5])
         u = np.array([0.5, -1.0])
 
-        info_lo = loss.evaluate(p, u, class_prior=0.3)
-        info_hi = loss.evaluate(p, u, class_prior=0.5)
+        info_lo = loss.evaluate(p, u, risk_prior=0.3)
+        info_hi = loss.evaluate(p, u, risk_prior=0.5)
 
         # R_p^+ and R_p^- are independent of π
         assert info_lo["positive_risk"] == pytest.approx(info_hi["positive_risk"])
@@ -192,7 +192,7 @@ class TestRiskInvariants:
         p = np.array([5.0, 4.0])
         u = np.array([-3.0, -2.0])
         pi = 0.3
-        r0 = loss0(p, u, class_prior=pi, non_negative=True)
+        r0 = loss0(p, u, risk_prior=pi, non_negative=True)
         # For beta=0: correction whenever r < 0
         # nnpu risk = π·R_p^+ + max(0, r) — always non-negative
         assert r0 >= 0.0

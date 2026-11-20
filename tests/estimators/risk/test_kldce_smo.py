@@ -299,7 +299,7 @@ def test_param_fit_small_grid_converges_fast():
     X = rng.normal(size=(400, 5))
     y = rng.choice([0.0, 1.0], size=400, p=[0.8, 0.2])
     clf = KLDCEClassifier(flip_probability=0.1, sigma=2.0, random_state=42)
-    clf.fit(X, y, class_prior=0.1)
+    clf.fit(X, y, training_table_prior=0.1)
     assert clf.converged_ is True
     assert clf.n_acs_iter_ <= 10
     assert clf.acs_history_[0]["inner_converged"] is True
@@ -319,7 +319,7 @@ def test_param_fit_decision_function_matches_decision_shift_reference():
     y = rng.choice([0.0, 1.0], size=60, p=[0.7, 0.3])
 
     clf = KLDCEClassifier(flip_probability=0.2, sigma=1.0, max_acs_iter=1, random_state=42)
-    clf.fit(X, y, class_prior=0.2)
+    clf.fit(X, y, training_table_prior=0.2)
     # 同一单元内,直接用 fit 后的 α/γ 判决策函数可用:
     df = clf.decision_function(X)
     assert np.isfinite(df).all()

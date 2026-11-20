@@ -286,7 +286,7 @@ def test_basic_an_oracle_batch_carries_no_method_mechanism_or_class_prior():
     """An oracle is a clean label view; the script rejects those beside it.
 
     It does *not* reject ``--c`` -- only ``--oracle`` with ``--method`` or
-    ``--class-prior``.  The batch leaves ``--c`` off because an oracle has no c
+    ``--population-prior``.  The batch leaves ``--c`` off because an oracle has no c
     to vary, not because the script would refuse it.
     """
     batch = batches((PilotRun("spambase", PN_ORACLE, "native_2d", None, None, 0),))[0]
@@ -297,7 +297,7 @@ def test_basic_an_oracle_batch_carries_no_method_mechanism_or_class_prior():
     assert "--method" not in command
     assert "--labeling-mechanism" not in command
     assert "--c" not in command
-    assert "--class-prior" not in command
+    assert "--population-prior" not in command
 
 
 def test_basic_the_command_passes_through_only_what_the_caller_supplied():
@@ -305,7 +305,7 @@ def test_basic_the_command_passes_through_only_what_the_caller_supplied():
     batch = batches((PilotRun("spambase", "nnpu", "native_2d", "scar", "0.1", 0),))[0]
     bare = batch_command(batch, splits_root="data/splits", out_root="results/survey")
     assert "--device" not in bare
-    assert "--class-prior" not in bare
+    assert "--population-prior" not in bare
     # Reclaiming is opt-in: the default run must keep every checkpoint.  A
     # silently dropped flag here would be invisible -- the pilot's formal
     # batches would just stop reclaiming.
@@ -315,14 +315,14 @@ def test_basic_the_command_passes_through_only_what_the_caller_supplied():
         batch,
         splits_root="data/splits",
         out_root="results/survey",
-        class_prior=0.39,
+        population_prior=0.39,
         device="cuda",
         extraction_batch_size=64,
         reclaim_unselected_checkpoints=True,
     )
     # A prior the method needs must actually reach the run: without it the
     # script refuses the row before reading a single split.
-    assert given[given.index("--class-prior") + 1] == "0.39"
+    assert given[given.index("--population-prior") + 1] == "0.39"
     assert given[given.index("--device") + 1] == "cuda"
     assert given[given.index("--extraction-batch-size") + 1] == "64"
     assert "--reclaim-unselected-checkpoints" in given
@@ -406,7 +406,7 @@ def test_basic_the_driver_reports_the_plan_without_running_anything(tmp_path, ca
         "nnpu",
         "--splits",
         str(tmp_path / "splits"),
-        "--class-prior",
+        "--population-prior",
         "spambase=0.39",
     ]
     assert driver.main(argv) == 0

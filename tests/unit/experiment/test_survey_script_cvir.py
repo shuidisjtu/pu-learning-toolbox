@@ -20,7 +20,7 @@ def request(data_dir, out_dir):
         str(data_dir),
         "--method",
         "cvir",
-        "--class-prior",
+        "--population-prior",
         "0.4",
         "--c",
         "0.5",
@@ -60,22 +60,21 @@ def test_basic_determ_cli_binds_prior_checkpoints_selection_and_reclaims(
         path = run_manifest(output, "c_0.5", "seed_0")
         manifest = json.loads(path.read_text())
         candidate = manifest["candidate_runs"][0]
-        provenance = candidate["training_provenance"]
-        binding = provenance["population_prior_binding"]
+        ranking, weighted, pa = manifest["research_settings"]["prior"]
         resolved = "ts" if view is None else view
-        assert binding["population_prior"] == 0.4
-        assert binding["n_train"] == 18 and binding["n_labeled_positive"] == 3
-        assert binding["risk_pool_positive_prior"] == pytest.approx(
-            0.4 if resolved == "ts" else (0.4 * 18 - 3) / 15
-        )
-        assert binding["prior_source"] == "synthetic generation metadata"
-        assert not binding["source_verified"] and not binding["uses_hidden_training_labels"]
-        assert provenance["population_prior_forwarded_to_fit"] is False
+        for use in (ranking, weighted):
+            assert use["value"] == pytest.approx(0.4 if resolved == "ts" else (0.4 * 18 - 3) / 15)
+            assert use["source_detail"] == "synthetic generation metadata"
+            assert use["source_verified"] is False
+            if resolved == "os":
+                conversion = use["conversion"]
+                assert conversion["original_value"] == 0.4
+                assert conversion["n_train"] == 18 and conversion["n_labeled"] == 3
         assert manifest["calibration_applied"] is (resolved == "ts")
         assert manifest["formal_eligible"] is False
         assert not manifest["failures"]
         assert set(manifest["test_results"]) == {"PA", "OA"}
-        assert manifest["selection"]["PA"]["class_prior"]["population"] == 0.4
+        assert pa["value"] == 0.4 and pa["source"] == "runner.validation_population_prior"
         assert len(candidate["epoch_checkpoints"]) == 3
         remaining = [c for c in candidate["epoch_checkpoints"] if Path(c["path"]).exists()]
         assert 1 <= len(remaining) <= 2
@@ -94,9 +93,9 @@ def test_basic_determ_cli_binds_prior_checkpoints_selection_and_reclaims(
         (["--cvir-population-prior-source", " "], [], "nonempty"),
         (["--checkpoint-bytes-per-component", "0"], [], "positive"),
         (["--checkpoint-bytes-per-component", "-1"], [], "positive"),
-        ([], ["--class-prior"], "population --class-prior"),
-        (["--class-prior", "nan"], [], "population --class-prior"),
-        (["--class-prior", "1"], [], "population --class-prior"),
+        ([], ["--population-prior"], "population --population-prior"),
+        (["--population-prior", "nan"], [], "population --population-prior"),
+        (["--population-prior", "1"], [], "population --population-prior"),
         (["--labeling-mechanism", "sar_lbe_a"], [], "SCAR only"),
         (["--labeling-mechanism", "sar_lbe_b"], [], "SCAR only"),
         (["--protocol", "survey-v3.2"], [], "without --protocol/--oracle"),

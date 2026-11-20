@@ -29,7 +29,7 @@ def _joint_shift(seed=12):
 def test_basic_joint_shift_fit_produces_bounded_finite_weights():
     Xs, ys, _, Xt, yt, _ = _joint_shift()
     model = JointShiftPUClassifier(max_iter=2, n_cv_folds=2, alpha=0.2).fit(
-        Xs, ys, X_target=Xt, y_target_pu=yt, class_prior=0.35, target_class_prior=0.55
+        Xs, ys, X_target=Xt, y_target_pu=yt, source_domain_prior=0.35, target_domain_prior=0.55
     )
     assert model.n_iter_ <= 2
     assert np.isfinite(model.relative_joint_weights_).all()
@@ -50,7 +50,7 @@ def test_edge_missing_domain_or_priors_is_rejected():
     Xs, ys, _, Xt, yt, _ = _joint_shift()
     model = JointShiftPUClassifier(n_cv_folds=2)
     with pytest.raises(ValueError, match="X_target"):
-        model.fit(Xs, ys, class_prior=0.35, target_class_prior=0.55)
+        model.fit(Xs, ys, source_domain_prior=0.35, target_domain_prior=0.55)
     with pytest.raises(ValueError, match="both required"):
         model.fit(Xs, ys, X_target=Xt, y_target_pu=yt)
 
@@ -60,7 +60,7 @@ def test_determ_same_seed_reproduces_trace_and_predictions():
     outputs = []
     for _ in range(2):
         model = JointShiftPUClassifier(max_iter=2, n_cv_folds=2, random_state=9).fit(
-            Xs, ys, X_target=Xt, y_target_pu=yt, class_prior=0.35, target_class_prior=0.55
+            Xs, ys, X_target=Xt, y_target_pu=yt, source_domain_prior=0.35, target_domain_prior=0.55
         )
         outputs.append((model.training_trace_, model.predict(Xt)))
     assert outputs[0][0] == outputs[1][0]
@@ -70,7 +70,7 @@ def test_determ_same_seed_reproduces_trace_and_predictions():
 def test_basic_target_scores_are_finite_under_prior_and_class_conditional_shift():
     Xs, ys, _, Xt, yt, y_true_target = _joint_shift()
     model = JointShiftPUClassifier(max_iter=2, n_cv_folds=2).fit(
-        Xs, ys, X_target=Xt, y_target_pu=yt, class_prior=0.35, target_class_prior=0.55
+        Xs, ys, X_target=Xt, y_target_pu=yt, source_domain_prior=0.35, target_domain_prior=0.55
     )
     scores = model.decision_function(Xt)
     assert np.isfinite(scores).all()

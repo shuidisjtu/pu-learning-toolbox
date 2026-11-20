@@ -23,6 +23,7 @@ from ...core.tags import (
     Assumption,
     Backend,
     Maturity,
+    PriorConsumer,
     SampleWeightSupport,
     Scenario,
     SourceStatus,
@@ -172,8 +173,17 @@ class SplitPUClassifier(BasePUClassifier):
     label_semantics = "pu"
     assumption = (Assumption.SCAR,)
     scenario = (Scenario.CASE_CONTROL,)
-    requires_class_prior = True
-    class_prior_target = "native_unlabeled"
+    _runner_prior_parameter = "risk_prior"
+    prior_consumers = (
+        PriorConsumer(
+            "split_pu_teacher_risk",
+            "native_unlabeled",
+            parameter="risk_prior",
+            requires_input=True,
+            ts_compatible_target="positive_union_unlabeled",
+        ),
+    )
+    _prior_consumptions_ = ()
     source_status = SourceStatus.OFFICIAL_EXACT
     backend = Backend.TORCH
     maturity = Maturity.EXPERIMENTAL
@@ -196,7 +206,7 @@ class SplitPUClassifier(BasePUClassifier):
 
     def __init__(
         self,
-        class_prior: float | None = None,
+        risk_prior: float | None = None,
         *,
         encoder=None,
         encoder_feature_layer: str | None = None,
@@ -217,7 +227,7 @@ class SplitPUClassifier(BasePUClassifier):
         device: str | None = None,
     ) -> None:
         super().__init__()
-        self.class_prior = class_prior
+        self.risk_prior = risk_prior
         self.encoder = encoder
         self.encoder_feature_layer = encoder_feature_layer
         self.hidden_dim = hidden_dim
@@ -242,7 +252,7 @@ class SplitPUClassifier(BasePUClassifier):
         X: np.ndarray,
         y_pu: np.ndarray,
         *,
-        class_prior: float | None = None,
+        risk_prior: float | None = None,
         sample_weight: np.ndarray | None = None,
         epoch_callback=None,
         os_or_ts: str = "os",
@@ -265,9 +275,9 @@ class SplitPUClassifier(BasePUClassifier):
         if self.encoder_feature_layer is not None and self.encoder is None:
             raise ValueError("encoder_feature_layer requires encoder")
         view = build_training_view(X, y_pu, requested_view=os_or_ts)
-        prior = self.class_prior if class_prior is None else class_prior
+        prior = self.risk_prior if risk_prior is None else risk_prior
         if prior is None or not np.isfinite(prior) or not 0 < prior < 1:
-            raise ValueError("class_prior must be in (0, 1)")
+            raise ValueError("risk_prior must be in (0, 1)")
         for name in (
             "hidden_dim",
             "teacher_epochs",
@@ -363,7 +373,18 @@ class SplitPUClassifier(BasePUClassifier):
         self.training_view_ = os_or_ts
         self.calibration_applied_ = view.calibration_applied
         self._X_shape_ = X.shape
-        self._class_prior = float(prior)
+        self.risk_prior_ = float(prior)
+        self._prior_consumptions_ = (
+            {
+                "consumer": "split_pu_teacher_risk",
+                "partition": "train",
+                "target": "positive_union_unlabeled"
+                if view.calibration_applied
+                else "native_unlabeled",
+                "source": "estimator.risk_prior" if risk_prior is None else "fit.risk_prior",
+                "value": self.risk_prior_,
+            },
+        )
         self.optimizer_steps_ = 0
         self.history_ = {
             "teacher_risk": [],
@@ -400,7 +421,7 @@ class SplitPUClassifier(BasePUClassifier):
                     torch.sigmoid(-pos).mean(),
                     torch.sigmoid(pos).mean(),
                     torch.sigmoid(loss_unl).mean(),
-                    class_prior=prior,
+                    risk_prior=prior,
                 )
                 if not torch.isfinite(loss):
                     raise FloatingPointError("Split-PU teacher loss became non-finite")

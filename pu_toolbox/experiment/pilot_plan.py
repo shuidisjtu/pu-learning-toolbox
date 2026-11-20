@@ -864,7 +864,7 @@ def batch_command(
     splits_root: str | Path,
     out_root: str | Path,
     protocol: str = "survey-v3.2",
-    class_prior: float | None = None,
+    population_prior: float | None = None,
     device: str | None = None,
     adapter_cache: str | None = None,
     extraction_batch_size: int | None = None,
@@ -914,7 +914,7 @@ def batch_command(
     ]
     if batch.method == PN_ORACLE:
         # An oracle is defined by a clean label view: no method, no mechanism,
-        # no c.  The script refuses --oracle beside --method or --class-prior.
+        # no c.  The script refuses --oracle beside --method or --population-prior.
         argv.append("--oracle")
     else:
         argv += [
@@ -925,8 +925,8 @@ def batch_command(
             "--c",
             ",".join(batch.tokens),
         ]
-        if class_prior is not None:
-            argv += ["--class-prior", repr(class_prior)]
+        if population_prior is not None:
+            argv += ["--population-prior", repr(population_prior)]
     if device is not None:
         argv += ["--device", device]
     if adapter_cache is not None:

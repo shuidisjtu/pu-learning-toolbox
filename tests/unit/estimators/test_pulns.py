@@ -82,7 +82,7 @@ def test_fit_cloning_pickle_seed_and_registry():
     fitted.fit(
         X, y, support_data=support, train_indices=np.arange(24), support_indices=np.arange(24, 30)
     )
-    repeated = model().fit(X, y, support_data=support, class_prior=0.4)
+    repeated = model().fit(X, y, support_data=support)
     np.testing.assert_array_equal(fitted.decision_function(X), repeated.decision_function(X))
     assert fitted.history_ == repeated.history_
     assert fitted.support_isolation_status_ == "train_support_ids_disjoint"

@@ -48,6 +48,22 @@ def _clean_registry():
 
 
 @pytest.mark.unit
+def test_basic_registry_declares_distinct_prior_consumers_without_claiming_actual_use():
+    kernel = get_metadata("pusb_kernel")
+    assert kernel.required_prior_parameters == ("training_table_prior",)
+    assert {use.parameter for use in kernel.prior_consumers} == {
+        "training_table_prior",
+        "risk_prior",
+    }
+    assert get_metadata("llsvm").required_prior_parameters == ()
+    assert get_metadata("pan").prior_consumers == ()
+    assert (
+        not {"requires_class_prior", "class_prior_target", "risk_class_prior_target"}
+        & kernel.to_dict().keys()
+    )
+
+
+@pytest.mark.unit
 class TestBuiltinRegistration:
     """Invariant checks for the built-in method entries."""
 
@@ -162,7 +178,7 @@ class TestBuiltinRegistration:
                 "source_status",
                 "backend",
                 "maturity",
-                "requires_class_prior",
+                "prior_consumers",
             ):
                 if not _declared_on_class(cls, field_name):
                     continue
@@ -204,7 +220,6 @@ class TestBuiltinRegistration:
             "family",
             "assumption",
             "scenario",
-            "requires_class_prior",
             "source_status",
             "backend",
             "maturity",
@@ -252,7 +267,7 @@ class TestBuiltinRegistration:
         # The CPE entry supplies capabilities its class does not declare.
         cpe = get_metadata("class_prior_estimation")
         assert cpe.family == AlgorithmFamily.CLASS_PRIOR_ESTIMATION
-        assert cpe.requires_class_prior is False
+        assert cpe.required_prior_parameters == ()
         assert cpe.source_status == SourceStatus.OFFICIAL_RELATED
         assert cpe.backend == Backend.NUMPY
         assert cpe.maturity == Maturity.STABLE
@@ -260,8 +275,8 @@ class TestBuiltinRegistration:
         assert cpe.assumption == [Assumption.SCAR]
         # pusb / lbe: same shape (class inherits the base default, which the sync
         # deliberately excludes), so their literals are live too.
-        assert get_metadata("pusb").requires_class_prior is False
-        assert get_metadata("lbe").requires_class_prior is False
+        assert get_metadata("pusb").required_prior_parameters == ()
+        assert get_metadata("lbe").required_prior_parameters == ()
 
     def test_basic_every_method_has_explicit_training_cost(self):
         """All entries carry an explicit training-cost level (no UNKNOWN)."""

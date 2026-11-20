@@ -59,7 +59,8 @@ output = Path("research-output")
 output.mkdir()
 runner = ExperimentRunner(
     seed=7, generator=SCARGenerator(),
-    protocols=[ProtocolPA(), ProtocolOA()], class_prior=0.5,
+    protocols=[ProtocolPA(), ProtocolOA()],
+    training_population_prior=0.5, validation_population_prior=0.5,
     threshold_candidates=np.linspace(0, 1, 11),
     manifest_path=str(output / "run.json"),
     config={
@@ -69,7 +70,7 @@ runner = ExperimentRunner(
     },
 )
 result = runner.fit(
-    UPUClassifier(class_prior=0.5, fit_intercept=False, random_state=7),
+    UPUClassifier(fit_intercept=False, random_state=7),
     bundle.train, bundle.pu_val, bundle.clean_val, bundle.test,
 )
 for name, artifact in result.selections.items():
@@ -85,10 +86,10 @@ Record the input sampling design and risk view as separate settings.
 
 ## Match prior consumption to the trainer
 
-Runner `class_prior` supplies PA's population prior. For uPU with a built-in
-fit trainer on OS data, the runner converts it only for the native-U risk view;
-it passes the population prior unchanged for TS-compatible risk. Check both
-values in `research_settings.prior`.
+Set `validation_population_prior` for PA and `training_population_prior` for
+the training distribution. A built-in fit trainer receives uPU's `risk_prior`:
+native-U prior in the OS view, population prior in the TS-compatible view.
+Check both consumers in `research_settings.prior`.
 
 Custom trainers receive the original runner input. For an estimator's native-U
 loss on OS data, a custom trainer computes the training-partition prior with
@@ -152,7 +153,7 @@ def predict_selected(result, name, X_new):
   weighted fixed-count policies. Use `generator=SARLBEAGenerator()` and
   `protocols=[ProtocolOA()]` for an LBE-A/OA comparison; retain its smoothing
   and exponent settings in the reported policy.
-- **Trainer:** implement `Trainer.fit(estimator, X, y, *, class_prior=None,
+- **Trainer:** implement `fit(estimator, X, y, *, training_population_prior=None,
   val_pu=None, os_or_ts=None)` and return `RunTrajectory`. Store fitted
   preprocessing together with the predictor. Inject a trainer instance in
   `config["trainer"]`.

@@ -35,7 +35,7 @@ def case(method, monkeypatch):
     kwargs = {}
     if method == "genpu":
         model = GenPUClassifier(
-            class_prior=0.4, latent_dim=2, max_epochs=1, classifier_epochs=1, **common
+            risk_prior=0.4, latent_dim=2, max_epochs=1, classifier_epochs=1, **common
         )
     elif method == "holistic_pu":
         model = HolisticPUClassifier(warmup_epochs=3, max_epochs=1, **common)

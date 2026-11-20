@@ -153,6 +153,8 @@ def test_basic_end_to_end_clone_and_train_holdout_isolation(reverse):
     assert estimator.provenance_["sample_ids_checked"] is True
     assert estimator.provenance_["clean_labels_read"] is False
     assert estimator.provenance_["population_prior_conversion"] is None
+    assert estimator.provenance_["estimate_target"] == "native_unlabeled"
+    assert estimator.provenance_["estimation_pool"] == "heldout_pu"
     assert not hasattr(estimator, "estimate")
 
 

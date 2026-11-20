@@ -414,7 +414,7 @@ def assemble_model(
     *,
     seed: int,
     params: dict,
-    class_prior: float | None,
+    population_prior: float | None,
     device: str,
     encoder=None,
     preprocessing=None,
@@ -442,8 +442,12 @@ def assemble_model(
         constructor["random_state"] = seed
     if "device" in accepted:
         constructor["device"] = device
-    if "class_prior" in accepted:
-        constructor["class_prior"] = class_prior
+    if algorithm == "puet":
+        constructor["tree_weight_prior"] = population_prior
+    elif algorithm == "dist_pu":
+        constructor["distribution_prior"] = population_prior
+    elif algorithm in {"robust_pu", "split_pu", "pulda", "genpu", "self_pu"}:
+        constructor["risk_prior"] = population_prior
     if algorithm in {"nnpu", "self_pu"}:
         import torch
 

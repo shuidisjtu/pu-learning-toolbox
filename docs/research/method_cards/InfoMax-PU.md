@@ -246,7 +246,7 @@ P/U 输入
   -> 测试分类
 ```
 
-用户若已知 class prior，可跳过估计步骤并直接传入 `class_prior`。
+用户若已知 class prior，可跳过估计步骤并直接传入 `risk_prior`。
 
 ---
 

@@ -17,7 +17,7 @@ def data():
 
 
 def candidate(method):
-    common = dict(class_prior=0.4, hidden_dim=4, batch_size=8, random_state=3, device="cpu")
+    common = dict(risk_prior=0.4, hidden_dim=4, batch_size=8, random_state=3, device="cpu")
     if method == "robust_pu":
         return RobustPUClassifier(pretrain_epochs=2, episodes=3, inner_epochs=2, **common)
     return SplitPUClassifier(

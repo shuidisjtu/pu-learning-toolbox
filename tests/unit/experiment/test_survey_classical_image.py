@@ -98,7 +98,7 @@ def test_basic_real_resnet_classical_cli_and_exact_budget(
         "cpu",
         "--c",
         "0.5",
-        "--class-prior",
+        "--population-prior",
         "0.5",
         "--labeling-mechanism",
         mechanism,

@@ -37,11 +37,9 @@ class _CustomSupportTrainer:
         self.support = support
         self.fits = 0
 
-    def fit(self, estimator, x, y, *, class_prior=None, val_pu=None):
+    def fit(self, estimator, x, y, *, training_population_prior=None, val_pu=None):
         self.fits += 1
-        estimator.fit(
-            x, y, class_prior=class_prior, support_data=(self.support.X, self.support.labels)
-        )
+        estimator.fit(x, y, support_data=(self.support.X, self.support.labels))
         return RunTrajectory(epochs=[EpochRecord(epoch=1, metrics={})], model=estimator)
 
 

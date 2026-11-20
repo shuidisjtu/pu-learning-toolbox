@@ -150,13 +150,15 @@ def test_ts_calibrates_unlabeled_risk_and_gradient_interpolation(monkeypatch):
         _model().fit(X, y, os_or_ts="unknown")
 
 
-def test_determ_seeded_fits_and_prior_compatibility_are_stable():
+def test_determ_seeded_fits_with_prior_free_objective_are_stable():
     X, y = _data()
     first = _model().fit(X, y)
-    second = _model().fit(X, y, class_prior=0.4)
+    second = _model().fit(X, y)
     np.testing.assert_array_equal(first.decision_function(X), second.decision_function(X))
     assert first.history_ == second.history_
-    assert second.get_pu_metadata()["class_prior"] is None  # no prior in Eq. 7
+    assert second._prior_consumptions_ == ()
+    with pytest.raises(TypeError, match="class_prior"):
+        _model().fit(X, y, class_prior=0.4)
 
 
 @pytest.mark.parametrize(
@@ -188,7 +190,7 @@ def test_edge_input_and_unsupported_weight_paths_reject():
     X, y = _data()
     with pytest.raises(NotImplementedError, match="sample_weight"):
         _model().fit(X, y, sample_weight=np.ones(len(X)))
-    with pytest.raises(ValueError, match="class_prior"):
+    with pytest.raises(TypeError, match="class_prior"):
         _model().fit(X, y, class_prior=1.0)
     with pytest.raises(ValueError, match="encoder"):
         _model().fit(X.reshape(len(X), 1, 1, 3), y)

@@ -32,9 +32,8 @@ def trajectory(method, directory, *, view="os"):
         estimator, DatasetBundle(*parts), config, [ProtocolPACleanSupport(), ProtocolOA()]
     )
     trainer.bind_checkpoint_directory(directory)
-    return trainer.fit(
-        estimator, parts[0].X, parts[0].labels, class_prior=0.5, os_or_ts=view
-    ), parts
+    priors = {"training_population_prior": 0.5} if method == "self_pu" else {}
+    return trainer.fit(estimator, parts[0].X, parts[0].labels, os_or_ts=view, **priors), parts
 
 
 @pytest.mark.parametrize("method,view", [("lagam", "os"), ("self_pu", "os"), ("self_pu", "ts")])
@@ -45,7 +44,9 @@ def test_basic_all_paid_epochs_have_both_selection_metrics(method, view, tmp_pat
     assert recorded.model.training_provenance_["captured_epochs"] == expected
     assert recorded.model.training_provenance_["selection_scope"] == "completed_epochs"
     ProtocolOA().select([recorded], parts[2])
-    ProtocolPACleanSupport().select([recorded], replace(parts[1], view="pu"), class_prior=0.5)
+    ProtocolPACleanSupport().select(
+        [recorded], replace(parts[1], view="pu"), validation_population_prior=0.5
+    )
     components = 1 if method == "lagam" else 2
     assert len(recorded.checkpoints) == 3 * components
     for checkpoint in recorded.checkpoints:

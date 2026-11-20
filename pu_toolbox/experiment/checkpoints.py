@@ -19,7 +19,7 @@ from pathlib import Path
 import numpy as np
 
 from ..utils.serialization import file_hash
-from .protocols import Trainer, route_training_view
+from .protocols import Trainer, fit_prior_kwargs, route_training_view
 from .tracking import EpochRecord, RunTrajectory
 
 
@@ -261,7 +261,18 @@ class EpochCheckpointTrainer(Trainer):
         """Default to the estimator's explicit stage contract, preserving old writers."""
         return _training_context(fitted)
 
-    def fit(self, estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None):
+    def fit(
+        self,
+        estimator,
+        X,
+        y,
+        *,
+        risk_prior=None,
+        validation_risk_prior=None,
+        val_pu=None,
+        os_or_ts=None,
+        **fit_priors,
+    ):
         import torch
 
         params = inspect.signature(type(estimator).fit).parameters
@@ -269,7 +280,9 @@ class EpochCheckpointTrainer(Trainer):
             raise ValueError(
                 "epoch checkpoint trainer requires an explicit epoch_callback fit hook"
             )
-        if self.trains_on_real_labels and class_prior is not None:
+        if self.trains_on_real_labels and any(
+            prior is not None for prior in (risk_prior, validation_risk_prior, *fit_priors.values())
+        ):
             raise ValueError("supervised checkpoint trainer must not receive a PU class prior")
         if self.checkpoint_dir is None:
             owner = tempfile.TemporaryDirectory(prefix="pu-epoch-checkpoints-")
@@ -351,8 +364,14 @@ class EpochCheckpointTrainer(Trainer):
                 )
 
         kwargs = {"epoch_callback": record}
-        if class_prior is not None and "class_prior" in params:
-            kwargs["class_prior"] = class_prior
+        kwargs.update(
+            fit_prior_kwargs(
+                params,
+                risk_prior=risk_prior,
+                validation_risk_prior=validation_risk_prior,
+                **fit_priors,
+            )
+        )
         if not self.trains_on_real_labels and val_pu is not None:
             name = "pu_validation_data" if "pu_validation_data" in params else "validation_data"
             if name in params:

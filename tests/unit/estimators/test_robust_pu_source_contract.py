@@ -49,7 +49,7 @@ def _head():
 
 def _model(**kwargs):
     params = dict(
-        class_prior=0.4,
+        risk_prior=0.4,
         model=_head(),
         pretrain_epochs=0,
         episodes=1,
@@ -102,7 +102,7 @@ def test_edge_nnpu_optimization_branches_match_source_not_clipped_risk_gradients
     u = torch.tensor(u_values, dtype=torch.float64, requires_grad=True)
     pi = 0.7
     loss, info = _nnpu_train_step(
-        torch.sigmoid(-p).mean(), torch.sigmoid(p).mean(), torch.sigmoid(u).mean(), class_prior=pi
+        torch.sigmoid(-p).mean(), torch.sigmoid(p).mean(), torch.sigmoid(u).mean(), risk_prior=pi
     )
     sp = 1 / (1 + np.exp(-np.array(p_values)))
     su = 1 / (1 + np.exp(-np.array(u_values)))

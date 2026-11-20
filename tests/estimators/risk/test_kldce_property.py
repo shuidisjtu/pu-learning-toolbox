@@ -190,13 +190,13 @@ class TestInputValidation:
         with pytest.raises(ValueError, match="class prior"):
             clf.fit(X, y_pu)
 
-    def test_class_prior_one_raises(self, rng):
-        """Explicit class_prior=1.0 is excluded by the open (0, 1) bound."""
+    def test_training_table_prior_one_raises(self, rng):
+        """Explicit training_table_prior=1.0 is excluded by the open (0, 1) bound."""
         X = rng.randn(30, 3)
         y_pu = np.concatenate([np.ones(10, dtype=int), np.zeros(20, dtype=int)])
         clf = KLDCEClassifier(flip_probability=0.3)
-        with pytest.raises(ValueError, match="class_prior"):
-            clf.fit(X, y_pu, class_prior=1.0)
+        with pytest.raises(ValueError, match="training_table_prior"):
+            clf.fit(X, y_pu, training_table_prior=1.0)
 
     def test_mom_groups_leq_n_U_enforced(self, rng):
         X = rng.randn(20, 3)
@@ -251,7 +251,7 @@ class TestFittedAttributes:
             "unlabeled_indices_",
             "support_indices_",
             "bias_",
-            "class_prior_",
+            "training_table_prior_",
             "flip_probability_",
             "centroid_hat_",
             "centroid_opt_",

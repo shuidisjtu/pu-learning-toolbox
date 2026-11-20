@@ -169,7 +169,9 @@ def test_basic_neural_methods_share_mlp_blueprint():
     protocol = load_protocol()
     for method in ("nnpu", "self_pu"):
         row = resolve_unit(protocol, "imdb", method)
-        model = assemble_model(protocol, row, 384, seed=0, params={}, class_prior=0.3, device="cpu")
+        model = assemble_model(
+            protocol, row, 384, seed=0, params={}, population_prior=0.3, device="cpu"
+        )
         network = model.model if method == "nnpu" else model.backbone
         validate_score_model(network, "mlp128")
         assert network[1].in_features == 384

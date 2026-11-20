@@ -120,7 +120,7 @@ class TestScarCalibration:
         clf = ElkanNotoClassifier(random_state=42).fit(X, y_pu)
 
         assert clf.propensity_ == pytest.approx(0.5, abs=0.02)
-        assert clf.class_prior_ == pytest.approx(0.5, abs=0.02)
+        assert clf.population_prior_estimate_ == pytest.approx(0.5, abs=0.02)
 
 
 # ═════════════════════════════════════════════════════════════════════
@@ -196,7 +196,8 @@ class TestPriorEstimation:
         clf = ElkanNotoClassifier(internal_cv_folds=3, random_state=42)
         clf.fit(X, y_pu)
         # class_prior should be in a reasonable range around true prior=0.5
-        assert 0.3 < clf.class_prior_ < 0.8, f"class_prior={clf.class_prior_}"
+        assert 0.3 < clf.population_prior_estimate_ < 0.8
+        assert clf._prior_consumptions_ == ()
 
 
 # ═════════════════════════════════════════════════════════════════════

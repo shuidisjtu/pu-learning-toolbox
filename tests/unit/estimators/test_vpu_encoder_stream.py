@@ -120,7 +120,7 @@ def test_determ_cnn_clone_pickle_and_checkpoint_replay_keep_scores_and_chunks(tm
     X, y = data()
     template = model(encoder=ImageEncoder())
     first = clone(template).fit(X, y)
-    second = clone(template).fit(X, y, class_prior=0.7)
+    second = clone(template).fit(X, y)
     assert first.history_ == second.history_
     np.testing.assert_array_equal(first.decision_function(X), second.decision_function(X))
     restored = pickle.loads(pickle.dumps(first))

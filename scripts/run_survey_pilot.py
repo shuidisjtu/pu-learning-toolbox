@@ -11,7 +11,7 @@ It does not invent protocol values.  The population class prior is a hard gate
 for most methods, and protocol §3.1 defines it as data-generation metadata --
 the positive rate of the complete pool before the stratified split, not
 something to back-infer from a subset -- so it is read from the splits that
-recorded it, and `--class-prior` only overrides.  A dataset with neither stops
+recorded it, and `--population-prior` only overrides.  A dataset with neither stops
 the run before the first batch rather than at the hundredth.  The same goes for
 the device: the unit script defaults to CPU, and a pilot that silently ran its
 image rows on CPU would take far longer to discover than to prevent.
@@ -20,7 +20,7 @@ image rows on CPU would take far longer to discover than to prevent.
 implies, which is where the disk budget comes from::
 
     uv run python scripts/run_survey_pilot.py --dry-run
-    uv run python scripts/run_survey_pilot.py --class-prior spambase=0.39,imdb=0.5
+    uv run python scripts/run_survey_pilot.py --population-prior spambase=0.39,imdb=0.5
 
 ``--datasets`` narrows the matrix to the datasets it names, which is how one
 pilot is split across hosts: each host is handed its own list.  Nothing
@@ -358,14 +358,14 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         help="feature dimensions for the MLP-backed rows",
     )
     parser.add_argument(
-        "--class-prior",
+        "--population-prior",
         default="",
         help="population class prior per dataset, e.g. spambase=0.39,imdb=0.5",
     )
     parser.add_argument(
         "--allow-prior-override",
         action="store_true",
-        help="accept a --class-prior that contradicts the prior a split recorded",
+        help="accept a --population-prior that contradicts the prior a split recorded",
     )
     parser.add_argument("--device", default=None, help="passed through to the unit script")
     parser.add_argument(
@@ -586,7 +586,7 @@ def _resolve_priors(
         if dataset in recorded and recorded[dataset] != value:
             if not allow_override:
                 raise ValueError(
-                    f"--class-prior gives {dataset}={value}, but its splits record "
+                    f"--population-prior gives {dataset}={value}, but its splits record "
                     f"{recorded[dataset]}. The protocol defines one constant per dataset. "
                     "Pass --allow-prior-override if the disagreement is intended."
                 )
@@ -612,7 +612,8 @@ def _missing_priors(
         run.dataset
         for run in runs
         if not run.is_oracle
-        and get_metadata(profile_algorithm(protocol, run.method)).requires_class_prior
+        and profile_algorithm(protocol, run.method) != "cvir"
+        and get_metadata(profile_algorithm(protocol, run.method)).required_prior_parameters
         and run.dataset not in priors
     }
     return sorted(missing)
@@ -699,7 +700,7 @@ def _run_batch(
         splits_root=args.splits,
         out_root=_unit_out_root(Path(args.results), batch),
         protocol=args.protocol,
-        class_prior=None if batch.method == "pn_oracle" else priors.get(batch.dataset),
+        population_prior=None if batch.method == "pn_oracle" else priors.get(batch.dataset),
         device=args.device,
         adapter_cache=args.adapter_cache,
         extraction_batch_size=args.extraction_batch_size,
@@ -878,7 +879,7 @@ def main(argv: list[str] | None = None) -> int:
     effective = _dataset_names(protocol)
     try:
         dims = _parse_pairs(args.input_dims, cast=int)
-        given_priors = _parse_pairs(args.class_prior, cast=float)
+        given_priors = _parse_pairs(args.population_prior, cast=float)
         # Read once, after the filter: a run only counts as done if it ran on
         # the splits on disk now, and the prior comes from those same splits.
         # Both reads stop at the shard's own datasets -- a host holds the splits
@@ -965,8 +966,8 @@ def main(argv: list[str] | None = None) -> int:
     if missing:
         print(
             f"error: methods in {missing} need the population class prior, and neither "
-            "their splits nor --class-prior supply it. Prepare the splits with a "
-            "generator that records it, or pass --class-prior dataset=value.",
+            "their splits nor --population-prior supply it. Prepare the splits with a "
+            "generator that records it, or pass --population-prior dataset=value.",
             file=sys.stderr,
         )
         return 1

@@ -105,14 +105,16 @@ def test_param_ts_weights_and_missing_pu_roles_are_refused():
             model().fit(x, bad)
 
 
-def test_determ_seed_prior_unused_and_global_rng_preserved():
+def test_determ_seeded_posterior_estimate_and_global_rng_preserved():
     x, labels = data()
     before = torch.random.get_rng_state().clone()
     first = model().fit(x, labels)
     torch.testing.assert_close(before, torch.random.get_rng_state(), rtol=0, atol=0)
-    second = model().fit(x, labels, class_prior=0.8)
+    second = model().fit(x, labels)
     np.testing.assert_array_equal(first.decision_function(x), second.decision_function(x))
     assert first.history_ == second.history_
+    assert first.training_table_prior_estimate_ == second.training_table_prior_estimate_
+    assert second._prior_consumptions_ == ()
 
 
 def test_edge_chunk_accumulation_preserves_mlp_update_objective():
@@ -193,10 +195,9 @@ def test_basic_source_receipt_matches_constructor_and_optimizer_budget():
     assert not receipt["calibration"]["calibration_applied"]
 
 
-@pytest.mark.parametrize("prior", [0, 1, float("nan"), True, [0.5]])
-def test_param_unused_prior_still_requires_valid_scalar(prior):
-    with pytest.raises(ValueError, match="class_prior"):
-        model().fit(*data(), class_prior=prior)
+def test_edge_neural_lbe_has_no_external_prior_keyword():
+    with pytest.raises(TypeError, match="class_prior"):
+        model().fit(*data(), class_prior=0.8)
 
 
 def test_basic_ledger_view_gate():

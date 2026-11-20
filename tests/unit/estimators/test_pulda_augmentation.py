@@ -41,7 +41,7 @@ def inputs():
 
 def classifier(transform):
     return PULDAClassifier(
-        class_prior=0.4,
+        risk_prior=0.4,
         encoder=torch.nn.Sequential(torch.nn.AdaptiveAvgPool2d(1), torch.nn.Flatten()),
         train_transform=transform,
         hidden_dim=4,

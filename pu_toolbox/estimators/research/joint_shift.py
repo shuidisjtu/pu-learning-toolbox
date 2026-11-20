@@ -22,6 +22,7 @@ from pu_toolbox.core.tags import (
     Assumption,
     Backend,
     Maturity,
+    PriorConsumer,
     SampleWeightSupport,
     Scenario,
     SourceStatus,
@@ -54,7 +55,33 @@ class JointShiftPUClassifier(BasePUClassifier):
     family = AlgorithmFamily.BIAS_AWARE
     assumption = (Assumption.SCAR,)
     scenario = (Scenario.SINGLE_TRAINING_SET,)
-    requires_class_prior = True
+    prior_consumers = (
+        PriorConsumer(
+            "joint_shift_calibration",
+            "source_domain",
+            parameter="source_domain_prior",
+            requires_input=True,
+        ),
+        PriorConsumer(
+            "joint_shift_calibration",
+            "target_domain",
+            parameter="target_domain_prior",
+            requires_input=True,
+        ),
+        PriorConsumer(
+            "joint_shift_weighting",
+            "source_domain",
+            parameter="source_domain_prior",
+            requires_input=True,
+        ),
+        PriorConsumer(
+            "joint_shift_weighting",
+            "target_domain",
+            parameter="target_domain_prior",
+            requires_input=True,
+        ),
+    )
+    _prior_consumptions_ = ()
     source_status = SourceStatus.NOT_FOUND
     backend = Backend.SKLEARN
     maturity = Maturity.RESEARCH
@@ -99,16 +126,17 @@ class JointShiftPUClassifier(BasePUClassifier):
         *,
         X_target: Any | None = None,
         y_target_pu: Any | None = None,
-        class_prior: float | None = None,
-        target_class_prior: float | None = None,
+        source_domain_prior: float | None = None,
+        target_domain_prior: float | None = None,
         sample_weight: Any | None = None,
     ) -> JointShiftPUClassifier:
+        self._prior_consumptions_ = ()
         if X_target is None or y_target_pu is None:
             raise ValueError("X_target and y_target_pu are required for joint-shift training.")
-        if class_prior is None or target_class_prior is None:
-            raise ValueError("class_prior and target_class_prior are both required.")
-        check_scalar_in_range(class_prior, 0.0, 1.0, "class_prior", inclusive=False)
-        check_scalar_in_range(target_class_prior, 0.0, 1.0, "target_class_prior", inclusive=False)
+        if source_domain_prior is None or target_domain_prior is None:
+            raise ValueError("source_domain_prior and target_domain_prior are both required.")
+        check_scalar_in_range(source_domain_prior, 0.0, 1.0, "source_domain_prior", inclusive=False)
+        check_scalar_in_range(target_domain_prior, 0.0, 1.0, "target_domain_prior", inclusive=False)
         X_source, source_labels = validate_pu_X_y(
             X, y_pu, estimator_name="JointShiftPUClassifier(source)"
         )
@@ -142,16 +170,18 @@ class JointShiftPUClassifier(BasePUClassifier):
         previous_weights = np.ones(n_source, dtype=float)
         trace: list[dict[str, float]] = []
         for iteration in range(1, self.max_iter + 1):
-            source_p = _calibrate_prior(model.decision_function(X_source), float(class_prior))
+            source_p = _calibrate_prior(
+                model.decision_function(X_source), float(source_domain_prior)
+            )
             target_p = _calibrate_prior(
-                model.decision_function(X_target_checked), float(target_class_prior)
+                model.decision_function(X_target_checked), float(target_domain_prior)
             )
             positive_ratio = self._conditional_ratio(
                 X_source, X_target_checked, source_p, target_p
-            ) * (float(target_class_prior) / float(class_prior))
+            ) * (float(target_domain_prior) / float(source_domain_prior))
             negative_ratio = self._conditional_ratio(
                 X_source, X_target_checked, 1.0 - source_p, 1.0 - target_p
-            ) * ((1.0 - float(target_class_prior)) / (1.0 - float(class_prior)))
+            ) * ((1.0 - float(target_domain_prior)) / (1.0 - float(source_domain_prior)))
             joint_ratio = source_p * positive_ratio + (1.0 - source_p) * negative_ratio
             weights = relative_joint_weight(joint_ratio, alpha=self.alpha) * supplied
             weights /= np.mean(weights)
@@ -180,11 +210,21 @@ class JointShiftPUClassifier(BasePUClassifier):
         self.relative_joint_weights_ = previous_weights
         self.training_trace_ = tuple(trace)
         self.n_iter_ = len(trace)
-        self.source_class_prior_ = float(class_prior)
-        self.target_class_prior_ = float(target_class_prior)
-        self._class_prior = float(target_class_prior)
+        self.source_domain_prior_ = float(source_domain_prior)
+        self.target_domain_prior_ = float(target_domain_prior)
         self._X_shape_ = (n_source + n_target, X_source.shape[1])
         self.classes_ = np.array([0, 1])
+        self._prior_consumptions_ = tuple(
+            {
+                "consumer": consumer,
+                "partition": "train",
+                "target": f"{domain}_domain",
+                "source": f"fit.{domain}_domain_prior",
+                "value": float(prior),
+            }
+            for consumer in ("joint_shift_calibration", "joint_shift_weighting")
+            for domain, prior in (("source", source_domain_prior), ("target", target_domain_prior))
+        )
         self._is_fitted = True
         return self
 

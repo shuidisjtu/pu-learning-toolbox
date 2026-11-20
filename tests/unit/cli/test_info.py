@@ -16,6 +16,13 @@ def test_basic_list_methods_prints_table(capsys):
     args.func(args)
     out = capsys.readouterr().out
     assert "Name" in out and "Family" in out and "Auto-inst" in out
+    assert "Required prior inputs" in out
+    assert "training_table_prior" in next(
+        line for line in out.splitlines() if line.startswith("pusb_kernel ")
+    )
+    assert "unlabeled_positive_prior" in next(
+        line for line in out.splitlines() if line.startswith("cvir ")
+    )
     for name in ("nnpu", "elkan_noto", "upu"):
         assert name in out
 

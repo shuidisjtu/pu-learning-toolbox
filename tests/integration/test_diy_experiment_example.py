@@ -26,6 +26,10 @@ def test_basic_param_selected_predictions_match_report_and_preserve_train_scalin
     assert not result.failures
     assert len(result.manifest["candidate_runs"]) == 3
     assert set(result.selections) == ({"PA-fixed", "OA"} if custom else {"PA", "OA"})
+    *fit_priors, pa = result.manifest["research_settings"]["prior"]
+    assert [prior["candidate_index"] for prior in fit_priors] == [0, 1, 2]
+    assert pa["protocol"] == ("PA-fixed" if custom else "PA")
+    assert pa["source"] == "runner.validation_population_prior"
     for name in result.selections:
         predictions = demo["predict_selected"](result, name, bundle.test.X)
         assert np.mean(predictions == bundle.test.labels) == result.test_metrics[name]["accuracy"]

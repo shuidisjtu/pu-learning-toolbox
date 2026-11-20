@@ -130,7 +130,7 @@ class LaGAMClassifier(BasePUClassifier):
     # Pinned author experiments remove labeled P from U (single training set).
     # This describes the released sampling recipe, not theoretical exclusivity.
     scenario = (Scenario.SINGLE_TRAINING_SET,)
-    requires_class_prior = False
+    _prior_consumptions_ = ()
     requires_clean_support = True
     source_status = SourceStatus.OFFICIAL_EXACT
     backend = Backend.TORCH
@@ -206,7 +206,6 @@ class LaGAMClassifier(BasePUClassifier):
         X: np.ndarray,
         y_pu: np.ndarray,
         *,
-        class_prior: float | None = None,
         sample_weight: np.ndarray | None = None,
         support_data: tuple[np.ndarray, np.ndarray] | None = None,
         epoch_callback=None,
@@ -222,7 +221,6 @@ class LaGAMClassifier(BasePUClassifier):
             return self._fit_impl(
                 X,
                 y_pu,
-                class_prior=class_prior,
                 sample_weight=sample_weight,
                 support_data=support_data,
                 epoch_callback=epoch_callback,
@@ -231,7 +229,7 @@ class LaGAMClassifier(BasePUClassifier):
             self._is_fitted = False
             raise
 
-    def _fit_impl(self, X, y_pu, *, class_prior, sample_weight, support_data, epoch_callback):
+    def _fit_impl(self, X, y_pu, *, sample_weight, support_data, epoch_callback):
         import torch
         from sklearn.cluster import KMeans
 
@@ -273,8 +271,6 @@ class LaGAMClassifier(BasePUClassifier):
             raise ValueError("support_data must be independent: features share training memory")
         if support_y.shape != (len(support_X),) or set(np.unique(support_y)) != {0, 1}:
             raise ValueError("support_data labels must contain both clean classes {0, 1}")
-        if class_prior is not None and (not np.isfinite(class_prior) or not 0 < class_prior < 1):
-            raise ValueError("class_prior, if supplied, must be in (0, 1)")
         for name in (
             "hidden_dim",
             "max_epochs",
@@ -335,7 +331,6 @@ class LaGAMClassifier(BasePUClassifier):
         self.n_features_in_ = X.shape[1]
         self.input_shape_ = tuple(X.shape[1:])
         self._X_shape_ = X.shape
-        self._class_prior = None  # LaGAM does not use a class prior
         self.n_support_ = len(support_X)
         self.pseudo_labels_ = labels.detach().clone()
         self.history_ = {"train_loss": [], "contrastive_loss": [], "meta_positive_fraction": []}

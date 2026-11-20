@@ -37,7 +37,7 @@ def self_pu_data():
 
 def _small_classifier(**kwargs):
     parameters = {
-        "class_prior": 1 / 3,
+        "risk_prior": 1 / 3,
         "hidden_dim": 8,
         "warmup_epochs": 0,
         "self_paced_start": 0,
@@ -203,8 +203,17 @@ class TestSelfPUClassifier:
                 X,
                 y_pu,
                 pu_validation_data=(X_val, y_pu_val),
+                validation_risk_prior=0.54,
+                os_or_ts="ts",
             )
 
+        train, validation = classifier._prior_consumptions_
+        assert (train["target"], train["value"]) == ("positive_union_unlabeled", 1 / 3)
+        assert (validation["partition"], validation["target"], validation["value"]) == (
+            "pu_val",
+            "native_unlabeled",
+            0.54,
+        )
         assert len(classifier.history_["val_risk"]) == 2
         assert len(classifier.history_["train_risk"]) == 2
         assert classifier.best_epoch_ == int(np.argmin(classifier.history_["val_risk"])) + 1
@@ -217,7 +226,7 @@ class TestSelfPUClassifier:
         restored_risk = NonNegativePULoss()(
             scores[y_pu_val == 1],
             scores[y_pu_val == 0],
-            class_prior=1 / 3,
+            risk_prior=0.54,
             non_negative=True,
         )
         assert restored_risk == pytest.approx(min(classifier.history_["val_risk"]), abs=1e-6)
@@ -236,8 +245,8 @@ class TestSelfPUClassifier:
 
     def test_param_invalid_configuration_and_validation_protocol(self, self_pu_data):
         X, y_pu, X_val, y_val = self_pu_data
-        with pytest.raises(ValueError, match="class_prior"):
-            _small_classifier(class_prior=1.0).fit(X, y_pu)
+        with pytest.raises(ValueError, match="risk_prior"):
+            _small_classifier(risk_prior=1.0).fit(X, y_pu)
         with pytest.raises(ValueError, match="distillation_scope"):
             _small_classifier(distillation_scope="all_data").fit(X, y_pu)
         with pytest.raises(ValueError, match="Require 0 <="):

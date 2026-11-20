@@ -8,6 +8,7 @@ import pytest
 from pu_toolbox.estimators.deep.self_pu import SelfPUClassifier
 from pu_toolbox.estimators.risk.nnpu import NonNegativePUClassifier
 from pu_toolbox.estimators.risk.upu import UPUClassifier
+from pu_toolbox.experiment.checkpoints import EpochCheckpointTrainer
 from pu_toolbox.experiment.strategies import DeepFitTrainer, FitTrainer, SupervisedTrainer
 
 pytestmark = pytest.mark.unit
@@ -23,15 +24,16 @@ def test_basic_trainer_declares_label_semantics():
 def test_fit_trainer_single_point():
     X = np.random.RandomState(0).randn(30, 3)
     y = np.array([1] * 6 + [0] * 24)
-    est = UPUClassifier(0.3, random_state=0)
-    traj = FitTrainer().fit(est, X, y, class_prior=0.3)
+    est = UPUClassifier(0.25, random_state=0)
+    traj = FitTrainer().fit(est, X, y, risk_prior=0.4)
     assert len(traj.epochs) == 1
     assert traj.best_epoch is None
     assert traj.model is est  # fitted in place
+    assert est.risk_prior_ == 0.4
 
 
-def test_fit_trainer_class_prior_fallback():
-    # Estimator whose fit rejects class_prior kwarg -> plain fit.
+def test_basic_fit_trainer_omits_unsupplied_prior():
+    # A method with no prior input still fits.
     X = np.random.RandomState(0).randn(30, 3)
     y = np.array([1] * 6 + [0] * 24)
     est = UPUClassifier(0.5, random_state=0)
@@ -41,7 +43,7 @@ def test_fit_trainer_class_prior_fallback():
             return est.fit(X, y)
 
     est_dup = NoPriorFit()
-    traj = FitTrainer().fit(est_dup, X, y, class_prior=0.5)
+    traj = FitTrainer().fit(est_dup, X, y)
     assert len(traj.epochs) == 1
 
 
@@ -72,11 +74,14 @@ def test_deep_trainer_reads_history_after_nnpu_fix():
     X = np.random.RandomState(0).randn(12, 2).astype("float32")
     y_pu = np.array([1, 1, 0] * 4)
     est = NonNegativePUClassifier(
-        class_prior=0.3, max_epochs=3, patience=2, random_state=0, device="cpu"
+        risk_prior=0.3, max_epochs=3, patience=2, random_state=0, device="cpu"
     )
-    traj = DeepFitTrainer().fit(est, X, y_pu, class_prior=0.3, val_pu=(X, y_pu))
+    traj = DeepFitTrainer().fit(
+        est, X, y_pu, risk_prior=0.3, val_pu=(X, y_pu), validation_risk_prior=0.55
+    )
     assert len(traj.epochs) == 3
     assert "val_risk" in traj.epochs[0].metrics
+    assert est.validation_risk_prior_ == 0.55
 
 
 def test_deep_trainer_reads_self_pu_history_without_clean_label_leakage():
@@ -101,7 +106,7 @@ def test_deep_trainer_reads_self_pu_history_without_clean_label_leakage():
             estimator,
             X,
             y_pu,
-            class_prior=0.3,
+            risk_prior=0.3,
             val_pu=(X, y_pu),
         )
 
@@ -110,3 +115,29 @@ def test_deep_trainer_reads_self_pu_history_without_clean_label_leakage():
     assert all("val_risk" in epoch.metrics for epoch in trajectory.epochs)
     assert estimator.calibration_mode_ == "ablation"
     assert estimator.teacher_selection_basis_ == "pu_validation_nnpu_risk"
+
+
+@pytest.mark.parametrize("trainer_type", [FitTrainer, DeepFitTrainer])
+def test_edge_trainers_propagate_an_internal_type_error_once(trainer_type):
+    class BrokenEstimator:
+        calls = 0
+
+        def fit(self, X, y, *, risk_prior=None, validation_data=None):
+            self.calls += 1
+            raise TypeError("solver failed")
+
+    estimator = BrokenEstimator()
+    with pytest.raises(TypeError, match="solver failed"):
+        trainer_type().fit(estimator, [[0], [1]], [0, 1], risk_prior=0.5, val_pu=([[0]], [1]))
+    assert estimator.calls == 1
+
+
+@pytest.mark.parametrize("trainer_type", [DeepFitTrainer, EpochCheckpointTrainer])
+def test_param_builtin_trainers_forward_both_named_priors(trainer_type):
+    X = np.random.RandomState(2).randn(16, 2).astype("float32")
+    y = np.tile([1, 0, 0, 0], 4)
+    estimator = NonNegativePUClassifier(risk_prior=0.2, max_epochs=1, device="cpu", random_state=1)
+    trainer_type().fit(estimator, X, y, risk_prior=0.3, validation_risk_prior=0.55, val_pu=(X, y))
+    train, validation = estimator._prior_consumptions_
+    assert (train["value"], train["target"]) == (0.3, "native_unlabeled")
+    assert (validation["value"], validation["target"]) == (0.55, "native_unlabeled")

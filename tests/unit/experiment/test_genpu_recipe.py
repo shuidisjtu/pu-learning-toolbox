@@ -23,7 +23,12 @@ pytestmark = pytest.mark.unit
 
 def setup(**kwargs):
     return build_genpu_recipe(
-        **(dict(prior=0.4, seed=0, device="cpu", gan_epochs=1, pn_epochs=3, batch_size=8) | kwargs)
+        **(
+            dict(
+                population_prior=0.4, seed=0, device="cpu", gan_epochs=1, pn_epochs=3, batch_size=8
+            )
+            | kwargs
+        )
     )
 
 
@@ -67,13 +72,14 @@ def test_basic_real_single_fit_role_isolation_six_stage_cost_selection_and_reten
     model, recipe = setup()
     result = ExperimentRunner(
         seed=0,
-        class_prior=0.4,
+        training_population_prior=0.4,
+        validation_population_prior=0.4,
         protocols=[ProtocolPA(), ProtocolOA()],
         config=config(recipe),
         manifest_path=str(tmp_path / "manifest.json"),
     ).fit(model, *inputs)
     assert len(calls) == 1 and not result.failures
-    assert set(calls[0][2]) == {"class_prior", "os_or_ts", "epoch_callback"}
+    assert set(calls[0][2]) == {"risk_prior", "os_or_ts", "epoch_callback"}
     assert calls[0][2]["os_or_ts"] == "ts"
     np.testing.assert_array_equal(calls[0][0], inputs[0].X)
     assert calls[0][1].sum() == 6 < inputs[0].labels.sum()
@@ -111,9 +117,9 @@ def test_determ_recording_does_not_change_plain_training(seed, tmp_path):
     plain = copy.deepcopy(model)
     X = parts()[0].X
     y = np.r_[np.ones(6, int), np.zeros(18, int)]
-    plain.fit(X, y, class_prior=0.4, os_or_ts="ts")
+    plain.fit(X, y, risk_prior=0.4, os_or_ts="ts")
     trajectory = GenPURecipeTrainer(recipe, checkpoint_dir=tmp_path).fit(
-        model, X, y, class_prior=0.4, os_or_ts="ts"
+        model, X, y, training_population_prior=0.4, os_or_ts="ts"
     )
     assert model.history_ == plain.history_ and model.optimizer_steps_ == plain.optimizer_steps_
     np.testing.assert_array_equal(model.decision_function(X), plain.decision_function(X))
@@ -173,9 +179,9 @@ def test_edge_rehashing_cannot_approve_or_change_fixed_semantics(field, value):
 @pytest.mark.parametrize(
     "kwargs",
     [
-        {"prior": True},
-        {"prior": np.nan},
-        {"prior": 0},
+        {"population_prior": True},
+        {"population_prior": np.nan},
+        {"population_prior": 0},
         {"seed": True},
         {"batch_size": 0},
         {"gan_epochs": 1.0},
@@ -219,7 +225,7 @@ def test_edge_actual_oversize_checkpoint_is_refused_and_kept_for_audit(tmp_path)
     X = parts()[0].X
     y = np.r_[np.ones(6, int), np.zeros(18, int)]
     with pytest.raises(ValueError, match="exceeded declared byte bound"):
-        trainer.fit(model, X, y, class_prior=0.4, os_or_ts="ts")
+        trainer.fit(model, X, y, training_population_prior=0.4, os_or_ts="ts")
     assert len(list(tmp_path.rglob("*.pt"))) == 3
 
 

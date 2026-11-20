@@ -220,7 +220,7 @@ def test_edge_late_callback_error_invalidates_fit_and_invalid_refit_drops_old_fi
 
 def test_basic_cnn_keeps_population_prior_gate_with_explicit_ts_calibration():
     X, y = data()
-    with pytest.raises(ValueError, match="population prior"):
+    with pytest.raises(TypeError, match="class_prior"):
         model(encoder=ImageEncoder()).fit(X, y, class_prior=0.3)
     assert inspect.signature(CVIRClassifier.fit).parameters["os_or_ts"].default == "os"
     from pu_toolbox.experiment.method_ledger import load_ledger

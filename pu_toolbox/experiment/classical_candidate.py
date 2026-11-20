@@ -138,7 +138,7 @@ class ClassicalCandidateTrainer(Trainer):
         self.receipt_dir = None if receipt_dir is None else Path(receipt_dir)
         self.receipt_paths = []
 
-    def fit(self, estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None):  # noqa: N803
+    def fit(self, estimator, X, y, *, tree_weight_prior=None, val_pu=None, os_or_ts=None):  # noqa: N803
         from ..estimators.classic.rank_pruning import RankPruningClassifier
         from ..estimators.risk.puet import PUExtraTreesClassifier
 
@@ -168,7 +168,9 @@ class ClassicalCandidateTrainer(Trainer):
             "events": recorder.events,
         }
         self.last_receipt = receipt
-        kwargs = {} if class_prior is None else {"class_prior": class_prior}
+        kwargs = {}
+        if type(estimator) is PUExtraTreesClassifier and tree_weight_prior is not None:
+            kwargs["tree_weight_prior"] = tree_weight_prior
         if os_or_ts is not None:
             kwargs["os_or_ts"] = os_or_ts
         started = time.perf_counter()

@@ -56,9 +56,9 @@ learning_rate=0.001, beta=1.0,
 gamma=0.9, pool_size=100, mixup_alpha=1.0, early_learning_weight=1.0,
 teacher_decay=0.99, model=None, encoder=None, random_state=0, device=None)`.
 `variant` accepts `base`, `e`, and `c` for P3Mix, P3Mix-E, and P3Mix-C; E and C are mutually
-exclusive variants. `fit(X, y_pu, *, class_prior=None, sample_weight=None, epoch_callback=None, os_or_ts="os")`
-implements only the paper's OS training view and rejects explicit TS. `class_prior` is validated
-but unused in training; external `sample_weight` is unsupported. The default input is
+exclusive variants. `fit(X, y_pu, *, sample_weight=None, epoch_callback=None, os_or_ts="os")`
+implements only the paper's OS training view and rejects explicit TS. Training uses no prior;
+external `sample_weight` is unsupported. The default input is
 two-dimensional features. NCHW images require an injected trainable encoder. Model and training
 defaults unspecified by the paper are engineering choices, not a paper recipe.
 Numeric parameters must be finite real numbers and reject booleans/strings: `gamma∈[0.5,1]`,
@@ -110,7 +110,7 @@ Construction requires explicit `input_sampling="ts"`; the caller supplies indepe
 marginal U. There is no OS calibration entry. The CLI accepts
 `--classifier tedn --classifier-param input_sampling=ts`; the UI labels this method case-control
 and requires this parameter explicitly. Declaring it does not validate the sampling design.
-`fit(X, y_pu, *, class_prior=None, sample_weight=None, sample_ids=None,
+`fit(X, y_pu, *, sample_weight=None, sample_ids=None,
 epoch_callback=None)` returns self and supports dense two-dimensional features; injecting a
 trainable encoder also supports four-dimensional NCHW. Observed PU roles follow core
 normalization (1=P, 0 or -1=U), rather than true negative labels. `holdout_fraction`, `delta`,
@@ -134,7 +134,7 @@ authorization.
 `predict` splits logits at 0; larger `decision_function` scores indicate positives. There is no
 calibrated `predict_proba`. `estimate_unlabeled_prior()` returns the final round's pre-update
 α_U, not a new estimate from the final model. Reading it before fitting, after failure, or in
-a warm-start callback before any TEDn round raises `NotFittedError`. Non-`None` `class_prior`
+a warm-start callback before any TEDn round raises `NotFittedError`. A caller-supplied prior
 raises `ValueError`; non-`None` `sample_weight` raises `NotImplementedError`. Core input checks
 may raise `ValidationError`; other parameter/shape/probability errors raise `ValueError` or
 `TypeError`. Exceptions from internal validation, training, or callbacks are not retried blindly
@@ -269,7 +269,7 @@ KernelMeanPriorEstimator(*, variant="km1", kernel_width=None, width_selection="r
 #### Prior probability-mass conversion
 
 `from pu_toolbox.prior import native_unlabeled_to_population, population_to_native_unlabeled`.
-Both functions accept `(class_prior, labeled_fraction, *, input_sampling="os")` and return
+The input is `population_prior` for population-to-U and `native_unlabeled_prior` for U-to-population. Both also accept `labeled_fraction` and `input_sampling="os"` and return
 `float`. For OS, they use `q+(1-q)*pi_U` and `(pi-q)/(1-q)`, respectively. TS returns the input
 prior. Priors lie in `[0,1]`; the P fraction lies in `[0,1)`. An OS population prior must be at
 least the P fraction. Non-real, boolean, nonfinite, and out-of-range inputs raise `TypeError`
@@ -303,6 +303,9 @@ only. For base estimators that require calibration, the calibration fold count i
 requires at least two samples of each label in that input, including within each propensity
 training fold.
 
+`population_prior_estimate_` reports the fitted population estimate. Training uses observed
+PU labels and the estimated labeling propensity.
+
 - Optional Chinese research background: [Elkan_Noto method card](../../../research/method_cards/Elkan_Noto.md).
   Example: [01_elkan_noto.py](../../../../examples/minimal/01_elkan_noto.py).
 
@@ -313,14 +316,14 @@ training fold.
 Unbiased PU (uPU / convex PU) classifier minimizing convex PU risk.
 
 ```python
-UPUClassifier(class_prior, *, loss="squared", reg_lambda=1e-3, basis="linear",
+UPUClassifier(risk_prior=None, *, loss="squared", reg_lambda=1e-3, basis="linear",
               kernel_width=None, n_centers=None, fit_intercept=True,
               max_iter=1000, tol=1e-6, random_state=None)
 ```
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `class_prior` | `float` | Required | Prior for the training risk pool; the default direct view consumes native-U prior. Can be overridden by the `fit` kwarg `class_prior` |
+| `risk_prior` | `float \| None` | `None` | Positive prior for the training risk pool. Supply it at construction or in `fit`; the `fit` value takes precedence. The default direct view uses native U. |
 | `loss` | `"double_hinge"` / `"logistic"` / `"squared"` | `"squared"` | Margin loss: C-DH (convex QP, recommended main variant), C-LL (smooth convex, L-BFGS), or squared (closed-form and fastest, but penalizes large correct margins; toolbox default, ADR-0016) |
 | `reg_lambda` | `float` | `1e-3` | ℓ₂ regularization on α; strictly positive; intercept *b* is unregularized |
 | `basis` | `"linear"` / `"rbf"` | `"linear"` | Basis type; `"rbf"` subsamples *n_centers* centers from U |
@@ -330,6 +333,8 @@ UPUClassifier(class_prior, *, loss="squared", reg_lambda=1e-3, basis="linear",
 | `max_iter` / `tol` | `int` / `float` | `1000` / `1e-6` | Optimization iteration limit and convergence tolerance |
 | `random_state` | `int \| None` | `None` | Center-subsampling seed |
 
+After fitting, `risk_prior_` records the value used by the loss.
+
 - Optional Chinese research background: [Convex uPU method card](../../../research/method_cards/Convex_Formulation_for_PU_DATA_Learning.md).
   Example: [02_upu.py](../../../../examples/minimal/02_upu.py).
 
@@ -338,7 +343,7 @@ UPUClassifier(class_prior, *, loss="squared", reg_lambda=1e-3, basis="linear",
 Nonnegative PU (nnPU) classifier using PyTorch networks.
 
 ```python
-NonNegativePUClassifier(model=None, *, encoder=None, class_prior=None, loss="sigmoid",
+NonNegativePUClassifier(model=None, *, encoder=None, risk_prior=None, loss="sigmoid",
                         beta=0.0, gamma=1.0, optimizer=None, batch_size=256,
                         max_epochs=200, patience=20, random_state=None, device=None)
 ```
@@ -347,7 +352,7 @@ NonNegativePUClassifier(model=None, *, encoder=None, class_prior=None, loss="sig
 |---|---|---|---|
 | `model` | `torch.nn.Module \| None` | `None` (`nn.Linear(d, 1)`) | PyTorch model producing raw scores g(x) |
 | `encoder` | `torch.nn.Module \| None` | `None` | Feature encoder replacing the default raw-input path; `model` becomes the score head, or a default `nn.Linear(rep_dim, 1)` head is created. `None` retains the existing path |
-| `class_prior` | `float \| None` | `None` | Prior in (0,1) for the training risk pool; the default direct view consumes native-U prior. May also be supplied/overridden through `fit` |
+| `risk_prior` | `float \| None` | `None` | Prior in (0,1) for the training risk pool; the default direct view consumes native-U prior. May also be supplied/overridden through `fit` |
 | `loss` | `"sigmoid"` | `"sigmoid"` | Surrogate loss; currently only sigmoid is supported |
 | `beta` | `float` | `0.0` | Nonnegative threshold; must be ≥ 0 |
 | `gamma` | `float` | `1.0` | Correction-branch step discount in [0,1] |
@@ -357,6 +362,11 @@ NonNegativePUClassifier(model=None, *, encoder=None, class_prior=None, loss="sig
 | `patience` | `int` | `20` | Early-stopping patience, active only with `fit(validation_data=...)` |
 | `random_state` / `device` | `int \| None` / `str \| None` | `None` / `None` | Seed and torch device |
 
+`fit(validation_data=..., validation_risk_prior=...)` can weight internal validation using a
+separate native-U prior. Validation reuses `risk_prior` by default, including when training
+uses the TS-compatible view. `evaluate_pu_risk(..., risk_prior=...)` accepts a prior for the
+supplied data; its default is the fitted training `risk_prior_`.
+
 - Optional Chinese research background: [nnPU method card](../../../research/method_cards/nnpu.md).
   Example: [03_nnpu.py](../../../../examples/minimal/03_nnpu.py).
 
@@ -365,13 +375,13 @@ NonNegativePUClassifier(model=None, *, encoder=None, class_prior=None, loss="sig
 Positive-negative-unlabeled (PNU) risk classifier with a common pluggable λ loss and regularizer.
 
 ```python
-PNUClassifier(class_prior, *, eta=0.0, reg_lambda=1e-3, basis="linear",
+PNUClassifier(population_prior, *, eta=0.0, reg_lambda=1e-3, basis="linear",
               kernel_width=None, n_centers=None, fit_intercept=True, random_state=None)
 ```
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `class_prior` | `float` | Required | Positive-class prior θ_P=P(y=1), strictly in (0,1) |
+| `population_prior` | `float` | Required | Positive-class prior θ_P=P(y=1), strictly in (0,1) |
 | `eta` | `float` | `0.0` | PNU tradeoff in [-1,1]: `0`=PN (supervised), `+1`=PU, `-1`=NU |
 | `reg_lambda` | `float` | `1e-3` | ℓ₂ regularization; intercept *b* is excluded |
 | `basis` / `kernel_width` / `n_centers` | See uPU | `"linear"` / `None` / `None` | Basis and RBF parameters follow uPU semantics |
@@ -386,14 +396,14 @@ PNUClassifier(class_prior, *, eta=0.0, reg_lambda=1e-3, basis="linear",
 PU Extra Trees trained by nnPU quadratic-risk descent; currently a two-dimensional tabular/CPU subset.
 
 ```python
-PUExtraTreesClassifier(class_prior, *, n_estimators=100, max_depth=None,
+PUExtraTreesClassifier(tree_weight_prior, *, n_estimators=100, max_depth=None,
                        min_samples_leaf=1, max_features="sqrt", max_candidates=1,
                        bootstrap=False, random_state=None)
 ```
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `class_prior` | `float` | Required | Positive prior $\pi\in(0,1)$ in the actual training risk pool; the default direct view consumes native-U prior. Can be overridden by `fit(..., class_prior=...)` |
+| `tree_weight_prior` | `float` | Required | Positive prior $\pi\in(0,1)$ in the actual training risk pool; the default direct view consumes native-U prior. Can be overridden by `fit(..., tree_weight_prior=...)` |
 | `n_estimators` / `max_depth` | `int` / `int \| None` | `100` / `None` | Tree count and maximum depth |
 | `min_samples_leaf` | `int` | `1` | Minimum total P/U observations in each child leaf |
 | `max_features` | `"sqrt" \| "all" \| int` | `"sqrt"` | Candidate features per node; `sqrt` rounds upward. Positive integers above the input dimension are capped at that dimension without changing the constructor parameter; this is not author-equivalent behavior |
@@ -416,7 +426,7 @@ only gain>1e-12 is accepted.
 For PUET/RP, optionally import
 `from pu_toolbox.experiment.classical_candidate import ClassicalCandidateTrainer`
 and inject an instance into `ExperimentRunner.config["trainer"]` to record actual per-tree or
-OOF/refit cost. `fit(estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None)` returns
+OOF/refit cost. `fit(estimator, X, y, *, tree_weight_prior=None, val_pu=None, os_or_ts=None)` returns
 a single-model trajectory without epochs. Successful `training_provenance_` enters the candidate
 manifest; failed work is retained in the trainer's `last_receipt`. Optional constructor
 `receipt_dir` persists each success/failure cost receipt independently; retries do not overwrite
@@ -458,6 +468,10 @@ LDCEClassifier(flip_probability, *, reg_strength=1.0, centroid_radius=0.1, mom_g
 | `max_iter` / `tol` | `int` / `float` | `10000` / `1e-6` | Alternating-optimization limit and tolerance |
 | `random_state` | `int \| None` | `None` | Seed |
 
+`fit(..., training_table_prior=...)` supplies the training-table positive prior. The default
+uses the observed labeled-positive count `k`, total rows `n`, and `flip_probability=h` to
+derive `k / (n * (1-h))`. The fitted value is available as `training_table_prior_`.
+
 - Optional Chinese research background: [LDCE method card](../../../research/method_cards/LDCE.md).
 
 #### KLDCEClassifier (kldce; alias kernelized_ldce)
@@ -480,6 +494,10 @@ KLDCEClassifier(flip_probability, *, sigma="scale", reg_strength=1.0, centroid_r
 | `covariance_ridge` | `float` | `0.0` | Diagonal ridge on centroid covariance; `0.0` matches the paper, >0 is a numerical-stabilization variant |
 | `max_acs_iter` / `max_inner_iter` / `inner_tol` | `int` / `int` / `float` | `50` / `2000` / `1e-6` | ACS outer limit, inner QP pair-update limit, and KKT tolerance |
 | `tol` / `random_state` | `float` / `int \| None` | `1e-6` / `None` | Convergence tolerance and seed |
+
+The `fit` keyword `training_table_prior` and fitted attribute `training_table_prior_` follow
+the same rule as LDCE. The candidate adapter selects either the observed-count derivation or
+a declared population override for the OS training table.
 
 - Optional Chinese research background: [KLDCE method card](../../../research/method_cards/KLDCE.md).
 
@@ -534,7 +552,7 @@ images. This adaptation does not port the author's datasets, backbone, or prepro
 does not copy selection by test accuracy.
 
 ```python
-DistPUClassifier(class_prior, *, hidden_dim=64, epochs=100, batch_size=256, learning_rate=1e-3,
+DistPUClassifier(distribution_prior, *, hidden_dim=64, epochs=100, batch_size=256, learning_rate=1e-3,
                  alignment_weight=1.0, entropy_weight=0.05, mixup_weight=0.1,
                  distribution_loss="expectation", training_recipe="clean_room",
                  warmup_epochs=60, pu_epochs=60,
@@ -547,7 +565,7 @@ DistPUClassifier(class_prior, *, hidden_dim=64, epochs=100, batch_size=256, lear
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `class_prior` | `float` | Required | Prior for the training risk pool; the default direct view consumes native-U prior |
+| `distribution_prior` | `float` | Required | Alignment prior for the training marginal pool; the default direct view consumes native-U prior |
 | `hidden_dim` | `int` | `64` | Hidden dimension |
 | `epochs` | `int` | `100` | Training epochs |
 | `batch_size` | `int` | `256` | Ignored by `clean_room`; mini-batch size for both `author_staged` phases |
@@ -599,8 +617,8 @@ VPUClassifier(*, hidden_dim=64, depth=2, max_epochs=100, batch_size=128,
 | `data_device_policy` | `str` | `"auto"` | Without an encoder, auto retains resident behavior; with one, auto forces cpu_stream. Explicit cpu_stream is accepted; encoder + resident is rejected |
 | `random_state` / `device` | `int \| None` / `str \| None` | `None` / `None` | Seed and torch device |
 
-`fit(X, y_pu, *, class_prior=None, sample_weight=None, pu_validation_data=None, epoch_callback=None, os_or_ts="ts")`
-validates `class_prior` for compatibility only; it never enters the objective. Non-`None`
+`fit(X, y_pu, *, sample_weight=None, pu_validation_data=None, epoch_callback=None, os_or_ts="ts")`
+uses no prior. Non-`None`
 `sample_weight` raises an error. `pu_validation_data` accepts a PU-view `DatasetPart` or
 `(X_val, y_pu_val)` solely to record per-epoch variational risk. Do not pass a true-label view or
 use this record as a Survey PA/OA criterion. `decision_function` returns log-normalized scores
@@ -632,7 +650,8 @@ CVIRClassifier(*, unlabeled_positive_prior=None, hidden_dim=64,
 
 `unlabeled_positive_prior` must explicitly give the risk-pool positive proportion in `(0,1)`.
 For default OS and independent native-TS inputs, this is **α_U in original U**.
-`fit(class_prior=...)` always rejects the value; it does not automatically convert population π.
+Pass α_U at construction for direct fitting. The experiment adapter accepts a separately
+named training population prior and resolves it to the active risk pool.
 By default, each round stably sorts original-U scores, retains
 `max(1,floor((1-α_U)*n_U))` temporary negatives, and minimizes the paper's α_U-weighted BCE.
 Defaults are one PvU warm-start epoch and a fixed 20 CVIR rounds. This is neither convergence
@@ -674,7 +693,7 @@ Two-stage PU classifier combining label-distribution alignment, bidirectional ma
 pseudo-label MixUp. Supports two-dimensional features and four-dimensional images with an injected CNN.
 
 ```python
-PULDAClassifier(class_prior, *, hidden_dim=64, depth=2, warmup_epochs=60,
+PULDAClassifier(risk_prior, *, hidden_dim=64, depth=2, warmup_epochs=60,
                 pu_epochs=60, positive_batch_size=16, unlabeled_batch_size=128,
                 warmup_learning_rate=1e-4, learning_rate=1e-3,
                 warmup_weight_decay=5e-4, weight_decay=1e-4,
@@ -685,7 +704,7 @@ PULDAClassifier(class_prior, *, hidden_dim=64, depth=2, warmup_epochs=60,
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `class_prior` | `float` | Required | Positive proportion in the training risk pool, strictly in `(0,1)`; the default direct view consumes native-U prior. Can be overridden by `fit(class_prior=...)` |
+| `risk_prior` | `float` | Required | Positive proportion in the training risk pool, strictly in `(0,1)`; the default direct view consumes native-U prior. Can be overridden by `fit(risk_prior=...)` |
 | `hidden_dim` / `depth` | `int` / `int` | `64` / `2` | Toolbox MLP hidden width and depth |
 | `encoder` | `torch.nn.Module \| None` | `None` | Optional feature encoder, required for four-dimensional images; deep-copied and trained end-to-end, followed by the MLP head |
 | `train_transform` | `torch.nn.Module \| None` | `None` | Four-dimensional training images only; deep-copied and resamples augmentation for every P/U batch in both stages, before input MixUp and encoder normalization. Unused for prediction or pseudo-label scans |
@@ -718,7 +737,7 @@ HolisticPUClassifier(*, hidden_dim=64, warmup_epochs=30, max_epochs=100,
                      random_state=0, device=None)
 ```
 
-`fit(X, y_pu, *, class_prior=None, sample_weight=None, os_or_ts="os", epoch_callback=None)`
+`fit(X, y_pu, *, sample_weight=None, os_or_ts="os", epoch_callback=None)`
 performs balanced P/U resampling, records prediction trajectories, partitions them using the
 paper's full-time-series signed trend and variance, then trains with pseudo-label supervision.
 It supports a 2-D MLP or an injected end-to-end CNN. 4-D NCHW input requires an `encoder`
@@ -759,15 +778,15 @@ Chinese research background.
 #### `GenPUClassifier` (registered as `genpu`, alias `gen_pu`)
 
 ```python
-GenPUClassifier(*, class_prior=None, hidden_dim=128, latent_dim=100,
+GenPUClassifier(*, risk_prior=None, hidden_dim=128, latent_dim=100,
                 max_epochs=100, classifier_epochs=100, batch_size=64,
                 learning_rate=3e-4, positive_weight=1.0, negative_weight=1.0,
                 unlabeled_weight=1.0, encoder=None, generator_output="identity",
                 random_state=0, device=None)
 ```
 
-`fit(X, y_pu, *, class_prior=None, sample_weight=None, os_or_ts="os", epoch_callback=None)`
-requires a population prior; conflicting constructor/fit values are rejected. The paper objective
+`fit(X, y_pu, *, risk_prior=None, sample_weight=None, os_or_ts="os", epoch_callback=None)`
+requires the positive fraction in the training marginal pool; conflicting constructor/fit values are rejected. The paper objective
 uses two generators and three discriminators, followed by a PN classifier trained on synthetic
 streams. Only Du's real-data pool supports the TS U∪P replacement. It supports 2-D MLP input or
 4-D NCHW with an explicitly injected CNN: two dense pixel generators, three independent trainable
@@ -884,7 +903,8 @@ RBF PUSB aligned with the released implementation, using deterministic CV.
 ```python
 PUSBKernelClassifier(*, n_basis=300, cv=5, sigma_grid=(0.01, 0.05, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 20.0),
                      reg_grid=(0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0),
-                     random_state=2018, max_iter=200, tol=1e-5)
+                     random_state=2018, max_iter=200, tol=1e-5,
+                     training_table_prior=None, risk_prior=None)
 ```
 
 | Parameter | Type | Default | Description |
@@ -895,7 +915,13 @@ PUSBKernelClassifier(*, n_basis=300, cv=5, sigma_grid=(0.01, 0.05, 0.1, 0.5, 1.0
 | `reg_grid` | `Sequence[float]` | Released grid | Regularization candidates |
 | `random_state` | `int \| None` | `2018` | Seed used in the released implementation |
 | `max_iter` / `tol` | `int` / `float` | `200` / `1e-5` | Iteration limit and tolerance |
+| `training_table_prior` | `float \| None` | `None` | Positive prior of the full training table, used for its score-quantile threshold |
+| `risk_prior` | `float \| None` | `None` | Positive prior used by the optimizer and the internal CV criterion; defaults to the resolved training-table value |
 
+- Supply both values at construction or in `fit`; explicit `fit` values take precedence.
+- The risk term uses native U in `os` and the full OS mixture in `ts`. CV validation uses
+  fold-local native U and the same risk scalar in both views. The threshold always uses the
+  full training score table.
 - The regularization gradient matches the released implementation (`0.5·reg_lambda·‖coef‖²`).
 - Optional Chinese research background: [PUSB method card §7.3](../../../research/method_cards/PUSB.md).
 
@@ -913,7 +939,7 @@ LBEClassifier(*, max_iter=1000, n_em_iter=20, C=1.0)
 | `n_em_iter` | `int` | `20` | Number of EM iterations |
 | `C` | `float` | `1.0` | Inverse regularization strength; finite and greater than 0 |
 
-`LBEClassifier` fits two logistic branches by EM. `fit(class_prior=...)` sets the initial
+`LBEClassifier` fits two logistic branches by EM. `fit(initial_unlabeled_prior=...)` sets the initial
 positive posterior for unlabeled rows. After fitting:
 
 - `predict_proba(X)` returns the fitted class probabilities in negative, positive order.
@@ -953,15 +979,14 @@ NeuralLBEClassifier(model=None, *, propensity_model=None, encoder=None,
 | `learning_rate` / `weight_decay` | `0.001` / `0.001` | Finite real values, positive / nonnegative respectively |
 | `random_state` / `device` | `0` / `None` | Isolated NumPy RNG; preserves CPU/selected CUDA RNG without resetting other CUDA generators; CPU/CUDA only, with auto resolved by the shared resolver |
 
-`fit(X, y_pu, *, class_prior=None, sample_weight=None, epoch_callback=None, os_or_ts="os")`
-accepts training PU observations only, with at least two labeled P and one U; it does not read
-validation, test, or hidden PN truth. A non-None `class_prior` is checked as a real value in
-`(0,1)` but does not affect the source recipe. Non-None `sample_weight` and non-OS views are rejected.
+`fit(X, y_pu, *, sample_weight=None, epoch_callback=None, os_or_ts="os")` uses OS training
+observations with at least two labeled P and one U, and unit sample weights.
 Inputs/posteriors remain on CPU. Row-count-weighted gradients accumulate across batches, with
 one Adam update per M step. Defaults total 840 optimizer updates; `checkpoint_epoch_count=20`
 counts EM iterations, not 840 weight snapshots. `epoch_callback` runs after each EM iteration;
 `optimizer_steps_` and stage provenance record complete pretraining/EM cost.
 
+`training_table_prior_estimate_` is the mean fitted class posterior over training rows.
 `predict_proba` returns class posteriors, `predict_label_proba` returns posterior×propensity,
 and `decision_function` returns class raw logits. `history_` /
 `observed_log_likelihood_history_` are training diagnostics without monotonicity or identifiability
@@ -988,7 +1013,7 @@ LaGAMClassifier(*, hidden_dim=128, warmup_epochs=2, max_epochs=20,
                 encoder=None, data_device_policy="auto", meta_update_bias=True)
 ```
 
-`fit(X, y_pu, *, class_prior=None, sample_weight=None, support_data=(X_support, y_clean), epoch_callback=None)`
+`fit(X, y_pu, *, sample_weight=None, support_data=(X_support, y_clean), epoch_callback=None)`
 requires an independent clean support set containing both classes; missing support fails
 immediately. Non-None `sample_weight` raises an error. The [LaGAM method card](../../../research/method_cards/LaGAM.md)
 provides optional Chinese research background.
@@ -1023,7 +1048,7 @@ hard dual-source consistency. Supports dense 2-D inputs or 4-D images with an in
 the paper's complete augmentation/SimSiam recipe is not reproduced.
 
 ```python
-SplitPUClassifier(class_prior=None, *, encoder=None, encoder_feature_layer=None,
+SplitPUClassifier(risk_prior=None, *, encoder=None, encoder_feature_layer=None,
                   hidden_dim=100, teacher_epochs=10,
                   split_epochs=10, student_epochs=10, rounds=2, batch_size=64,
                   learning_rate=1e-3, agreement_threshold=0.92,
@@ -1032,8 +1057,8 @@ SplitPUClassifier(class_prior=None, *, encoder=None, encoder_feature_layer=None,
                   noise_std=0.05, random_state=None, device=None)
 ```
 
-`fit(X, y_pu, *, class_prior=None, sample_weight=None, epoch_callback=None, os_or_ts="os")`.
-In the TS risk view, class_prior is population π (the positive proportion in marginal U).
+`fit(X, y_pu, *, risk_prior=None, sample_weight=None, epoch_callback=None, os_or_ts="os")`.
+In the TS risk view, risk_prior is population π (the positive proportion in marginal U).
 The TS risk-pool replacement applies only to the nnPU teacher; splitter, easy/hard partitioning,
 and student still use original U. Non-None sample_weight raises an error.
 The [Split-PU method card](../../../research/method_cards/Split-PU.md) provides optional Chinese background.
@@ -1057,7 +1082,7 @@ nnPU pretraining, separate self-paced P/U weights, then weighted candidate-negat
 Supports 2-D features or 4-D images with an injected CNN, returning raw logits.
 
 ```python
-RobustPUClassifier(class_prior=None, *, model=None, encoder=None, hidden_dim=100,
+RobustPUClassifier(risk_prior=None, *, model=None, encoder=None, hidden_dim=100,
                    pretrain_epochs=10, episodes=20, inner_epochs=1,
                    batch_size=64, pretrain_lr=1e-3, learning_rate=1e-4,
                    alpha_p=0.1, alpha_n=0.1, max_thresh_p=2.0,
@@ -1066,7 +1091,7 @@ RobustPUClassifier(class_prior=None, *, model=None, encoder=None, hidden_dim=100
                    random_state=None, device=None)
 ```
 
-`fit(X, y_pu, *, class_prior=None, sample_weight=None, epoch_callback=None, os_or_ts="os")`.
+`fit(X, y_pu, *, risk_prior=None, sample_weight=None, epoch_callback=None, os_or_ts="os")`.
 The TS risk-pool replacement applies only to nnPU pretraining; subsequent pseudo-negatives
 still come from original U. TS is explicitly rejected when pretraining is skipped.
 Non-None sample_weight raises an error. This is experimental technical integration, outside
@@ -1107,8 +1132,7 @@ GradPUClassifier(model=None, *, hidden_dim=128, alpha=0.1, beta_max=1.0,
 | `gp_chunk_size` | `int \| None` | `None` | Positive chunk size for gradient-penalty backward; requires split mode. With active penalty, injected modules must be deterministic and sample-independent; known stochastic layers are rejected |
 | `random_state` / `device` | `int \| None` / `str \| None` | `None` / `None` | Seed / PyTorch device |
 
-`fit(X, y_pu, *, class_prior=None, sample_weight=None, epoch_callback=None, os_or_ts="os")`
-accepts a prior for interface compatibility, but the paper objective does not use it.
+`fit(X, y_pu, *, sample_weight=None, epoch_callback=None, os_or_ts="os")` uses no prior.
 Non-None `sample_weight` raises an error. `decision_function` returns $[-1,1]$ scores, not
 calibrated probabilities; the prediction threshold is 0. The 2-D and BatchNorm-free injected
 image paths remain outside the formal Survey matrix.
@@ -1128,7 +1152,7 @@ actual maximum batch sizes, update counts, and TS/SAR boundaries; the runner sav
 Self-PU classifier with probability reweighting, distillation, and a dynamic trusted set.
 
 ```python
-SelfPUClassifier(class_prior, *, backbone=None, hidden_dim=128, warmup_epochs=10,
+SelfPUClassifier(risk_prior, *, backbone=None, hidden_dim=128, warmup_epochs=10,
                  self_paced_start=10, self_paced_end=50, distill_start=50, max_epochs=200,
                  max_trust_ratio=0.25, pace_1=0.2, pace_2=0.3, meta_step_size=1e-3,
                  reweight_gamma=1/16, distillation_alpha=10.0, ema_decay=0.99,
@@ -1140,7 +1164,7 @@ SelfPUClassifier(class_prior, *, backbone=None, hidden_dim=128, warmup_epochs=10
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `class_prior` | `float` | Required | Prior for the selected risk view; the direct default declares `class_prior_target="native_unlabeled"`, requiring OS population-to-U conversion |
+| `risk_prior` | `float` | Required | Prior for the selected risk view; the default direct view uses native U |
 | `backbone` | `Any \| None` | `None` (built-in MLP) | Score backbone; default tabular MLP dimensions are inferred by fit; custom backbones are separate from Pipeline encoder injection |
 | `hidden_dim` | `int` | `128` | Hidden dimension |
 | `warmup_epochs` | `int` | `10` | Warmup epochs |
@@ -1171,7 +1195,7 @@ Deep PU classifier: PURL representation learning → prior estimation → nnPU c
 Configure its constructor parameters directly.
 
 ```python
-InfoMaxPUClassifier(*, class_prior=None, representation_dim=20, hidden_dim=60,
+InfoMaxPUClassifier(*, risk_prior=None, representation_dim=20, hidden_dim=60,
                     representation_epochs=200, classifier_epochs=200, learning_rate=1e-3,
                     representation_ratio_steps=4, representation_encoder_steps=1,
                     representation_weight_decay=5e-4, representation_batch_norm=False,
@@ -1185,10 +1209,10 @@ InfoMaxPUClassifier(*, class_prior=None, representation_dim=20, hidden_dim=60,
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `class_prior` | `float \| None` | `None` | Class prior; None estimates through prior_estimator |
+| `risk_prior` | `float \| None` | `None` | Prior for the native U risk pool; `None` estimates it in the learned representation |
 | `representation_*` | Mixed | See signature | Representation stage: `representation_dim` (dimension) / `representation_epochs` / `representation_ratio_steps` / `representation_encoder_steps` / `representation_weight_decay` / `representation_batch_norm` / `representation_activation` / `representation_batch_size` / `representation_gradient_noise` |
 | `classifier_*` | Mixed | See signature | nnPU stage: `classifier_hidden_dims` / `classifier_batch_norm` / `classifier_optimizer` (`"adam"` / `"adagrad"`) / `classifier_learning_rate` / `classifier_weight_decay` / `classifier_batch_size` |
-| `prior_estimator` | `BaseEstimator \| None` | `None` | Prior estimator when class_prior=None |
+| `prior_estimator` | `BaseEstimator \| None` | `None` | Prior estimator when `risk_prior=None` |
 | `encoder` | `torch.nn.Module \| None` | `None` | External encoder, e.g. `build_encoder("cnn", ...)`; None uses the built-in MLP for backward compatibility |
 | `device` | `str \| None` | `None` | Torch device; None/"auto" detects automatically |
 | `random_state` / `hidden_dim` / `learning_rate` | — | — | Shared seed, hidden dimension, and learning rate |
@@ -1201,7 +1225,7 @@ InfoMaxPUClassifier(*, class_prior=None, representation_dim=20, hidden_dim=60,
 Weighted contrastive PU classifier with contrastive loss and distribution matching.
 
 ```python
-WeightedContrastivePUClassifier(class_prior, *, encoder=None, hidden_dim=128, embedding_dim=128,
+WeightedContrastivePUClassifier(unlabeled_prior, *, encoder=None, hidden_dim=128, embedding_dim=128,
                                 queue_size=8192, temperature=0.07, momentum=0.999,
                                 pseudo_label_momentum=0.9, contrastive_weight=0.1,
                                 distribution_weight=0.1, hard_negative_quantile=0.25,
@@ -1212,7 +1236,7 @@ WeightedContrastivePUClassifier(class_prior, *, encoder=None, hidden_dim=128, em
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `class_prior` | `float` | Required | Class prior |
+| `unlabeled_prior` | `float` | Required | Positive fraction in the native U pool |
 | `encoder` | `torch.nn.Module \| None` | `None` | Feature encoder; images can use `build_encoder("cnn", ...)` |
 | `hidden_dim` / `embedding_dim` | `int` | `128` / `128` | Hidden and embedding dimensions |
 | `queue_size` / `temperature` / `momentum` | `int` / `float` / `float` | `8192` / `0.07` / `0.999` | Contrastive queue, temperature, and queue momentum |
@@ -1231,7 +1255,7 @@ WeightedContrastivePUClassifier(class_prior, *, encoder=None, hidden_dim=128, em
 Deep generative PU classifier combining a GAN discriminator and iterative pseudo-labeling.
 
 ```python
-DGPUClassifier(class_prior, generator, *, model=None, hidden_dim=128, rounds=3,
+DGPUClassifier(unlabeled_prior, generator, *, model=None, hidden_dim=128, rounds=3,
                initialization_epochs=100, annotation_epochs=100, generated_samples=5000,
                pseudo_label_fraction=0.1, confidence_threshold=0.95, debias_strength=0.8,
                distribution_momentum=0.999, batch_size=256, learning_rate=1e-4,
@@ -1240,7 +1264,7 @@ DGPUClassifier(class_prior, generator, *, model=None, hidden_dim=128, rounds=3,
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `class_prior` | `float` | Required | Class prior |
+| `unlabeled_prior` | `float` | Required | Positive fraction in the native U pool |
 | `generator` | Torch model | Required | Data generator, e.g. a GAN generator |
 | `model` | `torch.nn.Module \| None` | `None` | Discriminator/classifier model; None uses the built-in model |
 | `hidden_dim` | `int` | `128` | Hidden dimension |

@@ -87,7 +87,8 @@ def test_basic_four_role_runner_keeps_os_and_epoch_identity(tmp_path):
     path = tmp_path / "manifest.json"
     result = ExperimentRunner(
         seed=0,
-        class_prior=0.5,
+        training_population_prior=0.5,
+        validation_population_prior=0.5,
         manifest_path=str(path),
         config={
             "method": "lbe_neural",
@@ -116,7 +117,8 @@ def test_determ_test_truth_and_features_cannot_change_training_or_selection(tmp_
     for index, bundle in enumerate((original, changed)):
         result = ExperimentRunner(
             seed=0,
-            class_prior=0.5,
+            training_population_prior=0.5,
+            validation_population_prior=0.5,
             manifest_path=str(tmp_path / str(index) / "manifest.json"),
             config={"c": 0.5, "os_or_ts": "os", "checkpoint_bytes_per_component": 4096},
         ).fit(model(), *bundle)
@@ -132,7 +134,8 @@ def test_param_ts_runner_fails_loud_without_relabeling_as_os(tmp_path):
     with pytest.raises(RuntimeError, match="all candidate runs failed"):
         ExperimentRunner(
             seed=0,
-            class_prior=0.5,
+            training_population_prior=0.5,
+            validation_population_prior=0.5,
             manifest_path=str(tmp_path / "manifest.json"),
             config={"c": 0.5, "os_or_ts": "ts"},
         ).fit(model(), *parts())

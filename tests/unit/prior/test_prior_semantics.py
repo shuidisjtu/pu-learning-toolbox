@@ -15,9 +15,11 @@ pytestmark = pytest.mark.unit
 
 
 def test_basic_os_mass_identity_and_round_trip():
-    population = native_unlabeled_to_population(0.25, 0.2)
+    population = native_unlabeled_to_population(native_unlabeled_prior=0.25, labeled_fraction=0.2)
     assert population == pytest.approx(0.4)
-    assert population_to_native_unlabeled(population, 0.2) == pytest.approx(0.25)
+    assert population_to_native_unlabeled(
+        population_prior=population, labeled_fraction=0.2
+    ) == pytest.approx(0.25)
 
 
 @pytest.mark.parametrize("q", [0.0, 0.2, 0.8, 1.0 - 1e-10])
@@ -32,14 +34,14 @@ def test_param_mass_identity_at_boundaries(q, prior_u):
 @pytest.mark.parametrize(
     "kwargs, error",
     [
-        ({"class_prior": np.nan}, ValueError),
-        ({"class_prior": np.inf}, ValueError),
-        ({"class_prior": -0.1}, ValueError),
-        ({"class_prior": 1.01}, ValueError),
-        ({"class_prior": True}, TypeError),
-        ({"class_prior": np.bool_(False)}, TypeError),
-        ({"class_prior": [0.2]}, TypeError),
-        ({"class_prior": "0.2"}, TypeError),
+        ({"prior": np.nan}, ValueError),
+        ({"prior": np.inf}, ValueError),
+        ({"prior": -0.1}, ValueError),
+        ({"prior": 1.01}, ValueError),
+        ({"prior": True}, TypeError),
+        ({"prior": np.bool_(False)}, TypeError),
+        ({"prior": [0.2]}, TypeError),
+        ({"prior": "0.2"}, TypeError),
         ({"labeled_fraction": True}, TypeError),
         ({"labeled_fraction": 1.0}, ValueError),
         ({"labeled_fraction": np.nan}, ValueError),
@@ -52,7 +54,13 @@ def test_param_mass_identity_at_boundaries(q, prior_u):
     "convert", [native_unlabeled_to_population, population_to_native_unlabeled]
 )
 def test_edge_invalid_probability_arguments(kwargs, error, convert):
-    parameters = {"class_prior": 0.4, "labeled_fraction": 0.2, **kwargs}
+    parameters = {"prior": 0.4, "labeled_fraction": 0.2, **kwargs}
+    name = (
+        "population_prior"
+        if convert is population_to_native_unlabeled
+        else "native_unlabeled_prior"
+    )
+    parameters[name] = parameters.pop("prior")
     with pytest.raises(error):
         convert(**parameters)
 

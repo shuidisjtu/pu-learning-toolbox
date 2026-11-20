@@ -35,7 +35,7 @@ def plan(directory, **kwargs):
         **(
             dict(
                 dataset="spambase",
-                prior=0.4,
+                population_prior=0.4,
                 prior_source="known synthetic population prior",
                 seed=0,
                 device="cpu",
@@ -121,7 +121,7 @@ def test_edge_cli_execute_requires_output_before_planning(capsys):
                 "missing",
                 "--dataset",
                 "spambase",
-                "--class-prior",
+                "--population-prior",
                 "0.4",
                 "--prior-source",
                 "fixture",

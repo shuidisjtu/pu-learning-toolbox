@@ -26,8 +26,8 @@ uv run python scripts/prepare_survey_splits.py --datasets spambase --seeds 0,1,2
 By default it reads `data/raw` and writes `data/splits/<dataset>/split_<seed>/`.
 Each split contains `train.npz`, `pu_val.npz`, `clean_val.npz`, `test.npz`, and
 `split_manifest.json`. NPZ files contain true labels and disjoint global indices;
-the generator constructs PU labels during execution. Read the prior from the split's
-`class_prior.population`, without deriving it from test truth.
+the generator constructs PU labels during execution. Use the prior recorded in the split's
+`class_prior.population`.
 
 PULNS, LaGAM, and full-meta Self-PU use independent clean support. For the five original
 tabular/image datasets, rebuild it through the reviewed raw reader. For IMDB, 20News,
@@ -68,7 +68,7 @@ uv run python scripts/check_survey_recipe_registry.py --require-present --requir
 Run one unit using a prepared split:
 
 ```powershell
-uv run python scripts/run_survey_experiment.py data/splits/spambase/split_0 --protocol survey-v3.2 --recipe-registry pu_toolbox/experiment/survey_recipe_registry_v1_3.json --dataset spambase --method upu --training-path native_2d --labeling-mechanism scar --seeds 0 --c 0.1 --class-prior 0.3940447729 --device cpu --out-dir results/example
+uv run python scripts/run_survey_experiment.py data/splits/spambase/split_0 --protocol survey-v3.2 --recipe-registry pu_toolbox/experiment/survey_recipe_registry_v1_3.json --dataset spambase --method upu --training-path native_2d --labeling-mechanism scar --seeds 0 --c 0.1 --population-prior 0.3940447729 --device cpu --out-dir results/example
 ```
 
 The prior above illustrates the current Spambase setting; use your split's own
@@ -77,8 +77,12 @@ the batch entry reads recorded split priors. For uPU, PA uses this population pr
 views. The Survey default (`ts`-compatible) also fits with it; explicit `--os-or-ts os` fits
 with the native-U prior derived from the training split's realized labeled fraction.
 See `research_settings.prior` in the manifest for both values and sources.
+
+For PUSBKernel on OS input, `--population-prior` supplies the default training-table threshold
+prior and PA's validation population prior. The kernel risk reuses the table value by default.
+The manifest records the fit risk pool and the native-U internal CV validation pool separately.
 For a PN oracle, replace `--method upu` with
-`--oracle` and remove `--class-prior`; selection is OA only. Support methods require the
+`--oracle` and remove `--population-prior`; selection is OA only. Support methods require the
 corresponding `--support-dir`. The audited product keeps clean support as a fifth role,
 with original sample IDs disjoint from `train`, `pu_val`, `clean_val`, and `test`. The
 unit command verifies the product and its match to the actual split before training or

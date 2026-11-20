@@ -48,7 +48,7 @@ def test_protocolpa_marks_pu_view_usage():
     X_val = np.array([[0.1], [0.9], [-0.3]])
     val_part = DatasetPart(X=X_val, labels=np.array([1, 0, 0]), view="pu", indices=np.arange(3))
     traj = _traj(FakeModel())
-    art = ProtocolPA().select([traj], val_part, class_prior=0.5)
+    art = ProtocolPA().select([traj], val_part, validation_population_prior=0.5)
     assert art.protocol == "PA"
     assert art.threshold is not None
     assert "val_proxy_accuracy" in art.metrics
@@ -110,8 +110,10 @@ def test_protocolpa_threshold_moves_with_class_prior():
     argmax rather than merely rescaling it -- a proxy that ignored pi would
     return the same threshold twice and fail here.
     """
-    art_low = ProtocolPA().select([_traj(FakeModel())], _pa_view(), class_prior=0.5)
-    art_high = ProtocolPA().select([_traj(FakeModel())], _pa_view(), class_prior=0.9)
+    art_low = ProtocolPA().select([_traj(FakeModel())], _pa_view(), validation_population_prior=0.5)
+    art_high = ProtocolPA().select(
+        [_traj(FakeModel())], _pa_view(), validation_population_prior=0.9
+    )
     assert art_low.threshold == pytest.approx(0.6)
     assert art_low.metrics["val_proxy_accuracy"] == pytest.approx(31 / 22)
     # theta=0.1 and theta=0.2 hit exactly the same ten samples (the 0.2 positive
@@ -123,7 +125,7 @@ def test_protocolpa_threshold_moves_with_class_prior():
 def test_protocolpa_tie_keeps_lowest_threshold():
     """A plateau resolves to the earliest candidate, per selection_spec.tie_breaking."""
     # theta in [0.6, 1.0] all score identically (A=1, B=10) -> 0.6 wins.
-    art = ProtocolPA().select([_traj(FakeModel())], _pa_view(), class_prior=0.5)
+    art = ProtocolPA().select([_traj(FakeModel())], _pa_view(), validation_population_prior=0.5)
     assert art.threshold == pytest.approx(0.6)
 
 
@@ -135,4 +137,4 @@ def test_protocolpa_requires_class_prior():
 @pytest.mark.parametrize("bad", [0.0, -0.1, 1.5, float("nan")])
 def test_protocolpa_rejects_invalid_class_prior(bad):
     with pytest.raises(ValueError, match=r"\(0, 1\]"):
-        ProtocolPA().select([_traj(FakeModel())], _pa_view(), class_prior=bad)
+        ProtocolPA().select([_traj(FakeModel())], _pa_view(), validation_population_prior=bad)

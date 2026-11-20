@@ -262,7 +262,9 @@ class KernelMeanPriorEstimator(BasePriorEstimator):
         )
         self.km1_estimate_ = float(np.clip((lambda_km1 - 1.0) / lambda_km1, 0.0, 1.0))
         self.km2_estimate_ = float(np.clip((lambda_km2 - 1.0) / lambda_km2, 0.0, 1.0))
-        self.class_prior_ = self.km1_estimate_ if self.variant == "km1" else self.km2_estimate_
+        self.unlabeled_prior_estimate_ = (
+            self.km1_estimate_ if self.variant == "km1" else self.km2_estimate_
+        )
         self.kernel_width_ = width
         self.distribution_distance_ = distribution_distance
         self.thresholds_ = {"km1": km1_threshold, "km2": km2_threshold}
@@ -277,4 +279,4 @@ class KernelMeanPriorEstimator(BasePriorEstimator):
         """Return the selected KM1 or KM2 mixture proportion."""
         if not getattr(self, "_is_fitted", False):
             raise NotFittedError("KernelMeanPriorEstimator is not fitted. Call fit() first.")
-        return self.class_prior_
+        return self.unlabeled_prior_estimate_

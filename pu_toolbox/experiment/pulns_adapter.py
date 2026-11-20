@@ -407,14 +407,14 @@ class PULNSExtraSupportTrainer(_IndependentSupportTrainer):
 
         return PULNSClassifier
 
-    def fit(self, estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None):
+    def fit(self, estimator, X, y, *, val_pu=None, os_or_ts=None):
         """Use only explicit support; never receive clean_val/test labels."""
         self._require_prepared(estimator, X, os_or_ts)
-        self._fit_support_estimator(estimator, X, y, class_prior=class_prior)
+        self._fit_support_estimator(estimator, X, y, risk_prior=None)
         self._finish_support_fit(estimator, y)
         return RunTrajectory(epochs=[EpochRecord(epoch=1, metrics={})], model=estimator)
 
-    def _fit_support_estimator(self, estimator, X, y, *, class_prior, epoch_callback=None):
+    def _fit_support_estimator(self, estimator, X, y, *, risk_prior, epoch_callback=None):
         callbacks = {} if epoch_callback is None else {"epoch_callback": epoch_callback}
         estimator.fit(
             X,

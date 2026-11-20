@@ -90,8 +90,13 @@ def test_param_unsupported_sample_weight_invalidates_previous_fit(method):
 def test_param_invalid_prior_invalidates_previous_fit(method):
     X, y = data()
     fitted = model(method).fit(X, y)
-    with pytest.raises(ValueError):
-        fitted.fit(X, y, class_prior=-0.1)
+    if method == "gradpu":
+        with pytest.raises(TypeError, match="risk_prior"):
+            fitted.fit(X, y, risk_prior=-0.1)
+    else:
+        parameter = "tree_weight_prior" if method == "puet" else "risk_prior"
+        with pytest.raises(ValueError, match=parameter):
+            fitted.fit(X, y, **{parameter: -0.1})
     assert_unfitted(fitted, X)
 
 

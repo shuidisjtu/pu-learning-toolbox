@@ -34,14 +34,15 @@ from ...core.tags import (
     Assumption,
     Backend,
     Maturity,
+    PriorConsumer,
     SampleWeightSupport,
     Scenario,
     SourceStatus,
 )
-from ...core.validation import check_scalar_in_range, validate_pu_X_y
+from ...core.validation import validate_pu_X_y
 from ...utils.centroid import _centroid_covariance, _mom_centroid
 from ._class_prior import (
-    solve_prior_from_positive_fraction,
+    resolve_training_table_prior,
     stable_centroid_denominator,
 )
 
@@ -279,7 +280,7 @@ class LDCEClassifier(BasePUClassifier):
     ----------
     coef_ : np.ndarray of shape (n_features,)
         Fitted linear discriminant weights *w*.
-    class_prior_ : float
+    training_table_prior_ : float
         Estimated positive class prior π = k / [n (1−h)].
     flip_probability_ : float
         Validated flip probability used for fitting.
@@ -322,8 +323,13 @@ class LDCEClassifier(BasePUClassifier):
     label_semantics = "pu"
     assumption: tuple[Assumption, ...] = (Assumption.SCAR,)
     scenario: tuple[Scenario, ...] = (Scenario.SINGLE_TRAINING_SET,)
-    requires_class_prior: bool = False
-    class_prior_target = "training_table"
+    _runner_prior_parameter = "training_table_prior"
+    prior_consumers = (
+        PriorConsumer(
+            "ldce_label_distribution", "training_table", parameter="training_table_prior"
+        ),
+    )
+    _prior_consumptions_ = ()
     source_status: SourceStatus = SourceStatus.OFFICIAL_RELATED
     backend: Backend = Backend.NUMPY
     maturity: Maturity = Maturity.RESEARCH
@@ -362,7 +368,7 @@ class LDCEClassifier(BasePUClassifier):
         X: np.ndarray,
         y_pu: np.ndarray,
         *,
-        class_prior: float | None = None,
+        training_table_prior: float | None = None,
         sample_weight: np.ndarray | None = None,
     ) -> LDCEClassifier:
         """Fit the LDCE classifier.
@@ -375,9 +381,9 @@ class LDCEClassifier(BasePUClassifier):
             PU labels in any convention accepted by
             :func:`~pu_toolbox.core.validation.validate_pu_X_y`
             (``{+1, 0}``, ``{+1, -1}``, ``{1, 0}``, ``{1, -1}``).
-        class_prior : float, optional
-            Override the class prior derived from *flip_probability*.
-            Providing this bypasses the internal prior formula.
+        training_table_prior : float, optional
+            Positive prior of the training table. The default derives it from
+            the observed label count and ``flip_probability``.
         sample_weight : np.ndarray, optional
             Accepted for sklearn API compatibility; currently ignored.
 
@@ -419,14 +425,9 @@ class LDCEClassifier(BasePUClassifier):
         if n_U == 0:
             raise ValueError("Need at least 1 unlabeled sample.")
 
-        # ── Compute / override class prior ────────────────────────────
-        if class_prior is not None:
-            p = float(class_prior)
-            check_scalar_in_range(p, 0.0, 1.0, "class_prior", inclusive=False)
-        else:
-            # Derived via shared helper: p = k / [n·(1−h)] with (0, 1] check.
-            p = solve_prior_from_positive_fraction(n_P, n, h)
-        self.class_prior_ = p
+        p, prior_consumption = resolve_training_table_prior(
+            "ldce_label_distribution", training_table_prior, n_P, n, h
+        )
 
         # ── Check near-singular denominator ───────────────────────────
         stable_centroid_denominator(p, h)  # 1 - 2k/n when h is derived from data
@@ -536,6 +537,8 @@ class LDCEClassifier(BasePUClassifier):
         # ── Finalise ──────────────────────────────────────────────────
         self._X_shape_ = X.shape
         self.classes_ = np.array([0, 1])
+        self.training_table_prior_ = p
+        self._prior_consumptions_ = (prior_consumption,)
         self._is_fitted = True
         return self
 
@@ -558,7 +561,7 @@ class LDCEClassifier(BasePUClassifier):
         meta.update(
             {
                 "flip_probability": getattr(self, "flip_probability_", None),
-                "class_prior": getattr(self, "class_prior_", None),
+                "training_table_prior": getattr(self, "training_table_prior_", None),
                 "centroid_radius": self.centroid_radius,
                 "reg_strength": self.reg_strength,
                 "n_iter": getattr(self, "n_iter_", None),

@@ -45,8 +45,8 @@ def test_basic_equation_19_matches_hand_computation_without_correction():
     }
     result = paper_importance_weight_objective(
         **values,
-        source_class_prior=0.4,
-        target_class_prior=0.6,
+        source_domain_prior=0.4,
+        target_domain_prior=0.6,
         alpha=0.5,
         correction=False,
     )
@@ -72,8 +72,8 @@ def test_param_equation_19_corrections_apply_exact_lower_bounds():
         source_positive_positive=_tensor([0.0]),
         source_positive_negative=_tensor([2.0]),
         source_unlabeled_negative=_tensor([0.0]),
-        source_class_prior=0.8,
-        target_class_prior=0.8,
+        source_domain_prior=0.8,
+        target_domain_prior=0.8,
         alpha=0.5,
     )
     corrected = paper_importance_weight_objective(**common, correction=True)
@@ -84,12 +84,12 @@ def test_param_equation_19_corrections_apply_exact_lower_bounds():
 def test_basic_equations_13_and_20_have_expected_beta_endpoints():
     logits_p = _tensor([0.2, 0.4])
     logits_u = _tensor([-0.1, 0.3])
-    target = paper_pu_risk(logits_p, logits_u, class_prior=0.5)
+    target = paper_pu_risk(logits_p, logits_u, risk_prior=0.5)
     weights = torch.ones(2, dtype=torch.float64)
     source = paper_pu_risk(
         logits_p,
         logits_u,
-        class_prior=0.4,
+        risk_prior=0.4,
         positive_positive_weight=weights,
         positive_negative_weight=weights,
         unlabeled_negative_weight=weights,
@@ -102,8 +102,8 @@ def test_basic_equations_13_and_20_have_expected_beta_endpoints():
         source_positive_positive_weight=weights,
         source_positive_negative_weight=weights,
         source_unlabeled_negative_weight=weights,
-        source_class_prior=0.4,
-        target_class_prior=0.5,
+        source_domain_prior=0.4,
+        target_domain_prior=0.5,
     )
     assert float(paper_classifier_objective(**inputs, beta=1.0)) == pytest.approx(float(target))
     assert float(paper_classifier_objective(**inputs, beta=0.0)) == pytest.approx(float(source))
@@ -113,15 +113,15 @@ def test_edge_missing_target_and_external_weights_are_rejected():
     source, source_pu, target, target_pu = _data()
     model = DynamicJointShiftPUClassifier(max_epochs=1, hidden_dim=4, feature_dim=3)
     with pytest.raises(ValueError, match="X_target"):
-        model.fit(source, source_pu, class_prior=0.4, target_class_prior=0.6)
+        model.fit(source, source_pu, source_domain_prior=0.4, target_domain_prior=0.6)
     with pytest.raises(NotImplementedError, match="paper objective"):
         model.fit(
             source,
             source_pu,
             X_target=target,
             y_target_pu=target_pu,
-            class_prior=0.4,
-            target_class_prior=0.6,
+            source_domain_prior=0.4,
+            target_domain_prior=0.6,
             sample_weight=np.ones(len(source)),
         )
 
@@ -141,8 +141,8 @@ def test_determ_dynamic_training_reproduces_trace_and_predictions():
             source_pu,
             X_target=target,
             y_target_pu=target_pu,
-            class_prior=0.4,
-            target_class_prior=0.6,
+            source_domain_prior=0.4,
+            target_domain_prior=0.6,
         )
         outputs.append((model.training_trace_, model.predict(target), model.source_joint_weights_))
         assert model.get_pu_metadata()["objective_equations"] == [13, 19, 20, 21, 22, 23]

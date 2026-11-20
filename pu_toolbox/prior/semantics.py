@@ -23,7 +23,7 @@ def _probability(value: float, name: str, *, allow_one: bool = True) -> float:
 
 
 def native_unlabeled_to_population(
-    class_prior: float, labeled_fraction: float, *, input_sampling: str = "os"
+    native_unlabeled_prior: float, labeled_fraction: float, *, input_sampling: str = "os"
 ) -> float:
     """Convert a native-U positive prior to the target population prior.
 
@@ -33,13 +33,13 @@ def native_unlabeled_to_population(
     ``[0, 1)``. Prior endpoints are allowed.
     """
     validate_input_sampling(input_sampling)
-    prior = _probability(class_prior, "class_prior")
+    prior = _probability(native_unlabeled_prior, "native_unlabeled_prior")
     q = _probability(labeled_fraction, "labeled_fraction", allow_one=False)
     return q + (1.0 - q) * prior if input_sampling == "os" else prior
 
 
 def population_to_native_unlabeled(
-    class_prior: float, labeled_fraction: float, *, input_sampling: str = "os"
+    population_prior: float, labeled_fraction: float, *, input_sampling: str = "os"
 ) -> float:
     """Convert a population positive prior to the native-U distribution.
 
@@ -48,10 +48,10 @@ def population_to_native_unlabeled(
     ``[0, 1)`` and prior endpoints are allowed.
     """
     validate_input_sampling(input_sampling)
-    prior = _probability(class_prior, "class_prior")
+    prior = _probability(population_prior, "population_prior")
     q = _probability(labeled_fraction, "labeled_fraction", allow_one=False)
     if input_sampling == "ts":
         return prior
     if prior < q:
-        raise ValueError(f"OS population class_prior ({prior}) must be >= labeled_fraction ({q}).")
+        raise ValueError(f"OS population_prior ({prior}) must be >= labeled_fraction ({q}).")
     return (prior - q) / (1.0 - q)

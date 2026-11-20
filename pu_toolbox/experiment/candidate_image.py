@@ -52,7 +52,7 @@ def build_candidate_image_classifier(
     preprocessing: SurveyImagePreprocessing,
     *,
     seed: int,
-    class_prior: float | None = None,
+    training_population_prior: float | None = None,
     device: str = "cpu",
     gradpu_initialization: str = "pytorch_default",
 ):
@@ -83,19 +83,22 @@ def build_candidate_image_classifier(
         raise ValueError("gradpu_initialization must be pytorch_default or relu_gain")
     if method != "gradpu" and gradpu_initialization != "pytorch_default":
         raise ValueError("gradpu_initialization is only applicable to GradPU")
-    if method == "pulda" and class_prior is None:
-        raise ValueError("PULDA requires the population class_prior")
+    if method == "pulda" and training_population_prior is None:
+        raise ValueError("PULDA requires training_population_prior")
     if method == "pulda":
         if (
-            isinstance(class_prior, bool)
-            or not isinstance(class_prior, Real)
-            or not math.isfinite(float(class_prior))
-            or not 0 < float(class_prior) < 1
+            isinstance(training_population_prior, bool)
+            or not isinstance(training_population_prior, Real)
+            or not math.isfinite(float(training_population_prior))
+            or not 0 < float(training_population_prior) < 1
         ):
-            raise ValueError("population class_prior must be a finite real number in (0, 1)")
-        class_prior = float(class_prior)
-    if method in {"gradpu", "pan", "vpu", "p3mix", "cvir"} and class_prior is not None:
-        raise ValueError(f"{method} does not use a class_prior")
+            raise ValueError("training_population_prior must be a finite real number in (0, 1)")
+        training_population_prior = float(training_population_prior)
+    if (
+        method in {"gradpu", "pan", "vpu", "p3mix", "cvir"}
+        and training_population_prior is not None
+    ):
+        raise ValueError(f"{method} does not use training_population_prior")
     if method == "pan" and preprocessing.train_augmentation != "none":
         raise ValueError("PAN candidate image setup requires train_augmentation='none'")
     if method == "vpu" and preprocessing.train_augmentation != "none":
@@ -120,7 +123,7 @@ def build_candidate_image_classifier(
             augmentation = build_survey_image_augmentation(preprocessing, role="train")
             if method == "pulda":
                 estimator = PULDAClassifier(
-                    class_prior=class_prior,
+                    risk_prior=training_population_prior,
                     encoder=encoder,
                     train_transform=augmentation,
                     random_state=int(seed),
@@ -216,7 +219,7 @@ def build_candidate_image_classifier(
         "evaluation_augmentation": "none",
         "prior_contract": {
             "source": "caller_supplied_population_prior" if method == "pulda" else "not_used",
-            "value": class_prior,
+            "value": training_population_prior,
             "actual_calibration_applied": "record_from_fitted_run_not_construction",
         },
         "head_specification": "method-private; shared encoder does not imply shared MLP head",
@@ -328,8 +331,8 @@ def _validate_candidate_image_fit(estimator, image_setup, train_images, s_train)
     transform = estimator.train_transform if method == "pulda" else None
     if (repr(transform) if transform is not None else None) != setup["train_transform_description"]:
         raise ValueError("train transform changed after image construction")
-    if method == "pulda" and estimator.class_prior != setup["prior_contract"]["value"]:
-        raise ValueError("PULDA population class_prior changed after image construction")
+    if method == "pulda" and estimator.risk_prior != setup["prior_contract"]["value"]:
+        raise ValueError("PULDA training population prior changed after image construction")
     if method == "gradpu" and estimator.model is not None:
         raise ValueError("custom score models require a separate image setup")
     if method == "pan" and (

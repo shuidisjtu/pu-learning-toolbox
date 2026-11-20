@@ -70,7 +70,7 @@ def test_basic_cli_resolves_profile_before_loading_any_data(
         "native_2d",
         "--support-dir",
         str(tmp_path / "not-loaded-support"),
-        "--class-prior",
+        "--population-prior",
         "0.4",
     ]
     if requested is not None:

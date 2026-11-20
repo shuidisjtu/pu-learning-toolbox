@@ -91,14 +91,14 @@ def small_model(**kwargs):
     return HolisticPUClassifier(**params)
 
 
-def test_fit_seed_clone_pickle_trajectory_and_prior_unused():
+def test_determ_seed_clone_pickle_and_trajectory():
     pytest.importorskip("torch")
     from sklearn.base import clone
 
     X, y = fixture_data()
     original = X.copy(), y.copy()
     fitted = clone(small_model()).fit(X, y)
-    repeated = small_model().fit(X, y, class_prior=0.4)
+    repeated = small_model().fit(X, y)
     assert fitted.prediction_trajectory_.shape == (20, 3)
     np.testing.assert_array_equal(fitted.pseudo_label_indices_, np.flatnonzero(y == 0))
     np.testing.assert_array_equal(

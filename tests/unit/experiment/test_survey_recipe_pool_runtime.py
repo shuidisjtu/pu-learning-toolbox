@@ -32,7 +32,7 @@ def _request(tmp_path, survey_script):
     path = tmp_path / "synthetic-protocol.json"
     path.write_text(json.dumps(protocol), encoding="utf-8")
     row = resolve_unit(protocol, "spambase", "upu", "native_2d")
-    model = assemble_model(protocol, row, 3, seed=0, params={}, class_prior=0.3, device="cpu")
+    model = assemble_model(protocol, row, 3, seed=0, params={}, population_prior=0.3, device="cpu")
     config = {
         "architecture": "mlp",
         "c": 0.5,
@@ -69,16 +69,21 @@ def test_basic_runner_tracks_distinct_pa_oa_after_exclusion_and_retry(
     monkeypatch.setattr(
         oa, "select", lambda *args, **kwargs: SelectionArtifact("OA", 1, None, None, {})
     )
-    runner = ExperimentRunner(class_prior=0.3, config=config, protocols=[pa, oa])
+    runner = ExperimentRunner(
+        training_population_prior=0.3,
+        validation_population_prior=0.3,
+        config=config,
+        protocols=[pa, oa],
+    )
     train = runner._train
     calls = 0
 
-    def controlled_train(*args):
+    def controlled_train(*args, **kwargs):
         nonlocal calls
         calls += 1
         if calls <= 3:
             raise ValueError("synthetic failure to exercise compressed trajectory indices")
-        return train(*args)
+        return train(*args, **kwargs)
 
     monkeypatch.setattr(runner, "_train", controlled_train)
     payload = runner.fit(model, *parts).manifest
@@ -109,7 +114,9 @@ def test_param_bad_pool_preflight_precedes_label_generation(
         config.pop("recipe_binding_schema_version")
     else:
         config.pop("recipe_registry")
-    runner = ExperimentRunner(class_prior=0.3, config=config)
+    runner = ExperimentRunner(
+        training_population_prior=0.3, validation_population_prior=0.3, config=config
+    )
 
     def forbidden(*args, **kwargs):
         pytest.fail("label generation must follow successful pool binding")
@@ -121,7 +128,13 @@ def test_param_bad_pool_preflight_precedes_label_generation(
 
 def test_edge_completed_runs_requires_exact_pool_and_trajectory_joins(survey_script, tmp_path):
     model, parts, config, expected = _request(tmp_path, survey_script)
-    payload = ExperimentRunner(class_prior=0.3, config=config).fit(model, *parts).manifest
+    payload = (
+        ExperimentRunner(
+            training_population_prior=0.3, validation_population_prior=0.3, config=config
+        )
+        .fit(model, *parts)
+        .manifest
+    )
     # The CLI stamps the run token; the programmatic runner is not the CLI.
     payload["c_requested_token"] = "0.5"
     path = tmp_path / "result/manifest.json"
@@ -156,7 +169,7 @@ def test_basic_cli_single_pool_has_a_separate_namespace(survey_script, tmp_path)
         "0.5",
         "--seeds",
         "0",
-        "--class-prior",
+        "--population-prior",
         "0.3",
         "--out-dir",
         str(out),

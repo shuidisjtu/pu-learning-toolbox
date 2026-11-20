@@ -85,11 +85,11 @@ def test_linear_pusb_and_kernel_have_distinct_calibration_routes(
         )
 
 
-def test_prior_semantics_consistent_with_registry_class_prior(
+def test_prior_semantics_consistent_with_registry_consumers(
     ledger_methods: dict[str, dict],
 ) -> None:
     for name, entry in ledger_methods.items():
-        requires_prior = get_metadata(name).requires_class_prior
+        requires_prior = name != "cvir" and bool(get_metadata(name).required_prior_parameters)
         assert ("population" in entry["prior_semantics"]) == requires_prior, name
 
 

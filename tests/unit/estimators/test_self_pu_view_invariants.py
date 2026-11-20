@@ -40,7 +40,7 @@ pytestmark = [
 
 # One batch covers the whole U pool (30 rows), so every trusted row is in it.
 _CONF = dict(
-    class_prior=1 / 3,
+    risk_prior=1 / 3,
     hidden_dim=4,
     warmup_epochs=0,
     self_paced_start=0,

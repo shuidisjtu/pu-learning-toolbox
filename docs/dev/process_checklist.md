@@ -235,6 +235,23 @@ S1/S2 已按失败回归驱动完成实现；旧同池入口保留输出与随�
   `survey-recipes-v1.3`。数据与监督预算按各次 manifest 解释，配方能力不自动代表数值复现。
 - **uPU 拟合与 PA 先验分开**：内置 trainer 在 OS 原生 U 风险下用训练标记比例换算总体先验；
   TS-compatible 拟合与 PA 仍用总体先验。拒绝非法训练视图，以及对已声明独立 TS 的训练输入再做重构。
+- **2.0 先验契约**：训练、内部 PU 验证与 PA 的先验分别命名。注册表 `prior_consumers` 描述可用入口；新版
+  `research_settings.prior` 只记录实际消费，历史制品保留原结构。无先验方法不接收占位参数，诊断和估计按各自目标命名。
+  冻结 Survey 配方、先验数值、数据角色及 test 边界保持不变；只沿用原先明确启用的 uPU OS 换算。
+- **先验契约翻新 · uPU Runner 样板**：`training_population_prior` 和 `validation_population_prior`
+  分别设置训练与 PA 输入。uPU 的 `research_settings` 2.0 在同一处记录实际拟合值及 PA 总体值，
+  附训练目标池、来源及 OS 换算输入；结果汇总按原版本留存每个 seed 的记录。uPU 直接使用
+  `risk_prior`，PA 直接使用 `validation_population_prior`。Survey 单次与 pilot 使用 `--population-prior`，
+  在运行边界分别绑定训练、PA。
+- **先验契约翻新 · PUSBKernel**：`training_table_prior` 用于全训练表分位阈值，`risk_prior`
+  用于拟合与内部 CV；缺省风险值复用训练表先验。manifest 2.0 分开记录拟合风险、CV 验证风险
+  和训练表阈值。Survey OS 沿用总体先验作为训练表缺省，保留原 CV 与模型选择规则。
+- **先验契约翻新 · LDCE/KLDCE 与 CVIR**：LDCE/KLDCE 的 `training_table_prior` 区分显式覆盖和
+  训练计数推导；KLDCE 候选按独立策略绑定。CVIR 单独记录筛选、加权目标与 PA 的实际使用值，
+  原生 OS 的总体换算随训练风险先验记录，图像与四角色适配共用同一记录方式。
+- **先验契约翻新 · 无先验拟合入口**：Elkan–Noto、Rank Pruning、线性 PUSB、GradPU 和 Neural LBE
+  的拟合签名只暴露实际接受的参数。这些方法的先验记录由 PA 等实际使用方生成；Elkan–Noto 的总体
+  估计值和 Neural LBE 的训练表后验均值各有独立的拟合属性。
 - **clean-support 执行门禁**：批量计划和续跑前检查五角色文件及原始样本 ID；单元运行在训练、
   选模和测试前校验支持集制品，并核对它与实际四角色输入逐行一致。样本行隔离不代表受试者隔离。
 

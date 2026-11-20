@@ -73,6 +73,27 @@ def _make_pnu_X_y(rng):
     return X, y
 
 
+@pytest.mark.contract
+@pytest.mark.parametrize("eta", [-0.5, 0.0, 0.5])
+def test_param_pnu_uses_one_population_prior_for_pn_pu_nu_risks(eta):
+    X, y = _make_pnu_X_y(np.random.RandomState(0))
+    estimator = PNUClassifier(population_prior=0.2, eta=eta).fit(X, y, population_prior=0.6)
+    equivalent = PNUClassifier(population_prior=0.6, eta=eta).fit(X, y)
+    np.testing.assert_array_equal(estimator.decision_function(X), equivalent.decision_function(X))
+    assert estimator.risk_components_ == equivalent.risk_components_
+    assert estimator.population_prior_ == 0.6
+    assert {row["consumer"] for row in estimator._prior_consumptions_} == {
+        "pnu_training_risk",
+        "pnu_pn_diagnostic_risk",
+        "pnu_pu_diagnostic_risk",
+        "pnu_nu_diagnostic_risk",
+    }
+    assert all(
+        (row["target"], row["value"], row["source"]) == ("population", 0.6, "fit.population_prior")
+        for row in estimator._prior_consumptions_
+    )
+
+
 def _get_data_factory(clf):
     if isinstance(clf, PNUClassifier):
         return _make_pnu_X_y
@@ -108,7 +129,7 @@ class TestBaseline:
         """
         clf = FACTORY_MAP["pusb_kernel"]()
         X, y = _make_X_y(rng)
-        clf.fit(X, y, class_prior=0.5)
+        clf.fit(X, y, training_table_prior=0.5)
         assert np.all(clf.cv_convergence_), "pusb_kernel contract fit did not converge"
 
     def test_every_registered_method_has_factory(self):

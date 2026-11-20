@@ -108,7 +108,7 @@ class NeuralLBEClassifier(BasePUClassifier):
     label_semantics = "pu"
     assumption = (Assumption.SAR,)
     scenario = (Scenario.SINGLE_TRAINING_SET, Scenario.SELECTION_BIASED)
-    requires_class_prior = False
+    _prior_consumptions_ = ()
     source_status = SourceStatus.OFFICIAL_RELATED
     backend = Backend.TORCH
     maturity = Maturity.EXPERIMENTAL
@@ -162,15 +162,12 @@ class NeuralLBEClassifier(BasePUClassifier):
         return self.batch_size
 
     @invalidate_failed_fit
-    def fit(
-        self, X, y_pu, *, class_prior=None, sample_weight=None, epoch_callback=None, os_or_ts="os"
-    ):
+    def fit(self, X, y_pu, *, sample_weight=None, epoch_callback=None, os_or_ts="os"):
         """Fit from observed PU labels only; test and validation data are not inputs.
 
-        class_prior, if supplied, is validated but not used by this source
-        recipe. Each pretrain/M optimizer update accumulates row-weighted
-        gradients over CPU-resident chunks; an EM posterior stays fixed across
-        all M updates in that round. sample_weight and TS are refused.
+        Each pretrain/M optimizer update accumulates row-weighted gradients
+        over CPU-resident chunks. An EM posterior stays fixed across all M
+        updates in that round. This fit uses OS and unit sample weights.
         """
         import torch
 
@@ -195,11 +192,8 @@ class NeuralLBEClassifier(BasePUClassifier):
             ("learning_rate", 0, None),
             ("weight_decay", 0, None),
             ("sample_fraction", 0, 1),
-            ("class_prior", 0, 1),
         ):
-            value = class_prior if name == "class_prior" else getattr(self, name)
-            if name == "class_prior" and value is None:
-                continue
+            value = getattr(self, name)
             if (
                 isinstance(value, bool | np.bool_)
                 or not isinstance(value, Real)
@@ -209,10 +203,7 @@ class NeuralLBEClassifier(BasePUClassifier):
             if (
                 value < lower
                 or (value == lower and name != "weight_decay")
-                or (
-                    upper is not None
-                    and (value > upper or (name == "class_prior" and value == upper))
-                )
+                or (upper is not None and value > upper)
             ):
                 raise ValueError(f"{name} is outside its allowed range")
         if self.random_state is not None and (
@@ -466,7 +457,7 @@ class NeuralLBEClassifier(BasePUClassifier):
         self._latent_positive_probability_ = lbe_latent_positive_posterior(
             logits, propensity, observed
         ).numpy()
-        self._class_prior = float(logits.sigmoid().mean())
+        self.training_table_prior_estimate_ = float(logits.sigmoid().mean())
         self.observed_log_likelihood_history_ = list(self.history_["observed_log_likelihood"])
         self.pretraining_optimizer_steps_ = 2 * self.pretrain_steps
         self.em_optimizer_steps_ = self.n_em_iter * self.m_steps

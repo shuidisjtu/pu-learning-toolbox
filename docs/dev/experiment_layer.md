@@ -50,17 +50,17 @@
   | 策略 | 抽象方法 | 声明属性 |
   |---|---|---|
   | `Generator` | `generate(X, y_true, c, seed) -> (y_view, meta)` | `output_view = "pu"` |
-  | `Trainer` | `fit(estimator, X, y, *, class_prior, val_pu, os_or_ts) -> RunTrajectory` | `trains_on_real_labels = False` |
-  | `SelectionProtocol` | `select(trajectories, val_part, threshold_candidates, *, class_prior) -> SelectionArtifact` | —（仅 `name` 约定） |
+  | `Trainer` | `fit(estimator, X, y, *, val_pu, os_or_ts, ...) -> RunTrajectory` | `trains_on_real_labels = False` |
+  | `SelectionProtocol` | `select(trajectories, val_part, threshold_candidates, *, validation_population_prior) -> SelectionArtifact` | PA 消费验证总体先验；OA 使用验证真标签 |
 
   runner 用 **duck-typing**（[鸭子类型](https://docs.python.org/3/glossary.html#term-duck-typing)：只看对象行为、不强制继承）读取接口，全仓库对策略**没有一处** `isinstance(x, Generator/Trainer/
   SelectionProtocol)` 门禁；两处 `isinstance` 只做路由（`ProtocolOA` 才拿 `clean_val`、`ProtocolPA`
   才要求 π）。读取方式：`getattr` 读声明属性（取 fail-closed 默认值）、`inspect.signature` 探测
-  `select` 是否接受 `class_prior`（绝不靠捕获 `TypeError`）、精确 `type()` 判断是否套逐 epoch
+  `select` 的验证总体先验参数通过签名识别，精确 `type()` 判断是否套逐 epoch
   checkpoint 捕获。ABC 的职责是**固化契约与文档**，使自定义策略无需继承特定类即可注入。
 - **声明属性驱动一致性 fail-loud**。runner 在 `fit` 内校验：`output_view` 取值合法（拼写 `"Clean"`
   即 raise）、`output_view="clean"` 却声明 `mechanism="pn_oracle"` 不自洽即 raise、clean 视图与
-  `trains_on_real_labels`/`class_prior` 的兼容性、`model.epoch_components` 与标签语义声明。默认值
+  `trains_on_real_labels` 与具名先验的兼容性、`model.epoch_components` 与标签语义声明。默认值
   一律 fail-closed（如 `trains_on_real_labels` 默认 `False`），防止静默错配训练。
 
 **为什么这样设计**：生成/训练/选模三个变化点各自成轴、互不交织，用「一个方法 + 一个声明属性」的

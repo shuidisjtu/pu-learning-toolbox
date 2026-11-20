@@ -42,31 +42,32 @@ def parts():
 
 def test_basic_manifest_separates_alpha_from_population_pi(tmp_path):
     runner = ExperimentRunner(
-        class_prior=0.4,
+        validation_population_prior=0.4,
         protocols=[ProtocolPA(), ProtocolOA()],
         config={"c": 0.5, "trainer": CVIRKnownPriorTrainer()},
         manifest_path=str(tmp_path / "manifest.json"),
     )
     result = runner.fit(model(), *parts())
+    assert result.manifest["research_settings"]["schema_version"] == "2.0"
     provenance = result.manifest["candidate_runs"][0]["training_provenance"]
-    assert provenance["unlabeled_positive_prior"] == 0.25
-    assert provenance["runner_fit_population_prior_ignored"] == 0.4
-    assert provenance["population_prior_forwarded_to_fit"] is False
-    assert provenance["known_prior"] and provenance["prior_source"]
-    assert provenance["source_verified"] is False
-    assert provenance["empirical_unlabeled_positive_fraction"] is None
     assert provenance["n_unlabeled_candidates"] == 15
     assert provenance["positive_rows_added_to_candidates"] == 0
     assert provenance["path"] == "explicit_os_adaptation"
     assert provenance["calibration_applied"] is False
     assert result.manifest["run_view"] == "os-compatible"
     assert not result.manifest["formal_eligible"]
-    assert result.manifest["selection"]["PA"]["class_prior"]["population"] == 0.4
     settings = result.manifest["research_settings"]
-    assert settings["prior"]["training"]["value"] == 0.4
-    assert settings["prior"]["candidate_training"][0]["training_provenance"] == provenance
-    assert "unlabeled_positive_prior=0.25" in settings["summary"]
-    assert "original_U" in settings["summary"]
+    ranking, weighted, pa = settings["prior"]
+    assert (ranking["consumer"], weighted["consumer"]) == (
+        "cvir_negative_selection",
+        "cvir_weighted_objective",
+    )
+    for use in (ranking, weighted):
+        assert use["value"] == 0.25 and use["target"] == "native_unlabeled"
+        assert use["source"] == "estimator.unlabeled_positive_prior"
+        assert use["source_detail"] == model().prior_source and use["source_verified"] is False
+    assert pa["value"] == 0.4 and pa["source"] == "runner.validation_population_prior"
+    assert "cvir_negative_selection=0.25" in settings["summary"]
     assert len(result.manifest["candidate_runs"][0]["epoch_checkpoints"]) == 3
 
 
@@ -106,7 +107,8 @@ def test_edge_os_runner_refuses_unsupported_paths_before_fit(overrides, view, mo
 
     monkeypatch.setattr(CVIRClassifier, "_fit_impl", never)
     runner = ExperimentRunner(
-        class_prior=0.4,
+        training_population_prior=0.4,
+        validation_population_prior=0.4,
         protocols=[ProtocolOA()],
         config={"c": 0.5, "trainer": CVIRKnownPriorTrainer(), "os_or_ts": view},
     )
@@ -140,4 +142,4 @@ def test_edge_native_ts_requires_traceable_prior_and_sar_is_not_admitted():
     trajectory = CVIRKnownPriorTrainer().fit(
         model(unlabeled_positive_prior=np.float32(0.25)), part.X, part.labels
     )
-    assert trajectory.model.training_provenance_["unlabeled_positive_prior"] == 0.25
+    assert all(use["value"] == 0.25 for use in trajectory.model._prior_consumptions_)

@@ -20,6 +20,7 @@ from ...core.tags import (
     Assumption,
     Backend,
     Maturity,
+    PriorConsumer,
     SampleWeightSupport,
     Scenario,
     SourceStatus,
@@ -82,8 +83,17 @@ class PUExtraTreesClassifier(BasePUClassifier):
     label_semantics = "pu"
     assumption = (Assumption.SCAR,)
     scenario = (Scenario.CASE_CONTROL,)
-    requires_class_prior = True
-    class_prior_target = "native_unlabeled"
+    _runner_prior_parameter = "tree_weight_prior"
+    prior_consumers = (
+        PriorConsumer(
+            "puet_tree_weights",
+            "native_unlabeled",
+            parameter="tree_weight_prior",
+            requires_input=True,
+            ts_compatible_target="positive_union_unlabeled",
+        ),
+    )
+    _prior_consumptions_ = ()
     source_status = SourceStatus.OFFICIAL_RELATED
     backend = Backend.NUMPY
     maturity = Maturity.EXPERIMENTAL
@@ -91,7 +101,7 @@ class PUExtraTreesClassifier(BasePUClassifier):
 
     def __init__(
         self,
-        class_prior: float,
+        tree_weight_prior: float,
         *,
         n_estimators: int = 100,
         max_depth: int | None = None,
@@ -102,7 +112,7 @@ class PUExtraTreesClassifier(BasePUClassifier):
         random_state: int | None = None,
     ) -> None:
         super().__init__()
-        self.class_prior = class_prior
+        self.tree_weight_prior = tree_weight_prior
         self.n_estimators = n_estimators
         self.max_depth = max_depth
         self.min_samples_leaf = min_samples_leaf
@@ -117,7 +127,7 @@ class PUExtraTreesClassifier(BasePUClassifier):
         X: np.ndarray,
         y_pu: np.ndarray,
         *,
-        class_prior: float | None = None,
+        tree_weight_prior: float | None = None,
         sample_weight: np.ndarray | None = None,
         os_or_ts: str = "os",
     ) -> PUExtraTreesClassifier:
@@ -135,13 +145,13 @@ class PUExtraTreesClassifier(BasePUClassifier):
         n_unlabeled = len(X) - n_positive
         if n_unlabeled == 0:
             raise ValueError("PUET needs at least one unlabeled sample")
-        prior = self.class_prior if class_prior is None else class_prior
+        prior = self.tree_weight_prior if tree_weight_prior is None else tree_weight_prior
         if (
             not isinstance(prior, int | float | np.number)
             or not np.isfinite(prior)
             or not 0 < prior < 1
         ):
-            raise ValueError("class_prior must be finite and in (0, 1)")
+            raise ValueError("tree_weight_prior must be finite and in (0, 1)")
         for name in ("n_estimators", "min_samples_leaf", "max_candidates"):
             value = getattr(self, name)
             if type(value) is not int or value < 1:
@@ -216,7 +226,21 @@ class PUExtraTreesClassifier(BasePUClassifier):
         self.tree_depths_ = np.asarray(depths, dtype=int)
         self.n_features_in_ = n_features
         self.classes_ = np.array([0, 1])
-        self._class_prior = float(prior)
+        self.tree_weight_prior_ = float(prior)
+        target = "positive_union_unlabeled" if view.calibration_applied else "native_unlabeled"
+        self._prior_consumptions_ = (
+            {
+                "consumer": "puet_tree_weights",
+                "partition": "train",
+                "target": target,
+                "source": (
+                    "estimator.tree_weight_prior"
+                    if tree_weight_prior is None
+                    else "fit.tree_weight_prior"
+                ),
+                "value": self.tree_weight_prior_,
+            },
+        )
         self._X_shape_ = X.shape
         self.n_positive_ = n_positive
         self.n_unlabeled_ = n_unlabeled

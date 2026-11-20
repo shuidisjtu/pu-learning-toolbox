@@ -278,7 +278,7 @@ def run_trials(
                 model = PUSBKernelClassifier(
                     random_state=int(seed),
                     **model_parameters,
-                ).fit(split["X_pu"], split["y_pu"], class_prior=float(class_prior))
+                ).fit(split["X_pu"], split["y_pu"], training_table_prior=float(class_prior))
                 scores = model.decision_function(split["X_test"])
                 quantile_predictions, threshold = prior_quantile_predict(scores, float(class_prior))
                 zero_predictions = (scores > 0.0).astype(int)

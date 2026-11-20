@@ -36,7 +36,7 @@ def encoder():
 
 def model(**kwargs):
     params = dict(
-        class_prior=0.4,
+        risk_prior=0.4,
         encoder=encoder(),
         hidden_dim=4,
         pretrain_epochs=1,

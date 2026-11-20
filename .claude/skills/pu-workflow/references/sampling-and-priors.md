@@ -13,11 +13,11 @@ and report persistence, use [analysis.md](analysis.md).
 | Finite-pool design | Select or reuse roles from a named source pool | Record removal, replacement, role overlap, and source identities |
 | Population prior | Target-population `P(Y=1)` | Population metrics and the PA selection criterion |
 | Native-U prior | Positive fraction of input U | Ordinary mixture-prior estimators' declared target |
-| Training-table prior | Positive fraction of the P/U concatenation | Consumers with `class_prior_target="training_table"` |
+| Training-table prior | Positive fraction of the P/U concatenation | Consumers declaring a `training_table` target |
 | Risk-pool prior | Positive fraction of the pool entering a loss | Prepare the value required by the selected method and risk view |
 
 Record input sampling, labeling mechanism, selection policy, and training risk view
-as separate settings. Inspect the estimator's `class_prior_target` and supported
+as separate settings. Inspect the estimator's `prior_consumers` and supported
 risk-view parameters. Compute conversions from the relevant training partition.
 
 ## Construct same-pool OS observations
@@ -52,17 +52,17 @@ Use `result.observations` for fitting. Keep `result.audit` separate and save the
 from pu_toolbox.preprocessing import make_gaussian_case_control_data
 
 X_ts, y_pu_ts, y_true_ts, metadata = make_gaussian_case_control_data(
-    n_p=30, n_u=180, class_prior=0.4, n_features=3, random_state=42,
+    n_p=30, n_u=180, population_prior=0.4, n_features=3, random_state=42,
 )
 assert metadata["input_sampling"] == "ts"
-assert metadata["population_class_prior"] == 0.4
-assert metadata["unlabeled_class_prior"] == y_true_ts[y_pu_ts == 0].mean()
+assert metadata["design_population_prior"] == 0.4
+assert metadata["empirical_unlabeled_prior"] == y_true_ts[y_pu_ts == 0].mean()
 assert len(set(metadata["sample_ids"])) == len(y_pu_ts)
 ```
 
 The output is ordered P then U. Preserve `sampling_policy`, `sample_ids`, source
-distribution, seed, target `population_class_prior`, and empirical
-`unlabeled_class_prior`/`training_class_prior`. Use a batch namespace when combining
+distribution, seed, target `design_population_prior`, and empirical
+`empirical_unlabeled_prior`/`empirical_training_table_prior`. Use a batch namespace when combining
 multiple generator outputs. Analyze this data through `input_sampling="ts"`.
 
 ## Simulate SCAR/SAR labeling from clean features
@@ -136,7 +136,7 @@ resolved_prior = native_unlabeled_to_population(
     raw_prior, float(y_pu_ts.mean()), input_sampling="ts",
 )
 profile = profile_pu_data(
-    X_ts, y_pu_ts, input_sampling="ts", class_prior=resolved_prior,
+    X_ts, y_pu_ts, input_sampling="ts", evaluation_prior=resolved_prior,
 )
 ```
 

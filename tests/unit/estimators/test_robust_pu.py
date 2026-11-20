@@ -33,7 +33,7 @@ def _data():
 
 def _estimator(**kwargs):
     params = dict(
-        class_prior=0.4,
+        risk_prior=0.4,
         hidden_dim=8,
         pretrain_epochs=2,
         episodes=3,
@@ -103,7 +103,8 @@ def test_fit_predict_checkpoint_registry_and_determinism(tmp_path):
 
 def test_weights_remain_aligned_with_samples_across_shuffles():
     X, y = _data()
-    model = _estimator(pretrain_epochs=0, phi=0.5, spl_type="linear").fit(X, y)
+    model = _estimator(risk_prior=None, pretrain_epochs=0, phi=0.5, spl_type="linear").fit(X, y)
+    assert model._prior_consumptions_ == ()
     assert all(0 <= value <= 1 for value in model.history_["positive_weight"])
     assert all(0 <= value <= 1 for value in model.history_["unlabeled_weight"])
     assert model.history_["positive_weight"] != model.history_["unlabeled_weight"]
@@ -135,6 +136,25 @@ def test_edge_single_batch_and_threshold_cap():
     assert scores.shape == (len(X),) and np.isfinite(scores).all()
 
 
+@pytest.mark.parametrize(
+    "view,target", [("os", "native_unlabeled"), ("ts", "positive_union_unlabeled")]
+)
+def test_param_warmup_risk_consumes_fit_override_only(view, target):
+    X, y = _data()
+    model = _estimator(risk_prior=0.2).fit(X, y, risk_prior=0.6, os_or_ts=view)
+    reference = _estimator(risk_prior=0.6).fit(X, y, os_or_ts=view)
+    assert model.history_ == reference.history_
+    assert model._prior_consumptions_ == (
+        {
+            "consumer": "robust_pu_warmup_risk",
+            "partition": "train",
+            "target": target,
+            "value": 0.6,
+            "source": "fit.risk_prior",
+        },
+    )
+
+
 def test_ts_calibrates_only_warmup_and_routes_from_ledger():
     X, y = _data()
     ledger = load_ledger()
@@ -164,11 +184,11 @@ def test_ts_warmup_marginal_is_exact_p_u_union(monkeypatch):
     original = module._nnpu_train_step
     inputs = []
 
-    def capture(pos_loss, pos_as_negative, unl_loss, *, class_prior):
+    def capture(pos_loss, pos_as_negative, unl_loss, *, risk_prior):
         inputs.append(
             (float(pos_loss.detach()), float(pos_as_negative.detach()), float(unl_loss.detach()))
         )
-        return original(pos_loss, pos_as_negative, unl_loss, class_prior=class_prior)
+        return original(pos_loss, pos_as_negative, unl_loss, risk_prior=risk_prior)
 
     monkeypatch.setattr(module, "_nnpu_train_step", capture)
     _estimator(pretrain_epochs=1, episodes=1, batch_size=32).fit(X, y, os_or_ts="os")
@@ -181,8 +201,8 @@ def test_ts_warmup_marginal_is_exact_p_u_union(monkeypatch):
 @pytest.mark.parametrize(
     "kwargs, message",
     [
-        ({"class_prior": None}, "class_prior"),
-        ({"class_prior": 1.0}, "class_prior"),
+        ({"risk_prior": None}, "risk_prior"),
+        ({"risk_prior": 1.0}, "risk_prior"),
         ({"hidden_dim": 0}, "hidden_dim"),
         ({"episodes": 0}, "episodes"),
         ({"grow_steps": 0}, "grow_steps"),

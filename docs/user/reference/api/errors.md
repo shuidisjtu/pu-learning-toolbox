@@ -26,7 +26,7 @@ These exceptions are defined centrally in `core/exceptions.py`. `PipelineError` 
 |---|---|---|
 | `ElkanNotoClassifier.fit` | Labeled positives are fewer than `internal_cv_folds` | `ValidationError` |
 | `ElkanNotoClassifier.fit` | Invalid `sample_weight` shape or values | `ValidationError` |
-| `AlgorithmMetadata(...)` | Invalid metadata values, e.g. an unrecognized `class_prior_target` | `ValidationError` |
+| `AlgorithmMetadata(...)` | Invalid metadata values, e.g. a required prior consumer without an input parameter | `ValidationError` |
 
 ## Error and issue-code navigation
 

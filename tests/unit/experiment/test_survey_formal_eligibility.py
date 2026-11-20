@@ -26,7 +26,7 @@ def _canonical(survey_script, tmp_path, method="upu"):
     parts = survey_script.load_split_parts(tmp_path)
     protocol = load_protocol()
     row = resolve_unit(protocol, "spambase", method)
-    model = assemble_model(protocol, row, 3, seed=0, params={}, class_prior=0.3, device="cpu")
+    model = assemble_model(protocol, row, 3, seed=0, params={}, population_prior=0.3, device="cpu")
     config = {
         "architecture": "mlp",
         "c": 0.5,
@@ -47,7 +47,13 @@ def _canonical(survey_script, tmp_path, method="upu"):
 def _manifest(survey_script, tmp_path, method="upu", **config_overrides):
     model, parts, config = _canonical(survey_script, tmp_path, method)
     config.update(config_overrides)
-    return ExperimentRunner(class_prior=0.3, config=config).fit(model, *parts).manifest
+    return (
+        ExperimentRunner(
+            training_population_prior=0.3, validation_population_prior=0.3, config=config
+        )
+        .fit(model, *parts)
+        .manifest
+    )
 
 
 def test_basic_canonical_scar_unit_retains_protocol_blockers(survey_script, tmp_path):  # noqa: F811
@@ -98,7 +104,13 @@ def test_param_every_real_deviation_still_blocks_the_release(
         config.update(override)
     else:
         config["survey_protocol"]["seeds"] = [0]
-    manifest = ExperimentRunner(class_prior=0.3, config=config).fit(model, *parts).manifest
+    manifest = (
+        ExperimentRunner(
+            training_population_prior=0.3, validation_population_prior=0.3, config=config
+        )
+        .fit(model, *parts)
+        .manifest
+    )
     assert deviation in manifest["protocol_deviation"]
     assert "protocol_deviation" in manifest["formal_blockers"]
     assert manifest["formal_eligible"] is False

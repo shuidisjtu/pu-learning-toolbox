@@ -9,8 +9,7 @@ A new algorithm must:
    for a supervised target. This describes the **meaning** of labels in the main `fit(X, y)`;
    validating the values `{0, 1}` alone cannot distinguish PU from PN labels.
 
-   Subclass `BasePUClassifier` and implement `fit(X, y_pu, *, class_prior=None,
-   sample_weight=None)`, `_predict(X)`, and `_decision_function(X)`. `fit` returns `self`.
+   Subclass `BasePUClassifier` and implement `fit(X, y_pu, ...)`, `_predict(X)`, and `_decision_function(X)`. `fit` returns `self`.
    Use the inherited public prediction wrappers so calls before fitting raise `NotFittedError`.
    `predict` returns an integer array of shape `(n_samples,)` containing only `{0, 1}`;
    `decision_function` returns finite scores of shape `(n_samples,)`, with higher scores
@@ -36,8 +35,8 @@ A new algorithm must:
    `paper`, `supports_sparse`, `supports_gpu`, `upstream_url`, `license`, and
    `training_cost`. If a method requires an additional support set with clean labels, set
    `requires_clean_support=True` and make `fit` fail immediately when that support set is absent.
-5. Choose the source of each of these seven entry fields **individually**:
-   `family`, `assumption`, `scenario`, `requires_class_prior`, `source_status`,
+5. Choose the source of each of these six entry fields **individually**:
+   `family`, `assumption`, `scenario`, `source_status`,
    `backend`, and `maturity`.
 
    If the estimator class declares the field, registration synchronizes it into the registry;
@@ -47,27 +46,21 @@ A new algorithm must:
    inherited from `BasePUClassifier` or `BasePriorEstimator` do not.
 
    Registering a class does not mean omitting every field. For example,
-   `class_prior_estimation` declares none of these fields, so all seven belong in its
-   literal. The same rule puts `requires_class_prior` in the `pusb` and `lbe` literals.
+   `class_prior_estimation` declares none of these fields, so all six belong in its
+   literal.
 
    `test_static_entries_do_not_redeclare_class_fields` in `tests/test_builtin_methods.py`
    enforces both cases. **Known boundary:** class-only fields must never appear in entry
    literals. These are the four architecture fields, `label_semantics`,
-   `class_prior_target`, and `risk_class_prior_target`. The internal
+   and `prior_consumers`. The internal
    [single-source map](single_source_map.md)
    records background in Chinese; the rules above are sufficient for external contributors.
-6. If the method consumes a class prior, declare its target distribution consistently with the
-   default fit risk view. `class_prior_target` accepts `"population"`,
-   `"native_unlabeled"`, or `"training_table"`. An independent `risk_class_prior`
-   parameter uses `risk_class_prior_target`, accepting `None`, `"population"`, or
-   `"native_unlabeled"`. Here `population` means the positive proportion in the target
-   population, `native_unlabeled` means the proportion in the original input U pool, and
-   `training_table` means the proportion in the concatenated P/U training table. Declare
-   the distribution actually consumed by the algorithm, rather than assuming these proportions
-   are equal. The Pipeline resolves a population prior and converts it for each training fold;
-   direct estimator calls must supply the prior required by that estimator's risk view.
-   Further explanations and API details are in [prior semantics](../user/concepts/class_prior_semantics.md)
-   and the [API contract](../user/reference/api/classifiers.md#classifiers-and-estimators).
+6. Declare each possible use in `prior_consumers` with a `PriorConsumer`:
+   name the consumer, partition, default target, any TS-compatible target, and the input
+   parameter when there is one. Set `requires_input` only if the default fit path needs an
+   external value. Keep default reuse, derivation, and estimation separate from explicit input.
+   Record the value, source, partition and target actually used in the fitted estimator's
+   `_prior_consumptions_`. See [prior semantics](../user/concepts/class_prior_semantics.md).
 
 ## 2. Existing automated gates
 

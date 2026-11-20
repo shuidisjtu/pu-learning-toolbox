@@ -36,7 +36,7 @@ def test_param_sensitivity_direct_fit_is_guarded(meaning, data_files, tmp_path, 
             return np.zeros(len(features))
 
     monkeypatch.setattr(
-        sensitivity, "get_metadata", lambda name: SimpleNamespace(requires_class_prior=False)
+        sensitivity, "get_metadata", lambda name: SimpleNamespace(required_prior_parameters=())
     )
     monkeypatch.setattr(sensitivity, "get_algorithm", lambda name: WrongClassifier)
     features, labels = data_files
@@ -45,7 +45,7 @@ def test_param_sensitivity_direct_fit_is_guarded(meaning, data_files, tmp_path, 
         labels=str(labels),
         classifier="custom",
         seed=42,
-        class_priors="0.3,0.5",
+        population_priors="0.3,0.5",
         label_propensities=None,
         out_dir=str(tmp_path / "result"),
     )

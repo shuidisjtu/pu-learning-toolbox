@@ -54,7 +54,7 @@ def fitted_model(method):
         kwargs["encoder"] = None
     if method == "pulda":
         model = PULDAClassifier(
-            class_prior=0.4,
+            risk_prior=0.4,
             warmup_epochs=1,
             pu_epochs=1,
             positive_batch_size=2,
@@ -63,7 +63,7 @@ def fitted_model(method):
         )
     elif method == "robust_pu":
         model = RobustPUClassifier(
-            class_prior=0.4,
+            risk_prior=0.4,
             pretrain_epochs=1,
             episodes=1,
             inner_epochs=1,
@@ -72,7 +72,7 @@ def fitted_model(method):
         )
     elif method == "split_pu":
         model = SplitPUClassifier(
-            class_prior=0.4,
+            risk_prior=0.4,
             teacher_epochs=1,
             split_epochs=1,
             student_epochs=1,
@@ -83,7 +83,7 @@ def fitted_model(method):
         )
     elif method == "genpu":
         model = GenPUClassifier(
-            class_prior=0.4,
+            risk_prior=0.4,
             latent_dim=2,
             max_epochs=1,
             classifier_epochs=1,

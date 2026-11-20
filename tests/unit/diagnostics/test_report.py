@@ -79,7 +79,7 @@ class TestReportBasics:
             y_pred=y_pred,
             scores=scores,
             y_true=y_true,
-            class_prior=0.5,
+            evaluation_prior=0.5,
         )
 
         expected = {
@@ -163,7 +163,7 @@ class TestReportValidation:
             y_pred=np.zeros(10, dtype=int),
             scores=np.zeros(10),
             y_true=np.zeros(10, dtype=int),
-            class_prior=0.2,
+            evaluation_prior=0.2,
         )
         assert report.metrics["labeled_positive_recall"].available is False
         assert report.metrics["pu_estimated_precision"].available is False
@@ -181,7 +181,7 @@ class TestReportValidation:
         rng = np.random.RandomState(0)
         X = rng.normal(0.5, 0.3, size=(20, 3, 8, 8)).astype(np.float32)
         y_pu = np.r_[np.ones(5, dtype=int), np.zeros(15, dtype=int)]
-        report = build_diagnostic_report(X, y_pu, class_prior=0.4)
+        report = build_diagnostic_report(X, y_pu, evaluation_prior=0.4)
         assert report.provenance["n_samples"] == 20
 
     def test_estimator_mode_on_4d_scores_raw_tensor_input(self):
@@ -197,7 +197,9 @@ class TestReportValidation:
                 seen["ndim"] = np.asarray(X).ndim
                 return np.zeros(len(X), dtype=int)
 
-        report = build_diagnostic_report(X, y_pu, estimator=_TinyImageEstimator(), class_prior=0.4)
+        report = build_diagnostic_report(
+            X, y_pu, estimator=_TinyImageEstimator(), evaluation_prior=0.4
+        )
         assert report.provenance["n_samples"] == 20
         assert seen["ndim"] == 4
 
@@ -206,7 +208,7 @@ class TestReportValidation:
 class TestReportRendering:
     @pytest.mark.parametrize(
         ("suffix", "expected"),
-        [(".json", '"schema_version": "1.0"'), (".md", "# PU Diagnostic Report")],
+        [(".json", '"schema_version": "2.0"'), (".md", "# PU Diagnostic Report")],
     )
     def test_param_save_formats(self, diagnostic_data, tmp_path, suffix, expected):
         X, y_pu = diagnostic_data

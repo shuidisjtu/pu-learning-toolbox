@@ -177,10 +177,14 @@ class ComparisonTrainer(Trainer):
         )
         self.diagnostics = {}
 
-    def fit(self, estimator, x, y, *, class_prior=None, val_pu=None, os_or_ts=None):
-        trajectory = self.delegate.fit(
-            estimator, x, y, class_prior=class_prior, val_pu=val_pu, os_or_ts=os_or_ts
-        )
+    def fit(self, estimator, x, y, *, training_population_prior=None, val_pu=None, os_or_ts=None):
+        params = inspect.signature(estimator.fit).parameters
+        priors = {
+            name: training_population_prior
+            for name in ("initial_unlabeled_prior", "assumed_population_prior")
+            if name in params
+        }
+        trajectory = self.delegate.fit(estimator, x, y, val_pu=val_pu, os_or_ts=os_or_ts, **priors)
         self.diagnostics = {
             key: getattr(estimator, key, None)
             for key in (
@@ -224,7 +228,8 @@ def run_pair(plan, pair, out_dir):
         )
         runner = ExperimentRunner(
             seed=pair["seed"],
-            class_prior=prior,
+            training_population_prior=prior,
+            validation_population_prior=prior,
             generator=SCARGenerator(),
             protocols=[ProtocolPA(), ProtocolOA()],
             manifest_path=str(directory / "manifest.json"),

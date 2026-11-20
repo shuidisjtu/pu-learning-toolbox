@@ -59,9 +59,9 @@ def test_invalid_pusb_params_raises(rng):
 def test_invalid_lbe_class_prior_raises(rng):
     X, y = _data(rng)
     with pytest.raises(ValueError):
-        LBEClassifier().fit(X, y, class_prior=0.0)
+        LBEClassifier().fit(X, y, initial_unlabeled_prior=0.0)
     with pytest.raises(ValueError):
-        LBEClassifier().fit(X, y, class_prior=1.0)
+        LBEClassifier().fit(X, y, initial_unlabeled_prior=1.0)
 
 
 # ── edge ───────────────────────────────────────────────────────

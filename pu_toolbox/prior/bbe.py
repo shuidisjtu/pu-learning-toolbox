@@ -141,6 +141,9 @@ class BBEMixtureEstimator(BaseEstimator):
         Controls within-role holdout split and the default classifier.
     """
 
+    estimate_target = "native_unlabeled"
+    estimation_pool = "heldout_pu"
+
     def __init__(
         self,
         *,
@@ -237,7 +240,8 @@ class BBEMixtureEstimator(BaseEstimator):
         self.holdout_indices_ = holdout_indices
         self.result_ = result
         self.provenance_ = {
-            "target": "unlabeled_positive_fraction_alpha_U",
+            "estimate_target": self.estimate_target,
+            "estimation_pool": self.estimation_pool,
             "input_sampling": "ts",
             "sampling_design_verified": False,
             "split_policy": "within_observed_role_random_holdout_ceil",

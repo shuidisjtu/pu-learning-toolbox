@@ -77,7 +77,7 @@ def test_basic_candidate_declares_its_actual_inference_chunk_size(method):
     from pu_toolbox.registry import get_algorithm
 
     kwargs = (
-        {"class_prior": 0.4, "positive_batch_size": 2, "unlabeled_batch_size": 7}
+        {"risk_prior": 0.4, "positive_batch_size": 2, "unlabeled_batch_size": 7}
         if method == "pulda"
         else {"batch_size": 7}
     )

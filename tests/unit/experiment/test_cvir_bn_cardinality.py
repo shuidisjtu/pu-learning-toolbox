@@ -63,7 +63,7 @@ def test_basic_determ_safe_singleton_training_keeps_native_bn_and_fit_exactly(tm
         .fit(pixels, labels, os_or_ts=view)
     )
     trajectory = trainer(record, tmp_path).fit(
-        model, pixels, labels, class_prior=0.5, os_or_ts=view
+        model, pixels, labels, training_population_prior=0.5, os_or_ts=view
     )
     assert model.history_ == plain.history_ and model.optimizer_steps_ == plain.optimizer_steps_
     for key, value in model.model_.state_dict().items():
@@ -81,7 +81,9 @@ def test_edge_one_value_per_channel_still_rejected_before_fit(tmp_path, monkeypa
     model, record, pixels, labels = setup(8)
     monkeypatch.setattr(type(model), "fit", lambda *a, **k: pytest.fail("unsafe BN fit"))
     with pytest.raises(ValueError, match="BN"):
-        trainer(record, tmp_path).fit(model, pixels, labels, class_prior=0.5, os_or_ts="os")
+        trainer(record, tmp_path).fit(
+            model, pixels, labels, training_population_prior=0.5, os_or_ts="os"
+        )
     assert not list(tmp_path.rglob("*.pt"))
 
 
@@ -91,4 +93,6 @@ def test_param_missing_or_invalid_bn_evidence_rejected_before_fit(tmp_path, monk
     record["minimum_bn_values_per_single_image"] = value
     monkeypatch.setattr(type(model), "fit", lambda *a, **k: pytest.fail("invalid BN evidence fit"))
     with pytest.raises(ValueError):
-        trainer(record, tmp_path).fit(model, pixels, labels, class_prior=0.5, os_or_ts="os")
+        trainer(record, tmp_path).fit(
+            model, pixels, labels, training_population_prior=0.5, os_or_ts="os"
+        )

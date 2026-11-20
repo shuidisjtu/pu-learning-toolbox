@@ -142,12 +142,12 @@ def test_determ_actual_adam_steps_use_fresh_native_u_and_updated_detached_discri
 
     monkeypatch.setattr(torch.nn.Linear, "forward", observed)
     monkeypatch.setattr(torch.optim.Adam, "step", checked)
-    fitted.fit(X, y, class_prior=0.4)
+    fitted.fit(X, y)
     assert steps == ["D", "C"] * 3 and fitted.optimizer_steps_ == 6
     assert len(events) == len(expected_batches) == 15
     for event, batch in zip(events, expected_batches, strict=True):
         np.testing.assert_array_equal(event[1], batch)
-    assert fitted._class_prior is None and fitted.calibration_applied_ is False
+    assert fitted._prior_consumptions_ == () and fitted.calibration_applied_ is False
 
 
 def test_edge_prediction_uses_classifier_not_adversary():

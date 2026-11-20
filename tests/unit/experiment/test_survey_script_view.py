@@ -223,7 +223,7 @@ class TestViewScopedPaths:
             "0",
             "--c",
             "0.5",
-            "--class-prior",
+            "--population-prior",
             "0.5",
         ]
         assert survey_script.main(common + ["--out-dir", str(out_dir), "--os-or-ts", "ts"]) == 0

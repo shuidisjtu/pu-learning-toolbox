@@ -56,3 +56,14 @@ w_\alpha(x,y)=\frac{p_{te}(x,y)}
 - 公开 Wisconsin 数据提供多 seed、95% CI 和样本重叠 smoke；
 - 尚未复跑 MNIST/FMNIST/CIFAR10/DIABETES/FoodStamp 原协议、验证集调参和 10 次完整实验；
 - 尚未建立与作者私有实现的参数/梯度逐项一致性证据。
+
+## Domain prior contract
+
+The research joint-shift estimators require `source_domain_prior` and
+`target_domain_prior` in `fit`. Supply the positive fraction for each domain
+used by the method; no cross-domain conversion is performed. The caller is
+responsible for matching each value to its training distribution. The fitted
+`_prior_consumptions_` records source and target values separately, with their
+actual calibration, weighting, or risk consumers. Baselines evaluate both
+domain risks for their training trace even when only one risk drives the loss.
+The historical benchmark report keys remain unchanged.

@@ -55,15 +55,15 @@ def test_param_full_meta_candidate_cannot_fall_back_to_ablation(override, tmp_pa
 def test_basic_named_pa_requires_support_disclosure_and_keeps_clean_view_guard():
     parts, _ = inputs()
     with pytest.raises(ValueError, match="audited support trajectory"):
-        ProtocolPACleanSupport().select([], parts[1], class_prior=0.5)
+        ProtocolPACleanSupport().select([], parts[1], validation_population_prior=0.5)
     untagged = RunTrajectory([], SimpleNamespace())
     with pytest.raises(ValueError, match="audited support trajectory"):
-        ProtocolPACleanSupport().select([untagged], parts[1], class_prior=0.5)
+        ProtocolPACleanSupport().select([untagged], parts[1], validation_population_prior=0.5)
     tagged = RunTrajectory(
         [], SimpleNamespace(training_provenance_={"pa_clean_support_eligible": True})
     )
     with pytest.raises(ValueError, match="never clean labels"):
-        ProtocolPACleanSupport().select([tagged], parts[2], class_prior=0.5)
+        ProtocolPACleanSupport().select([tagged], parts[2], validation_population_prior=0.5)
 
 
 @pytest.mark.parametrize("method", ["self_pu", "lagam", "pulns"])
@@ -77,7 +77,7 @@ def test_edge_support_mutation_after_preflight_revokes_fit(method, tmp_path):
     trainer.bind_checkpoint_directory(tmp_path / "checkpoints")
     support.labels[:] = 1 - support.labels
     with pytest.raises(ValueError, match="changed after"):
-        trainer.fit(fitted, parts[0].X, parts[0].labels, class_prior=0.5)
+        trainer.fit(fitted, parts[0].X, parts[0].labels)
     assert not (tmp_path / "checkpoints").exists()
 
 

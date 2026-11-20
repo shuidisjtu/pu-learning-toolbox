@@ -56,7 +56,7 @@ class ElkanNotoClassifier(BasePUClassifier):
     ----------
     propensity_ : float
         Estimated labeling propensity ``c = P(s=1 | y=1)``.
-    class_prior_ : float
+    population_prior_estimate_ : float
         Estimated population prior ``P(y=1)`` under single-training-set sampling.
     label_classifier_ : sklearn estimator
         Fitted model for ``P(s=1 | x)``.
@@ -68,7 +68,7 @@ class ElkanNotoClassifier(BasePUClassifier):
     label_semantics = "pu"
     assumption: tuple[Assumption, ...] = (Assumption.SCAR,)
     scenario: tuple[Scenario, ...] = (Scenario.SINGLE_TRAINING_SET,)
-    requires_class_prior: bool = False
+    _prior_consumptions_ = ()
     source_status: SourceStatus = SourceStatus.THIRD_PARTY_ONLY
     backend: Backend = Backend.SKLEARN
     maturity: Maturity = Maturity.STABLE
@@ -104,13 +104,12 @@ class ElkanNotoClassifier(BasePUClassifier):
         X: np.ndarray,
         y_pu: np.ndarray,
         *,
-        class_prior: float | None = None,
         sample_weight: np.ndarray | None = None,
     ) -> ElkanNotoClassifier:
         """Fit on labeled positives and unlabeled samples.
 
-        ``class_prior`` is ignored. ``sample_weight`` applies to the label
-        models, not directly to the final weighted refit.
+        ``sample_weight`` weights the label models. The final weighted refit
+        uses its own weights derived from the corrected probabilities.
         """
         X, y_pu = validate_pu_X_y(X, y_pu, estimator_name="ElkanNotoClassifier")
 
@@ -138,7 +137,7 @@ class ElkanNotoClassifier(BasePUClassifier):
         else:
             self.label_classifier_.fit(X, y_pu, sample_weight=sample_weight)
 
-        self.class_prior_ = float(
+        self.population_prior_estimate_ = float(
             np.clip(
                 n_labeled / (n_samples * self.propensity_),
                 CLASS_PRIOR_CLIP_EPS,
@@ -184,6 +183,7 @@ class ElkanNotoClassifier(BasePUClassifier):
         """Return PU-specific metadata including propensity and mode."""
         meta = super().get_pu_metadata()
         meta["propensity"] = getattr(self, "propensity_", None)
+        meta["population_prior_estimate"] = getattr(self, "population_prior_estimate_", None)
         meta["mode"] = self.mode
         return meta
 

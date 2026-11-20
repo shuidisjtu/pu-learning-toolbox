@@ -81,12 +81,12 @@ def test_fit_epoch_recovery_clone_and_pickle(tmp_path):
     assert get_algorithm("predictive_adversarial_pu") is PANClassifier
 
 
-def test_seed_determinism_prior_ignored_and_injected_models_not_mutated():
+def test_determ_seed_and_injected_models_not_mutated():
     X, y = data()
     network = torch.nn.Linear(3, 1)
     before = copy.deepcopy(network.state_dict())
     first = model(model=network).fit(X, y)
-    second = model(model=network).fit(X, y, class_prior=0.4)
+    second = model(model=network).fit(X, y)
     np.testing.assert_array_equal(first.decision_function(X), second.decision_function(X))
     for key in before:
         assert torch.equal(before[key], network.state_dict()[key])

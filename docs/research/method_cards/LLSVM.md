@@ -108,11 +108,11 @@ J(\omega)=\frac12\lVert\omega\rVert_2^2
 ## 4. 算法概要
 
 1. 校验 P/U 均非空，标签仅为 $`\{+1,0\}`$，且 $`0<\pi<1`$。
-2. 若未提供 `class_prior`，调用先验估计器在 P/U 上估计 $`\pi`$；令 $`t=2\pi-1`$。
+2. 若未提供 `calibration_prior`，调用先验估计器在 P/U 上估计 $`\pi`$；令 $`t=2\pi-1`$。
 3. 初始化线性参数（含或不含截距）；固定随机种子后打乱训练索引。
 4. 对每个 epoch 和 minibatch，按式（9）计算 P 与 U 项的批量估计、反向传播并更新参数。
 5. 收敛早停：全数据目标值在 trailing-window（`patience` epoch）内的相对变化低于 `tol` 且已训练满 `min_epochs` 时停止（无验证集；损失前期非单调，禁用逐 epoch 比较）。
-6. 保存 `class_prior_`、`calibration_target_`、最终目标分量和训练历史，提供可诊断输出。
+6. 保存 `calibration_prior_`、`calibration_target_`、最终目标分量和训练历史，提供可诊断输出。
 
 论文固定步长 $`\tau=0.01`$、$`N=40`$ 个 minibatch，未固定 epoch 数（3000 仅官方代码设定）；官方代码实际使用步长 $`5\times10^{-6}`$、$`N=20`$ 个 minibatch、$`3000`$ epochs，仅在训练开始时 shuffle 一次。
 
@@ -138,7 +138,7 @@ J(\omega)=\frac12\lVert\omega\rVert_2^2
 - **早停（2026-08-05）**：`early_stopping` 默认开启，基于 trailing-window 相对损失变化 + `min_epochs` 下限。论文未固定 epoch（仅官方代码用 3000），默认值校准于双高斯 PU 数据（`tol=5e-4`，60×5 实测停 440–1979 epoch，120×5 停 ~1271）。
 - **默认参数**：以官方代码为准（`lr=5e-6`、20 minibatch、3000 epoch），论文值仅作参考；工程实现默认每 epoch shuffle 并使其可配置（论文仅在训练开始时 shuffle 一次）。
 - 式 (9) 第一项 $`\ell_2`$ 正则：若使用独立 `intercept`，建议不正则化截距。
-- 先验估计：复用现有 `penL1`，LLSVM 只消费最终 `class_prior_`，不复制一套先验估计实现；允许用户传入可信先验以跳过估计。
+- 先验估计：复用现有 `penL1`，LLSVM 只消费最终 `calibration_prior_`，不复制一套先验估计实现；允许用户传入可信先验以跳过估计。
 
 ---
 

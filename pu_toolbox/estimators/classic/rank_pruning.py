@@ -74,7 +74,7 @@ class RankPruningClassifier(BasePUClassifier):
     label_semantics = "pu"
     assumption = (Assumption.SCAR,)
     scenario = (Scenario.SINGLE_TRAINING_SET,)
-    requires_class_prior = False
+    _prior_consumptions_ = ()
     source_status = SourceStatus.OFFICIAL_RELATED
     backend = Backend.SKLEARN
     maturity = Maturity.EXPERIMENTAL
@@ -115,7 +115,7 @@ class RankPruningClassifier(BasePUClassifier):
         return probabilities[:, int(np.flatnonzero(classes == 1)[0])]
 
     @invalidate_failed_fit
-    def fit(self, X, y_pu, *, class_prior=None, sample_weight=None, os_or_ts="os"):
+    def fit(self, X, y_pu, *, sample_weight=None, os_or_ts="os"):
         self._is_fitted = False
         if sample_weight is not None:
             raise NotImplementedError("Rank Pruning does not implement external sample_weight")
@@ -135,8 +135,6 @@ class RankPruningClassifier(BasePUClassifier):
             not np.isfinite(self.frac_pos2neg) or not 0 <= self.frac_pos2neg < 1
         ):
             raise ValueError("frac_pos2neg must be in [0, 1)")
-        if class_prior is not None and (not np.isfinite(class_prior) or not 0 < class_prior < 1):
-            raise ValueError("class_prior, if supplied, must be in (0, 1)")
         base = (
             self.base_estimator
             if self.base_estimator is not None
@@ -181,7 +179,6 @@ class RankPruningClassifier(BasePUClassifier):
         )
         self.classes_ = np.array([0, 1])
         self.n_features_in_, self._X_shape_ = X.shape[1], X.shape
-        self._class_prior = None  # External pi is not used by the noise-estimation pipeline.
         self.training_view_, self.calibration_applied_ = "os", False
         self._is_fitted = True
         return self

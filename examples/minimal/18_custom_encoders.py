@@ -72,7 +72,7 @@ def run_demo(*, seed: int = 7, backbone: str = "tiny", max_epochs: int = 2) -> d
 
     native = NonNegativePUClassifier(
         encoder=template,
-        class_prior=native_prior,
+        risk_prior=native_prior,
         batch_size=8,
         max_epochs=max_epochs,
         random_state=seed,
@@ -93,7 +93,7 @@ def run_demo(*, seed: int = 7, backbone: str = "tiny", max_epochs: int = 2) -> d
         device="cpu",
         encoder_fit_scope="fixed_external",
     )
-    frozen = UPUClassifier(class_prior=native_prior, fit_intercept=False, random_state=seed).fit(
+    frozen = UPUClassifier(risk_prior=native_prior, fit_intercept=False, random_state=seed).fit(
         features.train.X, observed
     )
     scores = native.decision_function(bundle.test.X)

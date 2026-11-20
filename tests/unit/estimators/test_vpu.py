@@ -85,16 +85,16 @@ def test_fit_normalization_checkpoint_and_registry(tmp_path):
     assert get_algorithm("variational_pu") is VPUClassifier
 
 
-def test_seed_prior_independence_and_pu_validation():
+def test_determ_pu_validation():
     X, y = _data()
     validation = (X, y)
     first = _model().fit(X, y, pu_validation_data=validation)
-    second = _model().fit(X, y, class_prior=0.4, pu_validation_data=validation)
+    second = _model().fit(X, y, pu_validation_data=validation)
     np.testing.assert_array_equal(first.decision_function(X), second.decision_function(X))
     assert first.history_ == second.history_
     assert len(first.history_["val_risk"]) == first.max_epochs
     assert np.isfinite(first.history_["val_risk"]).all()
-    assert first.get_pu_metadata()["class_prior"] is None
+    assert first.get_pu_metadata()["prior_consumptions"] == []
 
 
 @pytest.mark.parametrize(
@@ -119,7 +119,7 @@ def test_edge_input_guards_and_weight_rejection():
     X, y = _data()
     with pytest.raises(NotImplementedError, match="sample_weight"):
         _model().fit(X, y, sample_weight=np.ones(len(X)))
-    with pytest.raises(ValueError, match="class_prior"):
+    with pytest.raises(TypeError, match="class_prior"):
         _model().fit(X, y, class_prior=1.0)
     with pytest.raises(ValidationError, match="2-D"):
         _model().fit(X[:, :, None], y)

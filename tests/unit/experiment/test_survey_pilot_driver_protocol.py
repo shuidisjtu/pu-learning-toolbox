@@ -22,7 +22,7 @@ pytestmark = pytest.mark.unit
 # One method on one dataset: v3 also holds clean-support methods, which need the
 # five-role splits this four-role tree does not have, and the point here is only
 # which protocol the plan is made under.
-_SCOPE = ["--datasets", "spambase", "--methods", "nnpu", "--class-prior", "spambase=0.39"]
+_SCOPE = ["--datasets", "spambase", "--methods", "nnpu", "--population-prior", "spambase=0.39"]
 
 
 def _plan(raw_driver, tmp_path, *extra):

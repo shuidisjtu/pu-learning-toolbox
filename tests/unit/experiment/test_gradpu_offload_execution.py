@@ -72,7 +72,7 @@ def test_basic_bound_cli_records_memory_policy_and_keeps_full_budget(
             "cpu",
             "--c",
             "0.5",
-            "--class-prior",
+            "--population-prior",
             "0.4",
             "--out-dir",
             str(output),

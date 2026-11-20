@@ -149,7 +149,8 @@ def test_basic_tedn_registration_is_experimental_native_ts():
     assert [item.value for item in metadata.scenario] == ["case_control"]
     assert metadata.maturity.value == "experimental"
     assert metadata.source_status.value == "official_exact"
-    assert metadata.requires_class_prior is False
+    assert metadata.required_prior_parameters == ()
+    assert metadata.prior_consumers[0].consumer == "tedn_negative_selection"
 
 
 _CAPABILITY_FIELDS = {"native_architectures", "input_ndims", "encoder_parameter", "trains_encoder"}

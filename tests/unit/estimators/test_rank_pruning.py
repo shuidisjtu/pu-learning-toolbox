@@ -165,7 +165,9 @@ def test_fit_crossfit_isolation_reweighting_pickle_and_registry():
 def test_seed_known_noise_and_fail_closed_views_and_base_estimator():
     X, y = data()
     first = RankPruningClassifier(frac_pos2neg=0.2, random_state=9).fit(X, y)
-    second = RankPruningClassifier(frac_pos2neg=0.2, random_state=9).fit(X, y, class_prior=0.4)
+    second = RankPruningClassifier(frac_pos2neg=0.2, random_state=9).fit(X, y, os_or_ts="os")
+    with pytest.raises(TypeError, match="class_prior"):
+        RankPruningClassifier(frac_pos2neg=0.2, random_state=9).fit(X, y, class_prior=0.4)
     assert first.rho1_ == 0.2 and first.rho0_ == 0
     np.testing.assert_array_equal(first.predict_proba(X), second.predict_proba(X))
     with pytest.raises(ValueError, match="native OS"):

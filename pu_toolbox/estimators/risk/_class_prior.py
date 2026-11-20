@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from ...core.validation import check_scalar_in_range
+
 
 def solve_prior_from_positive_fraction(k: int, n: int, h: float) -> float:
     """Estimate the class prior ``p = k / (n * (1 - h))``.
@@ -39,6 +41,27 @@ def solve_prior_from_positive_fraction(k: int, n: int, h: float) -> float:
             f"k={k}, n={n}. Formula: p = k / [n·(1−h)]."
         )
     return p
+
+
+def resolve_training_table_prior(consumer, override, n_labeled, n_train, flip_probability):
+    """Resolve the LDCE prior and record the observed inputs to its derivation."""
+    evidence = {"consumer": consumer, "partition": "train", "target": "training_table"}
+    if override is not None:
+        prior = float(override)
+        check_scalar_in_range(prior, 0.0, 1.0, "training_table_prior", inclusive=False)
+        evidence["source"] = "fit.training_table_prior"
+    else:
+        prior = solve_prior_from_positive_fraction(n_labeled, n_train, flip_probability)
+        evidence.update(
+            source="derived.solve_prior_from_positive_fraction",
+            derivation={
+                "rule": "solve_prior_from_positive_fraction",
+                "n_labeled": n_labeled,
+                "n_train": n_train,
+                "flip_probability": flip_probability,
+            },
+        )
+    return prior, {**evidence, "value": prior}
 
 
 def stable_centroid_denominator(

@@ -36,7 +36,7 @@ def trainer(record, tmp_path, bound=64 * 2**20):
 def test_basic_actual_c_d_updates_and_classifier_only_epoch_snapshots(tmp_path):
     model, record, pixels, labels = setup()
     trajectory = trainer(record, tmp_path).fit(
-        model, pixels, labels, class_prior=0.4, os_or_ts="os"
+        model, pixels, labels, training_population_prior=0.4, os_or_ts="os"
     )
     facts = model.training_provenance_
     receipt = facts["bound_fit_receipt"]
@@ -44,7 +44,7 @@ def test_basic_actual_c_d_updates_and_classifier_only_epoch_snapshots(tmp_path):
     assert (
         receipt["independent_C_D_storage_verified"] and receipt["discriminator_encoder_trainable"]
     )
-    assert receipt["classifier_only_inference"] and model._class_prior is None
+    assert receipt["classifier_only_inference"] and model._prior_consumptions_ == ()
     assert facts["selection_prior_not_forwarded_to_PAN"]
     assert model.optimizer_steps_ == 12
     assert [c.epoch_label for c in trajectory.checkpoints] == [0, 1, 2]
@@ -109,7 +109,7 @@ def test_param_invalid_bound_inputs_refused_before_fit(tmp_path, monkeypatch, fa
         )
         with pytest.raises(ValueError):
             build_candidate_image_classifier(
-                "pan", prep, seed=3, class_prior=0.4 if fault == "prior" else None
+                "pan", prep, seed=3, training_population_prior=0.4 if fault == "prior" else None
             )
         return
     monkeypatch.setattr(

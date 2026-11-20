@@ -168,7 +168,7 @@ def make_gaussian_case_control_data(
     n_p: int = 50,
     n_u: int = 100,
     *,
-    class_prior: float = 0.5,
+    population_prior: float = 0.5,
     n_features: int = 5,
     separation: float = 2.0,
     random_state: int | np.random.RandomState | None = None,
@@ -177,13 +177,13 @@ def make_gaussian_case_control_data(
 
     The positive conditional is N(+separation/2, I), the negative conditional
     N(-separation/2, I). P is sampled from the positive conditional; U is
-    independently sampled from the population with ``P(Y=1)=class_prior``.
+    independently sampled from the population with ``P(Y=1)=population_prior``.
 
     Parameters
     ----------
     n_p, n_u : int, default 50, 100
         Positive-role and unlabeled-role counts, each at least one.
-    class_prior : float, default 0.5
+    population_prior : float, default 0.5
         Population positive probability in [0, 1].
     n_features : int, default 5
         Positive feature dimension.
@@ -205,22 +205,22 @@ def make_gaussian_case_control_data(
             raise TypeError(f"{name} must be an integer.")
         if count < 1:
             raise ValueError(f"{name} must be >= 1.")
-    for name, value in (("class_prior", class_prior), ("separation", separation)):
+    for name, value in (("population_prior", population_prior), ("separation", separation)):
         if isinstance(value, (bool, np.bool_)) or not isinstance(
             value, (int, float, np.integer, np.floating)
         ):
             raise TypeError(f"{name} must be a real number.")
         if not np.isfinite(value):
             raise ValueError(f"{name} must be finite.")
-    if not 0 <= class_prior <= 1:
-        raise ValueError("class_prior must be in [0, 1].")
+    if not 0 <= population_prior <= 1:
+        raise ValueError("population_prior must be in [0, 1].")
     if separation < 0:
         raise ValueError("separation must be nonnegative.")
 
     rng = check_random_state(random_state)
     delta = float(separation) / 2
     positive = rng.normal(size=(n_p, n_features)) + delta
-    unlabeled_truth = (rng.uniform(size=n_u) < class_prior).astype(int)
+    unlabeled_truth = (rng.uniform(size=n_u) < population_prior).astype(int)
     unlabeled = rng.normal(size=(n_u, n_features)) + (2 * unlabeled_truth[:, None] - 1) * delta
     X = np.vstack((positive, unlabeled))
     y_pu = np.r_[np.ones(n_p, dtype=int), np.zeros(n_u, dtype=int)]
@@ -228,9 +228,9 @@ def make_gaussian_case_control_data(
     metadata = {
         "input_sampling": "ts",
         "sampling_policy": "independent_generative",
-        "population_class_prior": float(class_prior),
-        "unlabeled_class_prior": float(unlabeled_truth.mean()),
-        "training_class_prior": float(y_true.mean()),
+        "design_population_prior": float(population_prior),
+        "empirical_unlabeled_prior": float(unlabeled_truth.mean()),
+        "empirical_training_table_prior": float(y_true.mean()),
         "n_positive": int(n_p),
         "n_unlabeled": int(n_u),
         "source_distribution": {

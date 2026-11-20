@@ -19,6 +19,7 @@ from pu_toolbox.core.tags import (
     Assumption,
     Backend,
     Maturity,
+    PriorConsumer,
     SampleWeightSupport,
     Scenario,
     SourceStatus,
@@ -47,44 +48,44 @@ def paper_importance_weight_objective(
     source_positive_positive: Any,
     source_positive_negative: Any,
     source_unlabeled_negative: Any,
-    source_class_prior: float,
-    target_class_prior: float,
+    source_domain_prior: float,
+    target_domain_prior: float,
     alpha: float,
     correction: bool = True,
 ) -> Any:
     """Return equation (19), including its exact lower-bound corrections."""
     import torch
 
-    check_scalar_in_range(source_class_prior, 0.0, 1.0, "source_class_prior", inclusive=False)
-    check_scalar_in_range(target_class_prior, 0.0, 1.0, "target_class_prior", inclusive=False)
+    check_scalar_in_range(source_domain_prior, 0.0, 1.0, "source_domain_prior", inclusive=False)
+    check_scalar_in_range(target_domain_prior, 0.0, 1.0, "target_domain_prior", inclusive=False)
     if not np.isfinite(alpha) or not 0 < alpha <= 1:
         raise ValueError("alpha must lie in (0, 1].")
 
     def transformed(weight: Any) -> Any:
         return alpha * weight.square() - 2.0 * weight
 
-    target_positive = target_class_prior * _mean(
+    target_positive = target_domain_prior * _mean(
         transformed(target_positive_positive), "target_positive_positive"
     )
     target_negative_raw = _mean(
         transformed(target_unlabeled_negative), "target_unlabeled_negative"
-    ) - target_class_prior * _mean(
+    ) - target_domain_prior * _mean(
         transformed(target_positive_negative), "target_positive_negative"
     )
-    target_lower_bound = -(1.0 - target_class_prior) / alpha
+    target_lower_bound = -(1.0 - target_domain_prior) / alpha
     if correction:
         target_negative = torch.abs(target_negative_raw - target_lower_bound) + target_lower_bound
     else:
         target_negative = target_negative_raw
 
     source_positive = (
-        source_class_prior
+        source_domain_prior
         * (1.0 - alpha)
         * _mean(source_positive_positive.square(), "source_positive_positive")
     )
     source_negative_raw = (1.0 - alpha) * (
         _mean(source_unlabeled_negative.square(), "source_unlabeled_negative")
-        - source_class_prior * _mean(source_positive_negative.square(), "source_positive_negative")
+        - source_domain_prior * _mean(source_positive_negative.square(), "source_positive_negative")
     )
     source_negative = torch.abs(source_negative_raw) if correction else source_negative_raw
     return target_positive + target_negative + source_positive + source_negative
@@ -101,7 +102,7 @@ def paper_pu_risk(
     positive_logits: Any,
     unlabeled_logits: Any,
     *,
-    class_prior: float,
+    risk_prior: float,
     positive_positive_weight: Any | None = None,
     positive_negative_weight: Any | None = None,
     unlabeled_negative_weight: Any | None = None,
@@ -110,7 +111,7 @@ def paper_pu_risk(
     """Return equation (4)/(13) with sigmoid loss and optional joint weights."""
     import torch
 
-    check_scalar_in_range(class_prior, 0.0, 1.0, "class_prior", inclusive=False)
+    check_scalar_in_range(risk_prior, 0.0, 1.0, "risk_prior", inclusive=False)
     positive_loss = _sigmoid_loss(positive_logits, 1)
     positive_negative_loss = _sigmoid_loss(positive_logits, -1)
     unlabeled_negative_loss = _sigmoid_loss(unlabeled_logits, -1)
@@ -120,8 +121,8 @@ def paper_pu_risk(
         positive_negative_loss = positive_negative_loss * positive_negative_weight
     if unlabeled_negative_weight is not None:
         unlabeled_negative_loss = unlabeled_negative_loss * unlabeled_negative_weight
-    positive_term = class_prior * _mean(positive_loss, "positive_logits")
-    negative_raw = _mean(unlabeled_negative_loss, "unlabeled_logits") - class_prior * _mean(
+    positive_term = risk_prior * _mean(positive_loss, "positive_logits")
+    negative_raw = _mean(unlabeled_negative_loss, "unlabeled_logits") - risk_prior * _mean(
         positive_negative_loss, "positive_logits"
     )
     negative_term = torch.abs(negative_raw) if correction else negative_raw
@@ -137,8 +138,8 @@ def paper_classifier_objective(
     source_positive_positive_weight: Any,
     source_positive_negative_weight: Any,
     source_unlabeled_negative_weight: Any,
-    source_class_prior: float,
-    target_class_prior: float,
+    source_domain_prior: float,
+    target_domain_prior: float,
     beta: float,
     correction: bool = True,
 ) -> Any:
@@ -148,13 +149,13 @@ def paper_classifier_objective(
     target_risk = paper_pu_risk(
         target_positive_logits,
         target_unlabeled_logits,
-        class_prior=target_class_prior,
+        risk_prior=target_domain_prior,
         correction=correction,
     )
     source_risk = paper_pu_risk(
         source_positive_logits,
         source_unlabeled_logits,
-        class_prior=source_class_prior,
+        risk_prior=source_domain_prior,
         positive_positive_weight=source_positive_positive_weight,
         positive_negative_weight=source_positive_negative_weight,
         unlabeled_negative_weight=source_unlabeled_negative_weight,
@@ -173,7 +174,33 @@ class DynamicJointShiftPUClassifier(BasePUClassifier):
     family = AlgorithmFamily.BIAS_AWARE
     assumption = (Assumption.SCAR,)
     scenario = (Scenario.SINGLE_TRAINING_SET,)
-    requires_class_prior = True
+    prior_consumers = (
+        PriorConsumer(
+            "joint_shift_weight_objective",
+            "source_domain",
+            parameter="source_domain_prior",
+            requires_input=True,
+        ),
+        PriorConsumer(
+            "joint_shift_weight_objective",
+            "target_domain",
+            parameter="target_domain_prior",
+            requires_input=True,
+        ),
+        PriorConsumer(
+            "joint_shift_classifier_objective",
+            "source_domain",
+            parameter="source_domain_prior",
+            requires_input=True,
+        ),
+        PriorConsumer(
+            "joint_shift_classifier_objective",
+            "target_domain",
+            parameter="target_domain_prior",
+            requires_input=True,
+        ),
+    )
+    _prior_consumptions_ = ()
     source_status = SourceStatus.NOT_FOUND
     backend = Backend.TORCH
     maturity = Maturity.RESEARCH
@@ -241,11 +268,12 @@ class DynamicJointShiftPUClassifier(BasePUClassifier):
         *,
         X_target: Any | None = None,
         y_target_pu: Any | None = None,
-        class_prior: float | None = None,
-        target_class_prior: float | None = None,
+        source_domain_prior: float | None = None,
+        target_domain_prior: float | None = None,
         sample_weight: Any | None = None,
     ) -> DynamicJointShiftPUClassifier:
         """Fit with source and target PU datasets using Algorithm 1."""
+        self._prior_consumptions_ = ()
         try:
             import torch
             from torch import nn
@@ -258,10 +286,10 @@ class DynamicJointShiftPUClassifier(BasePUClassifier):
             raise NotImplementedError("External sample_weight is not part of the paper objective.")
         if X_target is None or y_target_pu is None:
             raise ValueError("X_target and y_target_pu are required.")
-        if class_prior is None or target_class_prior is None:
-            raise ValueError("class_prior and target_class_prior are both required.")
-        check_scalar_in_range(class_prior, 0.0, 1.0, "class_prior", inclusive=False)
-        check_scalar_in_range(target_class_prior, 0.0, 1.0, "target_class_prior", inclusive=False)
+        if source_domain_prior is None or target_domain_prior is None:
+            raise ValueError("source_domain_prior and target_domain_prior are both required.")
+        check_scalar_in_range(source_domain_prior, 0.0, 1.0, "source_domain_prior", inclusive=False)
+        check_scalar_in_range(target_domain_prior, 0.0, 1.0, "target_domain_prior", inclusive=False)
         X_source, source_y = validate_pu_X_y(
             X, y_pu, accept_sparse=False, estimator_name=type(self).__name__
         )
@@ -324,8 +352,8 @@ class DynamicJointShiftPUClassifier(BasePUClassifier):
                 source_positive_positive=weight(source_features[source_positive], 1),
                 source_positive_negative=weight(source_features[source_positive], -1),
                 source_unlabeled_negative=weight(source_features[source_unlabeled], -1),
-                source_class_prior=float(class_prior),
-                target_class_prior=float(target_class_prior),
+                source_domain_prior=float(source_domain_prior),
+                target_domain_prior=float(target_domain_prior),
                 alpha=self.alpha,
                 correction=self.weight_correction,
             )
@@ -352,8 +380,8 @@ class DynamicJointShiftPUClassifier(BasePUClassifier):
                 source_positive_positive_weight=source_pp,
                 source_positive_negative_weight=source_pn,
                 source_unlabeled_negative_weight=source_un,
-                source_class_prior=float(class_prior),
-                target_class_prior=float(target_class_prior),
+                source_domain_prior=float(source_domain_prior),
+                target_domain_prior=float(target_domain_prior),
                 beta=self.beta,
                 correction=self.classifier_correction,
             )
@@ -392,11 +420,21 @@ class DynamicJointShiftPUClassifier(BasePUClassifier):
                 ]
             )
         self.device_ = device
-        self.source_class_prior_ = float(class_prior)
-        self.target_class_prior_ = float(target_class_prior)
-        self._class_prior = float(target_class_prior)
+        self.source_domain_prior_ = float(source_domain_prior)
+        self.target_domain_prior_ = float(target_domain_prior)
         self._X_shape_ = (len(source_y) + len(target_y), X_source.shape[1])
         self.classes_ = np.array([0, 1])
+        self._prior_consumptions_ = tuple(
+            {
+                "consumer": consumer,
+                "partition": "train",
+                "target": f"{domain}_domain",
+                "source": f"fit.{domain}_domain_prior",
+                "value": float(prior),
+            }
+            for consumer in ("joint_shift_weight_objective", "joint_shift_classifier_objective")
+            for domain, prior in (("source", source_domain_prior), ("target", target_domain_prior))
+        )
         self._is_fitted = True
         return self
 

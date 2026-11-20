@@ -71,7 +71,7 @@ class PULNSClassifier(BasePUClassifier):
     label_semantics = "pu"
     assumption = (Assumption.SCAR,)
     scenario = (Scenario.CASE_CONTROL,)
-    requires_class_prior = False
+    _prior_consumptions_ = ()
     requires_clean_support = True
     source_status = SourceStatus.NOT_FOUND
     backend = Backend.TORCH
@@ -129,7 +129,6 @@ class PULNSClassifier(BasePUClassifier):
         X,
         y_pu,
         *,
-        class_prior=None,
         sample_weight=None,
         os_or_ts="os",
         support_data=None,
@@ -210,8 +209,6 @@ class PULNSClassifier(BasePUClassifier):
         for name in ("learning_rate", "selector_learning_rate"):
             if not np.isfinite(getattr(self, name)) or getattr(self, name) <= 0:
                 raise ValueError(f"{name} must be finite and positive")
-        if class_prior is not None and (not np.isfinite(class_prior) or not 0 < class_prior < 1):
-            raise ValueError("class_prior, if supplied, must be in (0, 1)")
         # Validate discount/alpha before any model training.
         pulns_discounted_returns(
             torch.zeros(1), 0.0, discount=self.discount, terminal_weight=self.terminal_weight
@@ -269,7 +266,6 @@ class PULNSClassifier(BasePUClassifier):
         }
         self.empty_negative_episodes_ = 0
         self.n_features_in_, self._X_shape_ = X.shape[1], X.shape
-        self._class_prior = None
         self.n_support_ = len(support_X)
         self.training_view_, self.calibration_applied_ = "os", False
         self.classes_ = np.array([0, 1])

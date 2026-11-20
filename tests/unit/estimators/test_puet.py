@@ -28,7 +28,7 @@ def _data():
 
 
 def _model(**kwargs):
-    params = {"class_prior": 0.4, "n_estimators": 5, "max_depth": 4, "random_state": 8}
+    params = {"tree_weight_prior": 0.4, "n_estimators": 5, "max_depth": 4, "random_state": 8}
     params.update(kwargs)
     return PUExtraTreesClassifier(**params)
 
@@ -124,7 +124,9 @@ def test_edge_bootstrap_root_masses_and_constant_leaf(view, bootstrap, sizes, se
             observed.append((p, u, kwargs["positive_weight"], kwargs["unlabeled_weight"]))
             return super()._build_tree(features, labels, rows, **kwargs)
 
-    model = InspectTrees(class_prior=0.4, n_estimators=3, bootstrap=bootstrap, random_state=seed)
+    model = InspectTrees(
+        tree_weight_prior=0.4, n_estimators=3, bootstrap=bootstrap, random_state=seed
+    )
     model.fit(X, y, os_or_ts=view)
     expected_u = n_u + (n_p if view == "ts" else 0)
     for p, u, pw, uw in observed:
@@ -146,7 +148,7 @@ def test_edge_bootstrap_root_masses_and_constant_leaf(view, bootstrap, sizes, se
         ({"max_features": "log2"}, "max_features"),
         ({"max_candidates": 0}, "max_candidates"),
         ({"bootstrap": 1}, "bootstrap"),
-        ({"class_prior": 1.0}, "class_prior"),
+        ({"tree_weight_prior": 1.0}, "tree_weight_prior"),
     ],
 )
 def test_param_bad_hyperparameters_fail_loudly(kwargs, message):
@@ -157,8 +159,17 @@ def test_param_bad_hyperparameters_fail_loudly(kwargs, message):
 
 def test_param_fit_prior_override_is_recorded():
     X, y = _data()
-    fitted = _model(class_prior=0.2).fit(X, y, class_prior=0.4)
-    assert fitted.get_pu_metadata()["class_prior"] == 0.4
+    fitted = PUExtraTreesClassifier(tree_weight_prior=0.2, random_state=8).fit(
+        X, y, tree_weight_prior=0.4
+    )
+    (consumption,) = fitted._prior_consumptions_
+    assert consumption == {
+        "consumer": "puet_tree_weights",
+        "partition": "train",
+        "target": "native_unlabeled",
+        "source": "fit.tree_weight_prior",
+        "value": 0.4,
+    }
 
 
 def test_edge_constant_features_and_empty_prediction():

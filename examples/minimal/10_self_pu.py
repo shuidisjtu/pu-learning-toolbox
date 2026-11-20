@@ -40,7 +40,7 @@ def main() -> None:
         0.3, float((y_train == 1).mean()), input_sampling="os"
     )
     classifier = SelfPUClassifier(
-        class_prior=native_prior,
+        risk_prior=native_prior,
         hidden_dim=32,
         warmup_epochs=1,
         self_paced_start=1,

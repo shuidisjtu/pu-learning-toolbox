@@ -17,8 +17,8 @@ The training labels contain only P/U roles:
 
 - `y_pu == 1`: reliable labeled positives.
 - `y_pu == 0`: unlabeled observations, containing both true classes.
-- `class_prior`: the prior required by the selected training risk view. The default direct
-  estimator path declares `class_prior_target="native_unlabeled"`; it consumes the positive
+- `risk_prior`: the prior required by the selected training risk view. The default direct
+  estimator path consumes the positive
   proportion in native U. With independent TS sampling, native U represents the population.
   Under OS, convert a population prior to native U before a direct default-view fit.
   Do not derive training priors from test truth.
@@ -39,7 +39,7 @@ The prior 0.3 below must match the chosen risk view:
 from pu_toolbox.estimators.deep import SelfPUClassifier
 
 classifier = SelfPUClassifier(
-    class_prior=0.3,
+    risk_prior=0.3,
     warmup_epochs=10,
     self_paced_start=10,
     self_paced_end=50,

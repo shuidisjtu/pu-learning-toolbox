@@ -52,7 +52,7 @@ def execute(script, directory, protocol, name="upu_recipe", prepare=make_splits)
             "0",
             "--c",
             "0.5",
-            "--class-prior",
+            "--population-prior",
             "0.4",
             "--os-or-ts",
             "os",
@@ -245,7 +245,7 @@ def test_determ_real_nnpu_profile_matches_plain_native_epoch_weights(survey_scri
         for row in legacy["execution_units"]
         if row["dataset"] == "spambase" and row["method"] == "nnpu"
     )
-    plain = assemble_model(legacy, row, 3, seed=0, params={}, class_prior=0.4, device="cpu")
+    plain = assemble_model(legacy, row, 3, seed=0, params={}, population_prior=0.4, device="cpu")
     plain.set_params(max_epochs=2)
     weights = []
 
@@ -260,7 +260,7 @@ def test_determ_real_nnpu_profile_matches_plain_native_epoch_weights(survey_scri
     plain.fit(
         parts[0].X,
         observed,
-        class_prior=0.4,
+        risk_prior=0.4,
         os_or_ts="os",
         validation_data=(parts[1].X, val_observed),
         epoch_callback=record,

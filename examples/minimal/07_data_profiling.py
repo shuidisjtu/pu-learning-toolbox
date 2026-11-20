@@ -30,8 +30,8 @@ def main() -> None:
         X, y_pu = result.observations.features, result.observations.labels
         y_true = result.audit.true_labels
 
-        observed = profile_pu_data(X, y_pu, class_prior=0.3)
-        audited = profile_pu_data(X, y_pu, y_true=y_true, class_prior=0.3)
+        observed = profile_pu_data(X, y_pu, evaluation_prior=0.3)
+        audited = profile_pu_data(X, y_pu, y_true=y_true, evaluation_prior=0.3)
 
         print(f"\n=== {mechanism.upper()} ===")
         print(

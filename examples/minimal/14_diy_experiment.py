@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
-from dataclasses import asdict, dataclass, replace
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
 import numpy as np
@@ -21,7 +21,7 @@ from pu_toolbox.experiment import (
     ProtocolPA,
     SCARGenerator,
 )
-from pu_toolbox.experiment.protocols import Generator, SelectionProtocol, Trainer
+from pu_toolbox.experiment.protocols import Generator, Trainer
 from pu_toolbox.experiment.tracking import EpochRecord, RunResult, RunTrajectory
 
 
@@ -40,26 +40,31 @@ class ScaledFitTrainer(Trainer):
 
     trains_on_real_labels = False
 
-    def fit(self, estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None):  # noqa: N803
+    def fit(self, estimator, X, y, *, training_population_prior=None, val_pu=None, os_or_ts=None):  # noqa: N803
         scaler = StandardScaler()
         train_features = scaler.fit_transform(X)
         trajectory = FitTrainer().fit(
-            estimator, train_features, y, class_prior=class_prior, os_or_ts=os_or_ts
+            estimator, train_features, y, risk_prior=training_population_prior, os_or_ts=os_or_ts
         )
+        trajectory.prior_consumptions = tuple(trajectory.model._prior_consumptions_)
         trajectory.model = Pipeline([("scale", scaler), ("classifier", trajectory.model)])
         return trajectory
 
 
-class FixedThresholdPA(SelectionProtocol):
+class FixedThresholdPA(ProtocolPA):
     """Choose a candidate by PU proxy accuracy at one validation-normalized threshold."""
 
     name = "PA-fixed"
 
-    def select(self, trajectories, val_part, threshold_candidates=None, *, class_prior=None):
-        artifact = ProtocolPA().select(
-            trajectories, val_part, np.array([0.5]), class_prior=class_prior
+    def select(
+        self, trajectories, val_part, threshold_candidates=None, *, validation_population_prior=None
+    ):
+        return super().select(
+            trajectories,
+            val_part,
+            np.array([0.5]),
+            validation_population_prior=validation_population_prior,
         )
-        return replace(artifact, protocol=self.name)
 
 
 @dataclass(frozen=True)
@@ -98,16 +103,18 @@ def run_fixed_selection_case(test_labels: np.ndarray | None = None) -> dict:
         for_selection=False,
     )
     records = {}
-    for protocol, validation in ((ProtocolPA(), pu_val), (ProtocolOA(), clean_val)):
-        selection = protocol.select(
-            trajectories, validation, np.array([0.0, 0.5, 1.0]), class_prior=0.5
-        )
+    thresholds = np.array([0.0, 0.5, 1.0])
+    selections = (
+        ProtocolPA().select(trajectories, pu_val, thresholds, validation_population_prior=0.5),
+        ProtocolOA().select(trajectories, clean_val, thresholds),
+    )
+    for selection in selections:
         scores = trajectories[selection.run_index].model.decision_function(test.X)
         scale = selection.metrics["val_score_scale"]
         if scale:
             scores = (scores - selection.metrics["val_score_min"]) / scale
         predictions = (scores >= selection.threshold).astype(int)
-        records[protocol.name] = {
+        records[selection.protocol] = {
             **asdict(selection),
             "test_accuracy": float(np.mean(predictions == test.labels)),
         }
@@ -147,7 +154,8 @@ def run_experiment(
         seed=seed,
         generator=AuditedSCARGenerator() if custom else SCARGenerator(),
         protocols=[FixedThresholdPA(), ProtocolOA()] if custom else [ProtocolPA(), ProtocolOA()],
-        class_prior=0.5,
+        training_population_prior=0.5,
+        validation_population_prior=0.5,
         threshold_candidates=np.linspace(0, 1, 11),
         manifest_path=manifest_path,
         config={
@@ -159,7 +167,7 @@ def run_experiment(
         },
     )
     return runner.fit(
-        UPUClassifier(class_prior=0.5, fit_intercept=False, random_state=seed),
+        UPUClassifier(fit_intercept=False, random_state=seed),
         bundle.train,
         bundle.pu_val,
         bundle.clean_val,

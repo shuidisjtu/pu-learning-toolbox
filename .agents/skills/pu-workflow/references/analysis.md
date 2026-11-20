@@ -30,7 +30,7 @@ from pu_toolbox.prior import population_to_native_unlabeled
 
 q = (y_train_pu == 1).mean()
 pi_u = population_to_native_unlabeled(0.4, q, input_sampling="os")
-model = UPUClassifier(class_prior=pi_u, random_state=42).fit(X_train, y_train_pu)
+model = UPUClassifier(risk_prior=pi_u, random_state=42).fit(X_train, y_train_pu)
 ```
 
 For independent TS, native U already represents the population; do not add
@@ -52,7 +52,7 @@ from pu_toolbox.diagnostics import analyze_pu_sensitivity
 
 predictions = fitted_model.predict(X_os)
 analysis = analyze_pu_sensitivity(
-    y_pu_os, predictions, class_priors=[0.35, 0.4, 0.45],
+    y_pu_os, predictions, population_priors=[0.35, 0.4, 0.45],
 )
 analysis.save("work/fixed-output-sensitivity.json")
 ```

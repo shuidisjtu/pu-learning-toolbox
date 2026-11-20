@@ -31,7 +31,7 @@ L_{reg}=\mathbb E[(\log\tilde\Phi-\log\Phi_\theta(\tilde x))^2],
 \quad \gamma\sim\mathrm{Beta}(\alpha,\alpha).
 ```
 
-训练目标是 $L_{var}+\lambda L_{reg}$，不需要数值类先验；统一 `fit(class_prior=...)` 参数仅接受并校验，不参与损失或结果元数据。MixUp 目标保留梯度，对齐锁定的作者实现。训练后按**边缘池**的最大 $\log\Phi$ 归一化（该池随训练视图变化，见下文「训练视图」节）；`decision_function` 返回 $\log(\Phi_{norm}/0.5)$，`predict` 以 0 分数为阈值，`predict_proba` 返回归一化正类分数和补数。**这些分数未经独立概率校准**，不应在假设不成立时当作可靠后验。
+训练目标是 $L_{var}+\lambda L_{reg}$，不使用数值类先验。MixUp 目标保留梯度，对齐锁定的作者实现。训练后按**边缘池**的最大 $\log\Phi$ 归一化（该池随训练视图变化，见下文「训练视图」节）；`decision_function` 返回 $\log(\Phi_{norm}/0.5)$，`predict` 以 0 分数为阈值，`predict_proba` 返回归一化正类分数和补数。**这些分数未经独立概率校准**，不应在假设不成立时当作可靠后验。
 
 方法要求可靠的正样本与未标记样本、SCAR 标记机制；论文还使用正类存在纯区域的可识别性假设。若是 SAR/选择偏差或不存在纯正类区域，不应仅因“无需先验”就推断其估计有效。PA 选模时可用 PU 验证集计算变分风险，不读取真实验证标签。
 

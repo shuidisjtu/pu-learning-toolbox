@@ -24,7 +24,7 @@
 | 先验质量换算 | `pu_toolbox/prior/semantics.py`：`native_unlabeled_to_population` / `population_to_native_unlabeled` | 调用方按输入设计及风险池换算；`experiment/cvir_adapter.py` 解析 OS 原生 U 风险先验 | 公开 `.estimate()` 保留标量，以类属性声明目标/池；CVIR 包装器维护严格域及视图政策 | 单一 |
 | 固定正例配额与均匀抽样 | `pu_toolbox/preprocessing/_sampling.py`：`fixed_positive_count` / `sample_positive_labels` | `preprocessing/pu_labeling.py` 的 SCAR/定额入口；`experiment/strategies.py` 的 SCAR 及 SAR 配额计算 | `experiment.strategies._n_labeled` 委托计数原语；各入口保留输入契约 | 单一；seed、全选后的随机流与标签哈希一致 |
 | 训练视图 | `pu_toolbox/core/training_views.py:120` `build_training_view`；角色词表 `:42` `ViewRole` + `:48` `ROLES`；视图词表 `:38` `RunView` + `:47` `RUN_VIEWS`（运行时元组由 `get_args` 派生） | `estimators/risk/{vpu,upu,nnpu,dist_pu}.py`、`estimators/bias_aware/pusb_kernel.py`、`estimators/deep/self_pu.py`、`experiment/` 各消费者、`scripts/{run_survey_experiment,run_survey_pilot,prepare_survey_splits}.py`；另有三项词表与两处子集未并（不同概念，见说明） | `experiment/training_views.py:42` `TSOSBatchView`（legacy 边界适配器） | 单一（角色名与 os/ts 视图；未并项见说明） |
-| 方法能力字段 | 估计器类属性（如 `estimators/risk/puet.py:85`-`:86`），经 `registry/registry.py` 的 `_sync_estimator_metadata` 同步；**类未声明的字段以条目字面量为源**（`class_prior_estimation` 的 7 个字段、`pusb`/`lbe` 的 `requires_class_prior` 即如此） | `registry/registry.py` `get_metadata`、`cli/` | 无 | 单一（逐字段判定） |
+| 方法能力字段 | 估计器类属性（如 `estimators/risk/puet.py:85`-`:86`），经 `registry/registry.py` 的 `_sync_estimator_metadata` 同步；**类未声明的字段以条目字面量为源**（例如 `class_prior_estimation` 的 6 个条目字段） | `registry/registry.py` `get_metadata`、`cli/` | 无 | 单一（逐字段判定） |
 
 ## 说明
 
@@ -133,7 +133,7 @@ pu_toolbox/ --include=*.py` 命中 2 处：`utils/serialization.py` 的 `def can
 `registry/registry.py` 的 `_sync_estimator_metadata` 按 `_SYNC_FIELDS`
 对类**自身**声明的字段做 `setattr`。分两半：
 
-- **7 个条目字段**：`family` / `assumption` / `scenario` / `requires_class_prior` /
+- **6 个条目字段**：`family` / `assumption` / `scenario` /
   `source_status` / `backend` / `maturity`。
 - **5 个仅类/默认值字段**：`native_architectures` / `input_ndims` / `encoder_parameter` /
   `trains_encoder`（4 个架构能力字段）与 `label_semantics`，从不写字面量。

@@ -97,7 +97,7 @@ in the selected region. Reports preserve the auxiliary target and its approximat
 For direct estimator calls, choose the prior for the actual risk pool and compute conversions using the training partition. In independent TS, native U and population targets coincide. For OS native-U risk, convert the population prior using the training labeled fraction. For a complete OS marginal risk pool, use the population prior. See [migration](../howto/pipeline.md) and [example 05](../../../examples/minimal/05_recpe_pipeline.py).
 
 Contracts also differ by method: CVIR uses `unlabeled_positive_prior` for the selected
-risk pool and rejects `class_prior`; RobustPU uses `class_prior` for warm-up U risk;
+risk pool; RobustPU uses `risk_prior` for warm-up U risk;
 VPU and GradPU accept it as a compatibility field. Interpret each parameter by where
 the method actually consumes it.
 

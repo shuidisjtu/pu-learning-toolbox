@@ -118,9 +118,9 @@ def test_edge_source_schedule_does_not_change_first_nineteen_epochs():
     assert source.optimizer_resets_ == 0 and source.history_ == constant.history_
 
 
-def test_determ_clone_pickle_repeat_and_prior_do_not_change_schedule():
+def test_determ_clone_pickle_and_repeat_keep_schedule():
     first = clone(model(optimizer_schedule="source_reset_halving")).fit(*data())
-    second = model(optimizer_schedule="source_reset_halving").fit(*data(), class_prior=0.7)
+    second = model(optimizer_schedule="source_reset_halving").fit(*data())
     assert first.history_ == second.history_
     np.testing.assert_array_equal(
         first.decision_function(data()[0]), second.decision_function(data()[0])

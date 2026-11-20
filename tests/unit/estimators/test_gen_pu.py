@@ -18,7 +18,7 @@ pytestmark = pytest.mark.unit
 
 
 def parameters():
-    return dict(class_prior=0.4, positive_weight=2.0, negative_weight=3.0, unlabeled_weight=1.5)
+    return dict(risk_prior=0.4, positive_weight=2.0, negative_weight=3.0, unlabeled_weight=1.5)
 
 
 def data():
@@ -28,7 +28,7 @@ def data():
 
 def model(**kwargs):
     params = dict(
-        class_prior=0.4,
+        risk_prior=0.4,
         hidden_dim=4,
         latent_dim=2,
         max_epochs=1,
@@ -156,14 +156,30 @@ def test_edge_callback_failure_does_not_repeat_gan_training_or_mark_successful()
     assert not fitted._is_fitted
 
 
+def test_basic_generator_discriminator_and_pn_risk_consume_same_prior():
+    X, y = data()
+    fitted = model().fit(X, y, risk_prior=0.4, os_or_ts="ts")
+    assert fitted.risk_prior_ == 0.4
+    assert {use["consumer"] for use in fitted._prior_consumptions_} == {
+        "genpu_discriminator_loss",
+        "genpu_generator_loss",
+        "genpu_synthetic_pn_risk",
+    }
+    assert all(
+        (use["target"], use["value"], use["source"])
+        == ("positive_union_unlabeled", 0.4, "fit.risk_prior")
+        for use in fitted._prior_consumptions_
+    )
+
+
 @pytest.mark.parametrize("invalid_prior", [None, 0.0, 1.0, np.nan])
 def test_prior_weights_and_invalid_view_fail_loud(invalid_prior):
     X, y = data()
-    assert GenPUClassifier.class_prior_target == "native_unlabeled"
-    with pytest.raises(ValueError, match="risk-U class_prior"):
-        model(class_prior=invalid_prior).fit(X, y)
+    assert GenPUClassifier.prior_consumers[0].target == "native_unlabeled"
+    with pytest.raises(ValueError, match="risk-U risk_prior"):
+        model(risk_prior=invalid_prior).fit(X, y)
     with pytest.raises(ValueError, match="differs"):
-        model().fit(X, y, class_prior=0.5)
+        model().fit(X, y, risk_prior=0.5)
     with pytest.raises(NotImplementedError, match="sample_weight"):
         model().fit(X, y, sample_weight=np.ones(len(y)))
     with pytest.raises(ValueError, match="requested_view"):

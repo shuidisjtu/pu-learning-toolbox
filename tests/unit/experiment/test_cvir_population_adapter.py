@@ -77,7 +77,8 @@ def test_basic_runner_binds_correct_prior_isolates_roles_and_preserves_default_c
     base = model()
     adapter = trainer()
     result = ExperimentRunner(
-        class_prior=0.4,
+        training_population_prior=0.4,
+        validation_population_prior=0.4,
         seed=7,
         protocols=[ProtocolPA(), ProtocolOA()],
         config={
@@ -99,22 +100,28 @@ def test_basic_runner_binds_correct_prior_isolates_roles_and_preserves_default_c
     assert base.unlabeled_positive_prior is base.prior_source is None
     candidate = result.manifest["candidate_runs"][0]
     provenance = candidate["training_provenance"]
-    binding = provenance["population_prior_binding"]
-    assert binding["n_train"] == 40 and binding["n_labeled_positive"] == 10
-    assert binding["population_prior"] == 0.4
-    assert binding["risk_pool_positive_prior"] == pytest.approx(alpha)
-    assert binding["source_verified"] is binding["uses_hidden_training_labels"] is False
-    assert provenance["population_prior_forwarded_to_fit"] is False
     assert provenance["n_unlabeled_candidates"] == (40 if view == "ts" else 30)
     assert result.manifest["calibration_applied"] is (view == "ts")
     assert not result.manifest["formal_eligible"]
-    assert result.manifest["selection"]["PA"]["class_prior"]["population"] == 0.4
     settings = result.manifest["research_settings"]
-    recorded = settings["prior"]["candidate_training"][0]["training_provenance"]
-    assert recorded == provenance
-    assert recorded["population_prior_binding"]["risk_pool_positive_prior"] == pytest.approx(alpha)
-    assert "unlabeled_positive_prior=" in settings["summary"]
-    assert provenance["risk_pool"] in settings["summary"]
+    ranking, weighted, pa = settings["prior"]
+    for use in (ranking, weighted):
+        assert use["value"] == pytest.approx(alpha)
+        assert use["source"] == "trainer.training_population_prior"
+        assert use["source_detail"] == adapter.population_prior_source
+        assert use["source_verified"] is False
+        if view == "os":
+            assert use["conversion"] == {
+                "rule": "population_to_native_unlabeled",
+                "original_value": 0.4,
+                "q": 0.25,
+                "n_train": 40,
+                "n_labeled": 10,
+            }
+        else:
+            assert "conversion" not in use
+    assert pa["value"] == 0.4
+    assert "cvir_weighted_objective=" in settings["summary"]
     assert set(result.selected_models) == {"PA", "OA"}
     assert len(candidate["epoch_checkpoints"]) == 3
     for checkpoint in candidate["epoch_checkpoints"]:
@@ -135,7 +142,7 @@ def test_determ_fit_matches_manually_bound_prior_and_adapter_is_reusable(tmp_pat
         random_state=7, unlabeled_positive_prior=alpha, prior_source="explicit synthetic binding"
     ).fit(X, y, os_or_ts=view)
     for _ in range(2):
-        trajectory = adapter.fit(fitted, X, y, class_prior=0.4, os_or_ts=view)
+        trajectory = adapter.fit(fitted, X, y, training_population_prior=0.4, os_or_ts=view)
         assert fitted.unlabeled_positive_prior is fitted.prior_source is None
         assert fitted.unlabeled_positive_prior_ == pytest.approx(alpha)
         np.testing.assert_array_equal(fitted.decision_function(X), expected.decision_function(X))
@@ -178,7 +185,7 @@ def test_param_candidate_cannot_override_prior_contract_before_any_fit(params, m
     monkeypatch.setattr(CVIRClassifier, "_fit_impl", forbidden)
     with pytest.raises(ValueError):
         ExperimentRunner(
-            class_prior=0.4,
+            training_population_prior=0.4,
             config={
                 "c": 0.5,
                 "trainer": trainer(),
@@ -221,7 +228,7 @@ def test_edge_underestimated_checkpoint_fails_and_retains_evidence(tmp_path):
     y = np.r_[np.ones(10, int), np.zeros(30, int)]
     fitted = model(random_state=7)
     with pytest.raises(ValueError, match="exceeded declared"):
-        adapter.fit(fitted, X, y, class_prior=0.4, os_or_ts="ts")
+        adapter.fit(fitted, X, y, training_population_prior=0.4, os_or_ts="ts")
     assert fitted.unlabeled_positive_prior is fitted.prior_source is None
     assert list(tmp_path.glob("attempt-*/*"))
 
@@ -234,7 +241,9 @@ def test_edge_failed_fit_restores_constructor_prior_binding(monkeypatch):
 
     monkeypatch.setattr(CVIRClassifier, "_fit_impl", fail)
     with pytest.raises(KeyboardInterrupt, match="fit stopped"):
-        trainer().fit(fitted, parts()[0].X, parts()[0].labels, class_prior=0.75, os_or_ts="ts")
+        trainer().fit(
+            fitted, parts()[0].X, parts()[0].labels, training_population_prior=0.75, os_or_ts="ts"
+        )
     assert fitted.unlabeled_positive_prior is fitted.prior_source is None
 
 
@@ -243,4 +252,4 @@ def test_param_missing_source_and_nonbinary_training_labels_are_rejected(source)
     with pytest.raises(ValueError, match="population_prior_source"):
         CVIRPopulationPriorTrainer(population_prior_source=source)
     with pytest.raises(ValueError, match="binary observed PU labels"):
-        trainer().fit(model(), parts()[0].X, np.full(40, 2), class_prior=0.4)
+        trainer().fit(model(), parts()[0].X, np.full(40, 2), training_population_prior=0.4)

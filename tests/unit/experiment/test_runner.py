@@ -64,12 +64,22 @@ def test_pa_never_receives_clean_labels():
     capture = {}
 
     class RecordingPA(ProtocolPA):
-        def select(self, trajectories, val_part, threshold_candidates=None, *, class_prior=None):
+        def select(
+            self,
+            trajectories,
+            val_part,
+            threshold_candidates=None,
+            *,
+            validation_population_prior=None,
+        ):
             capture["view"] = val_part.view
             capture["indices"] = val_part.indices.copy()
             capture["labels"] = val_part.labels.copy()
             return super().select(
-                trajectories, val_part, threshold_candidates, class_prior=class_prior
+                trajectories,
+                val_part,
+                threshold_candidates,
+                validation_population_prior=validation_population_prior,
             )
 
     # c=0.15 keeps the generated train PU view above the estimator gate
@@ -78,7 +88,8 @@ def test_pa_never_receives_clean_labels():
         seed=3,
         generator=SCARGenerator(),
         protocols=[RecordingPA(), RecordingPA()],
-        class_prior=0.3,
+        training_population_prior=0.3,
+        validation_population_prior=0.3,
         config={"c": 0.15},
     )
     runner.fit(UPUClassifier(0.3, random_state=0), train, pu_val, clean_val, test)
@@ -103,7 +114,12 @@ def test_runner_raises_when_pu_view_has_no_labeled_positive():
     pu_val = make_part(x, y, np.arange(28, 32))  # no real positive -> all-zero PU view
     clean_val = make_part(x, y, np.arange(32, 36))
     test = make_part(x, y, np.arange(36, 40), fs=False)
-    runner = ExperimentRunner(seed=0, generator=SCARGenerator(), class_prior=6 / 40)
+    runner = ExperimentRunner(
+        seed=0,
+        generator=SCARGenerator(),
+        training_population_prior=6 / 40,
+        validation_population_prior=6 / 40,
+    )
     with pytest.raises(ValueError, match="labeled positive"):
         runner.fit(UPUClassifier(0.15, random_state=0), train, pu_val, clean_val, test)
 
@@ -147,8 +163,8 @@ def test_candidate_label_semantics_change_is_recorded_and_excluded(tmp_path):
     """A tuned candidate must not bypass the base model's semantic preflight."""
 
     class SemanticUPU(UPUClassifier):
-        def __init__(self, class_prior=0.3, semantic="pu"):
-            super().__init__(class_prior=class_prior, random_state=0)
+        def __init__(self, risk_prior=0.3, semantic="pu"):
+            super().__init__(risk_prior=risk_prior, random_state=0)
             self.semantic = semantic
 
         @property
@@ -187,7 +203,8 @@ def test_end_to_end_small_pu(tmp_path):
     runner = ExperimentRunner(
         seed=0,
         generator=SCARGenerator(),
-        class_prior=20 / 60,
+        training_population_prior=20 / 60,
+        validation_population_prior=20 / 60,
         threshold_candidates=np.linspace(0, 1, 6),
         manifest_path=str(tmp_path / "artifacts" / "run.json"),
     )
@@ -218,7 +235,9 @@ def test_auc_records_reason_when_test_has_one_class():
         indices=test.indices,
         for_selection=False,
     )
-    runner = ExperimentRunner(seed=0, class_prior=0.3, config={"c": 0.5})
+    runner = ExperimentRunner(
+        seed=0, training_population_prior=0.3, validation_population_prior=0.3, config={"c": 0.5}
+    )
 
     res = runner.fit(
         UPUClassifier(0.3, random_state=0),
@@ -339,6 +358,7 @@ def test_candidate_failures_retry_once_and_exclude_from_selection(tmp_path):
     assert trainer.calls == {0.01: 2, 0.02: 2}
     assert [item["status"] for item in res.failures] == ["excluded", "recovered"]
     assert all(item["seed"] == 7 for item in res.failures)
+    assert res.manifest["research_settings"]["prior"] == []
     assert res.manifest["selection"]["custom"]["candidate_index"] == 1
     assert [item["status"] for item in res.manifest["candidate_runs"]] == [
         "excluded",
@@ -363,7 +383,8 @@ def test_all_failed_candidates_write_manifest_then_fail_loudly(tmp_path):
         seed=11,
         protocols=[],
         manifest_path=str(manifest_path),
-        class_prior=0.5,
+        training_population_prior=0.5,
+        validation_population_prior=0.5,
         config={"c": 0.5, "trainer": trainer},
     )
     with pytest.raises(RuntimeError, match="all candidate runs failed"):
@@ -394,7 +415,8 @@ def test_resource_accounting_covers_candidates_tuning_and_gpu(monkeypatch):
 
     runner = ExperimentRunner(
         seed=0,
-        class_prior=0.3,
+        training_population_prior=0.3,
+        validation_population_prior=0.3,
         config={
             "c": 0.5,
             "candidates": [{"reg_lambda": 0.01}, {"reg_lambda": 0.02}],
@@ -436,8 +458,8 @@ class _RecordingTrainer(DeepFitTrainer):
         super().__init__()
         self.trajectories = []
 
-    def fit(self, estimator, x, y, *, class_prior=None, val_pu=None):
-        traj = super().fit(estimator, x, y, class_prior=class_prior, val_pu=val_pu)
+    def fit(self, estimator, x, y, *, training_population_prior=None, val_pu=None):
+        traj = super().fit(estimator, x, y, risk_prior=training_population_prior, val_pu=val_pu)
         self.trajectories.append(traj)
         return traj
 
@@ -482,7 +504,8 @@ def test_end_to_end_cnn_smoke(tmp_path):
     runner = ExperimentRunner(
         seed=0,
         generator=SCARGenerator(),
-        class_prior=9 / 24,
+        training_population_prior=9 / 24,
+        validation_population_prior=9 / 24,
         threshold_candidates=np.linspace(0, 1, 5),
         config={"c": 0.5, "trainer": trainer, "candidates": [{"max_epochs": 2}]},
         manifest_path=str(tmp_path / "cnn.json"),
@@ -526,7 +549,8 @@ def test_end_to_end_self_pu_uses_pu_validation_trajectory():
     )
     runner = ExperimentRunner(
         seed=0,
-        class_prior=0.3,
+        training_population_prior=0.3,
+        validation_population_prior=0.3,
         config={"c": 1.0, "trainer": trainer},
     )
 

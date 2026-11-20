@@ -135,7 +135,7 @@ See the [configuration contract](../reference/api/tools.md#data-generation).
 ## 2. Obtain independent positive P and population-mixture U samples
 
 `make_gaussian_case_control_data` draws P from the positive class-conditional Gaussian and
-independently draws U from the target population. `class_prior` and the positive/negative class
+independently draws U from the target population. `population_prior` and the positive/negative class
 means define that population; each U observation's class is drawn independently.
 
 ```python
@@ -143,12 +143,12 @@ import numpy as np
 from pu_toolbox.preprocessing import make_gaussian_case_control_data
 
 X, y_pu, y_true, metadata = make_gaussian_case_control_data(
-    n_p=80, n_u=800, class_prior=0.4, n_features=2, random_state=7,
+    n_p=80, n_u=800, population_prior=0.4, n_features=2, random_state=7,
 )
 assert X.shape == (880, 2)
 assert np.all(y_true[y_pu == 1] == 1)
-assert metadata["population_class_prior"] == 0.4
-assert metadata["unlabeled_class_prior"] == y_true[y_pu == 0].mean()
+assert metadata["design_population_prior"] == 0.4
+assert metadata["empirical_unlabeled_prior"] == y_true[y_pu == 0].mean()
 assert len(set(metadata["sample_ids"])) == 880
 ```
 

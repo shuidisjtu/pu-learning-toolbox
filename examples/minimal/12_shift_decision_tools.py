@@ -42,8 +42,8 @@ def main() -> None:
         y_source,
         X_target,
         y_target,
-        source_class_prior=0.5,
-        target_class_prior=0.5,
+        source_population_prior=0.5,
+        target_population_prior=0.5,
     )
     print("assumption difference:", assumptions.conclusion)
 

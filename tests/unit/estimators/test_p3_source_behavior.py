@@ -62,7 +62,7 @@ def test_basic_pulda_ema_three_batches_matches_scalar_source_and_gradient():
         lda = pulda_distribution_alignment(
             logits,
             labels,
-            class_prior=0.3,
+            risk_prior=0.3,
             temperature=3.5,
             unlabeled_expectation=unlabeled,
             ema_correction=u_correction,
@@ -70,7 +70,7 @@ def test_basic_pulda_ema_three_batches_matches_scalar_source_and_gradient():
         margin = pulda_two_way_margin(
             logits,
             labels,
-            class_prior=0.3,
+            risk_prior=0.3,
             margin=0.6,
             temperature=1,
             positive_negative_expectation=positive_negative,
@@ -160,9 +160,7 @@ def test_edge_invalid_source_component_inputs_fail_without_silent_fallback():
     with pytest.raises(ValueError, match="teacher_weight"):
         splitpu_js_loss(torch.tensor([0.0]), torch.tensor([0.0]), teacher_weight=1)
     with pytest.raises(ValueError, match="batches"):
-        pulda_distribution_alignment(
-            torch.zeros(2), torch.ones(2), class_prior=0.3, temperature=3.5
-        )
+        pulda_distribution_alignment(torch.zeros(2), torch.ones(2), risk_prior=0.3, temperature=3.5)
 
 
 def test_determ_zero_difference_js_repeats_without_consuming_randomness():
