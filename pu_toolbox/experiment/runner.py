@@ -20,14 +20,22 @@ import numpy as np
 from sklearn.base import clone
 
 from pu_toolbox.core.training_views import ROLES
-from pu_toolbox.core.validation import validate_label_semantics
+from pu_toolbox.core.validation import validate_label_semantics, validate_true_binary_labels
+from pu_toolbox.prior.semantics import population_to_native_unlabeled
 
 from . import resources as resource_tools
-from .bundle import DatasetBundle, DatasetPart, validate_bundle
+from .bundle import DatasetBundle, DatasetPart, _validate_role_indices, validate_bundle
 from .manifest import write_manifest
-from .protocols import route_training_view
+from .protocols import route_training_view, validate_training_view_request
 from .research_settings import build_research_settings, finalize_research_settings
-from .strategies import DeepFitTrainer, ProtocolOA, ProtocolPA, SCARGenerator, SupervisedTrainer
+from .strategies import (
+    DeepFitTrainer,
+    FitTrainer,
+    ProtocolOA,
+    ProtocolPA,
+    SCARGenerator,
+    SupervisedTrainer,
+)
 from .survey_staged_budget import FIELD as STAGED_BUDGET_FIELD
 from .survey_staged_budget import checkpoint_coverage, checkpoint_epochs, verify_trajectory
 from .tracking import RunResult, RunTrajectory
@@ -55,10 +63,36 @@ def _require_view_routable(config: dict[str, Any], trainer, model) -> None:
     Both hops are checked against their own ``fit`` signature: the trainer the
     config names, and the estimator it will be handed.
     """
-    if config.get("os_or_ts") != "ts":
+    view = config.get("os_or_ts")
+    validate_training_view_request(view)
+    if view != "ts":
         return
     for target in (trainer, model):
         route_training_view({}, inspect.signature(type(target).fit).parameters, "ts", target)
+
+
+def _effective_training_view(model, requested_view):
+    if requested_view is not None:
+        return requested_view
+    parameter = inspect.signature(model.fit).parameters.get("os_or_ts")
+    return parameter.default if parameter is not None else None
+
+
+def _bind_training_prior(population_prior, model, trainer, labels, input_sampling, view):
+    """Adapt only explicitly opted-in estimators on the built-in fit path."""
+    if (
+        population_prior is not None
+        and type(trainer) in (FitTrainer, DeepFitTrainer)
+        and getattr(model, "_convert_os_population_prior", False)
+        and input_sampling == "os"
+        and view == "os"
+    ):
+        q = float(np.mean(np.asarray(labels) == 1))
+        return (
+            population_to_native_unlabeled(population_prior, q, input_sampling="os"),
+            "runner.class_prior.os_to_native_unlabeled",
+        )
+    return population_prior, "runner.class_prior"
 
 
 def _manifest_view_context(config: dict[str, Any]) -> dict[str, Any]:
@@ -217,13 +251,12 @@ class ExperimentRunner:
         self.config = config or {}
 
     def _resolve_selection_prior(self) -> tuple[float | None, str | None]:
-        """The population class prior pi handed to the selection protocols.
+        """The population class prior pi for selectors that use it.
 
-        Chain in order: the run's own ``class_prior`` — the value training used,
-        so one run never carries two different constants and a
-        ``--allow-prior-override`` covers selection as well as training — then the
-        split artifact's recorded ``class_prior.population`` (protocol §3.1:
-        data-generation metadata, never back-inferred from a subset).
+        Prefer the run's population ``class_prior`` (including an approved
+        override), then the split's recorded ``class_prior.population``.
+        Neither value is inferred from validation or test labels. The
+        candidate's fit parameter may target a different risk pool.
         """
         if self.class_prior is not None:
             return float(self.class_prior), "runner.class_prior"
@@ -310,6 +343,7 @@ class ExperimentRunner:
                     staged["algorithm_id"], staged["parameter_values"], self.config.get("os_or_ts")
                 )
             _validate_model_capability(model, bundle, self.config.get("architecture"))
+            _require_clean_support(model, trainer, bundle)
             # Opt-in experimental adapters validate extra supervision/prior
             # contracts against actual partitions, before generation or retries.
             validate_experiment = getattr(trainer, "validate_experiment", None)
@@ -320,7 +354,8 @@ class ExperimentRunner:
             # missing prior would bury it -- while a PA run that got past this point
             # without one would burn a full training budget before discovering that
             # its selection criterion had no weight to run with.
-            selection_prior, selection_prior_source = self._resolve_selection_prior()
+            if any(type(proto) is not ProtocolOA for proto in self.protocols):
+                selection_prior, selection_prior_source = self._resolve_selection_prior()
             _require_selection_prior(self.protocols, self.generator, selection_prior)
             disk_preflight = self._checkpoint_disk_preflight(
                 model,
@@ -449,6 +484,28 @@ class ExperimentRunner:
             )
         generation_elapsed = time.perf_counter() - generation_t0
 
+        input_sampling = meta_train.get("input_sampling")
+        effective_view = _effective_training_view(model, self.config.get("os_or_ts"))
+        if input_sampling == "ts" and effective_view == "ts":
+            raise ValueError(
+                "independent TS input already has a marginal U pool; "
+                "os_or_ts='ts' requests OS-to-TS risk-pool reconstruction."
+            )
+        _require_pa_validation(self.protocols, meta_val)
+        training_prior, training_prior_source = _bind_training_prior(
+            self.class_prior, model, trainer, train_view.labels, input_sampling, effective_view
+        )
+
+        selection_inputs = [
+            (proto, _select_kwargs(proto, selection_prior)) for proto in self.protocols
+        ]
+
+        def prior_record(kwargs):
+            return {
+                "population": kwargs.get("class_prior"),
+                "source": selection_prior_source if "class_prior" in kwargs else None,
+            }
+
         research_settings = _artifact_value(
             build_research_settings(
                 model=model,
@@ -457,9 +514,12 @@ class ExperimentRunner:
                 context={**protocol_context, **_extra_supervision_context(trainer)},
                 generation={"train": meta_train, "pu_val": meta_val},
                 input_ndim=train.X.ndim,
-                training_prior=self.class_prior,
-                selection_prior=selection_prior,
-                selection_prior_source=selection_prior_source,
+                training_prior=training_prior,
+                training_prior_source=training_prior_source,
+                selection_priors={
+                    getattr(proto, "name", type(proto).__name__): prior_record(kwargs)
+                    for proto, kwargs in selection_inputs
+                },
                 selection_roles={
                     getattr(proto, "name", type(proto).__name__): (
                         "clean_val" if isinstance(proto, ProtocolOA) else "pu_val"
@@ -498,7 +558,9 @@ class ExperimentRunner:
                         self.config.get("architecture"),
                     )
                     validate_label_semantics(est, expected_semantics)
-                    trajectory = self._train(est, train_view, pu_val_view, trainer)
+                    trajectory = self._train(
+                        est, train_view, pu_val_view, trainer, class_prior=training_prior
+                    )
                     _validate_trajectory(trajectory, pu_val_view, declared_components)
                     staged = protocol_context.get("budget", {}).get(STAGED_BUDGET_FIELD)
                     staged_receipt = (
@@ -635,17 +697,19 @@ class ExperimentRunner:
         selection_started_at = time.perf_counter()
         selections = {}
         selection_roles = {}
-        for proto in self.protocols:
+        selection_priors = {}
+        for proto, kwargs in selection_inputs:
             val_view = clean_val if isinstance(proto, ProtocolOA) else pu_val_view
             art = proto.select(
                 trajectories,
                 val_view,
                 self.threshold_candidates,
-                **_select_kwargs(proto, selection_prior),
+                **kwargs,
             )
             if art.protocol != getattr(proto, "name", art.protocol):
                 raise ValueError("selection artifact disagrees with its protocol")
             selections[art.protocol] = art
+            selection_priors[art.protocol] = prior_record(kwargs)
             selection_roles[art.protocol] = (
                 "clean_val" if isinstance(proto, ProtocolOA) else "pu_val"
             )
@@ -721,10 +785,7 @@ class ExperimentRunner:
             # Which constant the criterion ran with, and where it came from.
             # PA's criterion is weighted by pi, so the P2.0c adjudication of PA
             # units has to be able to tell one run's prior from another's.
-            payload["class_prior"] = {
-                "population": selection_prior,
-                "source": selection_prior_source,
-            }
+            payload["class_prior"] = selection_priors[name]
             selection_payload[name] = payload
 
         for item in candidate_runs:
@@ -876,7 +937,9 @@ class ExperimentRunner:
             directory=checkpoint_root or tempfile.gettempdir(),
         )
 
-    def _train(self, est, train_view: DatasetPart, pu_val_view: DatasetPart, trainer):
+    def _train(
+        self, est, train_view: DatasetPart, pu_val_view: DatasetPart, trainer, *, class_prior
+    ):
         """Train one candidate with the trainer the view guard approved."""
         val_pu = (pu_val_view.X, pu_val_view.labels) if pu_val_view is not None else None
         if _captures_checkpoints(self.config, trainer, est):
@@ -890,7 +953,7 @@ class ExperimentRunner:
             est,
             train_view.X,
             train_view.labels,
-            class_prior=self.class_prior,
+            class_prior=class_prior,
             val_pu=val_pu,
             **self._view_kwargs(trainer),
         )
@@ -1046,6 +1109,33 @@ def _binary_test_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, An
     }
 
 
+def _require_clean_support(model, trainer, bundle: DatasetBundle) -> None:
+    if not getattr(model, "requires_clean_support", False):
+        return
+    support = getattr(trainer, "support", None)
+    stock_fits = (FitTrainer.fit, DeepFitTrainer.fit, SupervisedTrainer.fit)
+    if not isinstance(support, DatasetPart) or type(trainer).fit in stock_fits:
+        raise ValueError(
+            f"{type(model).__name__} requires independent clean support. "
+            "Set config['trainer'] to a clean-support adapter or a custom trainer that "
+            "supplies its own support DatasetPart to fit; clean_val is not support."
+        )
+    if support.view != "clean" or support.for_selection is not False:
+        raise ValueError("support must be clean and for_selection=False")
+    features = np.asarray(support.X)
+    labels = np.asarray(support.labels)
+    indices = np.asarray(support.indices, dtype=object)
+    if features.shape[1:] != bundle.train.X.shape[1:] or features.ndim != bundle.train.X.ndim:
+        raise ValueError("support feature shape must match training")
+    validate_true_binary_labels(labels, estimator_name="support.labels")
+    if labels.shape != (len(features),) or np.unique(labels).size != 2:
+        raise ValueError("support requires nonempty positive and negative clean labels")
+    if indices.shape != (len(features),):
+        raise ValueError("support IDs must match feature rows")
+    roles = {role: getattr(bundle, role).indices for role in ROLES}
+    _validate_role_indices({**roles, "support": indices})
+
+
 def _validate_model_capability(
     model,
     bundle: DatasetBundle,
@@ -1171,6 +1261,8 @@ def _select_kwargs(proto, class_prior: float | None) -> dict[str, Any]:
     TypeError raised by the protocol's own body would otherwise be read as "old
     signature" and the protocol re-run, double-counting ``record_validation``.
     """
+    if type(proto) is ProtocolOA:
+        return {}
     try:
         parameters = inspect.signature(proto.select).parameters
     except (TypeError, ValueError):
@@ -1179,6 +1271,16 @@ def _select_kwargs(proto, class_prior: float | None) -> dict[str, Any]:
         p.kind is inspect.Parameter.VAR_KEYWORD for p in parameters.values()
     )
     return {"class_prior": class_prior} if accepts else {}
+
+
+def _require_pa_validation(protocols, generated_meta) -> None:
+    """The built-in OS estimator does not apply to declared TS or SAR validation."""
+    if not any(isinstance(proto, ProtocolPA) for proto in protocols):
+        return
+    if generated_meta.get("input_sampling") == "ts":
+        raise ValueError("PA uses the OS validation formula; pu_val declares independent TS.")
+    if _mechanism(generated_meta) in ("sar", "sar_lbe_a", "sar_lbe_b"):
+        raise ValueError("PA requires SCAR validation; for SAR, use protocols=[ProtocolOA()].")
 
 
 def _require_selection_prior(

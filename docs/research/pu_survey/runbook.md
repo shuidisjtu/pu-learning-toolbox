@@ -52,6 +52,11 @@ cannot be checked; it does not establish isolation. The approval token above rec
 specific protocol-owner decision, not general authorization for another study. See the
 [data-source and interpretation limits](data/README.md).
 
+For `self_pu_full_meta`, omit `--os-or-ts` or set `--os-or-ts os`. The single-unit
+and batch paths reject `ts` for this versioned profile. Report its OS clean-support
+results separately from the TS-compatible `self_pu` ablation; see
+[protocol §2.3](pu_survey_protocol.md#23-pu-data-generation).
+
 ## Run the supplied Survey example
 
 Validate the current recipes:
@@ -68,7 +73,11 @@ uv run python scripts/run_survey_experiment.py data/splits/spambase/split_0 --pr
 
 The prior above illustrates the current Spambase setting; use your split's own
 `class_prior.population`. Supply it explicitly to this prior-requiring single-unit method;
-the batch entry reads recorded split priors. For a PN oracle, replace `--method upu` with
+the batch entry reads recorded split priors. For uPU, PA uses this population prior in both
+views. The Survey default (`ts`-compatible) also fits with it; explicit `--os-or-ts os` fits
+with the native-U prior derived from the training split's realized labeled fraction.
+See `research_settings.prior` in the manifest for both values and sources.
+For a PN oracle, replace `--method upu` with
 `--oracle` and remove `--class-prior`; selection is OA only. Support methods require the
 corresponding `--support-dir`. The audited product keeps clean support as a fifth role,
 with original sample IDs disjoint from `train`, `pu_val`, `clean_val`, and `test`. The

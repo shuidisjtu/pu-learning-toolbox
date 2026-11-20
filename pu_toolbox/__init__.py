@@ -1,6 +1,6 @@
 """PU Learning Toolbox -- Positive-Unlabeled Learning in Python."""
 
-__version__ = "1.11.0"
+__version__ = "2.0.0"
 
 from .diagnostics import (
     DomainAssumptionReport,

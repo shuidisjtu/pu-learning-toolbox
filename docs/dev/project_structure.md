@@ -482,6 +482,7 @@ tests/
       test_survey_pilot_scope_wiring.py # shared plan/estimate/split/resume scope, full protocol digest/selection, scope-sensitive explicit TS domain
       test_survey_pilot_batch_contract.py # historical five-batch contract: 215/215/110/70/35, disjoint union 645, exclusions absent
       test_runner_class_prior.py        # PA π precedence: run over split; provenance; missing/incomplete rejection
+      test_runner_clean_support.py      # Required independent support and custom trainer contract
       test_leaderboard_run_view.py      # distinct views cannot share a leaderboard group
       test_method_ledger.py             # enum/Chinese-note normalization, missing fields, invalid values
       test_runner_view_manifest.py      # success/failure run_view/calibration_applied provenance

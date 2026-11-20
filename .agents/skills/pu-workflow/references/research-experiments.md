@@ -85,10 +85,13 @@ Record the input sampling design and risk view as separate settings.
 
 ## Match prior consumption to the trainer
 
-Runner `class_prior` supplies the population prior used for PA and is handed
-to the trainer. `FitTrainer` forwards it according to the estimator's fit
-signature. For an estimator's native-U loss on OS data, a custom trainer computes
-the training-partition prior with
+Runner `class_prior` supplies PA's population prior. For uPU with a built-in
+fit trainer on OS data, the runner converts it only for the native-U risk view;
+it passes the population prior unchanged for TS-compatible risk. Check both
+values in `research_settings.prior`.
+
+Custom trainers receive the original runner input. For an estimator's native-U
+loss on OS data, a custom trainer computes the training-partition prior with
 `population_to_native_unlabeled(population_prior, mean(y_pu), input_sampling="os")`
 and passes that value to the estimator. Record both population and consumed
 values.

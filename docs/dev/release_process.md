@@ -10,7 +10,9 @@
 | `1.x.0` | 新功能,向后兼容 | 新算法、新 CLI 子命令 |
 | `2.0.0` | 破坏性变更 | 标签语义、参数删除、契约变更 |
 
-版本号在 `pyproject.toml` 维护,并同步 `README` 徽章与 `process_checklist.md` 发布状态节。
+版本号在 `pyproject.toml` 维护，同时同步 `pu_toolbox/__init__.py`、`uv.lock`、README 徽章、
+API 首页与 `process_checklist.md` 发布状态节。当前目标是正式版 `2.0.0`；本地 wheel 仅供内部验收，
+不必为此发布 `2.0.0a1`，不修改已有 1.x tag。
 
 ## 2. 发布前检查(我侧,本地可完成)
 
@@ -26,8 +28,10 @@
    ```bash
    uv venv /tmp/pu-release-venv --python 3.11
    uv pip install --python <venv>/Scripts/python.exe dist/*.whl
-   # 在 venv 内跑 quickstart 三步:make-demo-data → run → report.json schema_version 校验
-   # 跑显式 estimator 训练与独立 CLI 冒烟 + 抽查 examples/minimal/ 1-2 个脚本
+   # 切换到源码树外的目录，加上 venv 中的命令路径后执行：
+   pu-toolbox list-methods
+   # 用小型 CPU 数据显式构造 uPU → fit → pickle 保存 → 重新加载 → pu-toolbox review
+   # 核对输出类别与 predict() 一致，以及暂缓、查询预算和排序；抽查保留的例程
    ```
    验收后清理临时 venv
 
@@ -49,7 +53,7 @@
    ```bash
    uv venv /tmp/pu-pypi-check --python 3.11
    uv pip install --python <venv>/Scripts/python.exe <name>
-   # 跑 quickstart 三步 + list-methods
+   # 重跑独立 list-methods 和显式训练 → 保存 → review 安装冒烟
    ```
 2. **更新安装说明**:README.md / docs/user/quickstart.md 中的安装命令与"尚未发布"表述
 3. **GitHub Release**:main 打 tag(如 `v1.0.0`)+ 创建 Release(功能摘要见 `process_checklist.md` 发布状态节与 commit log)

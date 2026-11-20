@@ -28,6 +28,10 @@ def test_basic_real_meta_checkpoints_both_protocols_candidates_and_reclaim(metho
     assert disclosure["pa_clean_support_eligible"] and not disclosure["pa_eligible"]
     assert not disclosure["formal_admission"] and not manifest["formal_eligible"]
     assert disclosure["comparison_group"] == "extra_clean_support"
+    if method == "self_pu":
+        assert manifest["run_view"] == "os-compatible"
+        assert not manifest["calibration_applied"]
+        assert not disclosure["calibration_applied"]
     assert disclosure["protocol_policy_basis"] is None
     assert disclosure["protocol_pending_review_items"] == ["protocol_policy_not_bound"]
     expected_epochs = {"self_pu": [1, 2, 3], "lagam": [1, 2], "pulns": [0, 1, 2]}[method]

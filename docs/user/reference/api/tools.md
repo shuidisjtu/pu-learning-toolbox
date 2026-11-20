@@ -439,7 +439,23 @@ The default generator is `SCARGenerator()`; the default selectors are
 Inject a trainer instance through `config["trainer"]`; the default is `DeepFitTrainer()`.
 Supply candidate parameters through `config["candidates"]`, default `[{}]`.
 PA receives the population prior from `class_prior` or
-`config["split_ref"]["class_prior"]["population"]`.
+`config["split_ref"]["class_prior"]["population"]`. For uPU with the built-in fit trainers
+and OS input, the runner converts its supplied population prior to the native-U prior
+using the realized labeled fraction in `train` when the estimator uses its `os` view.
+The `ts` view uses the complete OS pool and receives the population prior unchanged.
+Without a runner override, uPU's constructor or candidate prior is used as given;
+a split-only population prior supplies PA, not an override to uPU fit. Custom trainers
+still receive the original runner input and are responsible for their own prior routing.
+The manifest records the fit input and PA prior separately in `research_settings.prior`.
+Built-in OA selects on `clean_val` accuracy and has no selection prior. Use
+`protocols=[ProtocolOA()]` for SAR. The runner refuses built-in PA when `pu_val`
+is declared SAR or independently sampled TS; the PA formula is for OS under SCAR.
+
+`config["os_or_ts"]` requests a training view, not an input sampling design. Allowed values
+are `None`, `"os"`, and `"ts"` (case-sensitive); `None` leaves the estimator default in place.
+If the generator declares independent TS (`input_sampling="ts"`) for `train`, the runner
+rejects the `ts` reconstruction view rather than adding the extra positive sample to its
+already marginal U pool.
 
 Import extension interfaces `Generator`, `Trainer`, and `SelectionProtocol` from
 `pu_toolbox.experiment.protocols`. Import trajectory/selection records `EpochRecord`,
@@ -452,6 +468,12 @@ clean_val. The returned `SelectionArtifact.protocol` must match the strategy's `
 and validation-side score transform; the example's `predict_selected` implements that process.
 
 ### Method-specific training adapters
+
+LaGAM and PULNS require an independent clean support partition. Use the method's
+support adapter through `config["trainer"]`; the default trainer cannot supply support.
+A custom support trainer must expose its clean `support` as a `DatasetPart` with
+`for_selection=False`, independently sourced sample IDs disjoint from the four roles,
+and pass its features and labels to the estimator. `clean_val` is not support.
 
 The independent exploratory adapters do not modify the locked Survey contracts.
 `pu_toolbox.experiment.cvir_adapter.CVIRKnownPriorTrainer` keeps CVIR's explicit α_U and its

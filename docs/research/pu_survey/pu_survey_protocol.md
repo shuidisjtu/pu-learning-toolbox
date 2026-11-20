@@ -176,6 +176,13 @@ bindings determine execution recipes, supported scope, and formal eligibility.
    > Native-TS methods with a replaceable term must be calibrated; this rule also governs
    > CVIR unless a separate justification is registered.
    >
+   > **Separate OS clean-support variant:** `self_pu_full_meta` uses the native U risk pool
+   > on OS-generated SCAR data, with an independently audited clean support set for meta training.
+   > It is not part of the TS-OS calibration comparison. Report it separately from the calibrated
+   > PU-only `self_pu` ablation. `PA+clean-support` uses `pu_val`, OA uses `clean_val`, and each
+   > selected checkpoint and threshold is evaluated on independent `test`. The versioned profile
+   > defaults to `os` and rejects explicit `ts`; the exploratory TS adapter is not a Survey recipe.
+   >
    > **Shared approximations, recorded here rather than repeated in each method card:**
    > - The calibrated view has $`D_P \subset D_U'`$, so P and U are not independent,
    >   unlike strict case-control sampling.

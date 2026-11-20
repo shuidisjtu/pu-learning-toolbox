@@ -148,6 +148,9 @@ class UPUClassifier(BasePUClassifier):
     scenario: tuple[Scenario, ...] = (Scenario.CASE_CONTROL,)
     requires_class_prior: bool = True
     class_prior_target = "native_unlabeled"
+    # Opt in to converting a supplied population prior in the built-in Runner path.
+    # Direct fit still takes the prior of the pool used by the loss.
+    _convert_os_population_prior = True
     source_status: SourceStatus = SourceStatus.OFFICIAL_BUNDLE
     backend: Backend = Backend.NUMPY
     maturity: Maturity = Maturity.STABLE
@@ -199,7 +202,9 @@ class UPUClassifier(BasePUClassifier):
         y_pu : np.ndarray of shape (n_samples,)
             PU labels.  +1 = labeled positive, 0 = unlabeled.
         class_prior : float, optional
-            Override the constructor's ``class_prior``.  Must be in (0, 1).
+            Override the constructor's ``class_prior``. Must be in (0, 1) and
+            match the pool used by the unlabeled risk term: native U for
+            ``"os"`` and the complete OS population pool for ``"ts"``.
         sample_weight : np.ndarray, optional
             Accepted for API compatibility; currently ignored.
         os_or_ts : {"os", "ts"}, default "os"

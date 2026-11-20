@@ -6,7 +6,7 @@
 > and [examples/minimal](../../../../examples/minimal/). Looking up a parameter contract does not
 > require following those links.
 >
-> **Version:** **v1.11.0**, matching `pyproject.toml`; updated with package releases. The
+> **Version:** **v2.0.0 (unreleased)**, matching `pyproject.toml`; updated with package releases. The
 > [release process](../../../dev/release_process.md) is optional Chinese maintenance background.
 > **Coverage:** `scripts/check_api_docs.py` checks that this directory covers every public export
 > and registered algorithm name. Document new public APIs in the corresponding contract page.

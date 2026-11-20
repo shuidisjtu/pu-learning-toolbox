@@ -80,10 +80,12 @@ def test_basic_sar_settings_preserve_weight_policy_and_score_source(tmp_path):
 
 
 def test_edge_runner_prior_records_the_forwarded_value_and_source(tmp_path):
-    settings = _fit(tmp_path, prior=0.4).manifest["research_settings"]
-    assert settings["prior"]["training"]["value"] == 0.4
-    assert settings["prior"]["training"]["source"] == "runner.class_prior"
-    assert settings["prior"]["selection"]["OA"]["population"] == 0.4
+    manifest = _fit(tmp_path, prior=0.4).manifest
+    settings = manifest["research_settings"]
+    assert settings["prior"]["training"]["value"] == pytest.approx(0.2)
+    assert settings["prior"]["training"]["source"] == "runner.class_prior.os_to_native_unlabeled"
+    assert settings["prior"]["selection"]["OA"] == {"population": None, "source": None}
+    assert manifest["selection"]["OA"]["class_prior"] == settings["prior"]["selection"]["OA"]
 
 
 def test_determ_same_seed_has_identical_settings_with_or_without_disk(tmp_path):
@@ -101,8 +103,7 @@ def _build_settings(model=None, *, config=None, prior=None):
         generation={"train": {"input_sampling": "os"}, "pu_val": {}},
         input_ndim=2,
         training_prior=prior,
-        selection_prior=None,
-        selection_prior_source=None,
+        selection_priors={"OA": {"population": None, "source": None}},
         selection_roles={"OA": "clean_val"},
         label_view="pu",
     )

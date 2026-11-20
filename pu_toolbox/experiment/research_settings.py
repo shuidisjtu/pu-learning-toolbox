@@ -82,10 +82,10 @@ def build_research_settings(
     generation,
     input_ndim,
     training_prior,
-    selection_prior,
-    selection_prior_source,
+    selection_priors,
     selection_roles,
     label_view,
+    training_prior_source="runner.class_prior",
 ) -> dict[str, Any]:
     """Collect recorded facts and the parameter contract before candidate fitting."""
     parameters = model.get_params(deep=False)
@@ -110,7 +110,7 @@ def build_research_settings(
         target = "risk_pool"
     prior_value = training_prior if training_prior is not None else parameters.get("class_prior")
     prior_source = (
-        "runner.class_prior"
+        training_prior_source
         if training_prior is not None
         else "estimator.class_prior"
         if prior_value is not None
@@ -134,7 +134,7 @@ def build_research_settings(
             "candidate_index": index,
             "value": training_prior if training_prior is not None else candidate_prior,
             "source": (
-                "runner.class_prior"
+                training_prior_source
                 if training_prior is not None
                 else candidate_source
                 if candidate_prior is not None
@@ -148,10 +148,6 @@ def build_research_settings(
                     candidate_parameters.get(name, parameters.get(name))
                 )
         candidate_inputs.append(candidate)
-    selection = {
-        name: {"population": selection_prior, "source": selection_prior_source}
-        for name in selection_roles
-    }
     representation = copy.deepcopy(context.get("representation", {}))
     representation.update(
         {
@@ -181,7 +177,7 @@ def build_research_settings(
         "prior": {
             "training": training,
             "candidates": candidate_inputs,
-            "selection": selection,
+            "selection": copy.deepcopy(selection_priors),
             "candidate_parameters": copy.deepcopy(config.get("candidates", [{}])),
         },
         "supervision": {

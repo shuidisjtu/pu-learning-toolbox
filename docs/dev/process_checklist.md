@@ -16,6 +16,16 @@ Phase 0-9 已闭环（框架 → 核心风险估计 → 机制 → 推荐诊断 
 
 ## 发布状态
 
+### 2.0.0（目标版本，未发布）
+
+- 旧 `run`、隐式 `auto` 选法和 `PUPipeline` 退出。显式选择 estimator 后训练、保存可信模型，
+  再用独立 `review`；保留 `list-methods` 和四角色实验 API。已安装的 Skill 可运行
+  `pu-toolbox skill install --force` 更新到当前安装包附带的版本。
+- Elkan–Noto 的 `n_cv_folds` 改为 `internal_cv_folds`。倾向估计按观测 PU 标签分层做折外预测，
+  只汇总留出的标记正例，移除旧折内 `sqrt` 补偿；新旧实现不承诺数值等价。
+- 传统 PU v6 用原 commit/tag 和当时的配置重放；v7 用现行实现和 v7 配置写到独立目录，
+  不回写 v6 结果。保留全部历史 1.x tag。
+
 ### 未发布（显式训练工作流退役）
 
 - [x] 按 [ADR-0024](../adr/0024-estimator-and-experiment-workflows.md) 移除显式 Pipeline、单表候选评估、
@@ -208,6 +218,8 @@ S1/S2 已按失败回归驱动完成实现；旧同池入口保留输出与随�
   IMDB、20News、ADNI（共 8 个数据集），文本从冻结 split 的 SBERT 特征 carve，ADNI 记录
   `group_policy="unverifiable"` 与 owner approval；配方注册表升至
   `survey-recipes-v1.3`。数据与监督预算按各次 manifest 解释，配方能力不自动代表数值复现。
+- **uPU 拟合与 PA 先验分开**：内置 trainer 在 OS 原生 U 风险下用训练标记比例换算总体先验；
+  TS-compatible 拟合与 PA 仍用总体先验。拒绝非法训练视图，以及对已声明独立 TS 的训练输入再做重构。
 - **clean-support 执行门禁**：批量计划和续跑前检查五角色文件及原始样本 ID；单元运行在训练、
   选模和测试前校验支持集制品，并核对它与实际四角色输入逐行一致。样本行隔离不代表受试者隔离。
 

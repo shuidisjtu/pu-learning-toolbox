@@ -3,7 +3,7 @@
 **Positive-Unlabeled learning in Python** -- registered PU algorithms, research joint-shift adaptation, SCAR & SAR support.
 
 ![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue)
-![Status](https://img.shields.io/badge/status-1.11.0-blue)
+![Status](https://img.shields.io/badge/status-2.0.0%20unreleased-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ## Features
@@ -178,8 +178,7 @@ The wheel bundles the entrypoint and six task references. Install with
 `pu-toolbox skill install` into Claude Code / Cursor (`.claude/skills/`)
 and Codex / Gemini CLI / Windsurf (`.agents/skills/`); use `--dest` for a
 custom root and `--force` when choosing to update an existing install.
-The revised skill is validated with the current source-built 1.11.0 wheel;
-routes use the installed package's discovered capabilities. See
+Routes use the installed package's discovered capabilities. See
 [How to enable and use the skill](docs/user/howto/using_skill.md).
 
 ## Development

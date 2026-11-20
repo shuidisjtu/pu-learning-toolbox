@@ -17,6 +17,7 @@ from typing import Any
 
 import numpy as np
 
+from ..core.training_views import RUN_VIEWS
 from .bundle import DatasetPart, LabelView
 from .tracking import RunTrajectory, SelectionArtifact
 
@@ -82,6 +83,12 @@ def accepts_training_view(parameters: Mapping[str, Any]) -> bool:
     )
 
 
+def validate_training_view_request(os_or_ts: str | None) -> None:
+    """Reject unknown views before they can be silently dropped by routing."""
+    if os_or_ts is not None and os_or_ts not in RUN_VIEWS:
+        raise ValueError(f"os_or_ts must be 'os', 'ts', or None; got {os_or_ts!r}.")
+
+
 def route_training_view(
     kwargs: dict, parameters: Mapping[str, Any], os_or_ts: str | None, target: object
 ) -> None:
@@ -112,6 +119,7 @@ def route_training_view(
     ``runner._select_kwargs``: a named parameter or an explicit ``**kwargs``,
     detected by signature inspection, never by catching ``TypeError``.
     """
+    validate_training_view_request(os_or_ts)
     if os_or_ts is None:
         return
     if os_or_ts == "ts":
