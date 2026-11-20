@@ -56,10 +56,10 @@ def test_basic_load_arrays_preserves_official_pools(prep_script, tmp_path, datas
         ("test_images", np.zeros((10, 1, 28, 28), dtype=np.uint8), "28"),
         ("train_labels", np.tile(np.arange(10, dtype=float), 8), "integer"),
         ("test_labels", np.arange(10)[:, None], "one-dimensional"),
-        ("test_labels", np.arange(10) + 1, "0..9"),
+        ("test_labels", np.arange(10) + 1, "label_values"),
         ("test_labels", np.arange(9), "length"),
         ("test_images", np.zeros((0, 28, 28), dtype=np.uint8), "non-empty"),
-        ("test_labels", np.array([0] * 9 + [-1]), "0..9"),
+        ("test_labels", np.array([0] * 9 + [-1]), "label_values"),
         ("train_labels", np.array([True] * 80), "integer"),
     ],
 )

@@ -6,6 +6,8 @@ This subpackage provides reusable utilities for:
   (:mod:`pu_toolbox.preprocessing.pu_construction`)
 * PNU labeling and Gaussian sampling utilities
   (:mod:`pu_toolbox.preprocessing.pu_labeling`)
+* Configuration-driven local reading and explicit source acquisition
+  (:mod:`pu_toolbox.preprocessing.dataset_sources`)
 * Data profiling / summary statistics
   (:mod:`pu_toolbox.preprocessing.data_profiler`)
 """
@@ -22,6 +24,8 @@ from pu_toolbox.preprocessing.data_profiler import (
 from pu_toolbox.preprocessing.data_profiler import (
     profile_pu_data as profile_pu_data,
 )
+from pu_toolbox.preprocessing.dataset_fetch import fetch_dataset
+from pu_toolbox.preprocessing.dataset_sources import read_dataset
 from pu_toolbox.preprocessing.profiling import (
     pnu_data_summary as pnu_data_summary,
 )
@@ -73,6 +77,7 @@ __all__ = [
     "SARMechanism",
     "SourcePartition",
     "construct_pu_dataset",
+    "fetch_dataset",
     "make_gaussian_case_control_data",
     "make_gaussian_pu_data",
     "make_pnu_labels",
@@ -80,6 +85,7 @@ __all__ = [
     "pnu_data_summary",
     "profile_pu_data",
     "pu_data_summary",
+    "read_dataset",
     "scar_diagnostic",
     "simulate_pu_dataset",
 ]

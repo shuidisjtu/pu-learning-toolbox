@@ -291,6 +291,38 @@ Examples: [06](../../../../examples/minimal/06_sar_simulation.py) and
 | `make_gaussian_case_control_data` | `(n_p=50, n_u=100, *, class_prior=0.5, n_features=5, separation=2.0, random_state=None) -> (X, y_pu, y_true, metadata)`: independent TS Gaussian P and population-mixture U |
 | `make_gaussian_pu_data` | `(n_p=50, n_u=100, n_features=5, separation=2.0, random_state=None) -> (X, y_pu, class_prior)`: all generated positives are visible and U comes from negatives; the third value is the true positive proportion of the concatenated table |
 
+**Configuration-driven source acquisition and reading:**
+
+| Function | Signature and return value |
+|---|---|
+| `read_dataset` | `(config, root, *, partition) -> SourcePartition`: read the named local partition; never download |
+| `fetch_dataset` | `(config, root) -> dict`: explicitly acquire configured artifacts, verify checksums and write provenance |
+
+`config` is a dictionary or a path to an external JSON configuration. `root` is the exact
+dataset directory; the source ID is not appended. The configuration contains:
+
+- `source_id` and `version`, used in position IDs such as `mnist@idx-v1:train:0`.
+- `format`: `idx_images` or `npz_arrays`. Both use shared format readers, not per-dataset
+  functions. IDX requires `options.image_shape` (for example, `[28, 28]`). Either format can specify
+  `options.label_values`. For NPZ, `options.image_shape` is optional; only when supplied does
+  it enforce a uint8/NCHW image representation. `options.archive_keys` can require the exact set of keys
+  in an NPZ archive.
+- `partitions`: a mapping from partition name to file configuration. IDX entries specify
+  relative `features` and `labels` filenames and `max_rows`; each filename explicitly selects
+  the raw or `.gz` file. NPZ entries specify relative `file`, `features_key` and `labels_key`.
+- Optional `artifacts`, keyed by relative filename, with `url` and `checksum` containing
+  `algorithm` (`sha256` or `md5`) and `digest`. Explicit fetch verifies the digest, does not
+  overwrite existing data files, and writes `provenance.json` with source version and checksums.
+
+The bundled configurations are `pu_toolbox/preprocessing/source_configs/mnist.json`
+and `pu_toolbox/preprocessing/source_configs/fashion_mnist.json`, both version `idx-v1`.
+Neither source requires torchvision. A local read preserves partition order and original labels,
+but does not authenticate the files; row-position IDs are not proof of identity across copies.
+Reading a named partition does not assign it a training or test role, and configuration does not
+choose positive/negative classes or role splits. Users can instead build `SourcePartition`
+directly. See the [mapping example](../../howto/pu_sampling.md#configure-acquisition-and-local-reading).
+Survey continues to use its existing NPZ format and integer IDs.
+
 `SourcePartition` takes features, original labels, a stable `source_id`, a named `partition`,
 and optional `sample_ids`. `PULabelingConfig` takes `mechanism`, `sampling_policy` and an
 explicit integer seed or `RandomState`. Use SCAR `fixed_count` with exactly one of `c` or

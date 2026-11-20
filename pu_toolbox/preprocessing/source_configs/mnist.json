@@ -1,0 +1,65 @@
+{
+  "source_id": "mnist",
+  "version": "idx-v1",
+  "format": "idx_images",
+  "options": {
+    "image_shape": [
+      28,
+      28
+    ],
+    "label_values": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ]
+  },
+  "partitions": {
+    "train": {
+      "features": "train-images-idx3-ubyte.gz",
+      "labels": "train-labels-idx1-ubyte.gz",
+      "max_rows": 60000
+    },
+    "test": {
+      "features": "t10k-images-idx3-ubyte.gz",
+      "labels": "t10k-labels-idx1-ubyte.gz",
+      "max_rows": 10000
+    }
+  },
+  "artifacts": {
+    "train-images-idx3-ubyte.gz": {
+      "url": "https://ossci-datasets.s3.amazonaws.com/mnist/train-images-idx3-ubyte.gz",
+      "checksum": {
+        "algorithm": "md5",
+        "digest": "f68b3c2dcbeaaa9fbdd348bbdeb94873"
+      }
+    },
+    "train-labels-idx1-ubyte.gz": {
+      "url": "https://ossci-datasets.s3.amazonaws.com/mnist/train-labels-idx1-ubyte.gz",
+      "checksum": {
+        "algorithm": "md5",
+        "digest": "d53e105ee54ea40749a09fcbcd1e9432"
+      }
+    },
+    "t10k-images-idx3-ubyte.gz": {
+      "url": "https://ossci-datasets.s3.amazonaws.com/mnist/t10k-images-idx3-ubyte.gz",
+      "checksum": {
+        "algorithm": "md5",
+        "digest": "9fb629c4189551a2d022fa330f9573f3"
+      }
+    },
+    "t10k-labels-idx1-ubyte.gz": {
+      "url": "https://ossci-datasets.s3.amazonaws.com/mnist/t10k-labels-idx1-ubyte.gz",
+      "checksum": {
+        "algorithm": "md5",
+        "digest": "ec29112dd5afa0611ce80d1b7f02629c"
+      }
+    }
+  }
+}

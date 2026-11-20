@@ -50,6 +50,7 @@ from pu_toolbox.experiment.bundle import DatasetBundle, DatasetPart
 from pu_toolbox.experiment.datasets import prepare_survey_dataset
 from pu_toolbox.experiment.image import fit_survey_image_preprocessing
 from pu_toolbox.experiment.text import SBERT_MODEL_NAME, encode_survey_texts
+from pu_toolbox.preprocessing import read_dataset
 
 SBERT_REVISION = "1110a243fdf4706b3f48f1d95db1a4f5529b4d41"
 
@@ -109,30 +110,30 @@ _ADNI_IMAGE_SUFFIXES = (".jpg", ".jpeg", ".png")
 
 
 def load_mnist_arrays(raw_dir: Path, dataset: str):
-    """Load validated uint8 MNIST-family arrays without merging official pools."""
+    """Read the frozen array format; Survey preparation retains its integer IDs."""
     if dataset not in ("mnist", "fashion_mnist"):
         raise ValueError(f"not a MNIST-family dataset: {dataset!r}")
-    keys = ("train_images", "train_labels", "test_images", "test_labels")
-    with np.load(raw_dir / dataset / "raw_arrays.npz", allow_pickle=False) as source:
-        if set(source.files) != set(keys):
-            raise ValueError(f"{dataset}: expected exactly the keys {keys}")
-        arrays = [source[key] for key in keys]
-    for pool, images, labels in (("train", *arrays[:2]), ("test", *arrays[2:])):
-        if images.dtype != np.uint8:
-            raise ValueError(f"{dataset} {pool}: images must be uint8")
-        if images.ndim != 3 or images.shape[1:] != (28, 28):
-            raise ValueError(f"{dataset} {pool}: images must have shape (N,28,28)")
-        if not len(images):
-            raise ValueError(f"{dataset} {pool}: images must be non-empty")
-        if labels.ndim != 1:
-            raise ValueError(f"{dataset} {pool}: labels must be one-dimensional")
-        if not np.issubdtype(labels.dtype, np.integer):
-            raise ValueError(f"{dataset} {pool}: labels must have integer dtype")
-        if len(labels) != len(images):
-            raise ValueError(f"{dataset} {pool}: image/label length mismatch")
-        if np.any((labels < 0) | (labels > 9)):
-            raise ValueError(f"{dataset} {pool}: labels must be in 0..9")
-    return arrays[0][:, None], arrays[1], arrays[2][:, None], arrays[3]
+    config = {
+        "source_id": dataset,
+        "version": "idx-v1",
+        "format": "npz_arrays",
+        "options": {
+            "image_shape": [28, 28],
+            "label_values": list(range(10)),
+            "archive_keys": ["train_images", "train_labels", "test_images", "test_labels"],
+        },
+        "partitions": {
+            name: {
+                "file": "raw_arrays.npz",
+                "features_key": f"{name}_images",
+                "labels_key": f"{name}_labels",
+            }
+            for name in ("train", "test")
+        },
+    }
+    train = read_dataset(config, raw_dir / dataset, partition="train")
+    test = read_dataset(config, raw_dir / dataset, partition="test")
+    return train.features, train.labels, test.features, test.labels
 
 
 def load_twenty_newsgroups(raw_dir: Path):

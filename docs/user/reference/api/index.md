@@ -72,6 +72,7 @@ adapters, checkpoints, and result/reporting interfaces. Start with the
 
 See [data generation](tools.md#data-generation):
 
+- `read_dataset` and `fetch_dataset` for configuration-driven local reading and explicit acquisition.
 - `construct_pu_dataset` and `simulate_pu_dataset` for explicit OS construction.
 - `make_sar_propensity` for propensity calculation and `make_gaussian_case_control_data`
   for independent Gaussian TS sampling.

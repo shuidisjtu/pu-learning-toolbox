@@ -75,6 +75,9 @@ pu_toolbox/
   preprocessing/
     __init__.py                           (public re-exports)
     _sampling.py                          # shared fixed positive quotas and uniform labeling without replacement
+    dataset_fetch.py                      (explicit checksum-verified artifact acquisition)
+    source_configs/                       (MNIST-family examples sharing the IDX format)
+    dataset_sources.py                    (local format dispatch, raw partitions and source identities)
     pu_construction.py                   (OS constructors, source identity, observations and audit)
     pu_labeling.py                        (PNU labels and separate Gaussian sampling designs)
     selection_bias.py                     (calibrated SCAR/SAR propensities for OS construction)
@@ -367,6 +370,7 @@ tests/
       test_bbe.py                       # independent tail formulas, confidence criteria, repeated scores, train/holdout isolation
       test_prior_semantics.py           # prior targets, mass identities, invalid domains, identifiable mixtures
     preprocessing/
+      test_dataset_sources.py           # configuration-driven IDX/NPZ and source identities
       test_pu_construction.py           # Raw/synthetic OS construction contracts and fit smoke
       test_pu_labeling.py               # PNU and negative-only Gaussian construction contracts
       test_selection_bias.py            # SCAR/SAR propensities, labeling-rate calibration, synthetic data

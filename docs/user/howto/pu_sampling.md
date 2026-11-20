@@ -1,7 +1,7 @@
 # Constructing Same-Pool OS and Independent TS Data
 
 Prerequisites: install the toolbox and read [sampling designs](../concepts/pu_sampling.md) and
-[prior targets](../concepts/class_prior_semantics.md). This tutorial uses small CPU Gaussian datasets.
+[prior targets](../concepts/class_prior_semantics.md). The examples use local data or small CPU Gaussian datasets.
 
 ## 1. Construct OS observations from one source partition
 
@@ -50,6 +50,53 @@ result = simulate_pu_dataset(
 )
 assert result.manifest["input_sampling"] == "os"
 ```
+
+### Configure acquisition and local reading
+
+The same format reader serves multiple datasets. The bundled configurations are
+`pu_toolbox/preprocessing/source_configs/mnist.json` and
+`pu_toolbox/preprocessing/source_configs/fashion_mnist.json`, both at version `idx-v1`.
+Installing torchvision is not required for either source. Acquisition is explicit; local
+reading never downloads or verifies file provenance by itself:
+
+```python
+from pu_toolbox.preprocessing import fetch_dataset, read_dataset
+
+config = "pu_toolbox/preprocessing/source_configs/mnist.json"
+root = "data/raw/mnist"  # The dataset directory itself, not its parent.
+receipt = fetch_dataset(config, root)  # Explicit network access and checksum verification.
+source = read_dataset(config, root, partition="train")  # Local files only.
+```
+
+Both functions accept a configuration dictionary or an external JSON path. `root` is the
+exact dataset directory; neither function appends the source ID. For an installed package,
+resolve a bundled configuration as a package resource rather than assuming the current working
+directory is the source tree. `fetch_dataset` verifies configured artifact checksums, does
+not overwrite existing files, and writes `provenance.json`. A successful local read alone is
+not evidence that files were fetched or authenticated.
+
+Map the same source partition in two different ways without changing its rows or IDs:
+
+```python
+from pu_toolbox.preprocessing import PULabelingConfig, construct_pu_dataset
+
+labeling = PULabelingConfig("scar", "fixed_count", random_state=7, c=0.3)
+even_positive = construct_pu_dataset(
+    source, labeling, positive_classes=(0, 2, 4, 6, 8), negative_classes=(1, 3, 5, 7, 9),
+)
+three_positive = construct_pu_dataset(
+    source, labeling, positive_classes=(3,), negative_classes=(0, 1, 2, 4, 5, 6, 7, 8, 9),
+)
+```
+
+The configured partition preserves original class labels and row order. An ID such as
+`mnist@idx-v1:train:0` identifies a row position in the named source version and partition;
+it does not authenticate a file or prove identity across copies. Source partitions do not
+assign experiment roles: reading `test` does not make it training data, and neither reading
+nor construction splits or rearranges roles. Class mappings and role splits do not belong in
+the source configuration. Survey preparation remains separate and retains its existing NPZ
+format and integer IDs. Users with already-loaded data can construct `SourcePartition` directly.
+See the [configuration contract](../reference/api/tools.md#data-generation).
 
 ## 2. Obtain independent positive P and population-mixture U samples
 
