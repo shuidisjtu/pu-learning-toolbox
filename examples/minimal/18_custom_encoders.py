@@ -15,7 +15,7 @@ from pu_toolbox.estimators.deep import build_encoder
 from pu_toolbox.estimators.risk import NonNegativePUClassifier, UPUClassifier
 from pu_toolbox.experiment import DatasetBundle, DatasetPart, adapt_image_bundle_to_features
 from pu_toolbox.experiment.feature_adapter import encoder_state_sha256
-from pu_toolbox.preprocessing import make_scar_labels
+from pu_toolbox.preprocessing import PULabelingConfig, SourcePartition, construct_pu_dataset
 from pu_toolbox.prior import population_to_native_unlabeled
 
 
@@ -60,7 +60,13 @@ def run_demo(*, seed: int = 7, backbone: str = "tiny", max_epochs: int = 2) -> d
     bundle = make_bundle(seed, image_size=8 if backbone == "tiny" else 32)
     template = make_encoder(backbone, seed)
     initial_hash = encoder_state_sha256(template)
-    observed = make_scar_labels(bundle.train.labels, c=0.5, random_state=seed)
+    construction = construct_pu_dataset(
+        SourcePartition(bundle.train.X, bundle.train.labels, "encoder-example", "train"),
+        PULabelingConfig("scar", "fixed_count", seed, c=0.5),
+        positive_classes=(1,),
+        negative_classes=(0,),
+    )
+    observed = construction.observations.labels
     labeled_fraction = float(observed.mean())
     native_prior = population_to_native_unlabeled(0.5, labeled_fraction, input_sampling="os")
 

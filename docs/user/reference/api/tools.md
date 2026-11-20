@@ -285,22 +285,22 @@ Examples: [06](../../../../examples/minimal/06_sar_simulation.py) and
 
 | Function | Signature and return value |
 |---|---|
+| `construct_pu_dataset` | `(source, labeling, *, positive_classes, negative_classes, excluded_classes=()) -> PUConstruction`: map and label one already-loaded `SourcePartition` without reshuffling or downloading |
+| `simulate_pu_dataset` | `(source, labeling) -> PUConstruction`: generate a clean binary `GaussianSourceConfig` source and apply the same OS labeling |
 | `make_sar_propensity` | `(X, y_true, *, mechanism="linear", label_frequency=0.5, strength=1.0, feature_weights=None) -> propensity`: per-sample labeling propensity `P(S=1|Y,X)`; true-negative entries are fixed at 0 |
-| `make_sar_labels` | `(X, y_true, *, mechanism="linear", label_frequency=0.5, strength=1.0, feature_weights=None, ensure_labeled=True, random_state=None, return_propensity=False) -> y_pu`; returns `(y_pu, propensity)` when `return_propensity=True` |
-| `make_sar_dataset` | `(n_samples=1000, *, n_features=5, class_prior=0.3, separation=2.0, mechanism=None, label_frequency=0.5, strength=1.0, feature_weights=None, ensure_labeled=True, random_state=None) -> (X, y_pu, y_true, propensity)` |
-| `make_scar_labels` | `(y_true, c=0.5, random_state=None) -> y_pu`: same-pool fixed-count uniform sampling of positives without replacement, `max(1, round(c*n_pos))`; returns all U if there are no positives |
-| `make_fixed_count_labels` | `(y_true, n_labeled, random_state=None) -> y_pu`: same-pool uniform sampling of positives without replacement, preserving all input row order |
-| `make_pu_labels` | `(y_true, mechanism="scar", c=None, n_labeled=None, random_state=None) -> y_pu`: scar uses c; fixed_count uses n_labeled |
-| `make_case_control_labels` | `(y_true, n_labeled, random_state=None) -> y_pu`: compatibility name for fixed-count labeling; emits FutureWarning and is scheduled for removal in 2.0 |
-| `make_scar_dataset` | `(n=100, c=0.5, n_features=5, separation=4.0, random_state=None) -> (X, y_pu, y_true)`: n samples per class; used by CLI `make-demo-data` |
 | `make_gaussian_case_control_data` | `(n_p=50, n_u=100, *, class_prior=0.5, n_features=5, separation=2.0, random_state=None) -> (X, y_pu, y_true, metadata)`: independent TS Gaussian P and population-mixture U |
 | `make_gaussian_pu_data` | `(n_p=50, n_u=100, n_features=5, separation=2.0, random_state=None) -> (X, y_pu, class_prior)`: all generated positives are visible and U comes from negatives; the third value is the true positive proportion of the concatenated table |
 
-`make_fixed_count_labels` accepts one-dimensional true binary labels. `n_labeled` must be
-an integer in `[1,n_positive]`; `numpy.integer` is accepted, while bool and floating-point
-values are rejected. All-positive input can also receive fixed-count labeling.
-Legacy aliases retain two-class input validation; dispatcher `mechanism="case_control"`
-uses the same compatibility entry point.
+`SourcePartition` takes features, original labels, a stable `source_id`, a named `partition`,
+and optional `sample_ids`. `PULabelingConfig` takes `mechanism`, `sampling_policy` and an
+explicit integer seed or `RandomState`. Use SCAR `fixed_count` with exactly one of `c` or
+`n_labeled`; an explicit quota must fit the available positives. Use SCAR or SAR `bernoulli`
+with `c`; SAR additionally takes `propensity_rule` (`linear` or `nonlinear`) and supports
+`strength` and `feature_weights` for 2-D features. Bernoulli top-up is opt-in via
+`ensure_labeled`. The returned `PUConstruction` separates `observations` (features, PU labels,
+IDs), `audit` (true and original labels, optional pre-top-up propensity), and `manifest`
+(source, mapping, pool sizes, random states, requested and realized budget). The empirical
+priors are audit facts, not automatic fit parameters. OS constructors reject independent TS.
 
 For `make_gaussian_case_control_data`, `n_p/n_u/n_features` are positive integers excluding
 bool. `class_prior` is a finite real in `[0,1]`, and `separation` is a finite nonnegative real;
@@ -315,15 +315,10 @@ and n_features. `sample_ids` are draw identities `positive:i` / `population:i`, 
 this output. `random_state` accepts an integer, RandomState, or None; metadata records a
 numeric seed only when an integer was supplied.
 
-- `make_sar_dataset` accepts `mechanism="scar"` / `"linear"` / `"nonlinear"`; see
-  [SCAR/SAR](../../concepts/scar_sar.md) for definitions. Omitting it selects `"linear"`
-  (feature-dependent SAR) and emits `UserWarning`. Class-prior estimators assume SCAR;
-  explicitly use `mechanism="scar"` for that setting.
-- `label_frequency` is the calibrated target mean positive-class propensity; compute the
-  realized labeling rate from the sampled labels.
-- `make_sar_labels` defaults to `ensure_labeled=True`: if a small-sample draw labels no
-  positive, it labels the highest-propensity true positive so downstream training can proceed.
-- CLI `make-demo-data` defaults to separation 1.0; direct `make_scar_dataset` defaults to 4.0.
+- Specify the mechanism and sampling policy explicitly; there is no implicit SAR default.
+- For Bernoulli sampling, `c` is the target mean positive-class propensity. The realized
+  labeling rate fluctuates. `ensure_labeled=False` by default; opting in tops up an empty draw.
+- CLI `make-demo-data` defaults to separation 1.0.
 
 ## analyze_pu_sensitivity
 

@@ -26,13 +26,13 @@
 
 | 入口 | 当前行为 | 后续边界 |
 |---|---|---|
-| `make_scar_labels` / `SCARGenerator` | 同池、正类均匀无放回；`max(1, round(c*n_pos))`，不超过正类数；无正例返回全 U | 共享 `preprocessing/_sampling.py` 计数与抽样，seed/标签/后续随机流一致；R4 的 floor 配额另外登记 |
-| `make_fixed_count_labels` | 同池选定 n_labeled 个正例，其余原位 U，支持全部为正类的池 | S1 已实现；n_labeled 校验正整数及可用正例数 |
-| `make_case_control_labels` | 同池定额标记的旧名字，延续双类别输入校验与随机轨迹 | S1 已实现兼容包装、FutureWarning 与 2.0 移除计划 |
-| `make_pu_labels(case_control)` | 直接委托上项 | 与 S1 一并处理，不单独改采样身份 |
+| OS SCAR 固定比例配额 / `SCARGenerator` | 同池、正类均匀无放回；`max(1, round(c*n_pos))`，不超过正类数；无正例返回全 U | 共享 `preprocessing/_sampling.py` 计数与抽样，seed/标签/后续随机流一致；R4 的 floor 配额另外登记 |
+| OS SCAR 显式定额 | 同池选定 n_labeled 个正例，其余原位 U，支持全部为正类的池 | `construct_pu_dataset` 校验正整数及可用正例数 |
+| `make_case_control_labels` | 同池定额标记的旧名字，延续双类别输入校验与随机轨迹 | 历史上有兼容包装；现已移除旧名字 |
+| 旧标签分派 | 历史上有同池定额分派 | 现由 `PULabelingConfig` 显式声明，不改历史采样身份 |
 | `make_gaussian_pu_data` | 先生成 n_p 个正类并全部可见；再生成 n_u 个负类作为 U；返回拼接表正类比例 | S2 已固定旧场景与 seed 回归，docstring 明确分布与返回含义 |
 | `make_gaussian_case_control_data` | P 从正类条件分布抽取，U 独立从总体混合分布抽取；返回真值及来源/先验元数据 | S1/S2 已实现；总体参数与经验先验分别记录 |
-| `make_sar_propensity` / `make_sar_labels` | 正类均值校准，Bernoulli；ensure_labeled 默认补标最高 propensity 正例 | 生成概率与补标后的入选概率分别解释；元数据后续收敛 |
+| OS Bernoulli / `make_sar_propensity` | 正类均值校准；可显式请求零标记时补标 | 构造记录区分原本的倾向、实际预算与补标 |
 | `SARLBEAGenerator` | 默认 k=10，权重 `0.9*p^k/sum(p^k)+0.1/n_pos`，固定配额无放回 | 保留参考实现身份；论文无平滑版本为独立配置 |
 | `SARLBEBGenerator` | `clip(1.5+shrink_coef-p,0)^k`，默认 shrink_coef=1、k=10 | 论文 `(1-p)^10` 与当前实现分开 |
 
@@ -141,20 +141,22 @@ loss_unlabeled 与来源，experiment 负责准入与 Survey 配方。
 
 ```python
 import numpy as np
-from pu_toolbox.preprocessing import make_case_control_labels, make_pu_labels
+from pu_toolbox.preprocessing import PULabelingConfig, SourcePartition, construct_pu_dataset
 
-y_true = np.array([1] * 40 + [0] * 60)
-y_pu = make_case_control_labels(y_true, n_labeled=20, random_state=7)
-assert y_pu.shape == y_true.shape
-assert np.all(y_pu[y_true == 0] == 0)
-assert np.mean(y_pu == 1) == 0.2
-assert np.mean(y_true[y_pu == 0]) == 0.25
-assert np.array_equal(y_pu, make_pu_labels(
-    y_true, mechanism="case_control", n_labeled=20, random_state=7,
-))
+truth = np.array([1] * 40 + [0] * 60)
+features = np.arange(100, dtype=float)[:, None]
+result = construct_pu_dataset(
+    SourcePartition(features, truth, "example-v1", "train"),
+    PULabelingConfig("scar", "fixed_count", random_state=7, n_labeled=20),
+    positive_classes=(1,),
+    negative_classes=(0,),
+)
+observed = result.observations
+assert observed.labels.sum() == 20
+assert result.manifest["audit"]["empirical_native_unlabeled_prior"] == 0.25
 ```
 
-独立 TS 新入口从指定总体取得混合 U，并独立取得额外 P。
+这个构造仍是 OS 固定配额。独立 TS 从指定总体取得混合 U，并独立取得额外 P。
 
 ### S2：旧 Gaussian 的 U 来源为负类
 
@@ -312,7 +314,7 @@ PU 零一风险函数默认使用原生 U 公式，PU 精度函数默认使用�
 ## 11. P3 共享原语验证记录
 
 固定正例计数与均匀无放回标记在 `preprocessing/_sampling.py` 单源维护。
-`make_scar_labels`、`make_fixed_count_labels` 与 `SCARGenerator` 复用抽样；
+OS 固定配额构造与 `SCARGenerator` 复用抽样；
 LBE-A/B 的配额通过 `_n_labeled` 委托计数，各自保留权重与加权抽样政策。
 重构前的 59 个基线用例全部通过，锁定标签、计数、标签哈希和后续随机流。
 全选同样执行随机抽样；seed=19 的后续五个随机整数保持为

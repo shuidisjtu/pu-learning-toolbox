@@ -18,7 +18,9 @@ pu-toolbox list-methods
 - `list-priors`: lists available prior estimators. `km1` and `km2` map to
   `KernelMeanPriorEstimator(variant=...)`.
 - `make-demo-data --out-dir demo/ [--n 200] [--c 0.5] [--n-features 5] [--separation 1.0] [--seed 42]`:
-  uses `make_scar_dataset` to write demo CSVs. There are `n` samples per true class, 2n total.
+  uses `simulate_pu_dataset`. There are `n` samples per true class, 2n total. Training-readable
+  outputs are `X.csv`, `y_pu.csv` and `sample_ids.csv`; `y_true.csv` is audit truth and
+  `construction.json` records the source, random state and realized labeling budget.
   `--c` requests a positive-class labeling fraction under uniform fixed-count SCAR selection.
   The default separation 1.0 avoids the stronger prior-underestimation behavior of highly
   separated demo classes.

@@ -46,7 +46,7 @@ from torch import nn
 
 from pu_toolbox.estimators.risk import NonNegativePUClassifier
 from pu_toolbox.experiment.feature_adapter import encoder_state_sha256
-from pu_toolbox.preprocessing import make_scar_labels
+from pu_toolbox.preprocessing import PULabelingConfig, SourcePartition, construct_pu_dataset
 from pu_toolbox.prior import population_to_native_unlabeled
 
 torch.manual_seed(7)
@@ -57,7 +57,12 @@ template = nn.Sequential(
 )
 y_true = np.tile([0, 1], 16)
 X = rng.uniform(size=(32, 1, 8, 8)).astype(np.float32)
-y_pu = make_scar_labels(y_true, c=0.5, random_state=7)
+constructed = construct_pu_dataset(
+    SourcePartition(X, y_true, "encoder-example", "train"),
+    PULabelingConfig("scar", "fixed_count", 7, c=0.5),
+    positive_classes=(1,), negative_classes=(0,),
+)
+y_pu = constructed.observations.labels
 pi_u = population_to_native_unlabeled(0.5, y_pu.mean(), input_sampling="os")
 initial_hash = encoder_state_sha256(template)
 model = NonNegativePUClassifier(
@@ -116,7 +121,13 @@ for role, size in (("train", 32), ("pu_val", 12), ("clean_val", 12), ("test", 12
     ))
     offset += size
 bundle = DatasetBundle(*parts)
-observed = make_scar_labels(bundle.train.labels, c=0.5, random_state=7)
+train = bundle.train
+constructed = construct_pu_dataset(
+    SourcePartition(train.X, train.labels, "encoder-bundle", "train", train.indices),
+    PULabelingConfig("scar", "fixed_count", 7, c=0.5),
+    positive_classes=(1,), negative_classes=(0,),
+)
+observed = constructed.observations.labels
 training_prior = population_to_native_unlabeled(
     0.5, observed.mean(), input_sampling="os"
 )

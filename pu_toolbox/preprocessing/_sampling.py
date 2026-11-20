@@ -1,4 +1,4 @@
-"""Fixed positive counts and uniform sampling shared by PU data constructors."""
+"""Label draws from validated positive pools or propensities."""
 
 import numpy as np
 
@@ -26,3 +26,19 @@ def sample_positive_labels(
         # Full selection still consumes the historical random permutation.
         labels[rng.choice(positive, size=n_labeled, replace=False)] = POSITIVE_LABEL
     return labels
+
+
+def sample_bernoulli_labels(
+    y_true: np.ndarray,
+    propensity: np.ndarray,
+    rng: np.random.RandomState,
+    *,
+    ensure_labeled: bool,
+) -> tuple[np.ndarray, bool]:
+    """Draw labels from validated propensities, optionally topping up a zero draw."""
+    observed = (rng.uniform(size=len(y_true)) < propensity).astype(int)
+    positive = np.flatnonzero(y_true == POSITIVE_LABEL)
+    if ensure_labeled and len(positive) and not observed.any():
+        observed[positive[np.argmax(propensity[positive])]] = POSITIVE_LABEL
+        return observed, True
+    return observed, False

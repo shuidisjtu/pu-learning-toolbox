@@ -75,8 +75,9 @@ pu_toolbox/
   preprocessing/
     __init__.py                           (public re-exports)
     _sampling.py                          # shared fixed positive quotas and uniform labeling without replacement
-    pu_labeling.py                        (make_scar_labels/make_pu_labels PU/PNU labels and synthetic Gaussian data)
-    selection_bias.py                     (make_sar_propensity/make_sar_labels SAR propensities and synthetic data)
+    pu_construction.py                   (OS constructors, source identity, observations and audit)
+    pu_labeling.py                        (PNU labels and separate Gaussian sampling designs)
+    selection_bias.py                     (calibrated SCAR/SAR propensities for OS construction)
     profiling.py                          (pu_data_summary lightweight summaries and scar_diagnostic SCAR diagnostics)
     data_profiler.py                      (profile_pu_data structured summaries, issues, and assumption warnings)
   prior/
@@ -366,12 +367,13 @@ tests/
       test_bbe.py                       # independent tail formulas, confidence criteria, repeated scores, train/holdout isolation
       test_prior_semantics.py           # prior targets, mass identities, invalid domains, identifiable mixtures
     preprocessing/
-      test_pu_labeling.py               # six public PU/PNU label functions, dispatcher, validation, determinism
+      test_pu_construction.py           # Raw/synthetic OS construction contracts and fit smoke
+      test_pu_labeling.py               # PNU and negative-only Gaussian construction contracts
       test_selection_bias.py            # SCAR/SAR propensities, labeling-rate calibration, synthetic data
       test_profiling.py                 # pu_data_summary/pnu_data_summary counts/ratios, NaN/Inf flags, sparse input, label normalization
       test_data_profiler.py             # structured reports, quality rules, audit diagnostics
       __init__.py
-      test_sampling_semantics.py        # same-pool quotas, independent TS, provenance, legacy-entry compatibility
+      test_sampling_semantics.py        # same-pool quotas and independent TS sampling provenance
     scripts/
       test_check_api_docs.py            # API reference public-symbol coverage gate
       test_check_baseline_configs.py    # baseline-configuration consistency gate

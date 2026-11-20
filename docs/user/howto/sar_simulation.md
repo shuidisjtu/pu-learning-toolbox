@@ -12,8 +12,12 @@ Training interfaces receive the generated PU views.
 ### 1.1 Compute propensity only
 
 ```python
+import numpy as np
 from pu_toolbox.preprocessing import make_sar_propensity
 
+rng = np.random.RandomState(7)
+X = rng.normal(size=(100, 8))
+y_true = np.arange(100) % 2
 propensity = make_sar_propensity(
     X,
     y_true,
@@ -28,60 +32,57 @@ an intercept so mean propensity among true positives equals `label_frequency`.
 
 ### 1.2 Generate PU labels from complete labels
 
-```python
-from pu_toolbox.preprocessing import make_sar_labels
+The following continues with `X` and `y_true` from above. Choose the source partition,
+mechanism, policy, and labeling seed explicitly:
 
-y_pu, propensity = make_sar_labels(
-    X,
-    y_true,
-    mechanism="nonlinear",
-    label_frequency=0.4,
-    random_state=42,
-    return_propensity=True,
+```python
+from pu_toolbox.preprocessing import PULabelingConfig, SourcePartition, construct_pu_dataset
+
+result = construct_pu_dataset(
+    SourcePartition(X, y_true, "example-source", "train"),
+    PULabelingConfig("sar", "bernoulli", 42, c=0.4, propensity_rule="nonlinear"),
+    positive_classes=(1,), negative_classes=(0,),
 )
+y_pu = result.observations.labels
+propensity = result.audit.propensity
 ```
 
-`y_pu` follows the canonical convention: `1` is observed positive and `0` is U.
-With the default `ensure_labeled=True`, if Bernoulli sampling selects no positive in a small
-dataset, the highest-propensity true positive is labeled as a fallback. Disable this guard
-explicitly when studying the unmodified sampling distribution.
+`y_pu` uses `1` for observed positives and `0` for U. Bernoulli draws can label no positives:
+`ensure_labeled=False` by default. Opt in to `ensure_labeled=True` to top up such a draw;
+the audit propensity remains the pre-top-up probability.
 
 ### 1.3 Generate synthetic data directly
 
 ```python
-from pu_toolbox.preprocessing import make_sar_dataset
+from pu_toolbox.preprocessing import GaussianSourceConfig, PULabelingConfig, simulate_pu_dataset
 
-X, y_pu, y_true, propensity = make_sar_dataset(
-    n_samples=1000,
-    n_features=8,
-    class_prior=0.3,
-    separation=2.0,
-    mechanism="linear",
-    label_frequency=0.4,
-    strength=1.5,
-    random_state=42,
+result = simulate_pu_dataset(
+    GaussianSourceConfig(1000, 8, 0.3, 2.0, 7),
+    PULabelingConfig("sar", "bernoulli", 42, c=0.4,
+                     propensity_rule="linear", strength=1.5),
 )
+X, y_pu = result.observations.features, result.observations.labels
+y_true, propensity = result.audit.true_labels, result.audit.propensity
+manifest = result.manifest
 ```
 
-Pass `X, y_pu` to the learner. Use `y_true` for classification evaluation and `propensity`
-for labeling-mechanism recovery evaluation. Record extra clean support, OA selection, and other
-supervision separately by [data role](custom_experiments.md#2-prepare-four-data-roles).
-
-**The default mechanism is SAR:** omitting `mechanism` in `make_sar_dataset` resolves to
-`"linear"` (feature-dependent labeling) and emits a `UserWarning`. Class-prior estimators and
-many PU classifiers assume SCAR. Pass `mechanism="scar"` explicitly for a SCAR setting; see
-[SCAR/SAR concepts](../concepts/scar_sar.md).
+Pass `X, y_pu` to the learner. Use `y_true` and `propensity` for evaluation and audit,
+and `manifest` for construction provenance. Record clean support and selection by
+[data role](custom_experiments.md#2-prepare-four-data-roles). For SCAR choose
+`PULabelingConfig("scar", "bernoulli", 42, c=0.4)`; for a fixed quota choose
+`"fixed_count"` instead. No mechanism is implicit. See [SCAR/SAR concepts](../concepts/scar_sar.md).
 
 ## 2. Labeling-rate semantics
 
-`label_frequency` is the target mean positive-class propensity:
+For Bernoulli construction, `c` is the target mean positive-class propensity (called
+`label_frequency` by `make_sar_propensity`):
 
 ```math
 \frac{1}{n_{+}}\sum_{i\,:\,Y_{i}=1} e(x_{i}) = \bar c.
 ```
 
-Here $`\bar c`$ is the supplied `label_frequency` and $`e(x)`$ is positive-class labeling
-propensity. The OS population labeled fraction satisfies $`q=\pi_{population}\bar c`$; see
+Here $`\bar c`$ is the supplied target and $`e(x)`$ is positive-class labeling
+propensity. The expected OS labeled fraction satisfies $`E[q]=\pi_{population}\bar c`$; see
 [SCAR/SAR concepts](../concepts/scar_sar.md#1-two-labeling-mechanisms) for notation.
 
 The realized fraction comes from Bernoulli sampling and fluctuates around the target. Save:

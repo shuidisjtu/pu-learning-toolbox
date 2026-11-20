@@ -44,7 +44,7 @@ from .estimators.risk.puet import PUExtraTreesClassifier
 from .estimators.risk.pulda import PULDAClassifier
 from .estimators.risk.upu import UPUClassifier
 from .estimators.risk.vpu import VPUClassifier
-from .preprocessing import make_sar_dataset, profile_pu_data
+from .preprocessing import profile_pu_data
 from .prior.kernel_mean import KernelMeanPriorEstimator
 from .prior.pen_l1 import ClassPriorEstimator
 from .prior.recpe import ReCPEEstimator
@@ -93,6 +93,5 @@ __all__ = [
     "analyze_pu_uncertainty",
     "build_diagnostic_report",
     "build_encoder",
-    "make_sar_dataset",
     "profile_pu_data",
 ]

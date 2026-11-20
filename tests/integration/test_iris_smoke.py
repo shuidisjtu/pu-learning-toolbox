@@ -19,7 +19,7 @@ must be converted before a PU estimator can consume them:
 2. split train/test **stratified on the true binary labels** with a fixed
    seed -- the plan requires a stratified split, which is the one sanctioned
    use of the true labels;
-3. convert **only the training fold**: ``make_pu_labels(..., "scar", c=0.5)``
+3. convert **only the training fold**: SCAR fixed-count construction
    for PU semantics and ``make_pnu_labels(...)`` for the PNU-semantics method.
 
 The test-truth labels never leave the fixture: it returns
@@ -39,7 +39,8 @@ from sklearn.model_selection import train_test_split
 from pu_toolbox.core.base import BasePUClassifier
 from pu_toolbox.core.exceptions import NotFittedError
 from pu_toolbox.core.tags import Backend
-from pu_toolbox.preprocessing.pu_labeling import make_pnu_labels, make_pu_labels
+from pu_toolbox.preprocessing import PULabelingConfig, SourcePartition, construct_pu_dataset
+from pu_toolbox.preprocessing.pu_labeling import make_pnu_labels
 from pu_toolbox.registry import get_algorithm, list_algorithms
 from tests.estimator_factories import FACTORY_MAP, fit_kwargs
 
@@ -96,7 +97,13 @@ def _iris_split():
 def iris_pu():
     """(X_train, y_train in {+1, 0}, X_test) via SCAR with c=0.5."""
     X_train, y_train, X_test = _iris_split()
-    return X_train, make_pu_labels(y_train, mechanism="scar", c=_SCAR_C, random_state=_SEED), X_test
+    result = construct_pu_dataset(
+        SourcePartition(X_train, y_train, "iris", "train"),
+        PULabelingConfig("scar", "fixed_count", _SEED, c=_SCAR_C),
+        positive_classes=(1,),
+        negative_classes=(0,),
+    )
+    return X_train, result.observations.labels, X_test
 
 
 @pytest.fixture(scope="module")

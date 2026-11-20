@@ -5,20 +5,26 @@
 
 from sklearn.model_selection import train_test_split
 
+from pu_toolbox.core.random import check_random_state
 from pu_toolbox.estimators.deep import SelfPUClassifier
-from pu_toolbox.preprocessing import make_sar_dataset
+from pu_toolbox.preprocessing import GaussianSourceConfig, PULabelingConfig, simulate_pu_dataset
 from pu_toolbox.prior import population_to_native_unlabeled
 
 
 def main() -> None:
-    X, y_pu, y_true, _ = make_sar_dataset(
-        n_samples=800,
-        n_features=8,
-        class_prior=0.3,
-        mechanism="scar",
-        label_frequency=0.4,
-        random_state=42,
+    rng = check_random_state(42)
+    result = simulate_pu_dataset(
+        GaussianSourceConfig(800, 8, 0.3, 2.0, rng),
+        PULabelingConfig(
+            "scar",
+            "bernoulli",
+            rng,
+            c=0.4,
+            ensure_labeled=True,
+        ),
     )
+    X, y_pu = result.observations.features, result.observations.labels
+    y_true = result.audit.true_labels
     X_train, X_val, y_train, _, _, y_val = train_test_split(
         X,
         y_pu,

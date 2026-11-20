@@ -5,9 +5,11 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 import numpy as np
 
-from pu_toolbox.preprocessing.selection_bias import make_sar_dataset
+from pu_toolbox.preprocessing import GaussianSourceConfig, PULabelingConfig, simulate_pu_dataset
 
 # Protocol P:N:U ratios (contract §2.2); absolute counts per scenario come
 # from ``pnu_counts`` so the small/mid scale actually changes the data.
@@ -66,29 +68,37 @@ def _make_binary_data(
     class_prior: float,
     separation: float,
     label_frequency: float,
-    mechanism: str,
+    mechanism: Literal["scar", "linear"],
     random_state: int,
+    strength: float = 1.0,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, dict[str, float | bool | str]]:
-    X, y_pu, y_true, _ = make_sar_dataset(
-        n_samples=n_samples,
-        n_features=n_features,
-        class_prior=class_prior,
-        separation=separation,
-        mechanism=mechanism,
-        label_frequency=label_frequency,
-        random_state=random_state,
+    # Preserve the benchmark's sequential source and Bernoulli marking stream.
+    rng = np.random.RandomState(random_state)
+    result = simulate_pu_dataset(
+        GaussianSourceConfig(n_samples, n_features, class_prior, separation, rng),
+        PULabelingConfig(
+            "scar" if mechanism == "scar" else "sar",
+            "bernoulli",
+            rng,
+            c=label_frequency,
+            propensity_rule=None if mechanism == "scar" else mechanism,
+            strength=strength,
+            ensure_labeled=True,
+        ),
     )
     real_h = 1.0 - label_frequency  # LDCE semantics: P(flip a true positive to unlabeled)
     return (
-        X,
-        y_pu,
-        y_true,
+        result.observations.features,
+        result.observations.labels,
+        result.audit.true_labels,
         {
             "mechanism": mechanism,
             "class_prior": float(class_prior),
             "label_frequency": float(label_frequency),
             "real_h": float(real_h),
-            "pi_h_well_conditioned": bool(not is_ill_conditioned(class_prior, real_h)),
+            "pi_h_well_conditioned": (
+                mechanism == "linear" or not is_ill_conditioned(class_prior, real_h)
+            ),
         },
     )
 
@@ -123,24 +133,16 @@ def make_sar_linear_data(
     random_state: int,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, dict[str, float | bool | str]]:
     """Linear SAR robustness line; diagnostic only, never main ranking."""
-    X, y_pu, y_true, _ = make_sar_dataset(
+    return _make_binary_data(
         n_samples=n_samples,
         n_features=n_features,
         class_prior=class_prior,
         separation=separation,
-        mechanism="linear",
         label_frequency=label_frequency,
+        mechanism="linear",
         strength=strength,
         random_state=random_state,
     )
-    meta = {
-        "mechanism": "linear",
-        "class_prior": float(class_prior),
-        "label_frequency": float(label_frequency),
-        "real_h": float(1.0 - label_frequency),
-        "pi_h_well_conditioned": True,
-    }
-    return X, y_pu, y_true, meta
 
 
 def make_pnu_data(

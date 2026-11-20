@@ -7,8 +7,7 @@ Positive-unlabeled (PU) learning has two observed supervision roles: **labeled p
 partial supervision distinguishes PU learning from fully supervised classification.
 
 The toolbox accepts existing PU arrays `X, y_pu`, constructs PU labels from fully labeled data
-using `make_scar_labels`, `make_fixed_count_labels`, or `make_sar_labels`, and provides synthetic
-data generators. For real PU data, record the actual sampling and labeling process. For controlled
+using `construct_pu_dataset`, and provides synthetic data through `simulate_pu_dataset`. For real PU data, record the actual sampling and labeling process. For controlled
 experiments, record the source data, sampling policy, and labeling mechanism. Operational details
 are in the [sampling guide](../howto/pu_sampling.md) and
 [SCAR/SAR simulation guide](../howto/sar_simulation.md).

@@ -1,30 +1,19 @@
 # ruff: noqa: N803, N806
 
-"""Synthetic SCAR/SAR labeling mechanisms for PU experiments.
+"""Calibrated labeling propensities for OS simulations.
 
-The helpers in this module keep three concerns separate:
-
-* :func:`make_sar_propensity` constructs a deterministic labeling
-  propensity with a calibrated positive-class mean.
-* :func:`make_sar_labels` samples observable PU labels from that propensity.
-* :func:`make_sar_dataset` creates Gaussian data and retains hidden truth for
-  benchmark evaluation.
-
-Returned propensity values represent ``P(S=1 | Y, X)``. They are therefore
-zero for true negatives, which can never receive a positive label.
+These probabilities represent ``P(S=1 | Y, X)`` and are zero for true negatives.
+The OS constructors turn them into observations and separately retain audit truth.
 """
 
 from __future__ import annotations
 
-import warnings
 from typing import Literal
 
 import numpy as np
 from scipy.special import expit
 
-from pu_toolbox.core.config import POSITIVE_LABEL, UNLABELED_LABEL
-from pu_toolbox.core.random import check_random_state
-from pu_toolbox.core.validation import check_scalar_in_range, validate_true_binary_labels
+from pu_toolbox.core.validation import validate_true_binary_labels
 
 SARMechanism = Literal["scar", "linear", "nonlinear"]
 SAR_MECHANISMS: tuple[SARMechanism, ...] = ("scar", "linear", "nonlinear")
@@ -32,8 +21,6 @@ SAR_MECHANISMS: tuple[SARMechanism, ...] = ("scar", "linear", "nonlinear")
 __all__ = [
     "SAR_MECHANISMS",
     "SARMechanism",
-    "make_sar_dataset",
-    "make_sar_labels",
     "make_sar_propensity",
 ]
 
@@ -190,176 +177,3 @@ def make_sar_propensity(
     intercept = _calibrated_intercept(raw_scores[positive_mask], target)
     propensity[positive_mask] = expit(raw_scores[positive_mask] + intercept)
     return propensity
-
-
-def make_sar_labels(
-    X: np.ndarray,
-    y_true: np.ndarray,
-    *,
-    mechanism: str = "linear",
-    label_frequency: float = 0.5,
-    strength: float = 1.0,
-    feature_weights: np.ndarray | None = None,
-    ensure_labeled: bool = True,
-    random_state: int | np.random.RandomState | None = None,
-    return_propensity: bool = False,
-) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
-    """Sample canonical PU labels from a SCAR/SAR propensity.
-
-    Sampling follows ``S_i ~ Bernoulli(propensity_i)``. When
-    ``ensure_labeled=True`` and Bernoulli sampling selects no positives, the
-    highest-propensity true positive is labeled. This practical guard keeps
-    downstream PU estimators usable and is most relevant for tiny datasets or
-    very small ``label_frequency``.
-
-    Parameters are shared with :func:`make_sar_propensity`.
-
-    Parameters
-    ----------
-    ensure_labeled : bool, default=True
-        Guarantee at least one observed positive when true positives exist.
-    random_state : int, np.random.RandomState or None, optional
-        Random state controlling Bernoulli draws.
-    return_propensity : bool, default=False
-        Return ``(y_pu, propensity)`` instead of only ``y_pu``.
-
-    Returns
-    -------
-    y_pu : np.ndarray of shape (n_samples,)
-        Canonical labels with ``1`` for observed positives and ``0`` for U.
-    propensity : np.ndarray of shape (n_samples,), optional
-        Returned only when ``return_propensity=True``.
-    """
-    X_array, y_array = _validate_x_y(X, y_true)
-    if not isinstance(ensure_labeled, bool | np.bool_):
-        raise TypeError("ensure_labeled must be a boolean.")
-    if not isinstance(return_propensity, bool | np.bool_):
-        raise TypeError("return_propensity must be a boolean.")
-    propensity = make_sar_propensity(
-        X_array,
-        y_array,
-        mechanism=mechanism,
-        label_frequency=label_frequency,
-        strength=strength,
-        feature_weights=feature_weights,
-    )
-    rng = check_random_state(random_state)
-    y_pu = np.full(len(y_array), UNLABELED_LABEL, dtype=int)
-    selected = rng.uniform(size=len(y_array)) < propensity
-    y_pu[selected] = POSITIVE_LABEL
-
-    positive_indices = np.flatnonzero(y_array == 1)
-    if ensure_labeled and len(positive_indices) and not np.any(y_pu == POSITIVE_LABEL):
-        best = positive_indices[np.argmax(propensity[positive_indices])]
-        y_pu[best] = POSITIVE_LABEL
-    if return_propensity:
-        return y_pu, propensity
-    return y_pu
-
-
-def make_sar_dataset(
-    n_samples: int = 1000,
-    *,
-    n_features: int = 5,
-    class_prior: float = 0.3,
-    separation: float = 2.0,
-    mechanism: str | None = None,
-    label_frequency: float = 0.5,
-    strength: float = 1.0,
-    feature_weights: np.ndarray | None = None,
-    ensure_labeled: bool = True,
-    random_state: int | np.random.RandomState | None = None,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """Generate a Gaussian binary dataset with observable SCAR/SAR labels.
-
-    The class count is deterministic: ``round(n_samples * class_prior)``
-    positives are generated and the rows are shuffled. Positive and negative
-    features have means ``+separation/2`` and ``-separation/2`` respectively
-    in every feature, with identity covariance.
-
-    Parameters
-    ----------
-    n_samples : int, default 1000
-        Total number of samples.
-    n_features : int, default 5
-        Dimensionality of the feature space.
-    class_prior : float, default 0.3
-        Positive-class proportion, ``0 < class_prior < 1``.
-    separation : float, default 2.0
-        Distance between the two class centres (``2 * delta``).
-    mechanism : {"scar", "linear", "nonlinear"} or None, default None
-        Labeling mechanism. ``None`` resolves to ``"linear"`` — **SAR**,
-        where the labeling propensity depends on the features, and a
-        :class:`UserWarning` is emitted. Class-prior estimators and PU
-        classifiers assume **SCAR** (``mechanism="scar"``, labeling
-        independent of features); check
-        ``docs/user/concepts/scar_sar.md`` before choosing.
-    label_frequency : float, default 0.5
-        Mean labeling propensity for true positives.
-    strength : float, default 1.0
-        How strongly the propensity varies across features in SAR modes.
-    feature_weights : np.ndarray or None, default None
-        Per-feature propensity weights for SAR modes.
-    ensure_labeled : bool, default True
-        Guarantee at least one labeled positive.
-    random_state : int, np.random.RandomState or None, default None
-        Random seed or RandomState for reproducibility.
-
-    Returns
-    -------
-    X : np.ndarray of shape (n_samples, n_features)
-        Generated feature matrix.
-    y_pu : np.ndarray of shape (n_samples,)
-        Observable canonical PU labels.
-    y_true : np.ndarray of shape (n_samples,)
-        Hidden binary labels retained for benchmark evaluation.
-    propensity : np.ndarray of shape (n_samples,)
-        Ground-truth ``P(S=1 | Y, X)`` retained for diagnostics.
-    """
-    if isinstance(n_samples, bool) or not isinstance(n_samples, int | np.integer):
-        raise TypeError("n_samples must be an integer.")
-    if n_samples < 2:
-        raise ValueError(f"n_samples must be >= 2; got {n_samples}.")
-    if isinstance(n_features, bool) or not isinstance(n_features, int | np.integer):
-        raise TypeError("n_features must be an integer.")
-    if n_features < 1:
-        raise ValueError(f"n_features must be >= 1; got {n_features}.")
-    if isinstance(class_prior, bool) or not np.isscalar(class_prior):
-        raise TypeError("class_prior must be a real scalar.")
-    check_scalar_in_range(float(class_prior), 0.0, 1.0, "class_prior", inclusive=False)
-    if isinstance(separation, bool) or not np.isscalar(separation):
-        raise TypeError("separation must be a real scalar.")
-    if not np.isfinite(separation) or float(separation) < 0:
-        raise ValueError(f"separation must be finite and >= 0; got {separation}.")
-    if mechanism is None:
-        mechanism = "linear"
-        warnings.warn(
-            "make_sar_dataset defaults to mechanism='linear' (SAR: labeling "
-            "depends on features). Class-prior estimators assume SCAR; pass "
-            "mechanism='scar' for SCAR data. See "
-            "docs/user/concepts/scar_sar.md for the difference.",
-            UserWarning,
-            stacklevel=2,
-        )
-
-    rng = check_random_state(random_state)
-    n_positive = int(np.clip(round(n_samples * float(class_prior)), 1, n_samples - 1))
-    y_true = np.r_[
-        np.ones(n_positive, dtype=int),
-        np.zeros(n_samples - n_positive, dtype=int),
-    ]
-    rng.shuffle(y_true)
-    location = np.where(y_true[:, None] == 1, separation / 2.0, -separation / 2.0)
-    X = rng.normal(loc=location, scale=1.0, size=(n_samples, n_features))
-    y_pu, propensity = make_sar_labels(
-        X,
-        y_true,
-        mechanism=mechanism,
-        label_frequency=label_frequency,
-        strength=strength,
-        feature_weights=feature_weights,
-        ensure_labeled=ensure_labeled,
-        random_state=rng,
-        return_propensity=True,
-    )
-    return X, y_pu, y_true, propensity

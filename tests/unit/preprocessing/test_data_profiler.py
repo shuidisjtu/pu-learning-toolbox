@@ -11,10 +11,12 @@ import pytest
 from scipy import sparse
 
 from pu_toolbox.preprocessing import (
+    GaussianSourceConfig,
     PUDataProfile,
-    make_sar_dataset,
+    PULabelingConfig,
     profile_pu_data,
     scar_diagnostic,
+    simulate_pu_dataset,
 )
 
 
@@ -113,15 +115,13 @@ class TestProfileLabelChecks:
 @pytest.mark.unit
 class TestSelectionDiagnostic:
     def test_audited_scar_is_direct_and_plausible(self):
-        X, y_pu, y_true, _ = make_sar_dataset(
-            n_samples=2000,
-            n_features=5,
-            class_prior=0.5,
-            separation=2.0,
-            mechanism="scar",
-            label_frequency=0.5,
-            random_state=7,
+        rng = np.random.RandomState(7)
+        data = simulate_pu_dataset(
+            GaussianSourceConfig(2000, 5, 0.5, 2.0, rng),
+            PULabelingConfig("scar", "bernoulli", rng, c=0.5, ensure_labeled=True),
         )
+        X, y_pu = data.observations.features, data.observations.labels
+        y_true = data.audit.true_labels
 
         result = scar_diagnostic(X, y_pu, y_true=y_true, cv=5)
 
@@ -131,16 +131,21 @@ class TestSelectionDiagnostic:
         assert result["separability_auc"] < 0.65
 
     def test_audited_sar_is_direct_and_flagged(self):
-        X, y_pu, y_true, _ = make_sar_dataset(
-            n_samples=2000,
-            n_features=5,
-            class_prior=0.5,
-            separation=2.0,
-            mechanism="linear",
-            label_frequency=0.5,
-            strength=3.0,
-            random_state=7,
+        rng = np.random.RandomState(7)
+        data = simulate_pu_dataset(
+            GaussianSourceConfig(2000, 5, 0.5, 2.0, rng),
+            PULabelingConfig(
+                "sar",
+                "bernoulli",
+                rng,
+                c=0.5,
+                propensity_rule="linear",
+                strength=3.0,
+                ensure_labeled=True,
+            ),
         )
+        X, y_pu = data.observations.features, data.observations.labels
+        y_true = data.audit.true_labels
 
         report = profile_pu_data(X, y_pu, y_true=y_true)
 
@@ -149,14 +154,12 @@ class TestSelectionDiagnostic:
         assert "sar_signal" in {issue.code for issue in report.issues}
 
     def test_observed_mode_is_explicitly_non_identifying(self):
-        X, y_pu, _, _ = make_sar_dataset(
-            n_samples=1000,
-            n_features=4,
-            class_prior=0.3,
-            separation=3.0,
-            mechanism="scar",
-            random_state=4,
+        rng = np.random.RandomState(4)
+        data = simulate_pu_dataset(
+            GaussianSourceConfig(1000, 4, 0.3, 3.0, rng),
+            PULabelingConfig("scar", "bernoulli", rng, c=0.5, ensure_labeled=True),
         )
+        X, y_pu = data.observations.features, data.observations.labels
 
         result = scar_diagnostic(X, y_pu)
 
@@ -180,13 +183,20 @@ class TestSelectionDiagnostic:
             scar_diagnostic(X, y, cv=1)
 
     def test_deterministic_cross_validation(self):
-        X, y_pu, y_true, _ = make_sar_dataset(
-            n_samples=600,
-            n_features=3,
-            class_prior=0.5,
-            mechanism="linear",
-            random_state=12,
+        rng = np.random.RandomState(12)
+        data = simulate_pu_dataset(
+            GaussianSourceConfig(600, 3, 0.5, 2.0, rng),
+            PULabelingConfig(
+                "sar",
+                "bernoulli",
+                rng,
+                c=0.5,
+                propensity_rule="linear",
+                ensure_labeled=True,
+            ),
         )
+        X, y_pu = data.observations.features, data.observations.labels
+        y_true = data.audit.true_labels
 
         first = scar_diagnostic(X, y_pu, y_true=y_true, random_state=9)
         second = scar_diagnostic(X, y_pu, y_true=y_true, random_state=9)

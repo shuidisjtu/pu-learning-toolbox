@@ -17,7 +17,7 @@ Let $`Y`$ be the true class and $`S`$ indicate an observed positive label. Two c
 
 ## 2. Data generation mechanisms
 
-The `mechanism` parameter of `make_sar_propensity` / `make_sar_dataset` supports:
+The `mechanism` parameter of `make_sar_propensity` supports:
 
 | Mechanism | Definition | Use |
 |---|---|---|
@@ -30,10 +30,9 @@ weights, normalized to unit L2 norm. With `strength=0`, both linear and nonlinea
 reduce to constant propensity, providing a useful implementation boundary check. See the
 [SAR simulation guide](../howto/sar_simulation.md) for generation examples.
 
-**The default is SAR:** omitting `mechanism` in `make_sar_dataset` resolves to `"linear"` and
-emits a `UserWarning`. Class-prior estimators and many PU classifiers assume SCAR. Before
-using generated data to evaluate such a method, choose the mechanism explicitly; use
-`mechanism="scar"` for a SCAR setting.
+The OS constructors require an explicit mechanism and sampling policy. Use `mechanism="scar"`
+for SCAR; SAR additionally requires a `linear` or `nonlinear` propensity rule. Class-prior
+estimators and many PU classifiers assume SCAR; check assumptions before evaluation.
 
 ## 3. Observational screening and positive-class audits
 
@@ -74,19 +73,15 @@ Record both separately.
 | Entry point | Meaning of its values | Policy and counts |
 |---|---|---|
 | `make_sar_propensity` | Individual Bernoulli labeling probabilities for true positives; zero for negatives | Positive-class mean calibrated to `label_frequency` |
-| `make_sar_labels` | Uses those probabilities | Independent Bernoulli draws; the realized count is random; fallback labeling is enabled by default |
-| `make_scar_labels` / `SCARGenerator` | c is the requested fraction of true positives to label | Uniform sampling without replacement; count is `min(n_pos, max(1, round(c*n_pos)))`; no positives gives all U |
+| OS constructors: SAR or SCAR `bernoulli` | c is the target mean positive-class propensity | Independent Bernoulli draws; realized count is random; top-up is disabled by default |
+| OS constructors: SCAR `fixed_count` / `SCARGenerator` | c is the requested fraction of true positives to label | Uniform sampling without replacement; count is `min(n_pos, max(1, round(c*n_pos)))`; no positives gives all U |
 | `SARLBEAGenerator` / `SARLBEBGenerator` | Relative sampling weights among true positives | Fixed quota, weighted sampling without replacement; weights express relative selection preference |
 
-With `make_sar_labels(ensure_labeled=True)`, if Bernoulli sampling selects no positive, the
-highest-propensity true positive is labeled. A tie chooses the first in input order. Returned
-propensities describe the Bernoulli phase; record the fallback separately through `ensure_labeled`.
-Use `False` for a pure Bernoulli study. Fixed-count rounding and the minimum of one label can also
-make the realized fraction differ from the requested rate.
-
-`make_scar_labels` and `SCARGenerator` produce identical labels for identical input labels,
-labeling rates, and seeds. Full selection still advances their random streams identically,
-which matters when chaining multiple data-construction calls.
+With `PULabelingConfig(..., ensure_labeled=True)`, if Bernoulli sampling selects no positive,
+the highest-propensity true positive is labeled; ties choose the first in input order. Audit
+propensities describe the Bernoulli phase, before top-up. The default `False` preserves pure
+Bernoulli sampling. Fixed-count rounding and the minimum of one label can also make the realized
+fraction differ from the requested rate.
 
 The current LBE generators fit an auxiliary LogisticRegression using true labels in the clean
 partition passed to that call, then select P only among its true positives. Train and `pu_val`

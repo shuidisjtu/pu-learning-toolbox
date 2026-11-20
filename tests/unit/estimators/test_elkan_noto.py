@@ -18,7 +18,7 @@ from pu_toolbox.core.exceptions import (
     ValidationError as PUValidationError,
 )
 from pu_toolbox.estimators.classic.elkan_noto import ElkanNotoClassifier
-from pu_toolbox.preprocessing import make_scar_dataset
+from tests.helpers import make_scar_data
 
 
 @pytest.mark.unit
@@ -71,7 +71,7 @@ class TestFitPredict:
         clf_pc = ElkanNotoClassifier(
             mode="probability_correction", internal_cv_folds=3, random_state=42
         )
-        X, y_pu, _ = make_scar_dataset(random_state=rng)
+        X, y_pu, _ = make_scar_data(rng=rng)
         clf.fit(X, y_pu)
         clf_pc.fit(X, y_pu)
 
@@ -98,14 +98,14 @@ class TestScarCalibration:
     """Method card §8.1: SCAR calibration quality."""
 
     def test_basic_propensity_estimate_close_to_true_c(self, rng):
-        X, y_pu, _ = make_scar_dataset(n=200, c=0.5, random_state=rng)
+        X, y_pu, _ = make_scar_data(n=200, c=0.5, rng=rng)
         clf = ElkanNotoClassifier(internal_cv_folds=3, random_state=42)
         clf.fit(X, y_pu)
         assert 0.25 < clf.propensity_ < 0.75, f"c_hat={clf.propensity_} far from true c=0.5"
 
     def test_basic_high_accuracy_on_clean_data(self, rng):
         """With strong separation, accuracy should be near-perfect."""
-        X, y_pu, y_true = make_scar_dataset(n=100, c=0.5, random_state=rng)
+        X, y_pu, y_true = make_scar_data(n=100, c=0.5, rng=rng)
         clf = ElkanNotoClassifier(internal_cv_folds=3, random_state=42)
         clf.fit(X, y_pu)
         acc = np.mean(clf.predict(X) == y_true)
@@ -134,8 +134,8 @@ class TestRankingInvariance:
 
     def test_deterministic_ranking_invariance(self, rng):
         """g(x) and f(x) are perfectly rank-correlated on train and test."""
-        X_train, y_pu, _ = make_scar_dataset(n=200, c=0.5, random_state=rng)
-        X_test, _, _ = make_scar_dataset(n=100, c=0.5, random_state=rng)
+        X_train, y_pu, _ = make_scar_data(n=200, c=0.5, rng=rng)
+        X_test, _, _ = make_scar_data(n=100, c=0.5, rng=rng)
 
         # g(x) is only produced under probability-correction mode
         clf = ElkanNotoClassifier(
@@ -160,7 +160,7 @@ class TestWeightedRetraining:
 
     def test_basic_weighted_retraining_and_weights(self, rng):
         """Weighted mode runs; predict_label_proba returns None; weights are non-negative."""
-        X, y_pu, _ = make_scar_dataset(n=100, c=0.5, random_state=rng)
+        X, y_pu, _ = make_scar_data(n=100, c=0.5, rng=rng)
 
         # Weighted mode runs
         clf = ElkanNotoClassifier(mode="weighted_retraining", internal_cv_folds=3, random_state=42)
@@ -192,7 +192,7 @@ class TestPriorEstimation:
     """Method card §8.4: class prior estimation."""
 
     def test_basic_class_prior_estimation(self, rng):
-        X, y_pu, _ = make_scar_dataset(n=200, c=0.5, random_state=rng)
+        X, y_pu, _ = make_scar_data(n=200, c=0.5, rng=rng)
         clf = ElkanNotoClassifier(internal_cv_folds=3, random_state=42)
         clf.fit(X, y_pu)
         # class_prior should be in a reasonable range around true prior=0.5
@@ -223,7 +223,7 @@ class TestErrorHandling:
 
     def test_param_not_fitted_and_validation_errors(self, rng):
         """Not fitted raises; both PU groups need enough samples for each fold."""
-        X, y_pu, _ = make_scar_dataset(random_state=rng)
+        X, y_pu, _ = make_scar_data(rng=rng)
         clf = ElkanNotoClassifier()
         for method in ["predict", "predict_proba", "decision_function"]:
             with pytest.raises(PUNotFittedError):
@@ -250,7 +250,7 @@ class TestCompatibility:
     """sklearn compatibility tests."""
 
     def test_basic_pipeline_compatible(self, rng):
-        X, y_pu, _ = make_scar_dataset(random_state=rng)
+        X, y_pu, _ = make_scar_data(rng=rng)
         clf = ElkanNotoClassifier(internal_cv_folds=3, random_state=42)
         assert clone(clf).get_params()["internal_cv_folds"] == 3
         pipe = Pipeline([("clf", clf)])
@@ -259,7 +259,7 @@ class TestCompatibility:
 
     def test_edge_custom_estimator_and_sample_weight(self, rng):
         """Different base estimators and sample_weight produce varied outputs."""
-        X, y_pu, _ = make_scar_dataset(n=100, c=0.5, random_state=rng)
+        X, y_pu, _ = make_scar_data(n=100, c=0.5, rng=rng)
 
         # Each propensity training fold has only two unlabeled rows for calibration.
         small_unlabeled_pool = np.r_[np.flatnonzero(y_pu == 1), np.flatnonzero(y_pu == 0)[:3]]
@@ -299,7 +299,7 @@ class TestMetadata:
     """Metadata, propensity, calibration method."""
 
     def test_basic_metadata_and_attributes(self, rng):
-        X, y_pu, _ = make_scar_dataset(random_state=rng)
+        X, y_pu, _ = make_scar_data(rng=rng)
         clf = ElkanNotoClassifier(internal_cv_folds=3, random_state=42)
         clf.fit(X, y_pu)
         meta = clf.get_pu_metadata()
@@ -326,7 +326,7 @@ class TestProbabilisticEdgeCases:
     """Probability edge cases: clipping, c≈1, proba sums."""
 
     def test_basic_predict_proba_columns_sum_to_one(self, rng):
-        X, y_pu, _ = make_scar_dataset(n=100, c=0.5, random_state=rng)
+        X, y_pu, _ = make_scar_data(n=100, c=0.5, rng=rng)
         clf = ElkanNotoClassifier(internal_cv_folds=3, random_state=42)
         clf.fit(X, y_pu)
         proba = clf.predict_proba(X)

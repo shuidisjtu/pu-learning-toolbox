@@ -22,34 +22,29 @@ risk-view parameters. Compute conversions from the relevant training partition.
 
 ## Construct same-pool OS observations
 
-Start with features and complete binary truth, then split by original source into
-the required training, validation, and test roles. Apply the labeling policy within
-each permitted role. Keep row identities aligned with features and both labels.
-
-This minimal example demonstrates fixed-count labeling of an existing clean pool:
+Pass one already-loaded source partition and explicit positive/negative classes to
+`construct_pu_dataset`. Supply original sample IDs when available. Otherwise use a
+stable source and partition namespace for generated position IDs. Keep experiment
+roles under caller control; the constructor never reads, downloads or splits data.
 
 ```python
 import numpy as np
+from pu_toolbox.preprocessing import PULabelingConfig, SourcePartition, construct_pu_dataset
 
-from pu_toolbox.preprocessing import make_fixed_count_labels, make_scar_labels
-
-y_true = np.array([1] * 40 + [0] * 60)
-y_fixed = make_fixed_count_labels(y_true, n_labeled=20, random_state=7)
-y_scar = make_scar_labels(y_true, c=0.5, random_state=7)
-assert y_fixed.sum() == y_scar.sum() == 20
-assert y_true[y_fixed == 0].mean() == 0.25
+truth = np.array([1] * 40 + [0] * 60)
+features = np.arange(100, dtype=float)[:, None]
+result = construct_pu_dataset(
+    SourcePartition(features, truth, "example-v1", "train"),
+    PULabelingConfig("scar", "fixed_count", random_state=7, n_labeled=20),
+    positive_classes=(1,),
+    negative_classes=(0,),
+)
+observed = result.observations
+assert observed.labels.sum() == 20
+assert result.manifest["audit"]["empirical_native_unlabeled_prior"] == 0.25
 ```
 
-`make_fixed_count_labels` selects a specified number of positives uniformly without
-replacement. `make_scar_labels` uses a positive-class labeling fraction and a fixed
-quota. `make_pu_labels(mechanism="fixed_count", n_labeled=...)` is the dispatcher.
-The older `case_control` labeling aliases retain this same-pool construction and
-emit a migration warning toward `fixed_count`.
-
-For a complete OS teaching dataset, `make_scar_dataset(n=..., c=..., ...)` returns
-`X, y_pu, y_true` with `n` samples per true class. `make_gaussian_pu_data` provides
-the teaching case with all generated positives labeled and U drawn from negatives.
-Choose the generator by the desired data distribution.
+Use `result.observations` for fitting. Keep `result.audit` separate and save the manifest.
 
 ## Generate independent TS data
 
@@ -72,32 +67,24 @@ multiple generator outputs. Analyze this data through `input_sampling="ts"`.
 
 ## Simulate SCAR/SAR labeling from clean features
 
-`make_sar_labels` uses Bernoulli draws from calibrated positive-class propensities.
-Choose `mechanism="scar"`, `"linear"`, or `"nonlinear"` explicitly.
+Use `PULabelingConfig("scar", "bernoulli", ...)` for equal positive propensities or
+`PULabelingConfig("sar", "bernoulli", ..., propensity_rule="linear")` for feature-dependent
+propensities (also supports `"nonlinear"`). Select `c` as a target positive-class marking
+rate. Read the actual budget and row identities from the result; `ensure_labeled=True`
+explicitly tops up a zero-mark draw, without redefining the recorded propensity.
 
 ```python
-from pu_toolbox.preprocessing import make_sar_labels
+from pu_toolbox.preprocessing import GaussianSourceConfig, PULabelingConfig, simulate_pu_dataset
 
-# Use the generated population U as a clean OS source pool for this example.
-X_os = X_ts[y_pu_ts == 0]
-y_true_os = y_true_ts[y_pu_ts == 0]
-y_pu_os, propensity = make_sar_labels(
-    X_os, y_true_os, mechanism="linear", label_frequency=0.4,
-    strength=1.5, ensure_labeled=False, random_state=7,
-    return_propensity=True,
+result = simulate_pu_dataset(
+    GaussianSourceConfig(120, 3, population_prior=0.4, separation=2.0, random_state=11),
+    PULabelingConfig("sar", "bernoulli", random_state=7, c=0.3, propensity_rule="linear"),
 )
 ```
 
-The example uses arrays from the TS generator above; a real complete-label dataset
-can supply `X_os, y_true_os` directly. Record the target mean propensity, actual
-positive labeling fraction, selected count, mechanism strength, seed, and
-`ensure_labeled`. With `ensure_labeled=True`, a zero-selection draw labels the
-highest-propensity positive. For pure Bernoulli experiments use `False` and check
-the realized positive count against the training/CV budget.
-
-Named LBE-A/LBE-B fixed-quota policies are available through experiment generators.
-Record their auxiliary-score fitting scope and weighting configuration; use
-[research-experiments.md](research-experiments.md) for the four-role workflow.
+Use the same labeling config with `construct_pu_dataset` for an existing partition.
+Named LBE-A/LBE-B fixed-quota policies remain with the experiment generators; see
+[research-experiments.md](research-experiments.md) for their four-role workflow.
 
 ## Convert and estimate priors
 

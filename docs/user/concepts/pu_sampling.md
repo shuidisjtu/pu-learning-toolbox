@@ -94,22 +94,14 @@ provides optional per-method background in Chinese.
 
 ## 4. Current generation entry points and limits
 
-- `make_scar_labels` labels a fixed quota of positives within one clean pool: an OS construction.
-- `make_fixed_count_labels` uniformly selects a specified number of P observations from
-  the same pool and preserves source row order. `make_pu_labels(mechanism="fixed_count")`
-  is its dispatch entry point.
-- `make_case_control_labels` and `make_pu_labels(mechanism="case_control")` are
-  compatibility names for this same-pool policy. They issue `FutureWarning` and are
-  scheduled for removal in 2.0.
-- `make_gaussian_pu_data` currently labels every generated positive as P; all U observations
-  come from the negative class. Its returned `n_p/(n_p+n_u)` is the true positive
-  proportion in that concatenated table.
-- For OS teaching data with mixed U, use `make_scar_dataset`; see the
-  [API reference](../reference/api/tools.md#data-generation).
+- `construct_pu_dataset` marks positives in a caller-selected, already-loaded OS partition.
+  It preserves row identity and requires an explicit positive/negative class map.
+  `simulate_pu_dataset` creates a clean Gaussian source and applies the same labeling policy.
+  See the [sampling tutorial](../howto/pu_sampling.md) for runnable examples.
 - `make_gaussian_case_control_data` independently generates positive P and population-mixture
-  U, returning the configured population prior, empirical U/training-table priors, and
-  source identities. The [sampling tutorial](../howto/pu_sampling.md) provides runnable
-  usage and a migration table.
+  U, returning separate target-population, empirical U and training-table priors. Neither
+  adding P into the OS risk pool nor labeling every positive in an OS source produces this
+  design.
 
 For real data, first investigate how observations were obtained. In comparative studies,
 split train / pu_val / clean_val / test by original source before constructing PU labels

@@ -1,6 +1,6 @@
 # ruff: noqa: N803, N806
 
-"""Sampling designs, legacy aliases, and independent Gaussian P/U sources."""
+"""Sampling designs, fixed-count labeling, and independent Gaussian P/U sources."""
 
 from __future__ import annotations
 
@@ -10,48 +10,42 @@ import numpy as np
 import pytest
 
 from pu_toolbox import preprocessing
+from pu_toolbox.preprocessing import PULabelingConfig, SourcePartition, construct_pu_dataset
 
 pytestmark = pytest.mark.unit
 
 
-def test_basic_fixed_count_preserves_os_pool_and_empirical_prior():
+def test_determ_os_fixed_count_construction_replays_seed():
     y_true = np.array([1] * 40 + [0] * 60)
-    labels = preprocessing.make_fixed_count_labels(y_true, n_labeled=20, random_state=7)
-    assert labels.shape == y_true.shape
-    assert np.count_nonzero(labels) == 20
-    assert np.all(labels[y_true == 0] == 0)
-    assert np.mean(y_true[labels == 0]) == pytest.approx(0.25)
-    dispatched = preprocessing.make_pu_labels(
-        y_true, mechanism="fixed_count", n_labeled=20, random_state=7
+    features = np.arange(len(y_true)).reshape(-1, 1)
+    source = SourcePartition(features, y_true, "fixture", "train")
+
+    def labels(seed):
+        return construct_pu_dataset(
+            source,
+            PULabelingConfig("scar", "fixed_count", seed, n_labeled=20),
+            positive_classes=(1,),
+            negative_classes=(0,),
+        ).observations.labels
+
+    first = labels(7)
+    np.testing.assert_array_equal(first, labels(7))
+    assert not np.array_equal(first, labels(8))
+    assert first.shape == y_true.shape
+    assert np.count_nonzero(first) == 20
+    assert np.all(first[y_true == 0] == 0)
+    assert np.mean(y_true[first == 0]) == pytest.approx(0.25)
+
+
+def test_edge_fixed_count_accepts_single_positive_class():
+    truth = np.ones(3, dtype=int)
+    result = construct_pu_dataset(
+        SourcePartition(np.ones((3, 1)), truth, "fixture", "train"),
+        PULabelingConfig("scar", "fixed_count", 0, n_labeled=3),
+        positive_classes=(1,),
+        negative_classes=(0,),
     )
-    np.testing.assert_array_equal(labels, dispatched)
-
-
-@pytest.mark.parametrize("use_dispatcher", [False, True])
-def test_determ_legacy_case_control_alias_keeps_seed_and_warns(use_dispatcher):
-    y_true = np.array([1] * 40 + [0] * 60)
-    expected = preprocessing.make_fixed_count_labels(y_true, n_labeled=20, random_state=7)
-    with pytest.warns(FutureWarning, match="make_fixed_count_labels.*2.0"):
-        if use_dispatcher:
-            labels = preprocessing.make_pu_labels(
-                y_true, mechanism="case_control", n_labeled=20, random_state=7
-            )
-        else:
-            labels = preprocessing.make_case_control_labels(y_true, 20, random_state=7)
-    np.testing.assert_array_equal(labels, expected)
-
-
-@pytest.mark.parametrize("n_labeled", [True, 1.5, 0, -1, 4])
-def test_param_fixed_count_rejects_invalid_counts(n_labeled):
-    with pytest.raises((ValueError, TypeError), match="n_labeled"):
-        preprocessing.make_fixed_count_labels(np.array([1, 1, 0]), n_labeled=n_labeled)
-
-
-def test_edge_fixed_count_all_positive_and_missing_dispatch_count():
-    labels = preprocessing.make_fixed_count_labels(np.ones(3), n_labeled=3, random_state=0)
-    np.testing.assert_array_equal(labels, np.ones(3))
-    with pytest.raises(ValueError, match="n_labeled"):
-        preprocessing.make_pu_labels(np.array([1, 0]), mechanism="fixed_count")
+    np.testing.assert_array_equal(result.observations.labels, truth)
 
 
 def test_basic_independent_ts_records_population_and_empirical_priors():

@@ -72,9 +72,9 @@ adapters, checkpoints, and result/reporting interfaces. Start with the
 
 See [data generation](tools.md#data-generation):
 
-- `make_sar_propensity`, `make_sar_labels`, `make_sar_dataset`, and `make_scar_dataset`.
-- `make_fixed_count_labels`, `make_pu_labels`, and `make_gaussian_case_control_data`
-  for same-pool labeling and independent TS sampling.
+- `construct_pu_dataset` and `simulate_pu_dataset` for explicit OS construction.
+- `make_sar_propensity` for propensity calculation and `make_gaussian_case_control_data`
+  for independent Gaussian TS sampling.
 
 ## Errors and exceptions
 
