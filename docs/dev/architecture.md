@@ -99,7 +99,7 @@ maturity describe provenance and stability independently of registry availabilit
 | Core (`core/`, `preprocessing/`, `registry/`, `utils/`) | — |
 | Estimation (`prior/`, `losses/`) | Core |
 | Algorithms (`estimators/`) | Core, Estimation |
-| Evaluation (`metrics/`, `model_selection/`, `diagnostics/`) | Core, Estimation (function-local only) |
+| Evaluation (`metrics/`, `model_selection/`, `diagnostics/`) | Core, Estimation |
 | Orchestration (`cli/`) | Core, Evaluation |
 | Experiment (`experiment/`) | Core, Estimation, Algorithms (function-local only), Evaluation (function-local only) |
 | User Layer (`benchmarks/`) | Core, Estimation, Algorithms, Evaluation |
