@@ -2,6 +2,7 @@
 """Real ResNet CPU/GPU smoke and encoder provenance gates (not paper evidence)."""
 
 import json
+from functools import wraps
 
 import numpy as np
 import pytest
@@ -87,6 +88,7 @@ def test_basic_real_resnet_native_cnn_gpu_smoke(tmp_path, monkeypatch):
     fitted_devices = []
     original_fit = type(model).fit
 
+    @wraps(original_fit)
     def checked_fit(estimator, *args, **kwargs):
         fitted = original_fit(estimator, *args, **kwargs)
         fitted_devices.extend(parameter.device.type for parameter in fitted.model_.parameters())
