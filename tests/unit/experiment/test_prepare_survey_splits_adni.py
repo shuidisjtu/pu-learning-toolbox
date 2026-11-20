@@ -65,6 +65,20 @@ def test_basic_load_adni_returns_nchw_uint8_with_protocol_class_ids(prep_script,
 
     X, y = prep_script.load_adni(raw_dir, expected_counts=COUNTS)
 
+    from pu_toolbox.preprocessing._dataset_images import _read_archive_images
+
+    classes = list(COUNTS)
+    part = {"archives": {name: f"adni/{name}.zip" for name in classes}, "expected_counts": COUNTS}
+    images, labels = _read_archive_images(
+        raw_dir, part, {"classes": classes, "suffixes": [".jpg", ".jpeg", ".png"]}
+    )
+    assert images.ndim == 1 and images.dtype == object
+    assert labels.tolist() == [name for name in classes for _ in range(COUNTS[name])]
+    for index, image_bytes in enumerate(images):
+        with Image.open(io.BytesIO(image_bytes)) as image:
+            pixels = np.asarray(image.convert("L").resize((128, 128), Image.LANCZOS))
+        np.testing.assert_array_equal(pixels, X[index, 0])
+
     assert X.dtype == np.uint8
     assert X.shape == (sum(COUNTS.values()), 1, 128, 128)
     assert [int((y == i).sum()) for i in range(4)] == list(COUNTS.values())

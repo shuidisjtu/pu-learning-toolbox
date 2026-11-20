@@ -27,6 +27,15 @@ SHA-256 establishes byte identity only. Preserve licensing uncertainty from the 
 an unknown license is not a grant. Dataset provenance uses `not_stated_by_source` when no
 license is transcribed, retaining the date and notes of the source review.
 
+## Raw readers and Survey preparation
+
+All eight prepared sources use `read_dataset` by format. The configured readers retain
+raw rows, labels and official partitions; they never download. The Survey script then
+applies the fixed Connect-4 column encoding, 20 Newsgroups prefix mapping, IMDB label IDs,
+ADNI-substitute image representation and protocol splits. It retains the existing integer
+role IDs, archive provenance and preprocessing rules rather than adopting the raw reader's
+position-ID strings.
+
 ## Alzheimer MRI substitute
 
 The project's `adni` slot uses a personal mirror of Kaggle's

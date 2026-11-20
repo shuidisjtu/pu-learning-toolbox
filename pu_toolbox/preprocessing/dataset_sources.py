@@ -2,17 +2,22 @@
 
 from __future__ import annotations
 
+import csv
 import gzip
 import json
 import re
 import struct
 from collections.abc import Mapping
+from decimal import Decimal
+from itertools import chain
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
 import numpy as np
 
 from ..utils.serialization import json_scalars
+from ._dataset_images import _read_archive_images, _read_cifar_batches
+from ._dataset_text import _read_text_documents
 from .pu_construction import SourcePartition
 
 __all__ = ["read_dataset"]
@@ -185,14 +190,151 @@ def _read_npz_arrays(root: Path, part, options) -> tuple[np.ndarray, np.ndarray]
         return archive[keys[0]], archive[keys[1]]
 
 
-def _validate_arrays(features, labels, options, context: str) -> None:
+def _column_index(selector, header: dict[str, int] | None, width: int) -> int:
+    if type(selector) is int and 0 <= selector < width:
+        return selector
+    if isinstance(selector, str):
+        if header is None:
+            raise ValueError("named column selectors require a header")
+        if selector in header:
+            return header[selector]
+    raise ValueError(f"column {selector!r} is not present in the table")
+
+
+def _integer_label(text: str) -> int:
+    # Exact conversion also accepts integral scientific notation from numeric exports.
+    value = Decimal(text)
+    bounds = np.iinfo(int)
+    if not value.is_finite() or not bounds.min <= value <= bounds.max:
+        raise ValueError("integer label is out of range")
+    if value != value.to_integral_value():
+        raise ValueError("integer label cannot be fractional")
+    return int(value)
+
+
+def _allowed_values(options, name: str) -> list | None:
+    if name not in options:
+        return None
+    values = options[name]
+    if not isinstance(values, (list, tuple)) or not values:
+        raise ValueError(f"{name} must list the permitted raw values")
+    return json_scalars(np.asarray(values, dtype=object), name=name)
+
+
+def _read_delimited_table(root: Path, part, options, *, numeric: bool):
+    _check_keys(part, {"file", "feature_columns", "label_column"}, set(), "table partition")
+    supported = {"delimiter", "has_header", "label_dtype", "column_count", "label_values"}
+    if not numeric:
+        supported.add("feature_values")
+    _check_keys(options, set(), supported, "table options")
+    feature_values = _allowed_values(options, "feature_values")
+    label_values = _allowed_values(options, "label_values")
+    allowed_features = None if feature_values is None else set(feature_values)
+    allowed_labels = None if label_values is None else set(label_values)
+    delimiter = options.get("delimiter", ",")
+    if not isinstance(delimiter, str) or len(delimiter) != 1 or delimiter in '\r\n\x00"':
+        raise ValueError("delimiter must be a single non-quote, non-newline character")
+    has_header = options.get("has_header", False)
+    if type(has_header) is not bool:
+        raise ValueError("has_header must be a boolean")
+    label_dtype = options.get("label_dtype", "str")
+    parsers = {"str": str, "int": _integer_label, "float": float}
+    if not isinstance(label_dtype, str) or label_dtype not in parsers:
+        raise ValueError("label_dtype must be 'str', 'int' or 'float'")
+    parse_label = parsers[label_dtype]
+    count = options.get("column_count")
+    if "column_count" in options and (type(count) is not int or count < 1):
+        raise ValueError("column_count must be a positive integer")
+    selectors = part["feature_columns"]
+    if not isinstance(selectors, (tuple, list)) or not selectors:
+        raise ValueError("feature_columns must be a non-empty ordered list of column selectors")
+    path = _local_path(root, part["file"])
+    _require_file(path)
+    features, labels = [], []
+    with path.open(encoding="utf-8-sig", newline="") as handle:
+        reader = csv.reader(handle, delimiter=delimiter, strict=True)
+        try:
+            first = next(reader, None)
+            if not first:
+                raise ValueError(f"{path.name}: line 1: expected a non-empty table")
+            width = len(first)
+            if count is not None and width != count:
+                context = f"{path.name}: line {reader.line_num}"
+                raise ValueError(f"{context}: expected {count} columns, found {width}")
+            header = None
+            if has_header:
+                if not all(name.strip() for name in first) or width != len(set(first)):
+                    raise ValueError(f"{path.name}: header names must be non-empty and distinct")
+                header = {name: index for index, name in enumerate(first)}
+            columns = [_column_index(selector, header, width) for selector in selectors]
+            label_index = _column_index(part["label_column"], header, width)
+            if len(set(columns)) != len(columns):
+                raise ValueError("feature_columns must select distinct columns")
+            if label_index in columns:
+                raise ValueError("label_column must not overlap feature_columns")
+            rows = reader if has_header else chain((first,), reader)
+            for row in rows:
+                context = f"{path.name}: line {reader.line_num}"
+                if len(row) != width:
+                    raise ValueError(f"{context}: expected {width} columns, found {len(row)}")
+                values = [row[column] for column in columns]
+                if numeric:
+                    try:
+                        values = [float(value) for value in values]
+                    except ValueError as error:
+                        raise ValueError(f"{context}: invalid numeric feature") from error
+                elif any(
+                    not value.strip()
+                    or (allowed_features is not None and value not in allowed_features)
+                    for value in values
+                ):
+                    raise ValueError(f"{context}: invalid categorical feature")
+                raw_label = row[label_index]
+                if not raw_label.strip():
+                    raise ValueError(f"{context}: missing label")
+                try:
+                    label = parse_label(raw_label)
+                except (ValueError, ArithmeticError) as error:
+                    raise ValueError(f"{context}: invalid {label_dtype} label") from error
+                if allowed_labels is not None and label not in allowed_labels:
+                    raise ValueError(f"{context}: label not in configured label_values")
+                features.append(values)
+                labels.append(label)
+        except csv.Error as error:
+            message = f"{path.name}: malformed delimited record at line {reader.line_num}"
+            raise ValueError(message) from error
+    return np.asarray(features, dtype=np.float64 if numeric else str), np.asarray(
+        labels, dtype=label_dtype
+    )
+
+
+def _read_delimited_numeric(root: Path, part, options):
+    return _read_delimited_table(root, part, options, numeric=True)
+
+
+def _read_delimited_categorical(root: Path, part, options):
+    return _read_delimited_table(root, part, options, numeric=False)
+
+
+def _validate_arrays(features, labels, options, context: str, codec: str) -> None:
     shape = _image_shape(options)
     if shape is not None:
         if features.dtype != np.uint8:
             raise ValueError(f"{context}: images must be uint8")
         if features.ndim != 3 or features.shape[1:] != shape:
             raise ValueError(f"{context}: images must have shape (N,{shape[0]},{shape[1]})")
-    if features.ndim < 2 or not all(features.shape) or features.dtype.kind not in "biuf":
+    if codec == "delimited_categorical":
+        if features.ndim != 2 or not all(features.shape) or features.dtype.kind != "U":
+            raise ValueError(f"{context}: features must be a non-empty categorical table")
+    elif codec in ("text_documents", "archive_images"):
+        expected_type = str if codec == "text_documents" else bytes
+        if (
+            features.ndim != 1
+            or not len(features)
+            or not all(isinstance(value, expected_type) for value in features)
+        ):
+            raise ValueError(f"{context}: expected a non-empty vector of raw documents")
+    elif features.ndim < 2 or not all(features.shape) or features.dtype.kind not in "biuf":
         raise ValueError(f"{context}: features must be a non-empty real numeric sample array")
     if features.dtype.kind == "f" and not np.isfinite(features).all():
         raise ValueError(f"{context}: features must be finite")
@@ -203,16 +345,20 @@ def _validate_arrays(features, labels, options, context: str) -> None:
     if len(labels) != len(features):
         raise ValueError(f"{context}: feature/label length mismatch")
     json_scalars(labels, name=f"{context}: labels")
-    if "label_values" in options:
-        values = options["label_values"]
-        if not isinstance(values, (list, tuple)) or not values:
-            raise ValueError("label_values must list the permitted raw classes")
-        allowed = json_scalars(np.asarray(values, dtype=object), name="label_values")
-        if not np.isin(labels, np.asarray(allowed, dtype=object)).all():
-            raise ValueError(f"{context}: labels must be in configured label_values {allowed}")
+    allowed = _allowed_values(options, "label_values")
+    if allowed is not None and not np.isin(labels, np.asarray(allowed, dtype=object)).all():
+        raise ValueError(f"{context}: labels must be in configured label_values {allowed}")
 
 
-_READERS = {"idx_images": _read_idx_images, "npz_arrays": _read_npz_arrays}
+_READERS = {
+    "archive_images": _read_archive_images,
+    "cifar_batches": _read_cifar_batches,
+    "delimited_categorical": _read_delimited_categorical,
+    "delimited_numeric": _read_delimited_numeric,
+    "idx_images": _read_idx_images,
+    "npz_arrays": _read_npz_arrays,
+    "text_documents": _read_text_documents,
+}
 
 
 def read_dataset(config: _SourceConfig, root: str | Path, *, partition: str) -> SourcePartition:
@@ -221,7 +367,9 @@ def read_dataset(config: _SourceConfig, root: str | Path, *, partition: str) -> 
     ``config`` is a mapping or a JSON file. Paths in it are relative to the
     explicit dataset directory ``root``. ``source_id@version:partition:row``
     records the declared source's row positions; local reading does not
-    independently verify that two copies are identical.
+    independently verify that two copies are identical. Categorical tokens,
+    text and encoded images require a separate numeric representation before
+    PU construction.
     """
     spec = _load_config(config)
     _token(partition, "partition")
@@ -230,7 +378,7 @@ def read_dataset(config: _SourceConfig, root: str | Path, *, partition: str) -> 
     options = spec.get("options", {})
     features, labels = _READERS[spec["format"]](Path(root), spec["partitions"][partition], options)
     source_id = f"{spec['source_id']}@{spec['version']}"
-    _validate_arrays(features, labels, options, f"{source_id} {partition}")
+    _validate_arrays(features, labels, options, f"{source_id} {partition}", spec["format"])
     if "image_shape" in options:
         features = features[:, None]
     sample_ids = np.array([f"{source_id}:{partition}:{row}" for row in range(len(labels))])

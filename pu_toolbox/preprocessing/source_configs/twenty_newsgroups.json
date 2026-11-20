@@ -1,0 +1,19 @@
+{
+  "source_id": "twenty_newsgroups",
+  "version": "bydate-v1",
+  "format": "text_documents",
+  "options": {
+    "classes": [
+      "alt.atheism", "comp.graphics", "comp.os.ms-windows.misc", "comp.sys.ibm.pc.hardware",
+      "comp.sys.mac.hardware", "comp.windows.x", "misc.forsale", "rec.autos", "rec.motorcycles",
+      "rec.sport.baseball", "rec.sport.hockey", "sci.crypt", "sci.electronics", "sci.med",
+      "sci.space", "soc.religion.christian", "talk.politics.guns", "talk.politics.mideast",
+      "talk.politics.misc", "talk.religion.misc"
+    ],
+    "encoding": "latin-1"
+  },
+  "partitions": {
+    "train": {"directory": "20news-bydate-train"},
+    "test": {"directory": "20news-bydate-test"}
+  }
+}

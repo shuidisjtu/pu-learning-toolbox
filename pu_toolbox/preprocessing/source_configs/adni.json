@@ -1,0 +1,25 @@
+{
+  "source_id": "adni",
+  "version": "raw-v1",
+  "format": "archive_images",
+  "options": {
+    "classes": ["NonDemented", "VeryMildDemented", "ModerateDemented", "MildDemented"],
+    "suffixes": [".jpg", ".jpeg", ".png"]
+  },
+  "partitions": {
+    "source": {
+      "archives": {
+        "NonDemented": "NonDemented.zip",
+        "VeryMildDemented": "VeryMildDemented.zip",
+        "ModerateDemented": "ModerateDemented.zip",
+        "MildDemented": "MildDemented.zip"
+      },
+      "expected_counts": {
+        "NonDemented": 3200,
+        "VeryMildDemented": 2240,
+        "ModerateDemented": 64,
+        "MildDemented": 896
+      }
+    }
+  }
+}

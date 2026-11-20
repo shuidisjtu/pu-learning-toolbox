@@ -1,38 +1,6 @@
 # ruff: noqa: N803, N806
 
-"""Survey split preparation (execution plan 1.4 — pilot data products).
-
-Builds the user-prepared four-way split products for the seed datasets
-(execution plan: CIFAR-10 + Spambase + IMDB first) from
-``data/raw/<dataset>/`` and writes, per seed:
-
-    data/splits/<dataset>/split_<seed>/
-        train.npz / pu_val.npz / clean_val.npz / test.npz   # X, y, indices
-        split_manifest.json                                  # + preprocessing
-
-Splits follow protocol §2.4 (二)3 via ``prepare_survey_dataset``:
-90% train / 5% pu_val / 5% clean_val (stratified, seed-driven), official
-test split when the dataset has one (CIFAR-10, IMDB) and a stratified 20%
-derived test otherwise (Spambase).  PU label views are NOT stored here:
-the runner generates them later (SCAR contract), so the products always
-carry REAL binary labels {0, 1} — this is the user-prepared part of the
-protocol division of labour (see execution-plan decision D2).
-
-Preprocessing per modality (statistics fitted on the train partition only
-and frozen into the manifest):
-
-- tabular (Spambase): train-fitted per-feature z-score, float32 features
-- text (IMDB): locked SBERT encoding (revision pinned, content-addressed
-  cache), 384-d float32 features
-- image (CIFAR-10): uint8 NCHW source arrays; channel statistics/augment
-  config fitted on train only and recorded in the manifest (the training
-  pipeline applies the frozen scaling via ``transform_survey_images``)
-
-Usage::
-
-    uv run python scripts/prepare_survey_splits.py \\
-        --datasets spambase,cifar10,imdb --seeds 0,1,2,3,4
-"""
+"""Survey split preparation (execution plan 1.4 — pilot data products)."""
 
 from __future__ import annotations
 
@@ -50,7 +18,7 @@ from pu_toolbox.experiment.bundle import DatasetBundle, DatasetPart
 from pu_toolbox.experiment.datasets import prepare_survey_dataset
 from pu_toolbox.experiment.image import fit_survey_image_preprocessing
 from pu_toolbox.experiment.text import SBERT_MODEL_NAME, encode_survey_texts
-from pu_toolbox.preprocessing import read_dataset
+from pu_toolbox.preprocessing import SourcePartition, read_dataset
 
 SBERT_REVISION = "1110a243fdf4706b3f48f1d95db1a4f5529b4d41"
 
@@ -99,14 +67,16 @@ CONNECT4_VALUES = ("b", "o", "x")
 #: ids 0-3 the protocol maps as ``0 vs 1,2,3``, and the image count of each class in the
 #: pinned mirror: a different count means a different set of files.
 ADNI_CLASSES = ("NonDemented", "VeryMildDemented", "ModerateDemented", "MildDemented")
-ADNI_EXPECTED_COUNTS = {
-    "NonDemented": 3200,
-    "VeryMildDemented": 2240,
-    "ModerateDemented": 64,
-    "MildDemented": 896,
-}
 ADNI_IMAGE_SIZE = (128, 128)
-_ADNI_IMAGE_SUFFIXES = (".jpg", ".jpeg", ".png")
+
+
+def _source_profile(dataset: str) -> Path:
+    profiles = Path(__file__).resolve().parents[1] / "pu_toolbox/preprocessing/source_configs"
+    return profiles / f"{dataset}.json"
+
+
+def _read_source(raw_dir: Path, dataset: str, partition: str) -> SourcePartition:
+    return read_dataset(_source_profile(dataset), raw_dir / dataset, partition=partition)
 
 
 def load_mnist_arrays(raw_dir: Path, dataset: str):
@@ -137,48 +107,21 @@ def load_mnist_arrays(raw_dir: Path, dataset: str):
 
 
 def load_twenty_newsgroups(raw_dir: Path):
-    """Read all original 20News documents, sorted by category and filename."""
-    pools = []
-    for pool in ("train", "test"):
-        root = raw_dir / "twenty_newsgroups" / f"20news-bydate-{pool}"
-        entries = list(root.iterdir())
-        if {entry.name for entry in entries} != set(NEWS_CATEGORIES) or any(
-            not entry.is_dir() for entry in entries
-        ):
-            raise ValueError(f"20News {pool}: expected the 20 known categories")
-        texts, labels = [], []
-        for category in sorted(NEWS_CATEGORIES):
-            members = sorted((root / category).iterdir(), key=lambda path: path.name)
-            if not members:
-                raise ValueError(f"20News {pool}: empty category {category}")
-            for member in members:
-                if not member.is_file():
-                    raise ValueError(f"20News {pool}: not a document file: {member}")
-                texts.append(member.read_bytes().decode("latin-1"))
-                labels.append(NEWS_PREFIXES.index(category.split(".")[0]))
-        pools.extend((texts, labels))
-    return tuple(pools)
+    """Project the 20 source categories onto the seven locked Survey prefixes."""
+    train = _read_source(raw_dir, "twenty_newsgroups", "train")
+    test = _read_source(raw_dir, "twenty_newsgroups", "test")
+
+    def prefix_ids(source):
+        return [NEWS_PREFIXES.index(label.split(".")[0]) for label in source.labels]
+
+    return train.features.tolist(), prefix_ids(train), test.features.tolist(), prefix_ids(test)
 
 
 def load_connect4(raw_dir: Path):
-    """Encode fixed b/o/x columns per cell; retain win/loss/draw source labels."""
-    rows, labels = [], []
-    path = raw_dir / "connect_4" / "connect-4.data"
-    with path.open(encoding="ascii") as source:
-        for line_number, line in enumerate(source, 1):
-            fields = line.rstrip("\r\n").split(",")
-            if len(fields) != 43:
-                raise ValueError(f"Connect-4 line {line_number}: expected 43 fields")
-            if any(value not in CONNECT4_VALUES for value in fields[:42]):
-                raise ValueError(f"Connect-4 line {line_number}: invalid cell value")
-            if fields[-1] not in ("win", "loss", "draw"):
-                raise ValueError(f"Connect-4 line {line_number}: invalid outcome")
-            rows.append([CONNECT4_VALUES.index(value) for value in fields[:42]])
-            labels.append(fields[-1])
-    if not rows:
-        raise ValueError("Connect-4: empty source")
-    encoded = np.eye(3, dtype=np.float64)[np.asarray(rows)].reshape(len(rows), 126)
-    return encoded, np.asarray(labels)
+    """Apply the locked b/o/x expansion after reading raw cells and outcomes."""
+    source = _read_source(raw_dir, "connect_4", "source")
+    encoded = (source.features[:, :, None] == np.asarray(CONNECT4_VALUES)).astype(np.float64)
+    return encoded.reshape(len(source.labels), -1), source.labels
 
 
 def source_encoding(dataset: str) -> dict[str, Any] | None:
@@ -264,97 +207,52 @@ def _attach_source_evidence(manifest, dataset, raw_handoff=None, input_identity=
 
 
 def load_spambase(raw_dir: Path) -> tuple[np.ndarray, np.ndarray]:
-    """Load ``spambase.data``: 57 features + binary label column."""
-    values = np.loadtxt(raw_dir / "spambase" / "spambase.data", delimiter=",")
-    return values[:, :-1].astype(np.float64), values[:, -1].astype(int)
+    """Read the existing numeric source; Survey still owns its role IDs and splits."""
+    source = _read_source(raw_dir, "spambase", "source")
+    return source.features, source.labels
 
 
 def load_cifar10(raw_dir: Path):
-    """Load CIFAR-10 train/test images (NCHW uint8) and raw class ids."""
-    from torchvision.datasets import CIFAR10
-
-    root = str(raw_dir / "cifar10")
-    train = CIFAR10(root=root, train=True, download=False)
-    test = CIFAR10(root=root, train=False, download=False)
-    # PIL images are HWC; the survey pipeline expects NCHW uint8 source arrays.
-    X_train = np.stack([np.asarray(image) for image, _ in train]).transpose(0, 3, 1, 2)
-    X_test = np.stack([np.asarray(image) for image, _ in test]).transpose(0, 3, 1, 2)
-    y_train = np.asarray([label for _, label in train])
-    y_test = np.asarray([label for _, label in test])
-    return X_train, y_train, X_test, y_test
+    """Read official CIFAR source partitions without changing identities."""
+    train = _read_source(raw_dir, "cifar10", "train")
+    test = _read_source(raw_dir, "cifar10", "test")
+    return train.features, train.labels, test.features, test.labels
 
 
 def load_adni(
     raw_dir: Path, *, expected_counts: dict[str, int] | None = None
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Load the ADNI stand-in from its four class archives (NCHW uint8, class ids 0-3).
-
-    The archives are read in place and never extracted.  Reading and preprocessing follow
-    PU-Bench's ``AlzheimerMRI`` loader (grayscale, LANCZOS resize to 128x128); its class
-    lists and its own split are not used.  macOS litter in the zips (``__MACOSX/``,
-    dot-files) is ignored, members are taken in sorted order so the arrays do not depend on
-    how the zip was written, and a class whose image count differs from the pinned mirror
-    is an error rather than a silently different dataset.
-    """
+    """Apply the locked representation to the pinned substitute images."""
     import io
-    import zipfile
 
     from PIL import Image
 
-    counts = ADNI_EXPECTED_COUNTS if expected_counts is None else expected_counts
-    images: list[np.ndarray] = []
-    labels: list[int] = []
-    for class_id, name in enumerate(ADNI_CLASSES):
-        with zipfile.ZipFile(raw_dir / "adni" / f"{name}.zip") as archive:
-            members = sorted(
-                info.filename
-                for info in archive.infolist()
-                if not info.is_dir()
-                and info.filename.startswith(f"{name}/")
-                and not info.filename.rsplit("/", 1)[-1].startswith(".")
-                and info.filename.lower().endswith(_ADNI_IMAGE_SUFFIXES)
-            )
-            if len(members) != counts[name]:
-                raise ValueError(
-                    f"adni {name}: found {len(members)} images, expected {counts[name]}"
-                )
-            for member in members:
-                with Image.open(io.BytesIO(archive.read(member))) as image:
-                    resized = image.convert("L").resize(ADNI_IMAGE_SIZE, Image.LANCZOS)
-                images.append(np.asarray(resized, dtype=np.uint8))
-                labels.append(class_id)
-    return np.stack(images)[:, np.newaxis, :, :], np.asarray(labels)
+    config = _source_profile("adni")
+    if expected_counts is None:
+        source = read_dataset(config, raw_dir / "adni", partition="source")
+    else:
+        spec = json.loads(config.read_text(encoding="utf-8"))
+        spec["partitions"]["source"]["expected_counts"] = expected_counts
+        source = read_dataset(spec, raw_dir / "adni", partition="source")
+    images = []
+    for payload in source.features:
+        with Image.open(io.BytesIO(payload)) as image:
+            resized = image.convert("L").resize(ADNI_IMAGE_SIZE, Image.LANCZOS)
+            images.append(np.asarray(resized, dtype=np.uint8))
+    labels = np.asarray([ADNI_CLASSES.index(label) for label in source.labels])
+    return np.stack(images)[:, np.newaxis, :, :], labels
 
 
 def load_imdb_texts(raw_dir: Path) -> tuple[list[str], list[int], list[str], list[int]]:
-    """List IMDB review texts and labels from the packed aclImdb archive."""
-    import tarfile
-
-    archive_path = raw_dir / "imdb" / "aclImdb_v1.tar.gz"
-    texts_train: list[str] = []
-    labels_train: list[int] = []
-    texts_test: list[str] = []
-    labels_test: list[int] = []
-
-    def _collect(member_root: str, texts: list[str], labels: list[int]) -> None:
-        with tarfile.open(archive_path, "r:gz") as archive:
-            names = [
-                (name, 1)
-                for name in archive.getnames()
-                if name.startswith(f"{member_root}/pos/") and name.endswith(".txt")
-            ]
-            names += [
-                (name, 0)
-                for name in archive.getnames()
-                if name.startswith(f"{member_root}/neg/") and name.endswith(".txt")
-            ]
-            for name, label in names:
-                texts.append(archive.extractfile(name).read().decode("utf-8", errors="replace"))
-                labels.append(label)
-
-    _collect("aclImdb/train", texts_train, labels_train)
-    _collect("aclImdb/test", texts_test, labels_test)
-    return texts_train, labels_train, texts_test, labels_test
+    """Apply the locked sentiment IDs to the two official text partitions."""
+    train = _read_source(raw_dir, "imdb", "train")
+    test = _read_source(raw_dir, "imdb", "test")
+    return (
+        train.features.tolist(),
+        (train.labels == "pos").astype(int).tolist(),
+        test.features.tolist(),
+        (test.labels == "pos").astype(int).tolist(),
+    )
 
 
 def _standardizer_fit(X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:

@@ -74,9 +74,11 @@ pu_toolbox/
     fit_state.py                          # opt-in state invalidation after failed fits
   preprocessing/
     __init__.py                           (public re-exports)
+    _dataset_images.py                    (offline CIFAR and ZIP image representations)
+    _dataset_text.py                      (raw text directory and TAR readers)
     _sampling.py                          # shared fixed positive quotas and uniform labeling without replacement
     dataset_fetch.py                      (explicit checksum-verified artifact acquisition)
-    source_configs/                       (MNIST-family examples sharing the IDX format)
+    source_configs/                       (reviewed image, text and table source configurations)
     dataset_sources.py                    (local format dispatch, raw partitions and source identities)
     pu_construction.py                   (OS constructors, source identity, observations and audit)
     pu_labeling.py                        (PNU labels and separate Gaussian sampling designs)
@@ -370,6 +372,7 @@ tests/
       test_bbe.py                       # independent tail formulas, confidence criteria, repeated scores, train/holdout isolation
       test_prior_semantics.py           # prior targets, mass identities, invalid domains, identifiable mixtures
     preprocessing/
+      test_dataset_delimited.py        # numeric table column selection and raw label contracts
       test_dataset_sources.py           # configuration-driven IDX/NPZ and source identities
       test_pu_construction.py           # Raw/synthetic OS construction contracts and fit smoke
       test_pu_labeling.py               # PNU and negative-only Gaussian construction contracts

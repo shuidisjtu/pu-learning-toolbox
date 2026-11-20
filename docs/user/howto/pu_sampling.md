@@ -75,6 +75,40 @@ directory is the source tree. `fetch_dataset` verifies configured artifact check
 not overwrite existing files, and writes `provenance.json`. A successful local read alone is
 not evidence that files were fetched or authenticated.
 
+A numeric table with a header uses the same local reader. For example, given a UTF-8
+`measurements.csv` with columns `width,height,class`:
+
+```python
+from pu_toolbox.preprocessing import read_dataset
+
+config = {
+    "source_id": "measurements",
+    "version": "v1",
+    "format": "delimited_numeric",
+    "options": {"delimiter": ",", "has_header": True, "label_dtype": "str"},
+    "partitions": {
+        "source": {
+            "file": "measurements.csv",
+            "feature_columns": ["width", "height"],
+            "label_column": "class",
+        }
+    },
+}
+table = read_dataset(config, "data/raw/measurements", partition="source")
+```
+
+The bundled `source_configs/spambase.json` also uses `delimited_numeric`, with integer
+labels and column indices for a local `spambase.data` file. It does not specify a download
+URL. In either example, `partition="source"` names a source partition, **not** an experiment
+training role. The reader preserves row-position IDs and column order; it does not encode,
+standardize, split, or fetch missing files.
+
+The other prepared Survey sources share the same local entry point. Connect-4 returns
+raw categorical cells, IMDB and 20 Newsgroups return raw documents, and the ADNI
+substitute profile returns original image bytes. Convert those raw features to the
+chosen numeric representation before constructing PU observations. Survey uses the
+same readers and keeps its fixed transformations separate.
+
 Map the same source partition in two different ways without changing its rows or IDs:
 
 ```python

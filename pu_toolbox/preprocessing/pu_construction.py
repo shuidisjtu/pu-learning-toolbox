@@ -32,6 +32,8 @@ class SourcePartition:
 
     Use a stable, distinct ``source_id`` (including revision if applicable) and
     partition name. The constructor does not read files or choose a partition.
+    Raw text, categorical values and encoded images must be represented as
+    numeric features before PU construction.
     """
 
     features: np.ndarray

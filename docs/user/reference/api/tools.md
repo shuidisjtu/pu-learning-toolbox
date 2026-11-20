@@ -302,26 +302,32 @@ Examples: [06](../../../../examples/minimal/06_sar_simulation.py) and
 dataset directory; the source ID is not appended. The configuration contains:
 
 - `source_id` and `version`, used in position IDs such as `mnist@idx-v1:train:0`.
-- `format`: `idx_images` or `npz_arrays`. Both use shared format readers, not per-dataset
-  functions. IDX requires `options.image_shape` (for example, `[28, 28]`). Either format can specify
-  `options.label_values`. For NPZ, `options.image_shape` is optional; only when supplied does
-  it enforce a uint8/NCHW image representation. `options.archive_keys` can require the exact set of keys
-  in an NPZ archive.
-- `partitions`: a mapping from partition name to file configuration. IDX entries specify
-  relative `features` and `labels` filenames and `max_rows`; each filename explicitly selects
-  the raw or `.gz` file. NPZ entries specify relative `file`, `features_key` and `labels_key`.
+- `format` selects a shared decoder. `partitions` maps each declared source partition
+  to the input options for that decoder. All configured paths are relative to `root`.
+
+  | Format | Options and per-partition fields |
+  |---|---|
+  | `idx_images` | `options.image_shape`; each partition supplies `features`, `labels` and `max_rows`. Use raw or `.gz` filenames explicitly. |
+  | `npz_arrays` | Each partition supplies `file`, `features_key` and `labels_key`. Optional `options.archive_keys` fixes the allowed keys; `image_shape` requests uint8 NCHW images. |
+  | `delimited_numeric` / `delimited_categorical` | Each partition supplies `file`, ordered `feature_columns` and a separate `label_column` (indices or names with a header). Options: `delimiter` (default `","`), `has_header` (default `false`), `label_dtype` (`"str"`, `"int"`, `"float"`) and optional `column_count`. Categorical tables accept optional `feature_values` and return raw tokens, not one-hot values. Both read UTF-8, including BOM. |
+  | `text_documents` | `options.classes` sets raw category order, with `encoding`, optional `decode_errors` and `suffix`. A partition specifies `directory` or `archive` plus `member_root`. Directories use filename order; TAR files preserve member order within each class. |
+  | `cifar_batches` | `options.variant="cifar10"`; each partition specifies `train` as a boolean. The torchvision reader is explicitly offline and returns NCHW images. |
+  | `archive_images` | `options.classes` and `suffixes`; the partition specifies `archives` and `expected_counts` by class. The reader returns the encoded image bytes in class and member-name order, without extracting archives. |
+
+- Optional `options.label_values` constrains raw labels for IDX, NPZ and delimited inputs.
 - Optional `artifacts`, keyed by relative filename, with `url` and `checksum` containing
   `algorithm` (`sha256` or `md5`) and `digest`. Explicit fetch verifies the digest, does not
   overwrite existing data files, and writes `provenance.json` with source version and checksums.
 
-The bundled configurations are `pu_toolbox/preprocessing/source_configs/mnist.json`
-and `pu_toolbox/preprocessing/source_configs/fashion_mnist.json`, both version `idx-v1`.
-Neither source requires torchvision. A local read preserves partition order and original labels,
-but does not authenticate the files; row-position IDs are not proof of identity across copies.
-Reading a named partition does not assign it a training or test role, and configuration does not
-choose positive/negative classes or role splits. Users can instead build `SourcePartition`
-directly. See the [mapping example](../../howto/pu_sampling.md#configure-acquisition-and-local-reading).
-Survey continues to use its existing NPZ format and integer IDs.
+`pu_toolbox/preprocessing/source_configs` contains profiles for the eight prepared Survey
+sources. IDX, text, ZIP and delimited reads do not need torchvision; the CIFAR profile does.
+A local read preserves partition order and raw labels, but does not authenticate the files;
+row-position IDs are not proof of identity across copies. Text, categorical tokens and encoded
+images must be represented as numeric features before PU construction. Reading a partition
+neither assigns an experiment role nor chooses positive or negative classes. See the
+[mapping example](../../howto/pu_sampling.md#configure-acquisition-and-local-reading).
+Survey uses the same reader, but still owns the frozen NPZ input route, role splits,
+preprocessing and integer IDs.
 
 `SourcePartition` takes features, original labels, a stable `source_id`, a named `partition`,
 and optional `sample_ids`. `PULabelingConfig` takes `mechanism`, `sampling_policy` and an
