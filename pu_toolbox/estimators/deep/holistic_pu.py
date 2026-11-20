@@ -25,6 +25,7 @@ from ...core.tags import (
 )
 from ...core.training_views import build_training_view
 from ...core.validation import validate_pu_X_y
+from ._encoder_policy import is_frozen_encoder, keep_frozen_encoder_eval, prepare_encoder_copy
 from ._validation import validate_encoder_features
 
 
@@ -214,6 +215,8 @@ class HolisticPUClassifier(BasePUClassifier):
         if self.encoder is not None and not isinstance(self.encoder, nn.Module):
             raise TypeError("encoder must be a torch.nn.Module")
         if self.encoder is not None and self.pseudo_pn_initialization == "reinitialize":
+            if is_frozen_encoder(self.encoder):
+                raise ValueError("a fixed encoder cannot be reset by pseudo_pn reinitialization")
             self._check_encoder_reinitialization(self.encoder)
         X = np.asarray(X, dtype=np.float32)
         if not np.isfinite(X).all():
@@ -273,6 +276,7 @@ class HolisticPUClassifier(BasePUClassifier):
         best_state, best_loss = None, float("inf")
         for epoch in range(self.warmup_epochs):
             self.model_.train()
+            keep_frozen_encoder_eval(self.encoder_)
             losses = []
             order = rng.permutation(unlabeled)
             for start in range(0, len(order), self.batch_size):
@@ -349,6 +353,7 @@ class HolisticPUClassifier(BasePUClassifier):
         # Supervise P + pseudo-labeled U; neither variant reads clean selection.
         for epoch in range(self.max_epochs):
             self.model_.train()
+            keep_frozen_encoder_eval(self.encoder_)
             losses = []
             order = rng.permutation(len(X))
             for start in range(0, len(order), self.batch_size):
@@ -496,7 +501,7 @@ class HolisticPUClassifier(BasePUClassifier):
                     )
                     if has_own_state and callable(reset):
                         reset()
-            own_encoder.requires_grad_(True).eval()
+            prepare_encoder_copy(own_encoder)
             with torch.no_grad():
                 features = own_encoder(torch.as_tensor(X[:1], device=self.device_))
             width = validate_encoder_features(features, encoder_param_name="encoder")

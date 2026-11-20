@@ -28,6 +28,7 @@ from ...core.tags import (
 from ...core.training_views import build_training_view
 from ...core.validation import validate_pu_X_y
 from ...losses.nnpu import _nnpu_train_step
+from ._encoder_policy import keep_frozen_encoder_eval, prepare_encoder_copy
 
 
 def self_paced_weights(losses, threshold: float, kind: str = "welsch"):
@@ -243,7 +244,7 @@ class RobustPUClassifier(BasePUClassifier):
             from ._validation import validate_encoder_features
 
             self.encoder_ = copy.deepcopy(self.encoder).to(device=device, dtype=torch.float32)
-            self.encoder_.requires_grad_(True).eval()
+            prepare_encoder_copy(self.encoder_)
             with torch.no_grad():
                 width = validate_encoder_features(
                     self.encoder_(torch.as_tensor(X[:1], device=device)),
@@ -314,6 +315,7 @@ class RobustPUClassifier(BasePUClassifier):
             )
             risks = []
             model.train()
+            keep_frozen_encoder_eval(self.encoder_)
             for step in range(steps):
                 p = p_order[
                     (step * self.batch_size) % len(p_order) : (step * self.batch_size)
@@ -380,6 +382,7 @@ class RobustPUClassifier(BasePUClassifier):
             optimizer = torch.optim.Adam(model.parameters(), lr=self.learning_rate)
             losses = []
             model.train()
+            keep_frozen_encoder_eval(self.encoder_)
             for _ in range(self.inner_epochs):
                 for indices in np.array_split(
                     rng.permutation(len(X)),

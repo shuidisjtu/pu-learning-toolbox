@@ -153,3 +153,27 @@ agreement or native-view groups.
 
 Reading and export use only information actually recorded in the inputs. They do not retrain,
 backfill original manifests, or automatically approve pending results.
+
+## Supplemental paired ResNet-18 study
+
+The standalone `paired-resnet18-scar-c03-v1` study uses frozen Survey v3.2 inputs.
+Compare a randomly initialized online-frozen encoder with a trainable encoder that
+starts from the same state. Each pair shares its method, split, SCAR labels, seed,
+head and training budget. The worker checks frozen parameters and batch-normalization
+buffers at completed epochs. The trainable arm updates encoder weights and buffers.
+
+The controller in `scripts/run_paired_resnet_campaign.py` is Linux-only for live
+GPU scheduling. Start with `--dry-run` to inspect the exact 120-fit plan: six methods,
+two image datasets, c=0.3, five seeds and two arms. Live dispatch requires a clean
+committed source checkout, verified split files, a permitted GPU pool and explicit
+enablement for methods that passed the short technical checks.
+
+`scripts/run_survey_paired_resnet.py` is the per-fit worker. Use `--probe` for a short
+technical check. Full-meta Self-PU requires the audited independent 500-row support
+product and selects with PA+clean-support and OA. Both Dist-PU arms use the staged
+histogram recipe and image-space mixup. The run manifest records the prior each
+training objective consumes and the population prior used for PA selection.
+
+Use a new result root. Two valid seed-zero receipts enable dispatch of that family's
+remaining seeds. The controller records checkpoint replay and schedules other
+families independently. Inspect its JSON status, per-attempt logs and paired CSV.

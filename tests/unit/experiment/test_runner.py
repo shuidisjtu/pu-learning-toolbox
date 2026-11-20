@@ -367,7 +367,8 @@ def test_candidate_failures_retry_once_and_exclude_from_selection(tmp_path):
     assert load_manifest(tmp_path / "retry.json")["failures"] == res.failures
 
 
-def test_all_failed_candidates_write_manifest_then_fail_loudly(tmp_path):
+@pytest.mark.parametrize("max_attempts", [None, 1])
+def test_all_failed_candidates_write_manifest_then_fail_loudly(tmp_path, max_attempts):
     train, pu_val, clean_val, test = make_bundle()
     manifest_path = tmp_path / "all-failed.json"
 
@@ -385,19 +386,22 @@ def test_all_failed_candidates_write_manifest_then_fail_loudly(tmp_path):
         manifest_path=str(manifest_path),
         training_population_prior=0.5,
         validation_population_prior=0.5,
-        config={"c": 0.5, "trainer": trainer},
+        config={
+            "c": 0.5,
+            "trainer": trainer,
+            **({"candidate_max_attempts": max_attempts} if max_attempts else {}),
+        },
     )
     with pytest.raises(RuntimeError, match="all candidate runs failed"):
         runner.fit(UPUClassifier(0.3), train, pu_val, clean_val, test)
 
     manifest = load_manifest(manifest_path)
-    assert trainer.calls == 2
+    assert trainer.calls == (max_attempts or 2)
     assert manifest["selection"] == {}
-    assert manifest["failures"][0]["status"] == "excluded"
-    assert [error["type"] for error in manifest["failures"][0]["errors"]] == [
-        "MemoryError",
-        "MemoryError",
-    ]
+    failure = manifest["failures"][0]
+    assert failure["status"] == "excluded"
+    assert failure["attempts"] == trainer.calls
+    assert [error["type"] for error in failure["errors"]] == ["MemoryError"] * trainer.calls
 
 
 def test_resource_accounting_covers_candidates_tuning_and_gpu(monkeypatch):

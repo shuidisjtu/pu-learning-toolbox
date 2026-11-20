@@ -34,6 +34,12 @@ from ...core.validation import (
     validate_true_binary_labels,
 )
 from ...prior._evidence import risk_pool_target, training_prior_uses
+from ._encoder_policy import (
+    is_frozen_encoder,
+    is_policy_encoder,
+    keep_frozen_encoder_eval,
+    prepare_encoder_copy,
+)
 
 __all__ = [
     "SelfPUClassifier",
@@ -185,19 +191,29 @@ def calibrate_meta_weights(
 
 
 def ema_update(teacher: Any, student: Any, decay: float) -> None:
-    """Update teacher parameters and floating buffers from a student."""
+    """Update teacher state except explicitly fixed encoder state."""
     if not 0.0 <= decay < 1.0:
         raise ValueError("decay must be in [0, 1).")
     import torch
 
+    # Multiplying even an unchanged frozen tensor by decay and adding it back
+    # can alter its bits by floating-point roundoff. Keep both EMA encoders
+    # at their identical initial state rather than applying EMA to them.
+    frozen = [module for module in student.modules() if is_frozen_encoder(module)]
+    frozen_parameters = {id(value) for module in frozen for value in module.parameters()}
+    frozen_buffers = {id(value) for module in frozen for value in module.buffers()}
     with torch.no_grad():
         for teacher_parameter, student_parameter in zip(
             teacher.parameters(), student.parameters(), strict=True
         ):
+            if id(student_parameter) in frozen_parameters:
+                continue
             teacher_parameter.mul_(decay).add_(student_parameter, alpha=1.0 - decay)
         for teacher_buffer, student_buffer in zip(
             teacher.buffers(), student.buffers(), strict=True
         ):
+            if id(student_buffer) in frozen_buffers:
+                continue
             if teacher_buffer.is_floating_point():
                 teacher_buffer.mul_(decay).add_(student_buffer, alpha=1.0 - decay)
             else:
@@ -277,6 +293,24 @@ def _forward(module: Any, inputs: Any) -> Any:
     return module(inputs.clone())
 
 
+def _eval_logits(module, inputs, batch_size, *, indices=None):
+    """Keep image scoring bounded and preserve the supplied row order."""
+    if batch_size is None:
+        batch = inputs if indices is None else inputs[indices]
+        return _as_logits(_forward(module, batch))
+
+    import torch
+
+    device = next(module.parameters()).device
+    size = len(inputs) if indices is None else len(indices)
+    scores = []
+    for start in range(0, size, batch_size):
+        stop = min(start + batch_size, size)
+        rows = slice(start, stop) if indices is None else indices[start:stop]
+        scores.append(_as_logits(_forward(module, inputs[rows].to(device))))
+    return torch.cat(scores)
+
+
 class SelfPUClassifier(BasePUClassifier):
     """Self-PU classifier with two paced students and EMA teachers.
 
@@ -325,6 +359,18 @@ class SelfPUClassifier(BasePUClassifier):
     input_ndims = frozenset({2, 4})
     encoder_parameter = None
     trains_encoder = False
+
+    @property
+    def checkpoint_prediction_batch_size(self) -> int:
+        """Match the paired image scorer; untagged estimators retain the default."""
+        return self._image_evaluation_batch_size() or 256
+
+    def _image_evaluation_batch_size(self) -> int | None:
+        if self.backbone is not None and any(
+            is_policy_encoder(module) for module in self.backbone.modules()
+        ):
+            return self.batch_size
+        return None
 
     def __init__(
         self,
@@ -524,6 +570,11 @@ class SelfPUClassifier(BasePUClassifier):
 
         if self.backbone is not None:
             model = copy.deepcopy(self.backbone)
+            for module in model.modules():
+                if is_policy_encoder(module):
+                    # The shape probe that follows must not update a paired
+                    # encoder before the students copy their initial state.
+                    prepare_encoder_copy(module)
         else:
             # Flatten accepts 4-D estimator-level input (input_ndims={2,4});
             # native_architectures={"mlp"} carries the no-native-CNN semantics
@@ -557,7 +608,14 @@ class SelfPUClassifier(BasePUClassifier):
             requires_grad=True,
         )
         objective = positive_loss + (meta[:, 0] * ce_losses + meta[:, 1] * pu_losses).sum()
-        named_parameters = dict(model.named_parameters())
+        # The virtual meta step must span the same trainable parameters as the
+        # real student step. Frozen encoder parameters are read by the forward
+        # pass but cannot be differentiation inputs.
+        named_parameters = {
+            name: parameter
+            for name, parameter in model.named_parameters()
+            if parameter.requires_grad
+        }
         gradients = torch.autograd.grad(
             objective,
             tuple(named_parameters.values()),
@@ -694,6 +752,7 @@ class SelfPUClassifier(BasePUClassifier):
             tx_pu_val = y_pu_val = None
 
         base_model = self._make_model(input_shape, device)
+        evaluation_batch_size = self._image_evaluation_batch_size() if X.ndim == 4 else None
         with torch.no_grad():
             _as_logits(_forward(base_model, tx[:1]))
         self.student_1_ = copy.deepcopy(base_model)
@@ -744,6 +803,10 @@ class SelfPUClassifier(BasePUClassifier):
 
         students = [self.student_1_, self.student_2_]
         teachers = [self.teacher_1_, self.teacher_2_]
+        frozen_student_encoders = [
+            tuple(module for module in student.modules() if is_frozen_encoder(module))
+            for student in students
+        ]
         for epoch_index in range(self.max_epochs):
             epoch = epoch_index + 1
             if epoch <= self.warmup_epochs:
@@ -760,7 +823,11 @@ class SelfPUClassifier(BasePUClassifier):
                 student.eval()
                 with torch.no_grad():
                     probabilities = (
-                        torch.sigmoid(_as_logits(_forward(student, tx[unlabeled_global])))
+                        torch.sigmoid(
+                            _eval_logits(
+                                student, tx, evaluation_batch_size, indices=unlabeled_global
+                            )
+                        )
                         .cpu()
                         .numpy()
                     )
@@ -794,11 +861,15 @@ class SelfPUClassifier(BasePUClassifier):
                 if self.distillation_scope == "paper_population":
                     x_population_batch = torch.cat([x_positive, x_unlabeled], dim=0)
                     cached_student_population_probabilities = [
-                        torch.sigmoid(_as_logits(_forward(student, x_population_batch)))
+                        torch.sigmoid(
+                            _eval_logits(student, x_population_batch, evaluation_batch_size)
+                        )
                         for student in students
                     ]
                     cached_teacher_population_probabilities = [
-                        torch.sigmoid(_as_logits(_forward(teacher, x_population_batch)))
+                        torch.sigmoid(
+                            _eval_logits(teacher, x_population_batch, evaluation_batch_size)
+                        )
                         for teacher in teachers
                     ]
                     n_positive_batch = len(positive_batch)
@@ -838,6 +909,8 @@ class SelfPUClassifier(BasePUClassifier):
                 )
             ):
                 student.train()
+                for encoder in frozen_student_encoders[index]:
+                    keep_frozen_encoder_eval(encoder)
                 positive_logits = _as_logits(_forward(student, x_positive))
                 unlabeled_logits = _as_logits(_forward(student, x_unlabeled))
                 # Computed once: under the calibrated view the same tensor feeds
@@ -1022,7 +1095,9 @@ class SelfPUClassifier(BasePUClassifier):
             )
             if tx_pu_val is not None and y_pu_val is not None:
                 teacher_val_risks = [
-                    _pu_validation_risk(teacher, tx_pu_val, y_pu_val, val_prior)
+                    _pu_validation_risk(
+                        teacher, tx_pu_val, y_pu_val, val_prior, evaluation_batch_size
+                    )
                     for teacher in teachers
                 ]
                 val_teacher_index = int(np.argmin(teacher_val_risks))
@@ -1058,7 +1133,8 @@ class SelfPUClassifier(BasePUClassifier):
             with torch.no_grad():
                 for teacher in teachers:
                     prediction = (
-                        torch.sigmoid(_as_logits(_forward(teacher, tx_val))) >= self.threshold
+                        torch.sigmoid(_eval_logits(teacher, tx_val, evaluation_batch_size))
+                        >= self.threshold
                     ).float()
                     teacher_metrics.append(float((prediction == ty_val).float().mean().cpu()))
             self.teacher_selection_basis_ = "clean_validation_accuracy"
@@ -1077,8 +1153,12 @@ class SelfPUClassifier(BasePUClassifier):
         else:
             with torch.no_grad():
                 for teacher in teachers:
-                    p_scores = _as_logits(_forward(teacher, tx[positive_global]))
-                    u_scores = _as_logits(_forward(teacher, tx[unlabeled_global]))
+                    p_scores = _eval_logits(
+                        teacher, tx, evaluation_batch_size, indices=positive_global
+                    )
+                    u_scores = _eval_logits(
+                        teacher, tx, evaluation_batch_size, indices=unlabeled_global
+                    )
                     p_plus = torch.sigmoid(-p_scores).mean()
                     p_minus = torch.sigmoid(p_scores).mean()
                     u_minus = torch.sigmoid(u_scores).mean()
@@ -1150,15 +1230,14 @@ class SelfPUClassifier(BasePUClassifier):
         if not len(X):
             return np.empty(0, dtype=np.float32)
         modes = [(module, module.training) for module in self.best_teacher_.modules()]
+        batch_size = self._image_evaluation_batch_size() if X.ndim == 4 else None
         try:
             self.best_teacher_.eval()
             with torch.no_grad():
-                logits = _as_logits(
-                    _forward(
-                        self.best_teacher_,
-                        torch.as_tensor(X, dtype=torch.float32, device=self.device_),
-                    )
+                source = torch.as_tensor(
+                    X, dtype=torch.float32, device="cpu" if batch_size else self.device_
                 )
+                logits = _eval_logits(self.best_teacher_, source, batch_size)
             return logits.cpu().numpy()
         finally:
             for module, training in modes:
@@ -1225,7 +1304,13 @@ class SelfPUClassifier(BasePUClassifier):
         }
 
 
-def _pu_validation_risk(model: Any, X_val: Any, y_pu_val: np.ndarray, risk_prior: float) -> float:
+def _pu_validation_risk(
+    model: Any,
+    X_val: Any,
+    y_pu_val: np.ndarray,
+    risk_prior: float,
+    batch_size: int | None = None,
+) -> float:
     """Evaluate one teacher with nnPU risk using PU labels only."""
     import torch
 
@@ -1233,7 +1318,7 @@ def _pu_validation_risk(model: Any, X_val: Any, y_pu_val: np.ndarray, risk_prior
     try:
         model.eval()
         with torch.no_grad():
-            scores = _as_logits(_forward(model, X_val))
+            scores = _eval_logits(model, X_val, batch_size)
             positive = torch.as_tensor(y_pu_val == 1, device=scores.device)
             unlabeled = ~positive
             positive_risk = risk_prior * torch.sigmoid(-scores[positive]).mean()

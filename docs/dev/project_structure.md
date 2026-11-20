@@ -148,6 +148,7 @@ pu_toolbox/
       p3mix.py                            # P3Mix/P3Mix-E/P3Mix-C experimental classifiers and mixup components
       lbe_neural.py                       # dual-network Adam generalized EM, stable E/M objectives, and independent CNN adaptation
       tedn.py                             # TEDn alternating training, internal held-out BBE, unweighted objective, and training-error stopping
+      _encoder_policy.py                  # Model-copy encoder freeze policy for paired image studies
     research/
       __init__.py                         (public joint-shift classifiers, paper objectives, and JOINT_SHIFT_METHODS factory)
       joint_shift.py                      (joint-shift approximation using soft class-conditional domain ratios and alternating PU updates)
@@ -357,6 +358,8 @@ tests/
       test_cvir_calibration.py          # training-risk-pool calibration, bitwise expanded-role references, failure/replay boundaries
       test_p3mix_batching.py            # combined batching, single-role tail batches, default compatibility
       test_kldce_feasible_start.py      # single-equality box feasibility, independent LP, large-scale regression
+      test_paired_encoder_policy.py     # Multistage encoder gradient and BN invariants
+      test_self_pu_paired_encoder.py    # Self-PU paired student, teacher, and meta invariants
     losses/
       test_nnpu_loss.py                 # nnPU golden tests (MATH + PROPERTY)
       test_upu_loss.py                  # uPU golden tests (MATH + PROPERTY)
@@ -423,6 +426,8 @@ tests/
       test_classical_candidate_execution.py # PUET/RP explicit plans, four-role replay, failure evidence
       test_cvir_image_execution.py      # image priors, view locks, dual-protocol replay
       test_kldce_candidate_execution.py # actual SCAR binding, four-role replay, failure evidence
+      test_paired_resnet_campaign.py    # Paired experiment receipts, dispatch, and summaries
+      test_paired_resnet_worker.py      # Paired CPU probes, prior evidence, checkpoint replay
     cli/
       test_cli_main.py                  # CLI entry smoke
       test_info.py                      # list-methods/list-priors
@@ -949,6 +954,8 @@ scripts/
   run_genpu_recipe.py                     # explicit single-candidate four-role engineering command and PA/OA manifests
   run_candidate_image_experiment.py       # PULDA/GradPU single-candidate four-role images and resource replay
   run_classical_candidate_experiment.py   independent CPU PUET/RP four-role planning/execution
+  run_paired_resnet_campaign.py           # Resume and report the supplemental paired GPU study
+  run_survey_paired_resnet.py             # Train and verify one paired ResNet arm
 ```
 
 ## 7. CI/CD (`.github/`)

@@ -31,6 +31,11 @@ from ...core.tags import (
 from ...core.training_views import RUN_VIEWS
 from ...core.validation import check_scalar_in_range, validate_pu_X_y
 from ...prior._evidence import risk_pool_target, training_prior_uses
+from ..deep._encoder_policy import (
+    is_frozen_encoder,
+    keep_frozen_encoder_eval,
+    prepare_encoder_copy,
+)
 
 
 def _distribution_regularizers(
@@ -410,7 +415,7 @@ class DistPUClassifier(BasePUClassifier):
             from ..deep._validation import validate_encoder_features
 
             self.encoder_ = copy.deepcopy(self.encoder).to(device, dtype=torch.float32)
-            self.encoder_.requires_grad_(True).eval()
+            prepare_encoder_copy(self.encoder_)
             with torch.no_grad():
                 width = validate_encoder_features(
                     self.encoder_(torch.as_tensor(X[:1].copy(), device=device)),
@@ -601,10 +606,13 @@ class DistPUClassifier(BasePUClassifier):
             "data_device_policy": "CPU-resident features/labels; only active mini-batches moved to the training device",
         }
         if self.encoder is not None:
+            frozen = is_frozen_encoder(self.encoder_)
             self.training_provenance_.update(
-                architecture_scope="injected trainable encoder + toolbox MLP head; not upstream dataset-specific architectures",
+                architecture_scope="injected frozen encoder + toolbox MLP head; not upstream dataset-specific architectures"
+                if frozen
+                else "injected trainable encoder + toolbox MLP head; not upstream dataset-specific architectures",
                 encoder_template_cloned=True,
-                encoder_trained=True,
+                encoder_trained=not frozen,
                 input_shape=list(tx.shape[1:]),
                 maximum_rows_per_device_forward=self.batch_size,
                 singleton_batchnorm_policy="running_statistics_for_singleton_training_batches",
@@ -621,6 +629,7 @@ class DistPUClassifier(BasePUClassifier):
         )
         np_rng = np.random.RandomState(self.random_state)
         self.model_.train()
+        keep_frozen_encoder_eval(self.encoder_)
         for epoch in range(self.warmup_epochs):
             permutation = torch.randperm(n_samples)
             batch_losses = []
@@ -676,6 +685,7 @@ class DistPUClassifier(BasePUClassifier):
             eta_min=0.7 * self.pu_learning_rate,
         )
         self.model_.train()
+        keep_frozen_encoder_eval(self.encoder_)
         for epoch in range(self.pu_epochs):
             co_entropy = (
                 1.0 - np.cos((epoch / self.pu_epochs) * (np.pi / 2.0))

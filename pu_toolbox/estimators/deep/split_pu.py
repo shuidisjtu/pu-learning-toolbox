@@ -31,6 +31,7 @@ from ...core.tags import (
 from ...core.training_views import build_training_view
 from ...core.validation import validate_pu_X_y
 from ...losses.nnpu import _nnpu_train_step
+from ._encoder_policy import keep_frozen_encoder_eval, prepare_encoder_copy
 
 
 def splitpu_js_loss(student_logits, teacher_logits, *, teacher_weight: float = 0.7):
@@ -318,7 +319,7 @@ class SplitPUClassifier(BasePUClassifier):
             from ._validation import validate_encoder_features
 
             encoder_template = copy.deepcopy(self.encoder).to(device=device, dtype=torch.float32)
-            encoder_template.requires_grad_(True).eval()
+            prepare_encoder_copy(encoder_template)
             if self.encoder_feature_layer is not None:
                 if (
                     not isinstance(self.encoder_feature_layer, str)
@@ -403,6 +404,7 @@ class SplitPUClassifier(BasePUClassifier):
         optimizer = torch.optim.Adam(teacher.parameters(), lr=self.learning_rate)
         for teacher_epoch in range(self.teacher_epochs):
             teacher.train()
+            keep_frozen_encoder_eval(self.encoder_)
             p_order, u_order = rng.permutation(p_idx), rng.permutation(u_idx)
             steps = max(
                 int(np.ceil(len(p_idx) / self.batch_size)),
@@ -455,6 +457,7 @@ class SplitPUClassifier(BasePUClassifier):
         target = (_batched_score(self.teacher_, data, self.batch_size, device) > 0).float()
         for split_epoch in range(self.split_epochs):
             splitter.train()
+            keep_frozen_encoder_eval(self.encoder_)
             for indices in _batches(rng, len(X), self.batch_size):
                 loss = F.binary_cross_entropy_with_logits(
                     _score(splitter, data[indices].to(device)), target[indices].to(device)
@@ -508,6 +511,7 @@ class SplitPUClassifier(BasePUClassifier):
             )
             for student_epoch in range(self.student_epochs):
                 student.train()
+                keep_frozen_encoder_eval(self.encoder_)
                 losses = []
                 for p, easy, hard in _three_group_batches(
                     rng, p_idx, easy_idx, hard_idx, self.batch_size
