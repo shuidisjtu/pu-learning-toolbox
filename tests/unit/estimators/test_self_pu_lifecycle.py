@@ -70,7 +70,7 @@ def test_param_failed_refit_blocks_old_probabilities_and_training_checkpoint(fai
     before = model.predict_proba(features)
     kwargs = {"validation_data": (validation, clean_labels)}
     if failure == "prior":
-        kwargs["class_prior"] = -0.1
+        kwargs["risk_prior"] = -0.1
     elif failure == "sample_weight":
         kwargs["sample_weight"] = np.ones(len(labels))
     elif failure == "clean_labels":

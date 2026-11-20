@@ -29,12 +29,31 @@ def _settings(seed):
     }
 
 
+def _consumption_settings(seed):
+    return {
+        **_settings(seed),
+        "schema_version": "2.0",
+        "prior": [
+            {
+                "protocol": "PA",
+                "consumer": "pa_risk",
+                "partition": "pu_val",
+                "target": "population",
+                "source": "runner.validation_population_prior",
+                "value": 0.4,
+            }
+        ],
+    }
+
+
 def _tree(root, mode):
     payloads = {}
     for seed in range(5):
         payload = manifest(seed=seed, accuracy=0.8 + seed * 0.01)
         if mode == "new" or (mode == "mixed" and seed % 2 == 0):
             payload["research_settings"] = _settings(seed)
+        if mode == "mixed" and seed == 1:
+            payload["research_settings"] = _consumption_settings(seed)
         payloads[f"seed_{seed}"] = payload
     return write_tree(root, payloads)
 
@@ -48,10 +67,12 @@ def test_basic_param_settings_keep_identity_statistics_costs_and_source_bytes(tm
     report = build_summary([tree])
 
     assert report["run_costs"] == baseline["run_costs"]
-    expected = {
-        str(seed): _settings(seed) if mode == "new" or (mode == "mixed" and seed % 2 == 0) else None
-        for seed in range(5)
+    source_settings = {
+        "old": [None] * 5,
+        "new": [_settings(seed) for seed in range(5)],
+        "mixed": [_settings(0), _consumption_settings(1), _settings(2), None, _settings(4)],
     }
+    expected = {str(seed): value for seed, value in enumerate(source_settings[mode])}
     summaries = sorted(
         {value["summary"] if value else LEGACY_SUMMARY for value in expected.values()}
     )

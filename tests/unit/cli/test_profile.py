@@ -9,11 +9,11 @@ import json
 import pytest
 
 from pu_toolbox.cli import build_parser, main
-from pu_toolbox.preprocessing.pu_labeling import make_scar_dataset
+from tests.helpers import make_scar_data
 
 
 def _write_inputs(tmp_path, n=60, seed=42):
-    X, y_pu, _ = make_scar_dataset(n=n, c=0.5, n_features=5, separation=4.0, random_state=seed)
+    X, y_pu, _ = make_scar_data(n=n, c=0.5, n_features=5, separation=4.0, rng=seed)
     X_path = tmp_path / "X.csv"
     y_path = tmp_path / "y_pu.csv"
     X_path.write_text(
@@ -46,7 +46,7 @@ def test_basic_profile_writes_strict_json(tmp_path):
 
 @pytest.mark.unit
 def test_param_true_labels_accepted(tmp_path):
-    X, y_pu, y_true = make_scar_dataset(n=60, c=0.5, n_features=5, separation=4.0, random_state=42)
+    X, y_pu, y_true = make_scar_data(n=60, c=0.5, n_features=5, separation=4.0, rng=42)
     X_path = tmp_path / "X.csv"
     y_path = tmp_path / "y_pu.csv"
     yt_path = tmp_path / "y_true.csv"

@@ -94,7 +94,7 @@ def test_basic_infomax_paper_networks_have_expected_layers_and_fit():
     ]
 
     estimator = InfoMaxPUClassifier(
-        class_prior=0.3,
+        risk_prior=0.3,
         representation_dim=2,
         hidden_dim=6,
         representation_epochs=1,
@@ -109,6 +109,13 @@ def test_basic_infomax_paper_networks_have_expected_layers_and_fit():
         classifier_batch_size=4,
         random_state=3,
     ).fit(X, y_pu)
+    (use,) = estimator._prior_consumptions_
+    assert (use["consumer"], use["target"], use["value"], use["source"]) == (
+        "infomax_nnpu_training_risk",
+        "native_unlabeled",
+        0.3,
+        "estimator.risk_prior",
+    )
     assert estimator.decision_function(X).shape == (len(X),)
     assert (
         sum(isinstance(layer, torch.nn.BatchNorm1d) for layer in estimator.representation_.encoder_)
@@ -142,7 +149,7 @@ def test_param_infomax_rejects_invalid_paper_parameters():
         InfoMaxPURepresentation(gradient_noise=-0.1).fit(X, y_pu)
     with pytest.raises(ValueError, match="classifier_optimizer"):
         InfoMaxPUClassifier(
-            class_prior=0.3,
+            risk_prior=0.3,
             representation_epochs=1,
             classifier_epochs=1,
             classifier_optimizer="sgd",
@@ -161,6 +168,10 @@ def test_edge_wconpu_preserves_pseudo_label_and_queue_invariants():
         max_epochs=2,
         random_state=5,
     ).fit(X, y_pu)
+    assert {use["consumer"] for use in estimator._prior_consumptions_} == {
+        "wconpu_pseudo_label_initialization",
+        "wconpu_distribution_alignment",
+    }
     np.testing.assert_allclose(estimator.pseudo_labels_.sum(axis=1), 1.0, atol=1e-6)
     np.testing.assert_allclose(
         estimator.pseudo_labels_[y_pu == 1],
@@ -188,6 +199,11 @@ def test_dgpu_generator_protocol_and_class_prior_counts():
         generated_samples=10,
         random_state=11,
     ).fit(X, y_pu)
+    assert {use["consumer"] for use in estimator._prior_consumptions_} == {
+        "dgpu_initialization_alignment",
+        "dgpu_target_distribution_initialization",
+        "dgpu_generation_budget",
+    }
     assert estimator.generator_.fit_calls_ == 2
     assert estimator.generated_counts_ == [
         {"negative": 7, "positive": 3},

@@ -1,5 +1,5 @@
 """ReCPE + UPU pipeline — estimate class prior, then train classifier."""
-# API reference: docs/user/reference/api/tools.md#pupipeline
+# API reference: docs/user/concepts/class_prior_semantics.md
 
 import numpy as np
 from sklearn.metrics import accuracy_score
@@ -29,7 +29,7 @@ print(f"ReCPE native-U prior approximation: {pi_hat:.3f}")
 print(f"Converted population prior: {population_hat:.3f}  (generating prior: {true_prior})")
 
 # -- Step 2: Train UPU with estimated prior --
-clf = UPUClassifier(class_prior=pi_hat, loss="squared", fit_intercept=False, random_state=42)
+clf = UPUClassifier(risk_prior=pi_hat, loss="squared", fit_intercept=False, random_state=42)
 clf.fit(X, y_pu)
 
 y_pred = clf.predict(X)

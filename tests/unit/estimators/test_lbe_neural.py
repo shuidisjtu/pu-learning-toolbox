@@ -15,7 +15,7 @@ torch = pytest.importorskip("torch")
 from pu_toolbox import NeuralLBEClassifier  # noqa: E402
 from pu_toolbox.core.exceptions import NotFittedError, ValidationError  # noqa: E402
 from pu_toolbox.estimators.deep import lbe_neural  # noqa: E402
-from pu_toolbox.registry import get_algorithm, register_all_builtin_methods  # noqa: E402
+from pu_toolbox.registry import get_algorithm  # noqa: E402
 
 pytestmark = pytest.mark.unit
 
@@ -50,7 +50,6 @@ def test_basic_fit_clone_pickle_probabilities_and_registry_are_separate():
     assert np.all(fitted._latent_positive_probability_[:4] == 1)
     restored = pickle.loads(pickle.dumps(fitted))
     np.testing.assert_array_equal(fitted.predict_label_proba(x), restored.predict_label_proba(x))
-    register_all_builtin_methods()
     assert get_algorithm("lbe_neural") is NeuralLBEClassifier
     assert get_algorithm("neural_lbe") is NeuralLBEClassifier
     assert get_algorithm("lbe") is not NeuralLBEClassifier
@@ -106,14 +105,16 @@ def test_param_ts_weights_and_missing_pu_roles_are_refused():
             model().fit(x, bad)
 
 
-def test_determ_seed_prior_unused_and_global_rng_preserved():
+def test_determ_seeded_posterior_estimate_and_global_rng_preserved():
     x, labels = data()
     before = torch.random.get_rng_state().clone()
     first = model().fit(x, labels)
     torch.testing.assert_close(before, torch.random.get_rng_state(), rtol=0, atol=0)
-    second = model().fit(x, labels, class_prior=0.8)
+    second = model().fit(x, labels)
     np.testing.assert_array_equal(first.decision_function(x), second.decision_function(x))
     assert first.history_ == second.history_
+    assert first.training_table_prior_estimate_ == second.training_table_prior_estimate_
+    assert second._prior_consumptions_ == ()
 
 
 def test_edge_chunk_accumulation_preserves_mlp_update_objective():
@@ -194,16 +195,14 @@ def test_basic_source_receipt_matches_constructor_and_optimizer_budget():
     assert not receipt["calibration"]["calibration_applied"]
 
 
-@pytest.mark.parametrize("prior", [0, 1, float("nan"), True, [0.5]])
-def test_param_unused_prior_still_requires_valid_scalar(prior):
-    with pytest.raises(ValueError, match="class_prior"):
-        model().fit(*data(), class_prior=prior)
+def test_edge_neural_lbe_has_no_external_prior_keyword():
+    with pytest.raises(TypeError, match="class_prior"):
+        model().fit(*data(), class_prior=0.8)
 
 
-def test_basic_ledger_view_gate_and_public_pipeline_access():
+def test_basic_ledger_view_gate():
     from pu_toolbox.experiment.method_ledger import load_ledger
     from pu_toolbox.experiment.training_views import resolve_training_view
-    from pu_toolbox.workflows import PUPipeline
 
     ledger = load_ledger()
     assert (
@@ -216,21 +215,6 @@ def test_basic_ledger_view_gate_and_public_pipeline_access():
         resolve_training_view(
             ledger, "lbe_neural", "ts", is_oracle=False, estimator_class=NeuralLBEClassifier
         )
-    pipeline = PUPipeline(
-        classifier="lbe_neural",
-        prior_estimator=None,
-        cv=2,
-        device="cpu",
-        classifier_params={
-            "hidden_dim": 4,
-            "pretrain_steps": 1,
-            "n_em_iter": 2,
-            "m_steps": 2,
-            "batch_size": 4,
-        },
-    )
-    report = pipeline.fit_evaluate(*data())
-    assert report.final_model.predict(data()[0]).shape == (12,)
 
 
 def test_determ_cpu_fit_does_not_seed_unrelated_cuda_devices(monkeypatch):

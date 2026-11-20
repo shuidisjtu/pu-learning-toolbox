@@ -1,32 +1,141 @@
 # Constructing Same-Pool OS and Independent TS Data
 
 Prerequisites: install the toolbox and read [sampling designs](../concepts/pu_sampling.md) and
-[prior targets](../concepts/class_prior_semantics.md). This tutorial uses small CPU Gaussian datasets.
+[prior targets](../concepts/class_prior_semantics.md). The examples use local data or small CPU Gaussian datasets.
 
-## 1. Label a fixed quota within one clean pool
+## 1. Construct OS observations from one source partition
 
-`make_fixed_count_labels` selects a specified number of true positives uniformly without
-replacement and preserves input row order. For example, labeling 20 positives in a complete pool
-of 40 positives and 60 negatives leaves 20 positives and 60 negatives in U.
+`construct_pu_dataset` marks positives in an already-loaded partition. Declare positive,
+negative and (if needed) excluded source classes. Unmapped or overlapping classes are
+rejected. Dataset names identify sources; they do not choose the positive class.
 
 ```python
 import numpy as np
-from pu_toolbox.preprocessing import make_fixed_count_labels
+from pu_toolbox.preprocessing import PULabelingConfig, SourcePartition, construct_pu_dataset
 
-y_true = np.array([1] * 40 + [0] * 60)
-y_pu = make_fixed_count_labels(y_true, n_labeled=20, random_state=7)
-assert y_pu.sum() == 20
-assert y_true[y_pu == 0].mean() == 0.25
+truth = np.array([1] * 40 + [0] * 60)
+features = np.arange(100, dtype=float)[:, None]
+result = construct_pu_dataset(
+    SourcePartition(features, truth, "example-v1", "train"),
+    PULabelingConfig("scar", "fixed_count", random_state=7, n_labeled=20),
+    positive_classes=(1,),
+    negative_classes=(0,),
+)
+observed = result.observations
+assert observed.labels.sum() == 20
+assert result.manifest["audit"]["empirical_native_unlabeled_prior"] == 0.25
 ```
 
-To specify the quota as a fraction, use `make_scar_labels(y_true, c=0.5, random_state=7)`.
-For Bernoulli or feature-dependent labeling, see [SCAR/SAR simulation](sar_simulation.md).
-`make_pu_labels(..., mechanism="fixed_count", n_labeled=20)` is the unified dispatcher.
+Use `c=0.5` instead of `n_labeled=20` to request half the true positives. A fixed count
+samples without replacement. For Bernoulli SCAR use `PULabelingConfig("scar", "bernoulli", ...)`;
+for SAR use `"sar"`, `"bernoulli"` and a feature-based `propensity_rule` (`"linear"` or
+`"nonlinear"`). `c` targets the positive-class marking rate, not the whole-table marked
+fraction `q`. Supply original `sample_ids` when available; generated position IDs are local
+to the declared source and partition, not proof of independence across sources.
+
+`result.observations` contains the features, PU labels and IDs for training. Read
+`result.audit` only for evaluation or audit. The separate manifest records requested and
+actual counts, seeds, source and audit-only empirical priors. The constructor does not
+read a file, download data, or split and rearrange experiment roles.
+
+To simulate a clean Gaussian source first, pass the same labeling config to
+`simulate_pu_dataset` with a `GaussianSourceConfig`:
+
+```python
+from pu_toolbox.preprocessing import GaussianSourceConfig, PULabelingConfig, simulate_pu_dataset
+
+result = simulate_pu_dataset(
+    GaussianSourceConfig(120, 3, population_prior=0.4, separation=2.0, random_state=11),
+    PULabelingConfig("sar", "bernoulli", random_state=7, c=0.3, propensity_rule="linear"),
+)
+assert result.manifest["input_sampling"] == "os"
+```
+
+### Configure acquisition and local reading
+
+The same format reader serves multiple datasets. The bundled configurations are
+`pu_toolbox/preprocessing/source_configs/mnist.json` and
+`pu_toolbox/preprocessing/source_configs/fashion_mnist.json`, both at version `idx-v1`.
+Installing torchvision is not required for either source. Acquisition is explicit; local
+reading never downloads or verifies file provenance by itself:
+
+```python
+from pu_toolbox.preprocessing import fetch_dataset, read_dataset
+
+config = "pu_toolbox/preprocessing/source_configs/mnist.json"
+root = "data/raw/mnist"  # The dataset directory itself, not its parent.
+receipt = fetch_dataset(config, root)  # Explicit network access and checksum verification.
+source = read_dataset(config, root, partition="train")  # Local files only.
+```
+
+Both functions accept a configuration dictionary or an external JSON path. `root` is the
+exact dataset directory; neither function appends the source ID. For an installed package,
+resolve a bundled configuration as a package resource rather than assuming the current working
+directory is the source tree. `fetch_dataset` verifies configured artifact checksums, does
+not overwrite existing files, and writes `provenance.json`. A successful local read alone is
+not evidence that files were fetched or authenticated.
+
+A numeric table with a header uses the same local reader. For example, given a UTF-8
+`measurements.csv` with columns `width,height,class`:
+
+```python
+from pu_toolbox.preprocessing import read_dataset
+
+config = {
+    "source_id": "measurements",
+    "version": "v1",
+    "format": "delimited_numeric",
+    "options": {"delimiter": ",", "has_header": True, "label_dtype": "str"},
+    "partitions": {
+        "source": {
+            "file": "measurements.csv",
+            "feature_columns": ["width", "height"],
+            "label_column": "class",
+        }
+    },
+}
+table = read_dataset(config, "data/raw/measurements", partition="source")
+```
+
+The bundled `source_configs/spambase.json` also uses `delimited_numeric`, with integer
+labels and column indices for a local `spambase.data` file. It does not specify a download
+URL. In either example, `partition="source"` names a source partition, **not** an experiment
+training role. The reader preserves row-position IDs and column order; it does not encode,
+standardize, split, or fetch missing files.
+
+The other prepared Survey sources share the same local entry point. Connect-4 returns
+raw categorical cells, IMDB and 20 Newsgroups return raw documents, and the ADNI
+substitute profile returns original image bytes. Convert those raw features to the
+chosen numeric representation before constructing PU observations. Survey uses the
+same readers and keeps its fixed transformations separate.
+
+Map the same source partition in two different ways without changing its rows or IDs:
+
+```python
+from pu_toolbox.preprocessing import PULabelingConfig, construct_pu_dataset
+
+labeling = PULabelingConfig("scar", "fixed_count", random_state=7, c=0.3)
+even_positive = construct_pu_dataset(
+    source, labeling, positive_classes=(0, 2, 4, 6, 8), negative_classes=(1, 3, 5, 7, 9),
+)
+three_positive = construct_pu_dataset(
+    source, labeling, positive_classes=(3,), negative_classes=(0, 1, 2, 4, 5, 6, 7, 8, 9),
+)
+```
+
+The configured partition preserves original class labels and row order. An ID such as
+`mnist@idx-v1:train:0` identifies a row position in the named source version and partition;
+it does not authenticate a file or prove identity across copies. Source partitions do not
+assign experiment roles: reading `test` does not make it training data, and neither reading
+nor construction splits or rearranges roles. Class mappings and role splits do not belong in
+the source configuration. Survey preparation remains separate and retains its existing NPZ
+format and integer IDs. Users with already-loaded data can construct `SourcePartition` directly.
+See the [configuration contract](../reference/api/tools.md#data-generation).
 
 ## 2. Obtain independent positive P and population-mixture U samples
 
 `make_gaussian_case_control_data` draws P from the positive class-conditional Gaussian and
-independently draws U from the target population. `class_prior` and the positive/negative class
+independently draws U from the target population. `population_prior` and the positive/negative class
 means define that population; each U observation's class is drawn independently.
 
 ```python
@@ -34,12 +143,12 @@ import numpy as np
 from pu_toolbox.preprocessing import make_gaussian_case_control_data
 
 X, y_pu, y_true, metadata = make_gaussian_case_control_data(
-    n_p=80, n_u=800, class_prior=0.4, n_features=2, random_state=7,
+    n_p=80, n_u=800, population_prior=0.4, n_features=2, random_state=7,
 )
 assert X.shape == (880, 2)
 assert np.all(y_true[y_pu == 1] == 1)
-assert metadata["population_class_prior"] == 0.4
-assert metadata["unlabeled_class_prior"] == y_true[y_pu == 0].mean()
+assert metadata["design_population_prior"] == 0.4
+assert metadata["empirical_unlabeled_prior"] == y_true[y_pu == 0].mean()
 assert len(set(metadata["sample_ids"])) == 880
 ```
 
@@ -68,19 +177,11 @@ Split research data into train / pu_val / clean_val / test by original identity 
 labels within permitted partitions. See [custom experiments](custom_experiments.md) for a complete
 four-role workflow.
 
-## 4. Migrate existing calls
+## 4. Keep sampling identities distinct
 
-| Existing usage | Replacement |
-|---|---|
-| `make_case_control_labels(y_true, n_labeled, random_state)` | `make_fixed_count_labels(y_true, n_labeled, random_state)` |
-| `make_pu_labels(..., mechanism="case_control")` | Change to `mechanism="fixed_count"`, retaining other arguments |
-| Gaussian teaching code intended to represent independent TS | `make_gaussian_case_control_data(..., class_prior=...)`, accepting four return values |
+Same-pool fixed counts are OS, not independent TS. Use the independent Gaussian TS
+constructor above for that simulation. The all-positive-labeled Gaussian teaching
+case has negative-only U and cannot substitute for either marginal U or OS labeling.
 
-The legacy `case_control` names retain same-pool behavior and seeded random sequences, emit a
-`FutureWarning`, and are scheduled for removal in 2.0. The new fixed-count entry accepts all-positive
-inputs; legacy aliases preserve their original two-class validation. `make_gaussian_pu_data`
-continues to provide the teaching case where all positives are visible and U comes from negatives;
-its third return value is the true positive proportion of that concatenated table.
-
-See the [API reference](../reference/api/tools.md#data-generation) for valid parameter
-domains and complete return fields.
+See the [API reference](../reference/api/tools.md#data-generation) for parameter
+constraints and return fields.

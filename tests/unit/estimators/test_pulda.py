@@ -22,8 +22,7 @@ from pu_toolbox.estimators.risk.pulda import (  # noqa: E402
 from pu_toolbox.experiment.checkpoints import EpochCheckpointTrainer  # noqa: E402
 from pu_toolbox.experiment.method_ledger import load_ledger  # noqa: E402
 from pu_toolbox.experiment.training_views import resolve_training_view  # noqa: E402
-from pu_toolbox.registry import get_algorithm, register_all_builtin_methods  # noqa: E402
-from pu_toolbox.workflows import PUPipeline  # noqa: E402
+from pu_toolbox.registry import get_algorithm  # noqa: E402
 
 pytestmark = pytest.mark.unit
 
@@ -37,7 +36,7 @@ def _data():
 
 def _model(**kwargs):
     params = {
-        "class_prior": 0.35,
+        "risk_prior": 0.35,
         "hidden_dim": 7,
         "depth": 1,
         "warmup_epochs": 1,
@@ -55,7 +54,7 @@ def test_distribution_alignment_matches_released_loss():
     logits = torch.tensor([0.4, -0.2, 0.7, -0.8], requires_grad=True)
     labels = torch.tensor([1, 1, 0, 0])
     total, positive, unlabeled = pulda_distribution_alignment(
-        logits, labels, class_prior=0.3, temperature=3.5
+        logits, labels, risk_prior=0.3, temperature=3.5
     )
     scores = torch.sigmoid(logits)
     expected_positive = 1 - scores[:2].mean()
@@ -74,7 +73,7 @@ def test_two_way_margin_matches_released_loss():
     logits = torch.tensor([0.4, -0.2, 0.7, -0.8], requires_grad=True)
     labels = torch.tensor([1, 1, 0, 0])
     total, positive, distribution = pulda_two_way_margin(
-        logits, labels, class_prior=0.3, margin=0.6, temperature=1.0
+        logits, labels, risk_prior=0.3, margin=0.6, temperature=1.0
     )
     pos = logits[:2]
     unl = logits[2:]
@@ -106,7 +105,6 @@ def test_basic_two_stage_fit_checkpoint_registry_and_probabilities(tmp_path):
     np.testing.assert_allclose(
         trajectory.checkpoints[-1].restore().decision_function(X), scores, atol=1e-6
     )
-    register_all_builtin_methods()
     assert get_algorithm("pulda") is PULDAClassifier
     assert get_algorithm("label_distribution_alignment") is PULDAClassifier
 
@@ -157,10 +155,14 @@ def test_ts_distribution_input_reuses_positive_logits_as_u_role(monkeypatch):
 def test_determ_seeded_fit_and_prior_override_are_stable():
     X, y = _data()
     first = _model().fit(X, y)
-    second = _model(class_prior=0.2).fit(X, y, class_prior=0.35)
+    second = _model(risk_prior=0.2).fit(X, y, risk_prior=0.35)
     np.testing.assert_array_equal(first.decision_function(X), second.decision_function(X))
     assert first.history_ == second.history_
-    assert second.get_pu_metadata()["class_prior"] == 0.35
+    assert {use["consumer"] for use in second._prior_consumptions_} == {
+        "pulda_warmup_risk",
+        "pulda_mixup_risk",
+    }
+    assert all(use["value"] == 0.35 for use in second._prior_consumptions_)
 
 
 @pytest.mark.parametrize(
@@ -188,8 +190,8 @@ def test_edge_invalid_inputs_and_weights_fail_loudly():
     X, y = _data()
     with pytest.raises(NotImplementedError, match="sample_weight"):
         _model().fit(X, y, sample_weight=np.ones(len(X)))
-    with pytest.raises(ValueError, match="class_prior"):
-        _model(class_prior=1).fit(X, y)
+    with pytest.raises(ValueError, match="risk_prior"):
+        _model(risk_prior=1).fit(X, y)
     with pytest.raises(ValidationError, match="2-D"):
         _model().fit(X[:, :, None], y)
     with pytest.raises(ValidationError, match="Sparse"):
@@ -215,26 +217,6 @@ def test_basic_weights_roundtrip_preserves_scores():
     with torch.no_grad():
         scores = restored(torch.as_tensor(X, device=device)).flatten().cpu().numpy()
     np.testing.assert_allclose(scores, fitted.decision_function(X), atol=1e-6)
-
-
-@pytest.mark.integration
-def test_basic_pipeline_resolves_pulda_with_prior():
-    X, y = _data()
-    report = PUPipeline(
-        classifier="pulda",
-        classifier_params={
-            "hidden_dim": 7,
-            "warmup_epochs": 1,
-            "pu_epochs": 1,
-            "positive_batch_size": 4,
-            "unlabeled_batch_size": 7,
-        },
-        prior_estimator=None,
-        cv=2,
-        random_state=5,
-    ).fit_evaluate(X, y, class_prior=0.5)
-    assert isinstance(report.final_model, PULDAClassifier)
-    assert report.final_model.predict(X).shape == (len(X),)
 
 
 @pytest.mark.gpu

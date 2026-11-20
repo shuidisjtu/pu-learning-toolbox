@@ -12,7 +12,9 @@ import inspect
 import tempfile
 import time
 import warnings
+from collections.abc import Mapping
 from dataclasses import asdict
+from numbers import Real
 from pathlib import Path
 from typing import Any
 
@@ -20,17 +22,37 @@ import numpy as np
 from sklearn.base import clone
 
 from pu_toolbox.core.training_views import ROLES
-from pu_toolbox.core.validation import validate_label_semantics
+from pu_toolbox.core.validation import validate_label_semantics, validate_true_binary_labels
+from pu_toolbox.prior.semantics import population_to_native_unlabeled
 
 from . import resources as resource_tools
-from .bundle import DatasetBundle, DatasetPart, validate_bundle
+from .bundle import DatasetBundle, DatasetPart, _validate_role_indices, validate_bundle
+from .checkpoints import EpochCheckpointTrainer
+from .classical_candidate import ClassicalCandidateTrainer
 from .manifest import write_manifest
-from .protocols import route_training_view
-from .research_settings import build_research_settings, finalize_research_settings
-from .strategies import DeepFitTrainer, ProtocolOA, ProtocolPA, SCARGenerator, SupervisedTrainer
+from .protocols import route_training_view, validate_training_view_request
+from .research_settings import (
+    build_research_settings,
+    finalize_research_settings,
+)
+from .strategies import (
+    DeepFitTrainer,
+    FitTrainer,
+    ProtocolOA,
+    ProtocolPA,
+    SCARGenerator,
+    SupervisedTrainer,
+)
 from .survey_staged_budget import FIELD as STAGED_BUDGET_FIELD
 from .survey_staged_budget import checkpoint_coverage, checkpoint_epochs, verify_trajectory
 from .tracking import RunResult, RunTrajectory
+
+_PRIOR_BINDING_TRAINERS = (
+    FitTrainer,
+    DeepFitTrainer,
+    EpochCheckpointTrainer,
+    ClassicalCandidateTrainer,
+)
 
 
 def _manifest_c_context(config: dict[str, Any]) -> dict[str, Any]:
@@ -55,10 +77,70 @@ def _require_view_routable(config: dict[str, Any], trainer, model) -> None:
     Both hops are checked against their own ``fit`` signature: the trainer the
     config names, and the estimator it will be handed.
     """
-    if config.get("os_or_ts") != "ts":
+    view = config.get("os_or_ts")
+    validate_training_view_request(view)
+    if view != "ts":
         return
     for target in (trainer, model):
         route_training_view({}, inspect.signature(type(target).fit).parameters, "ts", target)
+
+
+def _effective_training_view(model, requested_view):
+    if requested_view is not None:
+        return requested_view
+    parameter = inspect.signature(model.fit).parameters.get("os_or_ts")
+    return parameter.default if parameter is not None else None
+
+
+def _bind_training_prior(population_prior, model, trainer, labels, input_sampling, view):
+    """Adapt only explicitly opted-in estimators on the built-in fit path."""
+    if population_prior is None or type(trainer) not in _PRIOR_BINDING_TRAINERS:
+        return population_prior, None
+    if getattr(model, "_runner_prior_parameter", None) == "training_table_prior":
+        return (population_prior if input_sampling == "os" else None), None
+    if (
+        getattr(model, "_convert_os_population_prior", False)
+        and input_sampling == "os"
+        and view == "os"
+    ):
+        q = float(np.mean(np.asarray(labels) == 1))
+        return (
+            population_to_native_unlabeled(population_prior, q, input_sampling="os"),
+            {
+                "rule": "population_to_native_unlabeled",
+                "original_value": population_prior,
+                "q": q,
+            },
+        )
+    return population_prior, None
+
+
+def _record_fit_priors(trajectory, params, trainer, prior_source, conversion):
+    estimator = trajectory.model
+    explicit = trajectory.prior_consumptions
+    evidence_rows = getattr(estimator, "_prior_consumptions_", ()) if explicit is None else explicit
+    runner_parameter = getattr(estimator, "_runner_prior_parameter", None)
+    for evidence in evidence_rows:
+        if not isinstance(evidence, Mapping) or not all(
+            isinstance(evidence.get(key), str) and evidence[key].strip()
+            for key in ("consumer", "partition", "target", "source")
+        ):
+            raise ValueError(
+                "prior consumption must name its consumer, partition, target and source"
+            )
+        value = evidence.get("value")
+        if isinstance(value, bool) or not isinstance(value, Real) or not 0 <= value <= 1:
+            raise ValueError("consumed prior must be a finite real value in [0, 1]")
+        record = dict(evidence)
+        if explicit is None and type(trainer) in _PRIOR_BINDING_TRAINERS:
+            origin, _, parameter = record["source"].partition(".")
+            if origin == "fit" and parameter == runner_parameter:
+                record["source"] = prior_source
+                if conversion is not None:
+                    record["conversion"] = conversion
+            elif origin == "estimator" and parameter in params:
+                record["source"] = f"candidate.{parameter}"
+        yield record
 
 
 def _manifest_view_context(config: dict[str, Any]) -> dict[str, Any]:
@@ -126,7 +208,16 @@ def _recipe_context(
     declared = protocol["method_profiles"][request["method"]]["params"]
     # The protocol names only some constructor fields. Everything else must
     # remain a code default, except separately validated runtime inputs.
-    runtime = {"class_prior", "random_state", "device", "model", "backbone", "encoder"}
+    runtime = {
+        "risk_prior",
+        "tree_weight_prior",
+        "distribution_prior",
+        "random_state",
+        "device",
+        "model",
+        "backbone",
+        "encoder",
+    }
     # Execution-only tensor placement is separately recorded and narrowly
     # scoped; it must not become a general constructor-override exemption.
     if "gradpu_activation_memory" in config:
@@ -203,7 +294,8 @@ class ExperimentRunner:
         seed: int = 0,
         generator=None,
         protocols=None,
-        class_prior: float | None = None,
+        training_population_prior: float | None = None,
+        validation_population_prior: float | None = None,
         threshold_candidates=None,
         manifest_path: str | None = None,
         config: dict | None = None,
@@ -211,22 +303,20 @@ class ExperimentRunner:
         self.seed = seed
         self.generator = generator or SCARGenerator()
         self.protocols = protocols or [ProtocolPA(), ProtocolOA()]
-        self.class_prior = class_prior
+        self.training_population_prior = training_population_prior
+        self.validation_population_prior = validation_population_prior
         self.threshold_candidates = threshold_candidates
         self.manifest_path = manifest_path
         self.config = config or {}
 
     def _resolve_selection_prior(self) -> tuple[float | None, str | None]:
-        """The population class prior pi handed to the selection protocols.
+        """The population class prior pi for selectors that use it.
 
-        Chain in order: the run's own ``class_prior`` — the value training used,
-        so one run never carries two different constants and a
-        ``--allow-prior-override`` covers selection as well as training — then the
-        split artifact's recorded ``class_prior.population`` (protocol §3.1:
-        data-generation metadata, never back-inferred from a subset).
+        Resolve the explicit validation value, then
+        the split's recorded population value.
         """
-        if self.class_prior is not None:
-            return float(self.class_prior), "runner.class_prior"
+        if self.validation_population_prior is not None:
+            return float(self.validation_population_prior), "runner.validation_population_prior"
         recorded = (self.config.get("split_ref") or {}).get("class_prior")
         if isinstance(recorded, dict) and recorded.get("population") is not None:
             return float(recorded["population"]), "split_ref.class_prior.population"
@@ -252,7 +342,7 @@ class ExperimentRunner:
             If the generator's declared view is not ``"pu"``/``"clean"``, if its
             reported mechanism contradicts that view, if a ``"clean"``
             declaration does not actually carry the real labels, if a clean-view
-            run is handed a ``class_prior`` or a trainer that does not declare
+            run is handed a training prior or a trainer that does not declare
             ``trains_on_real_labels``, if a real-label (PN-oracle) trainer is
             paired with a ``"pu"`` view, if ``config["trainer"]`` is a class
             rather than an instance, or if the generated pu-val PU view ends up
@@ -265,7 +355,9 @@ class ExperimentRunner:
         t0 = time.perf_counter()
         bundle = DatasetBundle(train=train, pu_val=pu_val, clean_val=clean_val, test=test)
         validate_bundle(bundle)
-        max_attempts = self.config.get("candidate_max_attempts", 2)
+        max_attempts = self.config.get(
+            "candidate_max_attempts", resource_tools.DEFAULT_CHECKPOINT_ATTEMPTS
+        )
         if type(max_attempts) is not int or max_attempts not in (1, 2):
             raise ValueError("candidate_max_attempts must be 1 or 2")
         # The per-epoch networks this estimator promises to write.  Resolved
@@ -313,6 +405,7 @@ class ExperimentRunner:
                     staged["algorithm_id"], staged["parameter_values"], self.config.get("os_or_ts")
                 )
             _validate_model_capability(model, bundle, self.config.get("architecture"))
+            _require_clean_support(model, trainer, bundle)
             # Opt-in experimental adapters validate extra supervision/prior
             # contracts against actual partitions, before generation or retries.
             validate_experiment = getattr(trainer, "validate_experiment", None)
@@ -323,7 +416,8 @@ class ExperimentRunner:
             # missing prior would bury it -- while a PA run that got past this point
             # without one would burn a full training budget before discovering that
             # its selection criterion had no weight to run with.
-            selection_prior, selection_prior_source = self._resolve_selection_prior()
+            if any(not isinstance(proto, ProtocolOA) for proto in self.protocols):
+                selection_prior, selection_prior_source = self._resolve_selection_prior()
             _require_selection_prior(self.protocols, self.generator, selection_prior)
             disk_preflight = self._checkpoint_disk_preflight(
                 model,
@@ -331,6 +425,7 @@ class ExperimentRunner:
                 protocol_context,
                 declared_components,
                 input_dim=int(bundle.train.X.shape[1]),
+                attempts=max_attempts,
             )
             _enforce_disk_preflight(disk_preflight, protocol_context.get("execution_mode"))
         except (ValueError, TypeError, KeyError) as exc:
@@ -406,13 +501,16 @@ class ExperimentRunner:
                         f"generator declared output_view='clean' but produced different "
                         f"{role} labels; a clean view must carry the real labels."
                     )
-            if self.class_prior is not None:
+            if (
+                self.training_population_prior is not None
+                or self.validation_population_prior is not None
+            ):
                 # A prior on a real-label run would stop the oracle being an
                 # upper bound at all, so refuse rather than silently ignore it.
                 raise ValueError(
-                    "class_prior applies to PU methods; a clean-view (PN oracle) run "
+                    "PU prior inputs apply to PU methods; a clean-view (PN oracle) run "
                     "trains on real labels and must not receive a prior. Drop "
-                    "class_prior for clean-view runs."
+                    "prior inputs for clean-view runs."
                 )
             if not trains_on_real_labels:
                 # Defaulting to "PU trainer" is the fail-closed reading: it also
@@ -452,6 +550,29 @@ class ExperimentRunner:
             )
         generation_elapsed = time.perf_counter() - generation_t0
 
+        input_sampling = meta_train.get("input_sampling")
+        effective_view = _effective_training_view(model, self.config.get("os_or_ts"))
+        if input_sampling == "ts" and effective_view == "ts":
+            raise ValueError(
+                "independent TS input already has a marginal U pool; "
+                "os_or_ts='ts' requests OS-to-TS risk-pool reconstruction."
+            )
+        _require_pa_validation(self.protocols, meta_val)
+        training_population_prior = self.training_population_prior
+        training_prior_source = "runner.training_population_prior"
+        training_prior, conversion = _bind_training_prior(
+            training_population_prior,
+            model,
+            trainer,
+            train_view.labels,
+            input_sampling,
+            effective_view,
+        )
+
+        selection_inputs = [
+            (proto, _select_kwargs(proto, selection_prior)) for proto in self.protocols
+        ]
+
         research_settings = _artifact_value(
             build_research_settings(
                 model=model,
@@ -460,9 +581,6 @@ class ExperimentRunner:
                 context={**protocol_context, **_extra_supervision_context(trainer)},
                 generation={"train": meta_train, "pu_val": meta_val},
                 input_ndim=train.X.ndim,
-                training_prior=self.class_prior,
-                selection_prior=selection_prior,
-                selection_prior_source=selection_prior_source,
                 selection_roles={
                     getattr(proto, "name", type(proto).__name__): (
                         "clean_val" if isinstance(proto, ProtocolOA) else "pu_val"
@@ -501,8 +619,16 @@ class ExperimentRunner:
                         self.config.get("architecture"),
                     )
                     validate_label_semantics(est, expected_semantics)
-                    trajectory = self._train(est, train_view, pu_val_view, trainer)
+                    trajectory = self._train(
+                        est, train_view, pu_val_view, trainer, training_prior=training_prior
+                    )
                     _validate_trajectory(trajectory, pu_val_view, declared_components)
+                    consumed = [
+                        _artifact_value({**receipt, "candidate_index": candidate_index})
+                        for receipt in _record_fit_priors(
+                            trajectory, params, trainer, training_prior_source, conversion
+                        )
+                    ]
                     staged = protocol_context.get("budget", {}).get(STAGED_BUDGET_FIELD)
                     staged_receipt = (
                         verify_trajectory(
@@ -558,6 +684,7 @@ class ExperimentRunner:
                         ),
                     }
                 )
+                research_settings["prior"].extend(consumed)
                 if errors:
                     failures.append(
                         {
@@ -603,7 +730,7 @@ class ExperimentRunner:
         resources.update(_disk_resource_entry(disk_preflight))
 
         if not trajectories:
-            finalize_research_settings(research_settings, candidate_runs)
+            finalize_research_settings(research_settings)
             elapsed = time.perf_counter() - t0
             resources["runner_elapsed_seconds"] = elapsed
             manifest = {
@@ -638,17 +765,27 @@ class ExperimentRunner:
         selection_started_at = time.perf_counter()
         selections = {}
         selection_roles = {}
-        for proto in self.protocols:
+        selection_priors = {}
+        for proto, kwargs in selection_inputs:
             val_view = clean_val if isinstance(proto, ProtocolOA) else pu_val_view
             art = proto.select(
                 trajectories,
                 val_view,
                 self.threshold_candidates,
-                **_select_kwargs(proto, selection_prior),
+                **kwargs,
             )
             if art.protocol != getattr(proto, "name", art.protocol):
                 raise ValueError("selection artifact disagrees with its protocol")
             selections[art.protocol] = art
+            if isinstance(proto, ProtocolPA) and "validation_population_prior" in art.metrics:
+                selection_priors[art.protocol] = {
+                    "protocol": art.protocol,
+                    "consumer": "pa_risk",
+                    "partition": "pu_val",
+                    "target": "population",
+                    "value": art.metrics["validation_population_prior"],
+                    "source": selection_prior_source,
+                }
             selection_roles[art.protocol] = (
                 "clean_val" if isinstance(proto, ProtocolOA) else "pu_val"
             )
@@ -721,13 +858,9 @@ class ExperimentRunner:
                     .checkpoints[artifact.checkpoint_index]
                     .reference()
                 )
-            # Which constant the criterion ran with, and where it came from.
-            # PA's criterion is weighted by pi, so the P2.0c adjudication of PA
-            # units has to be able to tell one run's prior from another's.
-            payload["class_prior"] = {
-                "population": selection_prior,
-                "source": selection_prior_source,
-            }
+            if name in selection_priors:
+                research_settings["prior"].append(selection_priors[name])
+                del payload["metrics"]["validation_population_prior"]
             selection_payload[name] = payload
 
         for item in candidate_runs:
@@ -740,11 +873,7 @@ class ExperimentRunner:
         elapsed = time.perf_counter() - t0
         resources["runner_elapsed_seconds"] = elapsed
         research_settings["supervision"]["selection_roles"] = selection_roles
-        research_settings["prior"]["selection"] = {
-            name: copy.deepcopy(payload["class_prior"])
-            for name, payload in selection_payload.items()
-        }
-        finalize_research_settings(research_settings, candidate_runs)
+        finalize_research_settings(research_settings)
         manifest = {
             **protocol_context,
             "research_settings": research_settings,
@@ -792,6 +921,7 @@ class ExperimentRunner:
         declared_components: tuple[str, ...],
         *,
         input_dim: int | None = None,
+        attempts: int = resource_tools.DEFAULT_CHECKPOINT_ATTEMPTS,
     ) -> dict[str, Any]:
         """Measure the checkpoint storage this run needs.
 
@@ -875,27 +1005,42 @@ class ExperimentRunner:
                 epochs=epochs,
                 components=len(declared_components),
                 candidates=len(self.config.get("candidates", [{}])),
+                attempts=attempts,
             ),
             directory=checkpoint_root or tempfile.gettempdir(),
         )
 
-    def _train(self, est, train_view: DatasetPart, pu_val_view: DatasetPart, trainer):
+    def _train(
+        self, est, train_view: DatasetPart, pu_val_view: DatasetPart, trainer, *, training_prior
+    ):
         """Train one candidate with the trainer the view guard approved."""
         val_pu = (pu_val_view.X, pu_val_view.labels) if pu_val_view is not None else None
         if _captures_checkpoints(self.config, trainer, est):
-            from .checkpoints import EpochCheckpointTrainer
-
             trainer = EpochCheckpointTrainer(
                 supervised=trainer.trains_on_real_labels,
                 checkpoint_dir=_checkpoint_root(self.config, self.manifest_path),
             )
+        runner_parameter = getattr(est, "_runner_prior_parameter", None)
+        if type(trainer) in _PRIOR_BINDING_TRAINERS and runner_parameter:
+            if (
+                runner_parameter == "training_table_prior"
+                and getattr(est, "training_table_prior", None) is not None
+            ):
+                training_prior = None
+            prior_input = {runner_parameter: training_prior}
+        else:
+            parameters = inspect.signature(type(trainer).fit).parameters
+            if "training_population_prior" in parameters:
+                prior_input = {"training_population_prior": training_prior}
+            else:
+                prior_input = {}
         return trainer.fit(
             est,
             train_view.X,
             train_view.labels,
-            class_prior=self.class_prior,
             val_pu=val_pu,
             **self._view_kwargs(trainer),
+            **prior_input,
         )
 
     def _view_kwargs(self, trainer) -> dict:
@@ -1049,6 +1194,33 @@ def _binary_test_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, An
     }
 
 
+def _require_clean_support(model, trainer, bundle: DatasetBundle) -> None:
+    if not getattr(model, "requires_clean_support", False):
+        return
+    support = getattr(trainer, "support", None)
+    stock_fits = (FitTrainer.fit, DeepFitTrainer.fit, SupervisedTrainer.fit)
+    if not isinstance(support, DatasetPart) or type(trainer).fit in stock_fits:
+        raise ValueError(
+            f"{type(model).__name__} requires independent clean support. "
+            "Set config['trainer'] to a clean-support adapter or a custom trainer that "
+            "supplies its own support DatasetPart to fit; clean_val is not support."
+        )
+    if support.view != "clean" or support.for_selection is not False:
+        raise ValueError("support must be clean and for_selection=False")
+    features = np.asarray(support.X)
+    labels = np.asarray(support.labels)
+    indices = np.asarray(support.indices, dtype=object)
+    if features.shape[1:] != bundle.train.X.shape[1:] or features.ndim != bundle.train.X.ndim:
+        raise ValueError("support feature shape must match training")
+    validate_true_binary_labels(labels, estimator_name="support.labels")
+    if labels.shape != (len(features),) or np.unique(labels).size != 2:
+        raise ValueError("support requires nonempty positive and negative clean labels")
+    if indices.shape != (len(features),):
+        raise ValueError("support IDs must match feature rows")
+    roles = {role: getattr(bundle, role).indices for role in ROLES}
+    _validate_role_indices({**roles, "support": indices})
+
+
 def _validate_model_capability(
     model,
     bundle: DatasetBundle,
@@ -1167,21 +1339,35 @@ def _captures_checkpoints(config: dict[str, Any], trainer, model) -> bool:
     )
 
 
-def _select_kwargs(proto, class_prior: float | None) -> dict[str, Any]:
+def _select_kwargs(proto, population_prior: float | None) -> dict[str, Any]:
     """Forward pi only to protocols that declare a pi parameter.
 
     Probed BEFORE the call, never by catching a TypeError from inside it: a
     TypeError raised by the protocol's own body would otherwise be read as "old
     signature" and the protocol re-run, double-counting ``record_validation``.
     """
+    if isinstance(proto, ProtocolOA):
+        return {}
     try:
         parameters = inspect.signature(proto.select).parameters
     except (TypeError, ValueError):
         return {}
-    accepts = "class_prior" in parameters or any(
-        p.kind is inspect.Parameter.VAR_KEYWORD for p in parameters.values()
-    )
-    return {"class_prior": class_prior} if accepts else {}
+    accepts_keywords = any(p.kind is inspect.Parameter.VAR_KEYWORD for p in parameters.values())
+    if "validation_population_prior" in parameters or (
+        isinstance(proto, ProtocolPA) and accepts_keywords
+    ):
+        return {"validation_population_prior": population_prior}
+    return {}
+
+
+def _require_pa_validation(protocols, generated_meta) -> None:
+    """The built-in OS estimator does not apply to declared TS or SAR validation."""
+    if not any(isinstance(proto, ProtocolPA) for proto in protocols):
+        return
+    if generated_meta.get("input_sampling") == "ts":
+        raise ValueError("PA uses the OS validation formula; pu_val declares independent TS.")
+    if _mechanism(generated_meta) in ("sar", "sar_lbe_a", "sar_lbe_b"):
+        raise ValueError("PA requires SCAR validation; for SAR, use protocols=[ProtocolOA()].")
 
 
 def _require_selection_prior(
@@ -1198,11 +1384,9 @@ def _require_selection_prior(
     if not any(isinstance(p, ProtocolPA) for p in protocols):
         return
     raise ValueError(
-        "PA selection needs the population class prior pi (protocol §3.1: "
-        "data-generation metadata, never back-inferred from a subset), and neither "
-        "the run's class_prior nor config['split_ref']['class_prior']['population'] "
-        "supplies it. Pass --class-prior / class_prior=, or run against a split "
-        "directory whose split_manifest.json records class_prior.population."
+        "PA selection needs the validation population class prior pi (protocol §3.1). "
+        "Pass validation_population_prior=, use --population-prior for Survey, or supply a "
+        "split_manifest.json that records class_prior.population."
     )
 
 

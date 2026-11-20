@@ -15,8 +15,7 @@ from pu_toolbox.estimators.risk.puet import (
 )
 from pu_toolbox.experiment.method_ledger import load_ledger
 from pu_toolbox.experiment.training_views import resolve_training_view
-from pu_toolbox.registry import get_algorithm, register_all_builtin_methods
-from pu_toolbox.workflows import PUPipeline
+from pu_toolbox.registry import get_algorithm
 
 pytestmark = pytest.mark.unit
 
@@ -29,7 +28,7 @@ def _data():
 
 
 def _model(**kwargs):
-    params = {"class_prior": 0.4, "n_estimators": 5, "max_depth": 4, "random_state": 8}
+    params = {"tree_weight_prior": 0.4, "n_estimators": 5, "max_depth": 4, "random_state": 8}
     params.update(kwargs)
     return PUExtraTreesClassifier(**params)
 
@@ -60,7 +59,6 @@ def test_basic_fit_vote_margin_registry_and_importances():
     assert len(model.trees_) == model.n_estimators
     assert np.all(model.n_leaves_ >= 1)
     assert np.all(model.tree_depths_ <= model.max_depth)
-    register_all_builtin_methods()
     assert get_algorithm("puet") is PUExtraTreesClassifier
     assert get_algorithm("pu_extra_trees") is PUExtraTreesClassifier
 
@@ -126,7 +124,9 @@ def test_edge_bootstrap_root_masses_and_constant_leaf(view, bootstrap, sizes, se
             observed.append((p, u, kwargs["positive_weight"], kwargs["unlabeled_weight"]))
             return super()._build_tree(features, labels, rows, **kwargs)
 
-    model = InspectTrees(class_prior=0.4, n_estimators=3, bootstrap=bootstrap, random_state=seed)
+    model = InspectTrees(
+        tree_weight_prior=0.4, n_estimators=3, bootstrap=bootstrap, random_state=seed
+    )
     model.fit(X, y, os_or_ts=view)
     expected_u = n_u + (n_p if view == "ts" else 0)
     for p, u, pw, uw in observed:
@@ -148,7 +148,7 @@ def test_edge_bootstrap_root_masses_and_constant_leaf(view, bootstrap, sizes, se
         ({"max_features": "log2"}, "max_features"),
         ({"max_candidates": 0}, "max_candidates"),
         ({"bootstrap": 1}, "bootstrap"),
-        ({"class_prior": 1.0}, "class_prior"),
+        ({"tree_weight_prior": 1.0}, "tree_weight_prior"),
     ],
 )
 def test_param_bad_hyperparameters_fail_loudly(kwargs, message):
@@ -159,8 +159,17 @@ def test_param_bad_hyperparameters_fail_loudly(kwargs, message):
 
 def test_param_fit_prior_override_is_recorded():
     X, y = _data()
-    fitted = _model(class_prior=0.2).fit(X, y, class_prior=0.4)
-    assert fitted.get_pu_metadata()["class_prior"] == 0.4
+    fitted = PUExtraTreesClassifier(tree_weight_prior=0.2, random_state=8).fit(
+        X, y, tree_weight_prior=0.4
+    )
+    (consumption,) = fitted._prior_consumptions_
+    assert consumption == {
+        "consumer": "puet_tree_weights",
+        "partition": "train",
+        "target": "native_unlabeled",
+        "source": "fit.tree_weight_prior",
+        "value": 0.4,
+    }
 
 
 def test_edge_constant_features_and_empty_prediction():
@@ -197,17 +206,3 @@ def test_basic_pickle_roundtrip_preserves_vote_margins():
     fitted = _model().fit(X, y)
     restored = pickle.loads(pickle.dumps(fitted))
     np.testing.assert_array_equal(restored.decision_function(X), fitted.decision_function(X))
-
-
-@pytest.mark.integration
-def test_basic_pipeline_resolves_puet_with_explicit_prior():
-    X, y = _data()
-    report = PUPipeline(
-        classifier="puet",
-        classifier_params={"n_estimators": 3, "max_depth": 3},
-        prior_estimator=None,
-        cv=2,
-        random_state=8,
-    ).fit_evaluate(X, y, class_prior=0.4)
-    assert isinstance(report.final_model, PUExtraTreesClassifier)
-    assert report.final_model.predict(X).shape == (len(X),)

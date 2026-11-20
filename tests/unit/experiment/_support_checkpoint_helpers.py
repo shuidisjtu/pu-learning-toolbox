@@ -47,7 +47,7 @@ def model(method):
     common = dict(hidden_dim=4, batch_size=8, max_epochs=3, random_state=0, device="cpu")
     if method == "self_pu":
         return SelfPUClassifier(
-            class_prior=0.5,
+            risk_prior=0.5,
             warmup_epochs=0,
             self_paced_start=0,
             self_paced_end=1,
@@ -91,7 +91,8 @@ def run(
     options.update(config or {})
     return ExperimentRunner(
         seed=0,
-        class_prior=0.5,
+        training_population_prior=0.5,
+        validation_population_prior=0.5,
         protocols=[ProtocolPACleanSupport(), ProtocolOA()] if protocols is None else protocols,
         manifest_path=str(directory / "manifest.json"),
         config=options,

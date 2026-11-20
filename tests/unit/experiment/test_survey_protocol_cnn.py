@@ -2,6 +2,7 @@
 """Real ResNet CPU/GPU smoke and encoder provenance gates (not paper evidence)."""
 
 import json
+from functools import wraps
 
 import numpy as np
 import pytest
@@ -39,7 +40,7 @@ def _bound(tmp_path, device="cpu"):
     prepared, encoder, image = prepare_image_bundle(source, protocol, 0, dataset="cifar10")
     row = resolve_unit(protocol, "cifar10", "nnpu")
     model = assemble_model(
-        protocol, row, 3, seed=0, params={}, class_prior=0.3, device=device, encoder=encoder
+        protocol, row, 3, seed=0, params={}, population_prior=0.3, device=device, encoder=encoder
     )
     config = {
         "architecture": "cnn",
@@ -66,7 +67,10 @@ def test_basic_real_resnet_native_cnn_cpu_smoke(tmp_path):
     torch.set_num_threads(1)
     try:
         result = ExperimentRunner(
-            class_prior=0.3, config=config, manifest_path=str(tmp_path / "manifest.json")
+            training_population_prior=0.3,
+            validation_population_prior=0.3,
+            config=config,
+            manifest_path=str(tmp_path / "manifest.json"),
         ).fit(model, *(getattr(bundle, role) for role in ROLES))
     finally:
         torch.set_num_threads(before)
@@ -84,6 +88,7 @@ def test_basic_real_resnet_native_cnn_gpu_smoke(tmp_path, monkeypatch):
     fitted_devices = []
     original_fit = type(model).fit
 
+    @wraps(original_fit)
     def checked_fit(estimator, *args, **kwargs):
         fitted = original_fit(estimator, *args, **kwargs)
         fitted_devices.extend(parameter.device.type for parameter in fitted.model_.parameters())
@@ -93,7 +98,10 @@ def test_basic_real_resnet_native_cnn_gpu_smoke(tmp_path, monkeypatch):
 
     monkeypatch.setattr(type(model), "fit", checked_fit)
     result = ExperimentRunner(
-        class_prior=0.3, config=config, manifest_path=str(tmp_path / "gpu_manifest.json")
+        training_population_prior=0.3,
+        validation_population_prior=0.3,
+        config=config,
+        manifest_path=str(tmp_path / "gpu_manifest.json"),
     ).fit(model, *(getattr(bundle, role) for role in ROLES))
     assert fitted_devices and set(fitted_devices) == {"cuda"}
     assert result.manifest["training_path"] == "native_cnn"
@@ -112,18 +120,18 @@ def test_param_mutated_encoder_rejected_before_training(tmp_path):
     with torch.no_grad():
         next(model.encoder.parameters()).add_(1)
     with pytest.raises(ValueError, match="encoder state"):
-        ExperimentRunner(class_prior=0.3, config=config).fit(
-            model, *(getattr(bundle, role) for role in ROLES)
-        )
+        ExperimentRunner(
+            training_population_prior=0.3, validation_population_prior=0.3, config=config
+        ).fit(model, *(getattr(bundle, role) for role in ROLES))
 
 
 def test_edge_missing_image_manifest_never_acquires_cnn_claim(tmp_path):
     model, bundle, config = _bound(tmp_path)
     config.pop("image_manifest")
     with pytest.raises(ValueError, match="preprocessing provenance"):
-        ExperimentRunner(class_prior=0.3, config=config).fit(
-            model, *(getattr(bundle, role) for role in ROLES)
-        )
+        ExperimentRunner(
+            training_population_prior=0.3, validation_population_prior=0.3, config=config
+        ).fit(model, *(getattr(bundle, role) for role in ROLES))
 
 
 def test_determ_same_seed_has_same_bound_initial_encoder(tmp_path):
@@ -142,9 +150,9 @@ def test_param_declared_budget_cannot_misreport_actual_epochs(tmp_path):
 
     Path(path).write_text(json.dumps(protocol))
     with pytest.raises(ValueError, match="epoch budget"):
-        ExperimentRunner(class_prior=0.3, config=config).fit(
-            model, *(getattr(bundle, role) for role in ROLES)
-        )
+        ExperimentRunner(
+            training_population_prior=0.3, validation_population_prior=0.3, config=config
+        ).fit(model, *(getattr(bundle, role) for role in ROLES))
 
 
 def test_edge_all_candidate_failures_keep_protocol_context(tmp_path):
@@ -152,9 +160,12 @@ def test_edge_all_candidate_failures_keep_protocol_context(tmp_path):
     config["candidates"] = [{"unknown_parameter": 1}]
     path = tmp_path / "failed.json"
     with pytest.raises(RuntimeError, match="all candidate runs failed"):
-        ExperimentRunner(class_prior=0.3, config=config, manifest_path=str(path)).fit(
-            model, *(getattr(bundle, role) for role in ROLES)
-        )
+        ExperimentRunner(
+            training_population_prior=0.3,
+            validation_population_prior=0.3,
+            config=config,
+            manifest_path=str(path),
+        ).fit(model, *(getattr(bundle, role) for role in ROLES))
     payload = json.loads(path.read_text(encoding="utf-8"))
     assert payload["protocol_version"] == "survey-v3.2"
     assert payload["budget"]["epochs"] == 1

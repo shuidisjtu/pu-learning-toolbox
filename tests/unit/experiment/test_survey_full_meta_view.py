@@ -12,7 +12,7 @@ from pu_toolbox.experiment.method_ledger import load_ledger
 from pu_toolbox.experiment.pilot_plan import planned_runs
 from pu_toolbox.experiment.survey_profile_identity import profile_training_view_request
 from pu_toolbox.experiment.survey_protocol import PROTOCOL_PATHS, load_protocol
-from pu_toolbox.registry import get_algorithm, register_all_builtin_methods
+from pu_toolbox.registry import get_algorithm
 
 pytestmark = pytest.mark.unit
 
@@ -22,12 +22,10 @@ def protocol():
     return load_protocol(PROTOCOL_PATHS["survey-v3.2"])
 
 
-@pytest.mark.parametrize("requested, expected", [(None, "os"), ("os", "os"), ("ts", "ts")])
-def test_param_full_meta_resolves_profile_without_rewriting_explicit_view(
-    protocol, requested, expected
-):
+@pytest.mark.parametrize("requested", [None, "os"])
+def test_param_full_meta_resolves_os_without_mutating_profile(protocol, requested):
     before = copy.deepcopy(protocol)
-    assert profile_training_view_request(protocol, "self_pu_full_meta", requested) == expected
+    assert profile_training_view_request(protocol, "self_pu_full_meta", requested) == "os"
     assert protocol == before
 
 
@@ -45,9 +43,9 @@ def test_edge_absent_profile_schema_does_not_lookup_a_new_profile():
     assert profile_training_view_request({}, "self_pu", "ts") == "ts"
 
 
-@pytest.mark.parametrize("requested, expected", [(None, "os"), ("os", "os"), ("ts", "ts")])
+@pytest.mark.parametrize("requested", [None, "os", "ts"])
 def test_basic_cli_resolves_profile_before_loading_any_data(
-    survey_script, monkeypatch, tmp_path, requested, expected, capsys
+    survey_script, monkeypatch, tmp_path, requested, capsys
 ):
     seen = []
 
@@ -72,22 +70,30 @@ def test_basic_cli_resolves_profile_before_loading_any_data(
         "native_2d",
         "--support-dir",
         str(tmp_path / "not-loaded-support"),
-        "--class-prior",
+        "--population-prior",
         "0.4",
     ]
     if requested is not None:
         argv.extend(["--os-or-ts", requested])
     assert survey_script.main(argv) == 1
-    assert seen == [("self_pu", expected)]
-    assert "routing boundary reached" in capsys.readouterr().err
+    error = capsys.readouterr().err
+    if requested == "ts":
+        assert not seen
+        assert "self_pu_full_meta" in error and "OS-only" in error
+    else:
+        assert seen == [("self_pu", "os")]
+        assert "routing boundary reached" in error
 
 
 @pytest.mark.parametrize("requested", [None, "os", "ts"])
 def test_param_unit_and_resume_resolve_the_same_full_meta_view(
     protocol, raw_driver, survey_script, requested
 ):
-    register_all_builtin_methods()
     runs = tuple(run for run in planned_runs(protocol) if run.method == "self_pu_full_meta")
+    if requested == "ts":
+        with pytest.raises(ValueError, match="self_pu_full_meta.*OS-only"):
+            raw_driver.expected_run_views(runs, requested, protocol=protocol)
+        return
     expected = survey_script.resolve_training_view(
         load_ledger(),
         "self_pu",
@@ -97,7 +103,7 @@ def test_param_unit_and_resume_resolve_the_same_full_meta_view(
     )
     views = raw_driver.expected_run_views(runs, requested, protocol=protocol)
     assert set(views.values()) == {f"{expected}-compatible"}
-    assert expected == ("ts" if requested == "ts" else "os")
+    assert expected == "os"
 
 
 def test_basic_ablation_still_defaults_to_ts_in_resume(protocol, raw_driver):

@@ -119,7 +119,7 @@ stage/budget、候选/资源和正式准入仍单独讨论。
 `pu_mixup` 阶段；`warmup` 只作诊断。正式预算采用原生 60+60、P/U
 16/128、两阶段 cosine `T_max=pu_epochs=60`；120 个快照、不早停，
 `pu_mixup` 内 60 个 epoch 全部可选。候选池为单一默认配置，
-`class_prior=π_population` 固定，不扫描先验。分类阈值固定为 logit 0
+`risk_prior=π_population` 固定，不扫描先验。分类阈值固定为 logit 0
 （当前实现默认，等价于 sigmoid 0.5），阈值候选集为 `{0}`，PA/OA
 只选 checkpoint、不调阈值。该决定是作者默认预算口径，
 但整体方法/表征仍是 benchmark-adapted；共享表示、存储/资源、

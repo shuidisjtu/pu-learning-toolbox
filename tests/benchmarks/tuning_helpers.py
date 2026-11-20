@@ -66,7 +66,7 @@ LLSVM_BASE_PARAMS = {
 ELKAN_NOTO_BASE_PARAMS = {
     "base_estimator": None,
     "calibration_method": "sigmoid",
-    "n_cv_folds": 3,
+    "internal_cv_folds": 3,
     "eps": 1e-12,
     "mode": "probability_correction",
 }

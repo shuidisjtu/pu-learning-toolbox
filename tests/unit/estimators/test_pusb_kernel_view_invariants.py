@@ -51,7 +51,7 @@ def _small_model(random_state=11, **overrides):
 
 def _fit(path):
     X, y = _data()
-    model = _small_model().fit(X, y, class_prior=_CLASS_PRIOR, os_or_ts=path)
+    model = _small_model().fit(X, y, training_table_prior=_CLASS_PRIOR, os_or_ts=path)
     return model, X, y
 
 
@@ -70,8 +70,10 @@ class TestViewInvariants:
     def test_basic_oversized_n_basis_is_capped_by_the_row_count(self):
         X, y = _data()
 
-        os_model = _small_model(n_basis=1000).fit(X, y, class_prior=_CLASS_PRIOR)
-        ts_model = _small_model(n_basis=1000).fit(X, y, class_prior=_CLASS_PRIOR, os_or_ts="ts")
+        os_model = _small_model(n_basis=1000).fit(X, y, training_table_prior=_CLASS_PRIOR)
+        ts_model = _small_model(n_basis=1000).fit(
+            X, y, training_table_prior=_CLASS_PRIOR, os_or_ts="ts"
+        )
 
         assert os_model.centers_.shape[0] == len(X)
         assert ts_model.centers_.shape[0] == len(X)
@@ -90,7 +92,7 @@ class TestViewInvariants:
             X, y = _data()
             with pytest.MonkeyPatch.context() as patcher:
                 patcher.setattr(pusb_kernel_module, "_rbf_design", spy)
-                _small_model().fit(X, y, class_prior=_CLASS_PRIOR, os_or_ts=path)
+                _small_model().fit(X, y, training_table_prior=_CLASS_PRIOR, os_or_ts=path)
             assert seen, f"no design was built for {path}"
             assert set(seen) == {len(X)}
 
@@ -123,7 +125,7 @@ class TestViewInvariants:
             patcher.setattr(pusb_kernel_module, "_risk_role_designs", roles_spy)
             patcher.setattr(pusb_kernel_module, "_fit_coefficients", fit_spy)
             X, y = _data()
-            _small_model().fit(X, y, class_prior=_CLASS_PRIOR, os_or_ts="ts")
+            _small_model().fit(X, y, training_table_prior=_CLASS_PRIOR, os_or_ts="ts")
 
         assert roles and len(roles) == len(fits) == 1 + _CV * _GRID_POINTS
         for role, fit in zip(roles, fits, strict=True):
@@ -152,7 +154,7 @@ class TestViewInvariants:
         with pytest.MonkeyPatch.context() as patcher:
             patcher.setattr(pusb_kernel_module, "prior_quantile_predict", spy)
             X, y = _data()
-            _small_model().fit(X, y, class_prior=_CLASS_PRIOR, os_or_ts=path)
+            _small_model().fit(X, y, training_table_prior=_CLASS_PRIOR, os_or_ts=path)
 
         assert calls, f"no threshold was derived for {path}"
         assert [size for size, _ in calls] == [len(X)]
@@ -160,8 +162,8 @@ class TestViewInvariants:
 
     def test_basic_default_view_matches_explicit_os(self):
         X, y = _data()
-        default = _small_model().fit(X, y, class_prior=_CLASS_PRIOR)
-        explicit = _small_model().fit(X, y, class_prior=_CLASS_PRIOR, os_or_ts="os")
+        default = _small_model().fit(X, y, training_table_prior=_CLASS_PRIOR)
+        explicit = _small_model().fit(X, y, training_table_prior=_CLASS_PRIOR, os_or_ts="os")
 
         assert np.array_equal(default.coef_, explicit.coef_)
         assert default.threshold_ == explicit.threshold_
@@ -181,7 +183,7 @@ class TestViewInvariants:
     def test_param_invalid_view_value_is_rejected(self, bad):
         X, y = _data()
         with pytest.raises(ValueError, match="os_or_ts must be"):
-            _small_model().fit(X, y, class_prior=_CLASS_PRIOR, os_or_ts=bad)
+            _small_model().fit(X, y, training_table_prior=_CLASS_PRIOR, os_or_ts=bad)
 
     def test_param_sample_weight_is_still_rejected_under_both_views(self):
         X, y = _data()
@@ -190,7 +192,7 @@ class TestViewInvariants:
                 _small_model().fit(
                     X,
                     y,
-                    class_prior=_CLASS_PRIOR,
+                    training_table_prior=_CLASS_PRIOR,
                     sample_weight=np.ones(len(X)),
                     os_or_ts=path,
                 )
@@ -225,7 +227,7 @@ def _validation_roles(path):
     with pytest.MonkeyPatch.context() as patcher:
         patcher.setattr(pusb_kernel_module, "_pu_objective_and_gradient", spy)
         X, y = _data()
-        model = _small_model().fit(X, y, class_prior=_CLASS_PRIOR, os_or_ts=path)
+        model = _small_model().fit(X, y, training_table_prior=_CLASS_PRIOR, os_or_ts=path)
 
     fold_sizes = set(np.bincount(model.fold_ids_).tolist())
     return sorted(pair for pair in seen if sum(pair) in fold_sizes)

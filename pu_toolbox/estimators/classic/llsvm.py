@@ -21,8 +21,8 @@ from ...core.tags import (
     AlgorithmFamily,
     Assumption,
     Backend,
-    ImplementationStatus,
     Maturity,
+    PriorConsumer,
     SampleWeightSupport,
     Scenario,
     SourceStatus,
@@ -90,10 +90,10 @@ class LLSVMClassifier(BasePUClassifier):
         Fitted linear weights.
     intercept_ : float
         Fitted intercept (0.0 if fit_intercept is False).
-    class_prior_ : float
+    calibration_prior_ : float
         Class prior used for training.
     calibration_target_ : float
-        Calibration target t = 2*class_prior - 1.
+        Calibration target t = 2*calibration_prior - 1.
     n_positive_ : int
         Number of positive samples.
     n_unlabeled_ : int
@@ -108,9 +108,11 @@ class LLSVMClassifier(BasePUClassifier):
     label_semantics = "pu"
     assumption = (Assumption.SCAR, Assumption.SAR)
     scenario = (Scenario.CASE_CONTROL,)
-    requires_class_prior = True
-    class_prior_target = "native_unlabeled"
-    implementation_status = ImplementationStatus.NATIVE
+    _runner_prior_parameter = "calibration_prior"
+    prior_consumers = (
+        PriorConsumer("llsvm_calibration", "native_unlabeled", parameter="calibration_prior"),
+    )
+    _prior_consumptions_ = ()
     source_status = SourceStatus.OFFICIAL_EXACT
     backend = Backend.NUMPY
     maturity = Maturity.RESEARCH
@@ -159,7 +161,7 @@ class LLSVMClassifier(BasePUClassifier):
         X: np.ndarray,
         y_pu: np.ndarray,
         *,
-        class_prior: float | None = None,
+        calibration_prior: float | None = None,
         sample_weight: np.ndarray | None = None,
     ) -> LLSVMClassifier:
         """Fit LLSVM; ``sample_weight`` is accepted but currently ignored."""
@@ -180,18 +182,27 @@ class LLSVMClassifier(BasePUClassifier):
         self.n_unlabeled_ = len(X_u)
 
         # Class prior
-        if class_prior is not None:
-            check_scalar_in_range(class_prior, 0.0, 1.0, "class_prior", inclusive=False)
-            self.class_prior_ = float(class_prior)
+        if calibration_prior is not None:
+            check_scalar_in_range(calibration_prior, 0.0, 1.0, "calibration_prior", inclusive=False)
+            self.calibration_prior_ = float(calibration_prior)
         else:
             from ...prior.pen_l1 import ClassPriorEstimator
 
             estimator = ClassPriorEstimator()
             estimator.fit(X, y_pu)
-            self.class_prior_ = estimator.estimate()
+            self.calibration_prior_ = estimator.estimate()
 
-        self._class_prior = self.class_prior_
-        self.calibration_target_ = 2.0 * self.class_prior_ - 1.0
+        self.calibration_target_ = 2.0 * self.calibration_prior_ - 1.0
+        consumption = {
+            "consumer": "llsvm_calibration",
+            "partition": "train",
+            "target": "native_unlabeled",
+            "value": self.calibration_prior_,
+            "source": ("estimate.penL1" if calibration_prior is None else "fit.calibration_prior"),
+        }
+        if calibration_prior is None:
+            consumption["estimation_pool"] = estimator.estimation_pool
+        self._prior_consumptions_ = (consumption,)
 
         # Augment features for intercept
         if self.fit_intercept:
@@ -304,7 +315,7 @@ class LLSVMClassifier(BasePUClassifier):
         if self._is_fitted:
             meta.update(
                 {
-                    "class_prior": self.class_prior_,
+                    "calibration_prior": self.calibration_prior_,
                     "calibration_target": self.calibration_target_,
                     "n_positive": self.n_positive_,
                     "n_unlabeled": self.n_unlabeled_,

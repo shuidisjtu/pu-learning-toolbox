@@ -81,8 +81,7 @@ max-margin/sums/eps 形式；本实现跟随论文 Eq.(7)。2026-10-18 决定（
 probe 与非活动网络使用 eval/no-grad，因此 C/D 的 BN 只由各自更新的 batch 改变；
 测试分别计数并确认权重确实变化，而不是仅声明 `trains_encoder=true`。
 `tests/unit/estimators/test_pan_cnn.py` 验证 clone、固定 seed、输入/encoder 门禁、
-保存加载、权重恢复与 GPU；`tests/integration/test_pan_pipeline_cnn.py` 验证公开 pipeline
-的 native_cnn provenance，`test_cv_fold_isolation.py` 验证两个对抗 encoder 跨折均不泄漏。
+保存加载、权重恢复与 GPU。旧 Pipeline 的 provenance 和跨折编排测试随旧入口退役。
 
 2026-10-18 来源/推理状态补交：
 九文件原始摘要、实际交替梯度和采样测试已补；仅修复预测后逐层恢复 train/eval 模式，

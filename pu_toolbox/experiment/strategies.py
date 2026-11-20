@@ -27,7 +27,7 @@ from pu_toolbox.utils.serialization import canonical_hash
 
 from .bundle import DatasetPart, LabelView
 from .checkpoints import record_validation, selection_models
-from .protocols import Generator, SelectionProtocol, Trainer, route_training_view
+from .protocols import Generator, SelectionProtocol, Trainer, fit_prior_kwargs, route_training_view
 from .tracking import EpochRecord, RunTrajectory, SelectionArtifact
 
 
@@ -277,7 +277,7 @@ def select_threshold(
 
 
 def proxy_accuracy(
-    scores: np.ndarray, labels: np.ndarray, threshold: float, class_prior: float
+    scores: np.ndarray, labels: np.ndarray, threshold: float, validation_population_prior: float
 ) -> float:
     """Proxy accuracy, Wang et al. 2026 (ICLR) Definition 1, OS branch.
 
@@ -301,17 +301,15 @@ def proxy_accuracy(
     labeled = labels == 1
     n_labeled = int(np.count_nonzero(labeled))
     above = scores >= threshold
-    positive_term = 2.0 * class_prior * np.count_nonzero(above & labeled) / n_labeled
+    positive_term = (
+        2.0 * validation_population_prior * np.count_nonzero(above & labeled) / n_labeled
+    )
     negative_term = np.count_nonzero(~above) / len(scores)
     return float(positive_term + negative_term)
 
 
 class ProtocolOA(SelectionProtocol):
     """Oracle selection on real-label validation (clean_val).
-
-    ``class_prior`` is accepted for call-shape parity and ignored: OA scores on
-    real labels, so its criterion has no pi term.  Compare :class:`ProtocolPA`,
-    whose criterion does need it.
 
     Scores are min-max normalised to [0, 1] before thresholding, so the
     default ``np.linspace(0, 1, 11)`` grid is meaningful for any
@@ -329,8 +327,6 @@ class ProtocolOA(SelectionProtocol):
         trajectories: list[RunTrajectory],
         val_part: DatasetPart,
         threshold_candidates=None,
-        *,
-        class_prior: float | None = None,  # ignored: OA's criterion has no pi term
     ) -> SelectionArtifact:
         if val_part.view != "clean" or not val_part.for_selection:
             raise ValueError("ProtocolOA must receive a selection-enabled clean validation view")
@@ -403,9 +399,7 @@ class ProtocolPA(SelectionProtocol):
     time through the very path OA already exercises.  Clean labels stay
     structurally unreachable: the view guard below is the only gate.
 
-    ``class_prior`` is the population class prior pi (protocol §3.1).  It is
-    REQUIRED: pi weights the positive term of PA, so a run without it would
-    silently select by a different criterion rather than fail loudly.
+    ``validation_population_prior`` weights the positive term of PA (§3.1).
     """
 
     name = "PA"
@@ -416,22 +410,21 @@ class ProtocolPA(SelectionProtocol):
         val_part: DatasetPart,
         threshold_candidates=None,
         *,
-        class_prior: float | None = None,
+        validation_population_prior: float | None = None,
     ) -> SelectionArtifact:
         if val_part.view != "pu" or not val_part.for_selection:
             raise ValueError("ProtocolPA must receive a PU view (never clean labels).")
         mask = val_part.labels == 1
         if not mask.any() or mask.all():
             raise ValueError("PA validation requires both labeled positive and unlabeled samples")
-        if class_prior is None:
+        if validation_population_prior is None:
             raise ValueError(
-                "PA selection needs the population class prior pi (protocol §3.1: "
-                "data-generation metadata, never back-inferred from a subset). Pass "
-                "class_prior= to select(), or --class-prior to the run."
+                "PA selection needs the validation population class prior pi (protocol §3.1). "
+                "Pass validation_population_prior= to select()."
             )
-        prior = float(class_prior)
+        prior = float(validation_population_prior)
         if not np.isfinite(prior) or not 0.0 < prior <= 1.0:
-            raise ValueError(f"PA class prior pi must lie in (0, 1], got {class_prior!r}")
+            raise ValueError(f"PA class prior pi must lie in (0, 1], got {prior!r}")
         if not trajectories:
             raise ValueError("PA selection requires at least one trajectory")
         if threshold_candidates is None:
@@ -479,7 +472,6 @@ class ProtocolPA(SelectionProtocol):
                         "threshold": threshold,
                         "val_score_min": affine[0],
                         "val_score_scale": affine[1],
-                        "class_prior": prior,
                     },
                     started_at,
                 )
@@ -497,7 +489,7 @@ class ProtocolPA(SelectionProtocol):
                 "val_proxy_accuracy": float(best_value),
                 "val_score_min": best_min,
                 "val_score_scale": best_scale,
-                "class_prior": prior,
+                "validation_population_prior": prior,
             },
             checkpoint_index=best_checkpoint,
         )
@@ -512,14 +504,21 @@ class ProtocolPACleanSupport(ProtocolPA):
 
     name = "PA+clean-support"
 
-    def select(self, trajectories, val_part, threshold_candidates=None, *, class_prior=None):
+    def select(
+        self, trajectories, val_part, threshold_candidates=None, *, validation_population_prior=None
+    ):
         if not trajectories or any(
             getattr(trajectory.model, "training_provenance_", {}).get("pa_clean_support_eligible")
             is not True
             for trajectory in trajectories
         ):
             raise ValueError("PA+clean-support requires an audited support trajectory")
-        return super().select(trajectories, val_part, threshold_candidates, class_prior=class_prior)
+        return super().select(
+            trajectories,
+            val_part,
+            threshold_candidates,
+            validation_population_prior=validation_population_prior,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -533,23 +532,31 @@ class FitTrainer(Trainer):
 
     Design notes: classical estimators expose no per-epoch history, so a
     run is one point — the trajectory holds a single record and
-    ``best_epoch`` stays None. ``class_prior`` is forwarded only when the
-    estimator accepts it (TypeError-catch, sklearn duck contract) so the
-    runner's candidate pool may mix prior-aware and prior-free methods.
+    ``best_epoch`` stays None. Explicit risk priors are forwarded by name.
     See docs/dev/experiment_layer.md §2.
     """
 
-    def fit(self, estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None):
+    def fit(
+        self,
+        estimator,
+        X,
+        y,
+        *,
+        risk_prior=None,
+        training_table_prior=None,
+        val_pu=None,
+        os_or_ts=None,
+        **fit_priors,
+    ):
         params = inspect.signature(type(estimator).fit).parameters
-        kwargs = {}
+        kwargs = fit_prior_kwargs(
+            params,
+            risk_prior=risk_prior,
+            training_table_prior=training_table_prior,
+            **fit_priors,
+        )
         route_training_view(kwargs, params, os_or_ts, estimator)
-        if class_prior is not None:
-            try:
-                estimator.fit(X, y, class_prior=class_prior, **kwargs)
-            except TypeError:
-                estimator.fit(X, y, **kwargs)
-        else:
-            estimator.fit(X, y, **kwargs)
+        estimator.fit(X, y, **kwargs)
         return RunTrajectory(epochs=[EpochRecord(epoch=1, metrics={})], model=estimator)
 
 
@@ -565,8 +572,8 @@ class SupervisedTrainer(Trainer):
 
     trains_on_real_labels = True
 
-    def fit(self, estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None):
-        return FitTrainer().fit(estimator, X, y, class_prior=class_prior, os_or_ts=os_or_ts)
+    def fit(self, estimator, X, y, *, val_pu=None, os_or_ts=None):
+        return FitTrainer().fit(estimator, X, y, os_or_ts=os_or_ts)
 
 
 class DeepFitTrainer(Trainer):
@@ -581,28 +588,44 @@ class DeepFitTrainer(Trainer):
     docs/dev/experiment_layer.md §2.
     """
 
-    def fit(self, estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None):
+    def fit(
+        self,
+        estimator,
+        X,
+        y,
+        *,
+        risk_prior=None,
+        training_table_prior=None,
+        validation_risk_prior=None,
+        val_pu=None,
+        os_or_ts=None,
+        **fit_priors,
+    ):
         params = inspect.signature(type(estimator).fit).parameters
         validation_parameter = None
         if "pu_validation_data" in params:
             validation_parameter = "pu_validation_data"
         elif "validation_data" in params:
             validation_parameter = "validation_data"
+        if validation_risk_prior is not None and (
+            val_pu is None or "validation_risk_prior" not in params
+        ):
+            raise ValueError(
+                "validation_risk_prior requires an estimator and PU validation data that support it"
+            )
         if val_pu is not None and validation_parameter is not None:
-            kwargs = {validation_parameter: val_pu}
-            if class_prior is not None:
-                kwargs["class_prior"] = class_prior
+            kwargs = {
+                validation_parameter: val_pu,
+                **fit_prior_kwargs(
+                    params,
+                    risk_prior=risk_prior,
+                    training_table_prior=training_table_prior,
+                    validation_risk_prior=validation_risk_prior,
+                    **fit_priors,
+                ),
+            }
             route_training_view(kwargs, params, os_or_ts, estimator)
-            try:
-                estimator.fit(X, y, **kwargs)
-            except TypeError:
-                # Signature probe passed but the implementation is inconsistent at
-                # runtime: degrade to a bare fit — replacement (single fit), so the
-                # FitTrainer fallback below is NOT re-run. Any other exception
-                # (including internal training bugs) must bubble up.
-                kwargs.pop(validation_parameter, None)
-                estimator.fit(X, y, **kwargs)
-                return RunTrajectory(epochs=[EpochRecord(epoch=1, metrics={})], model=estimator)
+            estimator.fit(X, y, **kwargs)
             hist = getattr(estimator, "history_", None)
             if isinstance(hist, dict) and "val_risk" in hist and len(hist["val_risk"]):
                 if len(hist.get("epoch", [])) != len(hist["val_risk"]):
@@ -624,4 +647,12 @@ class DeepFitTrainer(Trainer):
             # The validation-aware fit already completed. Missing optional
             # history means a single-point trajectory, never a second fit.
             return RunTrajectory(epochs=[EpochRecord(epoch=1, metrics={})], model=estimator)
-        return FitTrainer().fit(estimator, X, y, class_prior=class_prior, os_or_ts=os_or_ts)
+        return FitTrainer().fit(
+            estimator,
+            X,
+            y,
+            risk_prior=risk_prior,
+            training_table_prior=training_table_prior,
+            os_or_ts=os_or_ts,
+            **fit_priors,
+        )

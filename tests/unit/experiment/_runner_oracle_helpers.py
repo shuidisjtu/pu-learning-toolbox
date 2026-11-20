@@ -67,14 +67,13 @@ class RecordingOracle(SupervisedTrainer):
     def __init__(self):
         self.calls = []
 
-    def fit(self, estimator, X, y, *, class_prior=None, val_pu=None):
+    def fit(self, estimator, X, y, *, val_pu=None):
         self.calls.append(
             {
                 "n_positive_labels": int(np.sum(np.asarray(y) == 1)),
-                "class_prior": class_prior,
             }
         )
-        return super().fit(estimator, X, y, class_prior=class_prior)
+        return super().fit(estimator, X, y)
 
 
 class RecordingPU(DeepFitTrainer):
@@ -84,9 +83,9 @@ class RecordingPU(DeepFitTrainer):
         super().__init__()
         self.calls = 0
 
-    def fit(self, estimator, X, y, *, class_prior=None, val_pu=None):
+    def fit(self, estimator, X, y, *, val_pu=None):
         self.calls += 1
-        return super().fit(estimator, X, y, class_prior=class_prior, val_pu=val_pu)
+        return super().fit(estimator, X, y, val_pu=val_pu)
 
 
 def run_oracle(bundle, *, protocols=None, c=0.1, recorder=None, manifest_path=None):

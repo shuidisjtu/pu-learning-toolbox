@@ -24,8 +24,8 @@ from ...core.tags import (
     AlgorithmFamily,
     Assumption,
     Backend,
-    ImplementationStatus,
     Maturity,
+    PriorConsumer,
     SampleWeightSupport,
     Scenario,
     SourceStatus,
@@ -106,15 +106,15 @@ class TEDnClassifier(BasePUClassifier):
 
     The default MLP/Adam and finite convergence tolerance/patience are engineering
     choices, not the author's image/text recipes or an approved survey budget.
-    This class is not registered in the OS pipeline or frozen survey matrix.
+    This class is not part of the frozen survey matrix.
     """
 
     family = AlgorithmFamily.RISK_ESTIMATION
     label_semantics = "pu"
     assumption = (Assumption.SCAR,)
     scenario = (Scenario.CASE_CONTROL,)
-    requires_class_prior = False
-    implementation_status = ImplementationStatus.NATIVE
+    prior_consumers = (PriorConsumer("tedn_negative_selection", "native_unlabeled"),)
+    _prior_consumptions_ = ()
     source_status = SourceStatus.OFFICIAL_EXACT
     backend = Backend.TORCH
     maturity = Maturity.EXPERIMENTAL
@@ -174,20 +174,19 @@ class TEDnClassifier(BasePUClassifier):
         X: np.ndarray,
         y_pu: np.ndarray,
         *,
-        class_prior: float | None = None,
         sample_weight: np.ndarray | None = None,
         sample_ids: np.ndarray | None = None,
         epoch_callback=None,
     ) -> TEDnClassifier:
         """Fit from P/U roles alone; reject population pi and extra clean labels."""
         self._is_fitted = False
+        self._prior_consumptions_ = []
         for name in ("alpha_u_", "bbe_history_", "training_provenance_", "stop_reason_"):
             self.__dict__.pop(name, None)
         try:
             return self._fit(
                 X,
                 y_pu,
-                class_prior=class_prior,
                 sample_weight=sample_weight,
                 sample_ids=sample_ids,
                 epoch_callback=epoch_callback,
@@ -197,13 +196,9 @@ class TEDnClassifier(BasePUClassifier):
             self.stop_reason_ = "fit_failed"
             raise
 
-    def _fit(self, X, y_pu, *, class_prior, sample_weight, sample_ids, epoch_callback):
+    def _fit(self, X, y_pu, *, sample_weight, sample_ids, epoch_callback):
         import torch
 
-        if class_prior is not None:
-            raise ValueError(
-                "TEDn estimates alpha_U from held-out P/U; population class_prior rejected"
-            )
         if sample_weight is not None:
             raise NotImplementedError("TEDn does not implement sample_weight")
         if epoch_callback is not None and not callable(epoch_callback):
@@ -421,6 +416,19 @@ class TEDnClassifier(BasePUClassifier):
                 }
             )
             selected = u_idx[select_tedn_negatives(scores(u_idx), self.alpha_u_)]
+            self._prior_consumptions_.append(
+                {
+                    "consumer": "tedn_negative_selection",
+                    "partition": "train",
+                    "target": "native_unlabeled",
+                    "value": float(self.alpha_u_),
+                    "source": "estimate.best_bin_estimate",
+                    "estimation_pool": "heldout_pu",
+                    "round_index": epoch + 1,
+                    "n_estimation_positives": len(hp_idx),
+                    "n_estimation_unlabeled": len(hu_idx),
+                }
+            )
             self.selected_negative_indices_ = selected.copy()
             self.history_["selected_negative_count"].append(len(selected))
             self.history_["alpha_u"].append(self.alpha_u_)

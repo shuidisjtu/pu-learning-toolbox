@@ -1,132 +1,95 @@
-"""Central algorithm registry.
-
-All PU algorithms — whether native, adapter-wrapped, or ``api_only``
-placeholders — are registered here with full metadata.  The registry
-powers discovery, recommendation, and source-aware algorithm selection.
-"""
+"""Discover and register concrete PU estimators by name or alias."""
 
 from __future__ import annotations
 
 import threading
 import warnings
+from dataclasses import dataclass, field
+from inspect import isabstract
+from typing import NamedTuple
 
 from ..core.base import BasePriorEstimator, BasePUClassifier
 from ..core.exceptions import RegistryError
 from .metadata import AlgorithmMetadata
 
-# ── Alias → canonical name ─────────────────────────────────────────
-_ALIAS_MAP: dict[str, str] = {}
-_DEPRECATED_ALIASES: set[str] = set()
+_EstimatorClass = type[BasePUClassifier] | type[BasePriorEstimator]
 
 
-def register_alias(alias: str, canonical_name: str, *, deprecated: bool = False) -> None:
-    """Register a case-insensitive alias for a canonical algorithm name."""
-    key = alias.lower()
-    if key in _ALIAS_MAP and _ALIAS_MAP[key] != canonical_name:
-        raise ValueError(
-            f"Alias '{alias}' already maps to '{_ALIAS_MAP[key]}'; "
-            f"cannot remap to '{canonical_name}'."
-        )
-    _ALIAS_MAP[key] = canonical_name
-    if deprecated:
-        _DEPRECATED_ALIASES.add(key)
-    else:
-        _DEPRECATED_ALIASES.discard(key)
+class _RegisteredMethod(NamedTuple):
+    metadata: AlgorithmMetadata
+    estimator_cls: _EstimatorClass
 
 
-def unregister_alias(alias: str) -> None:
-    """Remove an alias entry (safe to call if not registered)."""
-    key = alias.lower()
-    _ALIAS_MAP.pop(key, None)
-    _DEPRECATED_ALIASES.discard(key)
+class _Alias(NamedTuple):
+    canonical_name: str
+    deprecated: bool
 
 
-def clear_aliases() -> None:
-    """Remove all alias mappings."""
-    _ALIAS_MAP.clear()
-    _DEPRECATED_ALIASES.clear()
+@dataclass
+class _Registry:
+    methods: dict[str, _RegisteredMethod] = field(default_factory=dict)
+    aliases: dict[str, _Alias] = field(default_factory=dict)
+
+    def add(self, metadata: AlgorithmMetadata, estimator_cls: _EstimatorClass) -> None:
+        name = _name_key(metadata.name)
+        aliases = [_name_key(alias) for alias in metadata.aliases]
+        deprecated_aliases = [_name_key(alias) for alias in metadata.deprecated_aliases]
+        self._check_names(name, aliases)
+        _sync_estimator_metadata(metadata, estimator_cls)
+
+        metadata.name = name
+        metadata.aliases = aliases
+        metadata.deprecated_aliases = deprecated_aliases
+        deprecated = set(deprecated_aliases)
+        self.methods[name] = _RegisteredMethod(metadata, estimator_cls)
+        self.aliases.update({alias: _Alias(name, alias in deprecated) for alias in aliases})
+
+    def _check_names(self, name: str, aliases: list[str]) -> None:
+        seen: set[str] = set()
+        for key in (name, *aliases):
+            if key in seen:
+                raise RegistryError(f"Duplicate name or alias {key!r} for algorithm {name!r}.")
+            if key in self.methods:
+                raise RegistryError(f"Name or alias {key!r} is already registered as an algorithm.")
+            existing = self.aliases.get(key)
+            if existing is not None:
+                raise RegistryError(
+                    f"Name or alias {key!r} already refers to {existing.canonical_name!r}."
+                )
+            seen.add(key)
+
+    def lookup(self, name: str) -> _RegisteredMethod:
+        key = _name_key(name)
+        alias = self.aliases.get(key)
+        if alias is not None:
+            key = alias.canonical_name
+            if alias.deprecated:
+                warnings.warn(
+                    f"Algorithm alias {name!r} is deprecated and will be removed in a "
+                    f"future release; use {key!r} instead.",
+                    FutureWarning,
+                    stacklevel=3,
+                )
+        method = self.methods.get(key)
+        if method is None:
+            raise RegistryError(f"Unknown algorithm {name!r}.")
+        return method
+
+    def remove(self, name: str) -> None:
+        if self.methods.pop(name, None) is None:
+            return
+        aliases = [key for key, alias in self.aliases.items() if alias.canonical_name == name]
+        for key in aliases:
+            del self.aliases[key]
 
 
-def resolve_alias(name: str) -> str | None:
-    """Resolve a possibly-aliased name to its canonical form."""
-    if not isinstance(name, str):
-        return None
-    key = name.lower()
-    canonical = _ALIAS_MAP.get(key)
-    if canonical is not None and key in _DEPRECATED_ALIASES:
-        warnings.warn(
-            f"Algorithm alias {name!r} is deprecated and will be removed in a "
-            f"future release; use {canonical!r} instead.",
-            FutureWarning,
-            stacklevel=3,
-        )
-    return canonical
-
-
-# ── Canonical registry ─────────────────────────────────────────────
-_REGISTRY: dict[str, AlgorithmMetadata] = {}
-_CLASSES: dict[str, type[BasePUClassifier] | type[BasePriorEstimator]] = {}
-_lock: threading.RLock = threading.RLock()
-
-
-def register_method(
-    metadata: AlgorithmMetadata,
-    estimator_cls: type[BasePUClassifier] | type[BasePriorEstimator] | None = None,
-) -> None:
-    """Register an algorithm in the toolbox.
-
-    Parameters
-    ----------
-    metadata : AlgorithmMetadata
-        Full metadata for the algorithm.
-    estimator_cls : type or None
-        Class reference.  ``None`` is allowed for ``api_only`` entries.
-
-    Raises
-    ------
-    RegistryError
-        If a method with the same canonical name is already registered,
-        or if ``estimator_cls`` is not a subclass of
-        :class:`~pu_toolbox.core.base.BasePUClassifier` or
-        :class:`~pu_toolbox.core.base.BasePriorEstimator`.
-    """
-    if estimator_cls is not None and not issubclass(
-        estimator_cls, BasePUClassifier | BasePriorEstimator
-    ):
-        raise RegistryError(
-            f"estimator_cls must be a subclass of BasePUClassifier, "
-            f"got {getattr(estimator_cls, '__name__', estimator_cls)}"
-        )
-
-    name = metadata.name
-    with _lock:
-        if name in _REGISTRY:
-            raise RegistryError(
-                f"Algorithm '{name}' is already registered. "
-                "Use unregister_method() first if you need to replace it."
-            )
-
-        _REGISTRY[name] = metadata
-        if estimator_cls is not None:
-            _CLASSES[name] = estimator_cls
-            _sync_class_metadata_to_registry(name, estimator_cls)
-
-        # Register the canonical name itself as an alias (for case-insensitive lookup)
-        register_alias(name, name)
-
-        for alias in metadata.aliases:
-            try:
-                register_alias(alias, name, deprecated=alias in metadata.deprecated_aliases)
-            except ValueError as exc:
-                raise RegistryError(str(exc)) from exc
-
+_REGISTRY: _Registry | None = None
+_LOCK = threading.RLock()
 
 _SYNC_FIELDS = (
     "family",
     "assumption",
     "scenario",
-    "requires_class_prior",
-    "implementation_status",
     "source_status",
     "backend",
     "maturity",
@@ -135,194 +98,109 @@ _SYNC_FIELDS = (
     "encoder_parameter",
     "trains_encoder",
     "label_semantics",
-    "class_prior_target",
-    "risk_class_prior_target",
+    "prior_consumers",
 )
 
 
-def _sync_class_metadata_to_registry(canonical: str, cls: type) -> None:
-    """Copy overlapping metadata fields from the estimator class to the registry entry.
-
-    Only syncs fields explicitly declared on the class itself (present in
-    its MRO ``__dict__`` chain excluding the abstract bases), so inherited
-    defaults from ``BasePUClassifier`` / ``BasePriorEstimator`` are not
-    treated as authoritative overrides.
-    """
-    meta = _REGISTRY[canonical]
-    _bases = (BasePUClassifier, BasePriorEstimator)
-    for field_name in _SYNC_FIELDS:
-        declared = any(
-            field_name in klass.__dict__
-            for klass in cls.__mro__
-            if klass not in _bases and not issubclass(klass, type)
-        )
-        if not declared:
-            continue
-        value = getattr(cls, field_name)
-        if isinstance(value, tuple):
-            value = list(value)
-        setattr(meta, field_name, value)
+def _name_key(name: str) -> str:
+    if not isinstance(name, str):
+        raise RegistryError(f"Algorithm name must be a string, got {type(name).__name__}")
+    return name.lower()
 
 
-def bind_estimator_class(
-    name: str, estimator_cls: type[BasePUClassifier] | type[BasePriorEstimator]
-) -> None:
-    """Bind a native estimator class to an already-registered method.
-
-    Use this when upgrading an ``api_only`` entry to a runnable
-    implementation without re-registering the entire metadata.
-
-    Parameters
-    ----------
-    name : str
-        Canonical method name (must already be registered).
-    estimator_cls : type[BasePUClassifier]
-        Estimator class to associate.
-
-    Raises
-    ------
-    RegistryError
-        If ``name`` is not registered or ``estimator_cls`` is invalid.
-    """
-    if estimator_cls is not None and not issubclass(
-        estimator_cls, BasePUClassifier | BasePriorEstimator
+def _validate_estimator_class(estimator_cls: _EstimatorClass) -> None:
+    if (
+        not isinstance(estimator_cls, type)
+        or not issubclass(estimator_cls, BasePUClassifier | BasePriorEstimator)
+        or isabstract(estimator_cls)
     ):
         raise RegistryError(
-            f"estimator_cls must be a subclass of BasePUClassifier, "
-            f"got {getattr(estimator_cls, '__name__', estimator_cls)}"
+            "estimator_cls must be a concrete BasePUClassifier or BasePriorEstimator subclass, "
+            f"got {getattr(estimator_cls, '__name__', estimator_cls)}."
         )
-    canonical = _resolve_name(name)
-    if canonical not in _REGISTRY:
-        raise RegistryError(
-            f"Unknown algorithm '{name}'. Register it first with register_method()."
-        )
-    with _lock:
-        _CLASSES[canonical] = estimator_cls
-        _sync_class_metadata_to_registry(canonical, estimator_cls)
+
+
+def _sync_estimator_metadata(metadata: AlgorithmMetadata, estimator_cls: _EstimatorClass) -> None:
+    """Copy declarations from the estimator, excluding abstract-base defaults."""
+    abstract_bases = (BasePUClassifier, BasePriorEstimator)
+    declaring_classes = [
+        cls
+        for cls in estimator_cls.__mro__
+        if cls not in abstract_bases and not issubclass(cls, type)
+    ]
+    for field_name in _SYNC_FIELDS:
+        if any(field_name in cls.__dict__ for cls in declaring_classes):
+            value = getattr(estimator_cls, field_name)
+            setattr(
+                metadata,
+                field_name,
+                list(value) if field_name in {"assumption", "scenario"} else value,
+            )
+
+
+def _get_registry() -> _Registry:
+    """Initialize once; the caller holds _LOCK."""
+    global _REGISTRY
+    if _REGISTRY is None:
+        from .builtin_methods import _load_builtin_methods
+
+        registry = _Registry()
+        for metadata, estimator_cls in _load_builtin_methods():
+            _validate_estimator_class(estimator_cls)
+            registry.add(metadata, estimator_cls)
+        _REGISTRY = registry
+    return _REGISTRY
+
+
+def register_method(metadata: AlgorithmMetadata, estimator_cls: _EstimatorClass) -> None:
+    """Register metadata and a concrete estimator class together."""
+    _validate_estimator_class(estimator_cls)
+    with _LOCK:
+        _get_registry().add(metadata, estimator_cls)
 
 
 def unregister_method(name: str) -> None:
-    """Remove an algorithm from the registry (mainly for testing).
-
-    Also removes all aliases that point to this canonical name.
-    """
-    with _lock:
-        # Collect and remove aliases pointing to this name
-        for alias, canonical in list(alias_map_items()):
-            if canonical == name:
-                unregister_alias(alias)
-        _REGISTRY.pop(name, None)
-        _CLASSES.pop(name, None)
+    """Remove a canonical name and its aliases; an unknown name is a no-op."""
+    with _LOCK:
+        _get_registry().remove(_name_key(name))
 
 
-def _resolve_name(name: str | None) -> str:
-    """Resolve alias to canonical name, with None guard."""
-    if not isinstance(name, str):
-        raise RegistryError(f"Algorithm name must be a string, got {type(name).__name__}")
-    canonical = resolve_alias(name)
-    return name if canonical is None else canonical
-
-
-def get_algorithm(name: str) -> type[BasePUClassifier] | type[BasePriorEstimator]:
-    """Look up an algorithm class by name or alias.
-
-    Parameters
-    ----------
-    name : str
-        Canonical name or registered alias (case-insensitive).
-
-    Returns
-    -------
-    type[BasePUClassifier]
-
-    Raises
-    ------
-    RegistryError
-        If the name is not found or the algorithm is ``api_only`` with
-        no runnable class.
-    """
-    canonical = _resolve_name(name)
-
-    cls = _CLASSES.get(canonical)
-    if cls is not None:
-        return cls
-
-    # Check if it's registered but api_only (no class)
-    if canonical in _REGISTRY:
-        meta = _REGISTRY[canonical]
-        raise RegistryError(
-            f"Algorithm '{canonical}' is registered but not yet implemented "
-            f"(status={meta.implementation_status.value}). "
-            "Check back in a future release or consider an alternative method."
-        )
-
-    raise RegistryError(
-        f"Unknown algorithm '{name}'. Use get_algorithm_registry() to list available algorithms."
-    )
+def get_algorithm(name: str) -> _EstimatorClass:
+    """Get a concrete estimator class by name or alias, ignoring case."""
+    with _LOCK:
+        return _get_registry().lookup(name).estimator_cls
 
 
 def get_metadata(name: str) -> AlgorithmMetadata:
-    """Return the metadata for a registered algorithm.
-
-    Raises
-    ------
-    RegistryError
-        If not found.
-    """
-    canonical = _resolve_name(name)
-    if canonical not in _REGISTRY:
-        raise RegistryError(f"Unknown algorithm '{name}'.")
-    return _REGISTRY[canonical]
+    """Get registered metadata by name or alias, ignoring case."""
+    with _LOCK:
+        return _get_registry().lookup(name).metadata
 
 
 def get_algorithm_registry() -> dict[str, AlgorithmMetadata]:
-    """Return the full registry dict (name → metadata)."""
-    return dict(_REGISTRY)
+    """Return a shallow snapshot keyed by canonical name."""
+    with _LOCK:
+        return {name: entry.metadata for name, entry in _get_registry().methods.items()}
 
 
 def list_algorithms(
-    *,
-    trainable_only: bool = False,
-    family: str | None = None,
-    assumption: str | None = None,
+    *, family: str | None = None, assumption: str | None = None
 ) -> list[AlgorithmMetadata]:
-    """List registered algorithms, optionally filtered.
-
-    Parameters
-    ----------
-    trainable_only : bool
-        If True, exclude ``api_only`` entries (methods without a native
-        implementation). Experimental-maturity entries are NOT filtered
-        here; use ``Maturity`` if needed.
-    family : str or None
-        Filter by :attr:`AlgorithmMetadata.family` value.
-    assumption : str or None
-        Filter by :attr:`AlgorithmMetadata.assumption` (checks membership).
-
-    Returns
-    -------
-    list[AlgorithmMetadata]
-    """
+    """List registered metadata matching optional family and assumption filters."""
     results = []
-    for meta in list(_REGISTRY.values()):
-        if trainable_only and not meta.trainable:
+    for metadata in get_algorithm_registry().values():
+        if family is not None and metadata.family.value != family:
             continue
-        if family is not None and meta.family.value != family:
+        if assumption is not None and not any(
+            tag.value == assumption for tag in metadata.assumption
+        ):
             continue
-        if assumption is not None and not any(a.value == assumption for a in meta.assumption):
-            continue
-        results.append(meta)
+        results.append(metadata)
     return results
 
 
-def alias_map_items():
-    """Return a copy of all (alias, canonical) pairs (for safe iteration)."""
-    yield from list(_ALIAS_MAP.items())
-
-
 def clear_registry() -> None:
-    """Clear the registry (mainly for testing)."""
-    with _lock:
-        _REGISTRY.clear()
-        _CLASSES.clear()
-        clear_aliases()
+    """Discard the current registry; the next use reloads the built-ins."""
+    global _REGISTRY
+    with _LOCK:
+        _REGISTRY = None

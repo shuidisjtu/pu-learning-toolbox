@@ -22,8 +22,8 @@ from ...core.tags import (
     AlgorithmFamily,
     Assumption,
     Backend,
-    ImplementationStatus,
     Maturity,
+    PriorConsumer,
     SampleWeightSupport,
     Scenario,
     SourceStatus,
@@ -36,10 +36,15 @@ class LBEClassifier(BasePUClassifier):
 
     family = AlgorithmFamily.BIAS_AWARE
     label_semantics = "pu"
-    class_prior_target = "native_unlabeled"
+    _runner_prior_parameter = "initial_unlabeled_prior"
+    prior_consumers = (
+        PriorConsumer(
+            "lbe_posterior_initialization", "native_unlabeled", parameter="initial_unlabeled_prior"
+        ),
+    )
+    _prior_consumptions_ = ()
     assumption = (Assumption.SAR,)
     scenario = (Scenario.SINGLE_TRAINING_SET, Scenario.SELECTION_BIASED)
-    implementation_status = ImplementationStatus.NATIVE
     source_status = SourceStatus.OFFICIAL_EXACT
     backend = Backend.SKLEARN
     maturity = Maturity.RESEARCH
@@ -64,7 +69,7 @@ class LBEClassifier(BasePUClassifier):
         """E-step: positive class posterior conditional on the observed label."""
         return np.where(s == 1, 1.0, p * (1.0 - c) / (1.0 - p * c))
 
-    def fit(self, X, y_pu, *, class_prior=None, sample_weight=None):
+    def fit(self, X, y_pu, *, initial_unlabeled_prior=None, sample_weight=None):
         """Fit the LBE instance-dependent labeling-bias model.
 
         Parameters
@@ -73,7 +78,7 @@ class LBEClassifier(BasePUClassifier):
             Feature matrix.  Must be dense.
         y_pu : array-like of shape (n_samples,)
             PU labels.  +1 = labeled positive, 0 = unlabeled.
-        class_prior : float, optional
+        initial_unlabeled_prior : float, optional
             Initialize the unlabeled latent posterior; not a prior constraint.
         sample_weight : ignored (present for sklearn compatibility; PU risk estimators do not use instance weights)
 
@@ -99,13 +104,18 @@ class LBEClassifier(BasePUClassifier):
             or self.C <= 0
         ):
             raise ValueError("C must be finite and positive")
-        if class_prior is not None and (
-            isinstance(class_prior, bool | np.bool_) or not isinstance(class_prior, Real)
+        if initial_unlabeled_prior is not None and (
+            isinstance(initial_unlabeled_prior, bool | np.bool_)
+            or not isinstance(initial_unlabeled_prior, Real)
         ):
-            raise ValueError("class_prior must be a scalar in (0, 1)")
+            raise ValueError("initial_unlabeled_prior must be a scalar in (0, 1)")
         s = (y_pu == 1).astype(float)
-        p0 = float(class_prior) if class_prior is not None else max(0.05, min(0.95, s.mean() * 2.0))
-        check_scalar_in_range(p0, 0.0, 1.0, "class_prior", inclusive=False)
+        p0 = (
+            float(initial_unlabeled_prior)
+            if initial_unlabeled_prior is not None
+            else max(0.05, min(0.95, s.mean() * 2.0))
+        )
+        check_scalar_in_range(p0, 0.0, 1.0, "initial_unlabeled_prior", inclusive=False)
         self.classifier_ = make_pipeline(
             StandardScaler(), LogisticRegression(C=self.C, max_iter=self.max_iter, random_state=0)
         )
@@ -117,7 +127,21 @@ class LBEClassifier(BasePUClassifier):
         self.observed_log_likelihood_history_ = []
         self.posterior_max_delta_history_ = []
         self.m_step_iterations_ = []
-        self.initial_class_prior_ = p0
+        self.initial_unlabeled_prior_ = p0
+        consumption = {
+            "consumer": "lbe_posterior_initialization",
+            "partition": "train",
+            "target": "native_unlabeled",
+            "value": p0,
+            "source": (
+                "derived.observed_label_fraction"
+                if initial_unlabeled_prior is None
+                else "fit.initial_unlabeled_prior"
+            ),
+        }
+        if initial_unlabeled_prior is None:
+            consumption["derivation"] = {"rule": "clip(2 * q, 0.05, 0.95)", "q": float(s.mean())}
+        self._prior_consumptions_ = (consumption,)
         for iteration in range(self.n_em_iter):
             self._weighted_binary_fit(self.classifier_, X, q)
             p = np.clip(self.classifier_.predict_proba(X)[:, 1], 1e-5, 1 - 1e-5)
@@ -154,7 +178,7 @@ class LBEClassifier(BasePUClassifier):
             "note": "Identical logistic families with equal penalties admit branch exchange; "
             "these train-only diagnostics do not identify which branch is the true class posterior.",
         }
-        self._class_prior = float(np.mean(p))
+        self.training_table_prior_estimate_ = float(np.mean(p))
         self.classes_ = np.array([0, 1])
         self._X_shape_ = X.shape
         self._is_fitted = True

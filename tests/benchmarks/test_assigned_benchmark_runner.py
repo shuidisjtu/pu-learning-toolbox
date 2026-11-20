@@ -19,6 +19,7 @@ from benchmarks.assigned_methods.runner import (
     run_trials,
     summarize_trials,
 )
+from pu_toolbox.preprocessing import make_sar_propensity
 
 pytestmark = pytest.mark.unit
 
@@ -101,6 +102,37 @@ def test_sar_extreme_seed_reproducibility(benchmark_config):
     for left, right in zip(first, second, strict=True):
         np.testing.assert_allclose(left, right)
     assert first[1].sum() > 0
+
+
+@pytest.mark.parametrize("mechanism", ["scar", "linear", "nonlinear"])
+def test_determ_os_recipe_retains_the_sequential_stream(benchmark_config, mechanism):
+    data = {**benchmark_config["data"], "label_frequency": 1e-10}
+    seed = 11
+
+    def expected(n_samples, seed):
+        rng = np.random.RandomState(seed)
+        n_positive = round(n_samples * data["class_prior"])
+        truth = np.r_[np.ones(n_positive, dtype=int), np.zeros(n_samples - n_positive, dtype=int)]
+        rng.shuffle(truth)
+        center = (2 * truth[:, None] - 1) * (data["separation"] / 2)
+        features = rng.normal(loc=center, size=(n_samples, data["n_features"]))
+        propensity = make_sar_propensity(
+            features,
+            truth,
+            mechanism=mechanism,
+            label_frequency=data["label_frequency"],
+            strength=data["sar_strength"],
+        )
+        labels = (rng.uniform(size=n_samples) < propensity).astype(int)
+        assert not labels.any()
+        labels[propensity.argmax()] = 1
+        return features, labels, truth, propensity
+
+    X_train, y_pu, y_train, propensity_train = expected(data["n_train"], seed)
+    X_test, _, y_test, propensity_test = expected(data["n_test"], seed + 1_000_003)
+    old_recipe = (X_train, y_pu, y_train, X_test, y_test, propensity_train, propensity_test)
+    for actual, reference in zip(_sar_data(seed, data, mechanism), old_recipe, strict=True):
+        np.testing.assert_array_equal(actual, reference)
 
 
 def test_multiseed_trials_are_deterministic(benchmark_config):

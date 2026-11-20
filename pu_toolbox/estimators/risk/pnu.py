@@ -25,8 +25,8 @@ from ...core.tags import (
     AlgorithmFamily,
     Assumption,
     Backend,
-    ImplementationStatus,
     Maturity,
+    PriorConsumer,
     SampleWeightSupport,
     Scenario,
     SourceStatus,
@@ -58,7 +58,7 @@ class PNUClassifier(BasePUClassifier):
 
     Parameters
     ----------
-    class_prior : float
+    population_prior : float
         Class prior theta_P = P(y=1).  **Required** — must be in (0, 1).
     eta : float, default 0.0
         PNU trade-off parameter in [-1, 1].  ``eta=0`` is PN (supervised),
@@ -87,7 +87,7 @@ class PNUClassifier(BasePUClassifier):
         Fitted basis coefficients alpha (including intercept if enabled).
     intercept_ : float
         Fitted intercept b (0 when ``fit_intercept=False``).
-    class_prior_ : float
+    population_prior_ : float
         Class prior used during training.
     eta_ : float
         PNU trade-off parameter used during training.
@@ -107,8 +107,16 @@ class PNUClassifier(BasePUClassifier):
     label_semantics = "pnu"
     assumption: tuple[Assumption, ...] = (Assumption.SCAR,)
     scenario: tuple[Scenario, ...] = (Scenario.CASE_CONTROL,)
-    requires_class_prior: bool = True
-    implementation_status: ImplementationStatus = ImplementationStatus.NATIVE
+    _runner_prior_parameter = "population_prior"
+    prior_consumers = (
+        PriorConsumer(
+            "pnu_training_risk", "population", parameter="population_prior", requires_input=True
+        ),
+        PriorConsumer("pnu_pn_diagnostic_risk", "population", parameter="population_prior"),
+        PriorConsumer("pnu_pu_diagnostic_risk", "population", parameter="population_prior"),
+        PriorConsumer("pnu_nu_diagnostic_risk", "population", parameter="population_prior"),
+    )
+    _prior_consumptions_ = ()
     source_status: SourceStatus = SourceStatus.OFFICIAL_EXACT
     backend: Backend = Backend.NUMPY
     maturity: Maturity = Maturity.RESEARCH
@@ -116,7 +124,7 @@ class PNUClassifier(BasePUClassifier):
 
     def __init__(
         self,
-        class_prior: float,
+        population_prior: float,
         *,
         eta: float = 0.0,
         reg_lambda: float = 1e-3,
@@ -127,7 +135,7 @@ class PNUClassifier(BasePUClassifier):
         random_state: int | None = None,
     ) -> None:
         super().__init__()
-        self.class_prior = class_prior
+        self.population_prior = population_prior
         self.eta = eta
         self.reg_lambda = reg_lambda
         self.basis = basis
@@ -143,7 +151,7 @@ class PNUClassifier(BasePUClassifier):
         X: np.ndarray,
         y: np.ndarray,
         *,
-        class_prior: float | None = None,
+        population_prior: float | None = None,
         sample_weight: np.ndarray | None = None,
     ) -> PNUClassifier:
         """Fit the PNU classifier via closed-form linear solve.
@@ -154,8 +162,8 @@ class PNUClassifier(BasePUClassifier):
             Feature matrix.
         y : np.ndarray of shape (n_samples,)
             P/N/U labels in {+1, -1, 0} format.
-        class_prior : float, optional
-            Override the constructor's ``class_prior``.  Must be in (0, 1).
+        population_prior : float, optional
+            Override the constructor's ``population_prior``.  Must be in (0, 1).
         sample_weight : np.ndarray, optional
             Accepted for API compatibility; currently ignored.
 
@@ -169,8 +177,8 @@ class PNUClassifier(BasePUClassifier):
             raise ValueError("X contains NaN or Inf values.")
 
         # ── Resolve parameters ──────────────────────────────────────
-        pi = class_prior if class_prior is not None else self.class_prior
-        check_scalar_in_range(pi, 0.0, 1.0, "class_prior", inclusive=False)
+        pi = population_prior if population_prior is not None else self.population_prior
+        check_scalar_in_range(pi, 0.0, 1.0, "population_prior", inclusive=False)
         if not (-1.0 <= self.eta <= 1.0):
             raise ValueError(f"eta must be in [-1, 1]; got {self.eta}.")
         if self.reg_lambda <= 0:
@@ -185,8 +193,7 @@ class PNUClassifier(BasePUClassifier):
         X_U = X[mask_U]
         n_P, n_N, n_U = X_P.shape[0], X_N.shape[0], X_U.shape[0]
 
-        self._class_prior = pi
-        self.class_prior_ = pi
+        self.population_prior_ = pi
         self.eta_ = self.eta
         self.n_positive_ = n_P
         self.n_negative_ = n_N
@@ -285,6 +292,22 @@ class PNUClassifier(BasePUClassifier):
         }
 
         # ── Finalise ────────────────────────────────────────────────
+        origin = "estimator" if population_prior is None else "fit"
+        self._prior_consumptions_ = tuple(
+            {
+                "consumer": consumer,
+                "partition": "train",
+                "target": "population",
+                "value": float(pi),
+                "source": f"{origin}.population_prior",
+            }
+            for consumer in (
+                "pnu_training_risk",
+                "pnu_pn_diagnostic_risk",
+                "pnu_pu_diagnostic_risk",
+                "pnu_nu_diagnostic_risk",
+            )
+        )
         self._X_shape_ = X.shape
         self.classes_ = np.array([0, 1])
         self._is_fitted = True

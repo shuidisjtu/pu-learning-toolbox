@@ -65,8 +65,6 @@ class NonNegativePULoss(BasePULoss):
     reporting of ``nnpu_risk``, not the internal risk decomposition.
     """
 
-    requires_class_prior: bool = True
-
     def __init__(
         self,
         loss: str = "sigmoid",
@@ -88,7 +86,7 @@ class NonNegativePULoss(BasePULoss):
         positive_scores: np.ndarray,
         unlabeled_scores: np.ndarray,
         *,
-        class_prior: float,
+        risk_prior: float,
         non_negative: bool = True,
     ) -> float:
         """Compute the PU risk.
@@ -99,7 +97,7 @@ class NonNegativePULoss(BasePULoss):
             Model scores g(x) for labeled-positive samples.
         unlabeled_scores : np.ndarray of shape (n_U,)
             Model scores g(x) for unlabeled samples.
-        class_prior : float
+        risk_prior : float
             Class prior π = P(y=1).  Must satisfy 0 < π < 1.
         non_negative : bool, default True
             If True, return the nnPU risk R̃_pu (Eq. 6).
@@ -110,7 +108,7 @@ class NonNegativePULoss(BasePULoss):
         float
             Scalar risk value.
         """
-        info = self.evaluate(positive_scores, unlabeled_scores, class_prior=class_prior)
+        info = self.evaluate(positive_scores, unlabeled_scores, risk_prior=risk_prior)
         return info["nnpu_risk"] if non_negative else info["upu_risk"]
 
     def evaluate(
@@ -118,7 +116,7 @@ class NonNegativePULoss(BasePULoss):
         positive_scores: np.ndarray,
         unlabeled_scores: np.ndarray,
         *,
-        class_prior: float,
+        risk_prior: float,
     ) -> dict:
         """Compute all risk components.
 
@@ -126,14 +124,14 @@ class NonNegativePULoss(BasePULoss):
         ----------
         positive_scores : np.ndarray of shape (n_P,)
         unlabeled_scores : np.ndarray of shape (n_U,)
-        class_prior : float
+        risk_prior : float
 
         Returns
         -------
         dict with keys:
             positive_risk, negative_risk, upu_risk, nnpu_risk
         """
-        check_scalar_in_range(class_prior, 0.0, 1.0, "class_prior", inclusive=False)
+        check_scalar_in_range(risk_prior, 0.0, 1.0, "risk_prior", inclusive=False)
         if len(positive_scores) == 0:
             raise ValueError("positive_scores must not be empty.")
         if len(unlabeled_scores) == 0:
@@ -144,7 +142,7 @@ class NonNegativePULoss(BasePULoss):
         R_p_minus = float(np.mean(sigmoid_stable(positive_scores)))
         R_u_minus = float(np.mean(sigmoid_stable(unlabeled_scores)))
 
-        pi = class_prior
+        pi = risk_prior
         r = R_u_minus - pi * R_p_minus  # negative-risk term
         upu_risk = pi * R_p_plus + r  # unbiased risk
 
@@ -169,7 +167,7 @@ def _nnpu_train_step(
     R_p_minus: torch.Tensor,  # noqa: F821
     R_u_minus: torch.Tensor,  # noqa: F821
     *,
-    class_prior: float,
+    risk_prior: float,
     beta: float = 0.0,
     gamma: float = 1.0,
 ) -> tuple[torch.Tensor, dict]:  # noqa: F821
@@ -190,7 +188,7 @@ def _nnpu_train_step(
     R_u_minus : torch.Tensor (scalar)
         Empirical risk on U samples treated as negative:
         ``mean(σ(+g(x_i^u)))``.
-    class_prior : float
+    risk_prior : float
         Class prior π = P(y=1).
     beta : float, default 0.0
         Non-negativity threshold.
@@ -216,7 +214,7 @@ def _nnpu_train_step(
     """
     import torch
 
-    pi = class_prior
+    pi = risk_prior
     r = R_u_minus - pi * R_p_minus  # negative-risk term
     upu_risk = pi * R_p_plus + r  # unbiased uPU risk
 

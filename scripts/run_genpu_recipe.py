@@ -81,7 +81,7 @@ def build_plan(
     directory,
     *,
     dataset,
-    prior,
+    population_prior,
     prior_source,
     seed,
     device,
@@ -104,7 +104,7 @@ def build_plan(
     before = {role: file_hash(directory / f"{role}.npz") for role in ROLES}
     bundle, image = _load(directory, dataset)
     _, recipe = build_genpu_recipe(
-        prior=prior,
+        population_prior=population_prior,
         seed=seed,
         device=device,
         gan_epochs=gan_epochs,
@@ -156,7 +156,7 @@ def execute(plan, output):
     actual = build_plan(
         plan["input_directory"],
         dataset=plan["dataset"],
-        prior=p["class_prior"],
+        population_prior=p["class_prior"],
         prior_source=plan["prior_source"],
         seed=p["random_state"],
         device=p["device"],
@@ -175,7 +175,7 @@ def execute(plan, output):
     if {role: file_hash(source / f"{role}.npz") for role in ROLES} != plan["input_files_sha256"]:
         raise ValueError("GenPU inputs changed immediately before fitting")
     model, recipe = build_genpu_recipe(
-        prior=p["class_prior"],
+        population_prior=p["class_prior"],
         seed=p["random_state"],
         device=p["device"],
         gan_epochs=p["max_epochs"],
@@ -200,7 +200,8 @@ def execute(plan, output):
     _write(output / "environment.json", environment)
     runner = ExperimentRunner(
         seed=p["random_state"],
-        class_prior=p["class_prior"],
+        training_population_prior=p["class_prior"],
+        validation_population_prior=p["class_prior"],
         protocols=[ProtocolPA(), ProtocolOA()],
         manifest_path=str(output / "manifest.json"),
         config={
@@ -293,7 +294,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-dir", type=Path, required=True)
     parser.add_argument("--dataset", choices=DATASETS, required=True)
-    parser.add_argument("--class-prior", type=float, required=True)
+    parser.add_argument("--population-prior", type=float, required=True)
     parser.add_argument("--prior-source", required=True)
     parser.add_argument("--seed", type=int, required=True)
     parser.add_argument("--device", choices=("cpu", "cuda"), required=True)
@@ -311,7 +312,7 @@ def main(argv=None):
         plan = build_plan(
             args.data_dir,
             dataset=args.dataset,
-            prior=args.class_prior,
+            population_prior=args.population_prior,
             prior_source=args.prior_source,
             seed=args.seed,
             device=args.device,

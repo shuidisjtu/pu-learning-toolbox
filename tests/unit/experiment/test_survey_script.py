@@ -34,12 +34,12 @@ def test_basic_run_survey_script_end_to_end(survey_script, tmp_path):
             "--method",
             "upu",
             "--model-params",
-            json.dumps({"class_prior": 0.3, "loss": "squared"}),
+            json.dumps({"loss": "squared"}),
             "--c",
             "0.3",
             "--seeds",
             "0",
-            "--class-prior",
+            "--population-prior",
             "0.3",
             "--out-dir",
             str(out_dir),
@@ -63,21 +63,39 @@ def test_basic_run_survey_script_end_to_end(survey_script, tmp_path):
     assert set(manifest["test_results"]) == {"PA", "OA"}
     assert manifest["test_results"]["OA"]["auc_unavailable_reason"] is None
     assert manifest["code_identity"]["code_commit_state"] in {"recorded", "unavailable"}
+    risk, pa = manifest["research_settings"]["prior"]
+    assert manifest["estimator_parameters"]["risk_prior"] is None
+    assert (risk["consumer"], risk["partition"]) == ("upu_risk", "train")
+    assert (pa["consumer"], pa["partition"], pa["value"]) == ("pa_risk", "pu_val", 0.3)
+    assert risk["source"] == "runner.training_population_prior"
+    assert pa["source"] == "runner.validation_population_prior"
 
 
-def test_param_survey_script_requires_population_prior(survey_script, tmp_path, capsys):
-    """Ledger prior_semantics='population π' -> --class-prior is mandatory."""
+@pytest.mark.parametrize(
+    ("arguments", "message"),
+    [
+        ([], "pass --population-prior"),
+        (
+            ["--population-prior", "0.3", "--model-params", '{"risk_prior": 0.3}'],
+            "Survey binds risk_prior at fit",
+        ),
+    ],
+)
+def test_param_survey_script_requires_population_prior(
+    survey_script, tmp_path, capsys, arguments, message
+):
+    """Survey binds the uPU risk prior from its population input."""
     data_dir = tmp_path / "splits"
     data_dir.mkdir()
     make_splits(data_dir)
 
-    rc = survey_script.main([str(data_dir), "--method", "upu"])
+    rc = survey_script.main([str(data_dir), "--method", "upu", *arguments])
     assert rc == 1
-    assert "pass --class-prior" in capsys.readouterr().err
+    assert message in capsys.readouterr().err
 
 
 def test_basic_script_runs_pusb_without_class_prior(survey_script, tmp_path):
-    """The linear PUSB baseline takes no pi: it must run without --class-prior.
+    """The linear PUSB baseline takes no pi: it must run without --population-prior.
 
     The gate is the registry's requires_class_prior (False for this row), not
     the ledger's annotation of the kernel sibling.
@@ -103,10 +121,13 @@ def test_basic_script_runs_pusb_without_class_prior(survey_script, tmp_path):
     assert rc == 0
     manifest = json.loads(run_manifest(out_dir, "c_0.3", "seed_0").read_text(encoding="utf-8"))
     assert manifest["dependency_lock"]["state"] == "recorded"
+    (selection_prior,) = manifest["research_settings"]["prior"]
+    assert selection_prior["consumer"] == "pa_risk"
+    assert selection_prior["source"] == "split_ref.class_prior.population"
 
 
 def test_param_script_requires_class_prior_for_pusb_kernel(survey_script, tmp_path, capsys):
-    """Registry requires_class_prior=True for pusb_kernel -> --class-prior is mandatory.
+    """Registry requires_class_prior=True for pusb_kernel -> --population-prior is mandatory.
 
     The gate fires before any estimator is built or any run directory is
     created: the deliberately invalid model params would otherwise surface a
@@ -131,37 +152,64 @@ def test_param_script_requires_class_prior_for_pusb_kernel(survey_script, tmp_pa
         ]
     )
     assert rc == 1
-    assert "pass --class-prior" in capsys.readouterr().err
+    assert "pass --population-prior" in capsys.readouterr().err
     assert not out_dir.exists()
 
 
-def test_basic_script_runs_pusb_kernel_with_class_prior(survey_script, tmp_path):
-    """The kernel row runs with pi and records the selection prior actually used."""
+@pytest.mark.parametrize("explicit_priors", [False, True])
+def test_basic_param_script_records_pusb_kernel_consumers(survey_script, tmp_path, explicit_priors):
     data_dir = tmp_path / "splits"
     data_dir.mkdir()
     make_splits(data_dir)
 
     out_dir = tmp_path / "out"
+    params = {"n_basis": 16, "cv": 2, "max_iter": 100, "random_state": 0}
+    if explicit_priors:
+        params.update(training_table_prior=0.4, risk_prior=0.25)
     rc = survey_script.main(
         [
             str(data_dir),
             "--method",
             "pusb_kernel",
-            "--class-prior",
+            "--population-prior",
             "0.3",
             "--c",
             "1.0",
             "--seeds",
             "0",
             "--model-params",
-            json.dumps({"n_basis": 16, "cv": 2, "max_iter": 100, "random_state": 0}),
+            json.dumps(params),
             "--out-dir",
             str(out_dir),
         ]
     )
     assert rc == 0
     manifest = json.loads(run_manifest(out_dir, "c_1.0", "seed_0").read_text(encoding="utf-8"))
-    assert manifest["selection"]["PA"]["class_prior"]["population"] == 0.3
+    threshold, risk, cv, pa = manifest["research_settings"]["prior"]
+    assert threshold["consumer"] == "pusb_threshold"
+    assert threshold["target"] == "training_table"
+    assert risk["consumer"] == "pusb_fit_risk"
+    assert risk["target"] == "positive_union_unlabeled"
+    assert cv["consumer"] == "pusb_cv_validation_risk"
+    assert cv["target"] == "native_unlabeled"
+    assert all(row["partition"] == "train" for row in (threshold, risk, cv))
+    if explicit_priors:
+        assert (threshold["value"], threshold["source"]) == (0.4, "estimator.training_table_prior")
+        assert risk["value"] == cv["value"] == 0.25
+        assert risk["source"] == cv["source"] == "estimator.risk_prior"
+        assert "reused_from" not in risk and "reused_from" not in cv
+    else:
+        assert threshold["value"] == risk["value"] == cv["value"] == 0.3
+        assert (
+            threshold["source"]
+            == risk["source"]
+            == cv["source"]
+            == ("runner.training_population_prior")
+        )
+        assert risk["reused_from"] == cv["reused_from"] == "pusb_threshold"
+    assert all("conversion" not in row for row in (threshold, risk, cv))
+    assert pa["value"] == 0.3
+    assert pa["source"] == "runner.validation_population_prior"
 
 
 def test_param_script_rejects_methods_outside_survey_ledger(survey_script, tmp_path, capsys):
@@ -170,7 +218,7 @@ def test_param_script_rejects_methods_outside_survey_ledger(survey_script, tmp_p
     data_dir.mkdir()
     make_splits(data_dir)
 
-    rc = survey_script.main([str(data_dir), "--method", "elkan_noto", "--class-prior", "0.3"])
+    rc = survey_script.main([str(data_dir), "--method", "elkan_noto", "--population-prior", "0.3"])
     assert rc == 1
     err = capsys.readouterr().err
     assert "elkan_noto" in err
@@ -179,7 +227,9 @@ def test_param_script_rejects_methods_outside_survey_ledger(survey_script, tmp_p
 
 def test_edge_survey_script_reports_missing_split_files(survey_script, tmp_path, capsys):
     """Missing .npz partitions produce a helpful error before any training."""
-    rc = survey_script.main([str(tmp_path / "nothing"), "--method", "upu", "--class-prior", "0.3"])
+    rc = survey_script.main(
+        [str(tmp_path / "nothing"), "--method", "upu", "--population-prior", "0.3"]
+    )
     assert rc == 1
     assert "missing split files" in capsys.readouterr().err
 
@@ -252,9 +302,9 @@ def test_param_oracle_script_rejects_class_prior(survey_script, tmp_path, capsys
     data_dir.mkdir()
     make_splits(data_dir)
 
-    rc = survey_script.main([str(data_dir), "--oracle", "--class-prior", "0.3"])
+    rc = survey_script.main([str(data_dir), "--oracle", "--population-prior", "0.3"])
     assert rc == 1
-    assert "drop --class-prior" in capsys.readouterr().err
+    assert "drop --population-prior" in capsys.readouterr().err
 
 
 def test_param_oracle_script_rejects_method(survey_script, tmp_path, capsys):
@@ -331,12 +381,12 @@ def test_basic_survey_script_records_the_split_reference(survey_script, tmp_path
             "--method",
             "upu",
             "--model-params",
-            json.dumps({"class_prior": 0.3, "loss": "squared"}),
+            json.dumps({"loss": "squared"}),
             "--c",
             "0.3",
             "--seeds",
             "0",
-            "--class-prior",
+            "--population-prior",
             "0.3",
             "--out-dir",
             str(out_dir),

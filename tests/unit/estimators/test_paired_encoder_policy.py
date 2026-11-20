@@ -41,14 +41,14 @@ def _fixture():
     [
         (
             RobustPUClassifier,
-            {"class_prior": 0.4, "pretrain_epochs": 1, "episodes": 1, "inner_epochs": 1},
+            {"risk_prior": 0.4, "pretrain_epochs": 1, "episodes": 1, "inner_epochs": 1},
             ("pretrain", "self_paced"),
             "ts",
         ),
         (
             SplitPUClassifier,
             {
-                "class_prior": 0.4,
+                "risk_prior": 0.4,
                 "encoder_feature_layer": "0",
                 "teacher_epochs": 1,
                 "split_epochs": 1,
@@ -67,7 +67,7 @@ def _fixture():
         (
             DistPUClassifier,
             {
-                "class_prior": 0.4,
+                "distribution_prior": 0.4,
                 "training_recipe": "author_staged",
                 "distribution_loss": "author_histogram",
                 "warmup_epochs": 1,
@@ -128,7 +128,7 @@ def test_determ_frozen_seed_and_checkpoint_roundtrip_keep_encoder_identity(tmp_p
     template = set_encoder_training_policy(template, trainable=False)
     model = RobustPUClassifier(
         encoder=template,
-        class_prior=0.4,
+        risk_prior=0.4,
         hidden_dim=4,
         batch_size=8,
         pretrain_epochs=1,

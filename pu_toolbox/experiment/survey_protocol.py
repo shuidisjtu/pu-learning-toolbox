@@ -517,9 +517,8 @@ def _model_identity(model, method: str, training_path: str) -> None:
         # class the training path asks for; one expectation for both rejects every CNN oracle.
         expected = PilotOracleCNN if training_path == "native_cnn" else PilotOracleMLP
     else:
-        from pu_toolbox.registry import get_algorithm, register_all_builtin_methods
+        from pu_toolbox.registry import get_algorithm
 
-        register_all_builtin_methods()
         expected = get_algorithm(method)
     if type(model) is not expected:
         raise ValueError(f"survey unit method={method!r} does not match estimator class")

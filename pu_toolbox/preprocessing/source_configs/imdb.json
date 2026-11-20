@@ -1,0 +1,10 @@
+{
+  "source_id": "imdb",
+  "version": "aclImdb-v1",
+  "format": "text_documents",
+  "options": {"classes": ["pos", "neg"], "encoding": "utf-8", "decode_errors": "replace", "suffix": ".txt"},
+  "partitions": {
+    "train": {"archive": "aclImdb_v1.tar.gz", "member_root": "aclImdb/train"},
+    "test": {"archive": "aclImdb_v1.tar.gz", "member_root": "aclImdb/test"}
+  }
+}

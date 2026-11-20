@@ -17,8 +17,8 @@ from ...core.tags import (
     AlgorithmFamily,
     Assumption,
     Backend,
-    ImplementationStatus,
     Maturity,
+    PriorConsumer,
     SampleWeightSupport,
     Scenario,
     SourceStatus,
@@ -314,9 +314,17 @@ class InfoMaxPUClassifier(BasePUClassifier):
     label_semantics = "pu"
     assumption = (Assumption.SCAR,)
     scenario = (Scenario.CASE_CONTROL,)
-    requires_class_prior = False
-    class_prior_target = "native_unlabeled"
-    implementation_status = ImplementationStatus.NATIVE
+    _runner_prior_parameter = "risk_prior"
+    prior_consumers = (
+        PriorConsumer("infomax_nnpu_training_risk", "native_unlabeled", parameter="risk_prior"),
+        PriorConsumer(
+            "infomax_nnpu_validation_risk",
+            "native_unlabeled",
+            parameter="validation_risk_prior",
+            partition="pu_val",
+        ),
+    )
+    _prior_consumptions_ = ()
     source_status = SourceStatus.NOT_FOUND
     backend = Backend.TORCH
     maturity = Maturity.RESEARCH
@@ -329,7 +337,7 @@ class InfoMaxPUClassifier(BasePUClassifier):
     def __init__(
         self,
         *,
-        class_prior: float | None = None,
+        risk_prior: float | None = None,
         representation_dim: int = 20,
         hidden_dim: int = 60,
         representation_epochs: int = 200,
@@ -354,7 +362,7 @@ class InfoMaxPUClassifier(BasePUClassifier):
         device: str | None = None,
     ) -> None:
         super().__init__()
-        self.class_prior = class_prior
+        self.risk_prior = risk_prior
         self.representation_dim = representation_dim
         self.hidden_dim = hidden_dim
         self.representation_epochs = representation_epochs
@@ -383,9 +391,10 @@ class InfoMaxPUClassifier(BasePUClassifier):
         X: np.ndarray,
         y_pu: np.ndarray,
         *,
-        class_prior: float | None = None,
+        risk_prior: float | None = None,
         sample_weight: np.ndarray | None = None,
         validation_data: tuple[np.ndarray, np.ndarray] | None = None,
+        validation_risk_prior: float | None = None,
     ) -> InfoMaxPUClassifier:
         """Fit PURL, resolve the class prior, then train nnPU."""
         import torch
@@ -440,14 +449,21 @@ class InfoMaxPUClassifier(BasePUClassifier):
                 y_validation_pu,
             )
 
-        resolved_prior = self.class_prior if class_prior is None else class_prior
+        resolved_prior = self.risk_prior if risk_prior is None else risk_prior
+        evidence = {"source": "estimator.risk_prior" if risk_prior is None else "fit.risk_prior"}
         if resolved_prior is None:
             estimator = (
                 ClassPriorEstimator() if self.prior_estimator is None else self.prior_estimator
             )
             self.prior_estimator_ = estimator.fit(representation, y_pu)
             resolved_prior = float(self.prior_estimator_.estimate())
-        check_scalar_in_range(resolved_prior, 0.0, 1.0, "class_prior", inclusive=False)
+            evidence = {
+                "source": f"estimate.{type(self.prior_estimator_).__qualname__}",
+                "estimate_target": getattr(self.prior_estimator_, "estimate_target", None),
+                "estimation_pool": getattr(self.prior_estimator_, "estimation_pool", None),
+                "estimation_partition": "train_representation",
+            }
+        check_scalar_in_range(resolved_prior, 0.0, 1.0, "risk_prior", inclusive=False)
 
         # With an external encoder the classifier consumes its flattened
         # feature vector (dimension known only after fitting the encoder).
@@ -469,7 +485,7 @@ class InfoMaxPUClassifier(BasePUClassifier):
         )
         self.classifier_ = NonNegativePUClassifier(
             model=model,
-            class_prior=resolved_prior,
+            risk_prior=resolved_prior,
             optimizer=optimizer,
             batch_size=self.classifier_batch_size,
             max_epochs=self.classifier_epochs,
@@ -480,10 +496,20 @@ class InfoMaxPUClassifier(BasePUClassifier):
             y_pu,
             sample_weight=sample_weight,
             validation_data=representation_validation,
+            validation_risk_prior=validation_risk_prior,
         )
-        self.class_prior_ = float(resolved_prior)
+        self.risk_prior_ = float(resolved_prior)
+        self.validation_risk_prior_ = self.classifier_.validation_risk_prior_
+        uses = []
+        for use in self.classifier_._prior_consumptions_:
+            row = {**use, "consumer": f"infomax_{use['consumer']}"}
+            if use["source"] == "estimator.risk_prior":
+                row.update(evidence)
+            if "reused_from" in row:
+                row["reused_from"] = f"infomax_{row['reused_from']}"
+            uses.append(row)
+        self._prior_consumptions_ = tuple(uses)
         self.classes_ = np.array([0, 1])
-        self._class_prior = self.class_prior_
         self._X_shape_ = X.shape
         self._is_fitted = True
         return self

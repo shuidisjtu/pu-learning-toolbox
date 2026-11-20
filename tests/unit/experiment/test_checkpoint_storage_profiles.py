@@ -239,7 +239,7 @@ def test_basic_real_adapter_checkpoints_stay_under_the_published_bound(
         adapter_width,
         seed=0,
         params={},
-        class_prior=None if method == "pn_oracle" else 0.3,
+        population_prior=None if method == "pn_oracle" else 0.3,
         device="cpu",
         encoder=None,
     )
@@ -271,10 +271,10 @@ def test_basic_real_native_cnn_checkpoint_holds_the_encoder_within_the_bound(tmp
     prepared, encoder, _ = prepare_image_bundle(_cifar_source(), protocol, 0, dataset="cifar10")
     row = _native_cnn_row(protocol)
     model = assemble_model(
-        protocol, row, 3, seed=0, params={}, class_prior=0.3, device="cpu", encoder=encoder
+        protocol, row, 3, seed=0, params={}, population_prior=0.3, device="cpu", encoder=encoder
     )
     trajectory = EpochCheckpointTrainer(checkpoint_dir=tmp_path).fit(
-        model, prepared.train.X, prepared.train.labels
+        model, prepared.train.X, prepared.train.labels, risk_prior=0.3
     )
 
     saved = torch.load(trajectory.checkpoints[0].path, map_location="cpu", weights_only=True)
@@ -413,13 +413,11 @@ def test_determ_the_run_script_hands_the_runner_the_shared_component_size(survey
             "native_2d",
             "--method",
             "dist_pu",
-            "--model-params",
-            '{"class_prior": 0.3}',
             "--c",
             "0.3",
             "--seeds",
             "0",
-            "--class-prior",
+            "--population-prior",
             "0.3",
             "--out-dir",
             str(out_dir),
@@ -470,13 +468,11 @@ def test_param_the_run_script_reports_an_unsized_row_without_a_traceback(
             "native_2d",
             "--method",
             "dist_pu",
-            "--model-params",
-            '{"class_prior": 0.3}',
             "--c",
             "0.3",
             "--seeds",
             "0",
-            "--class-prior",
+            "--population-prior",
             "0.3",
             "--out-dir",
             str(tmp_path / "out"),

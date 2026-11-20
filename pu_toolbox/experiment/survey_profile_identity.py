@@ -34,9 +34,8 @@ def validate_profile_identities(protocol):
         raise ValueError("profile identity schema requires explicit survey-v3.2")
     from ..core.base import BasePUClassifier
     from ..core.exceptions import RegistryError
-    from ..registry import get_algorithm, get_algorithm_registry, register_all_builtin_methods
+    from ..registry import get_algorithm, get_algorithm_registry
 
-    register_all_builtin_methods()
     registered = get_algorithm_registry()
     reserved = {name: name for name in registered}
     reserved.update(
@@ -148,16 +147,19 @@ def profile_training_view_request(protocol, profile_id, requested):
     The canonical Self-PU algorithm defaults to TS, but the versioned full-meta
     adapter is OS-only. Its separate TS adapter remains exploratory and rejects
     registry bindings. Resolve the *profile* before the algorithm in both CLI
-    and resume planning; never change an explicit request or a legacy default.
-    This routes an existing benchmark adaptation, not a paper reproduction or
-    permission to admit the exploratory TS path.
+    and resume planning so an unsupported TS request cannot enter the plan.
+    Leave legacy defaults and other profiles unchanged.
     """
-    if (
-        requested is None
-        and is_clean_support_profile(protocol, profile_id)
-        and profile_algorithm(protocol, profile_id) == "self_pu"
+    if is_clean_support_profile(protocol, profile_id) and (
+        profile_algorithm(protocol, profile_id) == "self_pu"
     ):
-        return "os"
+        if requested == "ts":
+            raise ValueError(
+                f"{profile_id} is an OS-only Survey clean-support profile; "
+                "omit --os-or-ts or use --os-or-ts os."
+            )
+        if requested is None:
+            return "os"
     return requested
 
 

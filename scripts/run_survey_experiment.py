@@ -25,10 +25,9 @@ to the four .npz files, referenced by path, role sizes and index digest;
 Two gates run before any training.  (1) ``--method`` must be a row of
 ``pu_toolbox/experiment/method_ledger.json``: methods outside the survey
 scope fail loud instead of producing an unlabelled run.  (2)
-``--class-prior`` is mandatory when the registry entry carries
-``requires_class_prior`` — the estimator class attribute, mirrored into the
-registry — so the requirement follows the implementation rather than the
-prose.  The ledger entry itself only annotates the result: it is copied next
+``--population-prior`` is mandatory when a required prior input is bound
+from the Survey population. CVIR has a separate native-U input and an explicit
+population adapter.  The ledger entry itself only annotates the result: it is copied next
 to the manifests so runs can be labelled (runtime method, native-sampling
 assumption, adaptation level, prior semantics).
 
@@ -58,8 +57,8 @@ result does not depend on ``c``, so a batch only needs one run per
 Usage::
 
     uv run python scripts/run_survey_experiment.py path/to/my/splits/ \\
-        --method upu --c 0.1,0.3 --seeds 0,1,2 --class-prior 0.1 \\
-        --model-params '{"loss": "double_hinge", "class_prior": 0.1}' \\
+        --method upu --c 0.1,0.3 --seeds 0,1,2 --population-prior 0.1 \\
+        --model-params '{"loss": "double_hinge"}' \\
         --out-dir results/survey/upu
 
     uv run python scripts/run_survey_experiment.py path/to/my/splits/ \\
@@ -267,17 +266,19 @@ def _support_trainer(algorithm, view, support, manifest):
 
 
 def _require_same_support_split(source, support_bundle) -> None:
-    """The support artifact must describe the split the four roles came from.
+    """Bind the verified five-role product to the actual four Survey inputs.
 
-    A mismatched artifact would train on another split's support without any
-    error: the receipt only proves the artifact is intact, not that it belongs
-    to this split.
+    The product loader checks support IDs against its four roles. Matching
+    shapes and row numbers alone cannot transfer that check to another split:
+    different source arrays can reuse the same row numbers.
     """
     for role in ROLES:
         loaded = getattr(source, role)
         supplied = getattr(support_bundle, role)
-        if loaded.X.shape != supplied.X.shape or not np.array_equal(
-            loaded.indices, supplied.indices
+        if not (
+            np.array_equal(loaded.indices, supplied.indices)
+            and np.array_equal(loaded.X, supplied.X)
+            and np.array_equal(loaded.labels, supplied.labels)
         ):
             raise ValueError(f"support artifact {role} does not match the loaded split")
 
@@ -439,12 +440,12 @@ def load_split_parts(data_dir: Path) -> tuple[DatasetPart, ...]:
     return parts
 
 
-def resolve_class_prior(
+def resolve_population_prior(
     ledger: dict[str, Any],
     method: str,
     provided: float | None,
     *,
-    requires_class_prior: bool,
+    requires_population_prior: bool,
 ) -> float | None:
     """Gate a PU run on the survey ledger scope and the registry prior flag.
 
@@ -453,8 +454,8 @@ def resolve_class_prior(
     1. ``method`` must be a row of the survey ledger.  A method that is
        registered in the toolbox but sits outside the survey scope fails
        loud instead of producing a run that carries no survey annotation.
-    2. ``--class-prior`` is mandatory when the registry says so.  The flag
-       is the estimator class attribute (``requires_class_prior``), mirrored
+    2. ``--population-prior`` is mandatory when the registry says so.  The flag
+       comes from the estimator prior consumers, mirrored
        into the registry through ``_SYNC_FIELDS``; the ledger's
        ``prior_semantics`` text only annotates the error and the result.
 
@@ -469,13 +470,20 @@ def resolve_class_prior(
             f"{', '.join(sorted(ledger['methods']))}); add its ledger entry "
             "before running it as a survey row."
         )
-    if requires_class_prior and provided is None:
+    if requires_population_prior and provided is None:
         raise ValueError(
             f"method '{method}' needs the population class prior "
-            f"(registry requires_class_prior=True; ledger prior_semantics="
-            f"{entry.get('prior_semantics', '')!r}); pass --class-prior."
+            f"(registry requires a training prior; ledger prior_semantics="
+            f"{entry.get('prior_semantics', '')!r}); pass --population-prior."
         )
     return provided
+
+
+def _validate_upu_prior_parameters(algorithm: str, parameters: dict[str, Any]) -> None:
+    if algorithm == "upu" and not {"risk_prior", "class_prior"}.isdisjoint(parameters):
+        raise ValueError(
+            "Set the uPU prior with --population-prior. Survey binds risk_prior at fit."
+        )
 
 
 def run_one(
@@ -486,7 +494,7 @@ def run_one(
     protocols: list | None = None,
     seed: int,
     c: float | None,
-    class_prior: float | None,
+    population_prior: float | None,
     config: dict[str, Any],
     manifest_path: Path,
 ) -> dict[str, Any]:
@@ -498,7 +506,8 @@ def run_one(
         seed=seed,
         generator=generator,
         protocols=protocols,
-        class_prior=class_prior,
+        training_population_prior=population_prior,
+        validation_population_prior=population_prior,
         manifest_path=str(manifest_path),
         config=runner_config,
     )
@@ -521,7 +530,7 @@ def resolve_split_ref(data_dir: Path, explicit: str | None) -> dict[str, Any]:
     manifest says which split it used without inlining thousands of ids
     beside every run.
 
-    ``class_prior`` rides along because §3.1 defines pi as data-generation
+    The frozen split key ``class_prior`` is retained because §3.1 defines pi as data-generation
     metadata that only the split artifact can record: PA's selection criterion is
     weighted by it, so without this the runner would have no prior to select
     with.  The addition is inert for split identity — nothing decides which split
@@ -596,19 +605,21 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument(
         "--model-params",
         default="{}",
-        help="JSON string of classifier constructor parameters (class_prior, loss, ...)",
+        help='JSON object of estimator constructor parameters, for example {"loss": "squared"}',
     )
     parser.add_argument(
         "--c", default="0.1", help="comma-separated label frequencies (0.1,0.3,0.5)"
     )
     parser.add_argument("--seeds", default="0", help="comma-separated seeds")
-    parser.add_argument("--class-prior", type=float, default=None, help="population class prior π")
+    parser.add_argument(
+        "--population-prior", type=float, default=None, help="population positive prior π"
+    )
     parser.add_argument(
         "--cvir-population-prior-source",
         default=None,
         help=(
             "opt in to the exploratory CVIR population-prior adapter; describe the "
-            "source of --class-prior (SCAR only, without --protocol)"
+            "source of --population-prior (SCAR only, without --protocol)"
         ),
     )
     parser.add_argument(
@@ -738,7 +749,7 @@ def _versioned_main(args, c_values, seed_values) -> int:
         unit_checkpoint_bytes,
         validate_parameters,
     )
-    from pu_toolbox.registry import get_algorithm, get_metadata, register_all_builtin_methods
+    from pu_toolbox.registry import get_algorithm, get_metadata
 
     method = "pn_oracle" if args.oracle else args.method or "upu"
     # Shared with the pilot driver: the two resolve ``--protocol`` to the same
@@ -759,8 +770,8 @@ def _versioned_main(args, c_values, seed_values) -> int:
             raise ValueError("--protocol requires --dataset")
         if not seed_values or len(set(seed_values)) != len(seed_values):
             raise ValueError("survey seeds must be non-empty and unique")
-        if args.oracle and (args.class_prior is not None or args.method is not None):
-            raise ValueError("--oracle does not use --method or --class-prior")
+        if args.oracle and (args.population_prior is not None or args.method is not None):
+            raise ValueError("--oracle does not use --method or --population-prior")
         if args.extraction_batch_size < 1:
             raise ValueError("extraction batch size must be positive")
         protocol = load_protocol(protocol_path)
@@ -838,19 +849,20 @@ def _versioned_main(args, c_values, seed_values) -> int:
                 binding_schema_version=args.recipe_binding_schema_version,
             )
         ledger = load_ledger(LEDGER_PATH)
-        register_all_builtin_methods()
         prior = (
             None
             if args.oracle
-            else resolve_class_prior(
+            else resolve_population_prior(
                 ledger,
                 algorithm,
-                args.class_prior,
-                requires_class_prior=get_metadata(algorithm).requires_class_prior,
+                args.population_prior,
+                requires_population_prior=algorithm != "cvir"
+                and bool(get_metadata(algorithm).required_prior_parameters),
             )
         )
-        if "class_prior" in params and params["class_prior"] != prior:
-            raise ValueError("constructor class_prior disagrees with --class-prior")
+        _validate_upu_prior_parameters(algorithm, params)
+        if "class_prior" in params:
+            raise ValueError("Use --population-prior instead of constructor class_prior")
         os_or_ts = resolve_training_view(
             ledger,
             algorithm,
@@ -906,6 +918,10 @@ def _versioned_main(args, c_values, seed_values) -> int:
             if needs_support:
                 support_path = Path(str(args.support_dir).replace("{seed}", str(seed)))
                 support_bundle, support_part, support_manifest = load_support_dataset(support_path)
+                if (support_manifest["dataset"], support_manifest["seed"]) != (args.dataset, seed):
+                    raise ValueError(
+                        "support artifact dataset/seed does not match the loaded split"
+                    )
                 _require_same_support_split(source, support_bundle)
             image_manifest = adapter_manifest = encoder = preprocessing = None
             bundle = source
@@ -968,7 +984,7 @@ def _versioned_main(args, c_values, seed_values) -> int:
                     bundle.train.X.shape[1],
                     seed=seed,
                     params=runtime_params,
-                    class_prior=prior,
+                    population_prior=prior,
                     device=args.device,
                     encoder=encoder,
                     preprocessing=preprocessing,
@@ -1093,7 +1109,7 @@ def _versioned_main(args, c_values, seed_values) -> int:
                     ),
                     seed=seed,
                     c=None if c_value is None else c_value.value,
-                    class_prior=prior,
+                    population_prior=prior,
                     config=config,
                     manifest_path=run_dir / "manifest.json",
                 )
@@ -1134,11 +1150,11 @@ def _validate_cvir_cli_request(args: argparse.Namespace) -> bool:
     if args.labeling_mechanism != "scar":
         raise ValueError("CVIR exploratory population adapter supports SCAR only")
     if (
-        args.class_prior is None
-        or not math.isfinite(args.class_prior)
-        or not 0 < args.class_prior < 1
+        args.population_prior is None
+        or not math.isfinite(args.population_prior)
+        or not 0 < args.population_prior < 1
     ):
-        raise ValueError("CVIR requires a finite population --class-prior in (0, 1)")
+        raise ValueError("CVIR requires a finite population --population-prior in (0, 1)")
     return True
 
 
@@ -1216,9 +1232,8 @@ def main(argv: list[str] | None = None) -> int:
         estimator_class = None
         if not args.oracle:
             from pu_toolbox.core.exceptions import RegistryError
-            from pu_toolbox.registry import get_algorithm, register_all_builtin_methods
+            from pu_toolbox.registry import get_algorithm
 
-            register_all_builtin_methods()  # idempotent; standalone scripts need the registry
             try:
                 estimator_class = get_algorithm(method)
             except RegistryError as exc:
@@ -1237,10 +1252,10 @@ def main(argv: list[str] | None = None) -> int:
     # The oracle path (§2.4 item 10) and the PU path differ in the estimator,
     # the label view and the selection protocol, so resolve them together.
     if args.oracle:
-        if args.class_prior is not None:
+        if args.population_prior is not None:
             print(
                 "error: --oracle trains on real labels and needs no class prior; "
-                "drop --class-prior.",
+                "drop --population-prior.",
                 file=sys.stderr,
             )
             return 1
@@ -1257,25 +1272,21 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         generator = CleanLabelGenerator()
         protocols: list | None = [ProtocolOA()]
-        class_prior = None
+        population_prior = None
         method = "pn_oracle"
         config_extra: dict[str, Any] = {"trainer": SupervisedTrainer()}
     else:
         method = args.method or "upu"
         try:
             from pu_toolbox.core.exceptions import RegistryError
-            from pu_toolbox.registry import (
-                get_algorithm,
-                get_metadata,
-                register_all_builtin_methods,
-            )
+            from pu_toolbox.registry import get_algorithm, get_metadata
 
-            register_all_builtin_methods()  # idempotent; standalone scripts need the registry
-            class_prior = resolve_class_prior(
+            population_prior = resolve_population_prior(
                 ledger,
                 method,
-                args.class_prior,
-                requires_class_prior=get_metadata(method).requires_class_prior,
+                args.population_prior,
+                requires_population_prior=method != "cvir"
+                and bool(get_metadata(method).required_prior_parameters),
             )
         except (ImportError, RegistryError, ValueError) as exc:
             print(f"error: {exc}", file=sys.stderr)
@@ -1284,6 +1295,7 @@ def main(argv: list[str] | None = None) -> int:
             model_params = json.loads(args.model_params)
             if not isinstance(model_params, dict):
                 raise ValueError("--model-params must be a JSON object")
+            _validate_upu_prior_parameters(method, model_params)
             if cvir_population_adapter:
                 model_params.setdefault("device", args.device)
             model = get_algorithm(method)(**model_params)
@@ -1371,7 +1383,7 @@ def main(argv: list[str] | None = None) -> int:
                 protocols=protocols,
                 seed=seed,
                 c=c,
-                class_prior=class_prior,
+                population_prior=population_prior,
                 config=config,
                 manifest_path=manifest_path,
             )

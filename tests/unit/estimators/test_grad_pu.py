@@ -20,8 +20,7 @@ from pu_toolbox.estimators.deep.grad_pu import (  # noqa: E402
 from pu_toolbox.experiment.checkpoints import EpochCheckpointTrainer  # noqa: E402
 from pu_toolbox.experiment.method_ledger import load_ledger  # noqa: E402
 from pu_toolbox.experiment.training_views import resolve_training_view  # noqa: E402
-from pu_toolbox.registry import get_algorithm, register_all_builtin_methods  # noqa: E402
-from pu_toolbox.workflows import PUPipeline  # noqa: E402
+from pu_toolbox.registry import get_algorithm  # noqa: E402
 
 pytestmark = pytest.mark.unit
 
@@ -94,7 +93,6 @@ def test_basic_fit_predict_checkpoint_and_registry(tmp_path):
     np.testing.assert_allclose(
         trajectory.checkpoints[-1].restore().decision_function(X), scores, atol=1e-6
     )
-    register_all_builtin_methods()
     assert get_algorithm("gradpu") is GradPUClassifier
     assert get_algorithm("grad_pu") is GradPUClassifier
 
@@ -152,13 +150,15 @@ def test_ts_calibrates_unlabeled_risk_and_gradient_interpolation(monkeypatch):
         _model().fit(X, y, os_or_ts="unknown")
 
 
-def test_determ_seeded_fits_and_prior_compatibility_are_stable():
+def test_determ_seeded_fits_with_prior_free_objective_are_stable():
     X, y = _data()
     first = _model().fit(X, y)
-    second = _model().fit(X, y, class_prior=0.4)
+    second = _model().fit(X, y)
     np.testing.assert_array_equal(first.decision_function(X), second.decision_function(X))
     assert first.history_ == second.history_
-    assert second.get_pu_metadata()["class_prior"] is None  # no prior in Eq. 7
+    assert second._prior_consumptions_ == ()
+    with pytest.raises(TypeError, match="class_prior"):
+        _model().fit(X, y, class_prior=0.4)
 
 
 @pytest.mark.parametrize(
@@ -190,7 +190,7 @@ def test_edge_input_and_unsupported_weight_paths_reject():
     X, y = _data()
     with pytest.raises(NotImplementedError, match="sample_weight"):
         _model().fit(X, y, sample_weight=np.ones(len(X)))
-    with pytest.raises(ValueError, match="class_prior"):
+    with pytest.raises(TypeError, match="class_prior"):
         _model().fit(X, y, class_prior=1.0)
     with pytest.raises(ValueError, match="encoder"):
         _model().fit(X.reshape(len(X), 1, 1, 3), y)
@@ -231,21 +231,6 @@ def test_basic_weights_only_roundtrip_preserves_scores():
     with torch.no_grad():
         values = restored(torch.as_tensor(X, device=device)).reshape(-1).cpu().numpy()
     np.testing.assert_allclose(values, fitted.decision_function(X), atol=1e-6)
-
-
-@pytest.mark.integration
-def test_basic_pipeline_resolves_gradpu_without_prior():
-    X, y = _data()
-    report = PUPipeline(
-        classifier="gradpu",
-        classifier_params={"hidden_dim": 6, "batch_size": 5},
-        prior_estimator=None,
-        max_epochs=2,
-        cv=2,
-        random_state=3,
-    ).fit_evaluate(X, y)
-    assert isinstance(report.final_model, GradPUClassifier)
-    assert report.final_model.predict(X).shape == (len(X),)
 
 
 @pytest.mark.gpu

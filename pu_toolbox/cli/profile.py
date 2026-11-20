@@ -2,8 +2,8 @@
 
 """The ``profile`` subcommand: profile data and diagnose SCAR/SAR assumptions.
 
-pu-workflow step 1: reads X/y_pu CSV (or .npy images) and writes a
-strict-JSON profile (``profile.json``) that the recommend step consumes.
+Reads X/y_pu CSV (or .npy images) and writes a
+strict-JSON profile (``profile.json``) for data inspection.
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ import json
 from pathlib import Path
 
 from ..preprocessing.data_profiler import profile_pu_data
-from .run import _load_features, _load_label_column
+from ._data import _load_features, _load_label_column
 
 __all__ = ["build_profile_parser", "run_profile"]
 
@@ -22,7 +22,7 @@ def build_profile_parser(sub: argparse._SubParsersAction) -> None:
     """Attach the ``profile`` subcommand to *sub* (side-effect only)."""
     parser = sub.add_parser(
         "profile",
-        help="profile data and diagnose SCAR/SAR assumptions (pu-workflow step 1)",
+        help="profile data and diagnose SCAR/SAR assumptions",
     )
     parser.add_argument("--data", required=True, help="feature matrix CSV (header row required)")
     parser.add_argument("--labels", required=True, help="PU labels CSV, single column {1, 0}")

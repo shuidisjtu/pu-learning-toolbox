@@ -55,7 +55,7 @@ def _model(method, **overrides):
     if method == "holistic_pu":
         return HolisticPUClassifier(warmup_epochs=3, max_epochs=2, **common)
     return GenPUClassifier(
-        class_prior=0.4, latent_dim=2, max_epochs=1, classifier_epochs=2, **common
+        risk_prior=0.4, latent_dim=2, max_epochs=1, classifier_epochs=2, **common
     )
 
 
@@ -287,7 +287,8 @@ def test_param_runner_selection_and_reclaim_keep_stage_provenance(tmp_path, meth
     path = tmp_path / "manifest.json"
     result = ExperimentRunner(
         seed=2,
-        class_prior=0.4,
+        training_population_prior=0.4,
+        validation_population_prior=0.4,
         manifest_path=str(path),
         config={
             "method": method,

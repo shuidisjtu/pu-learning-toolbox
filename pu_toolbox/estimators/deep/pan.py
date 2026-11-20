@@ -18,7 +18,6 @@ from ...core.tags import (
     AlgorithmFamily,
     Assumption,
     Backend,
-    ImplementationStatus,
     Maturity,
     SampleWeightSupport,
     Scenario,
@@ -67,8 +66,7 @@ class PANClassifier(BasePUClassifier):
     label_semantics = "pu"
     assumption = (Assumption.SCAR,)
     scenario = (Scenario.SINGLE_TRAINING_SET,)
-    requires_class_prior = False
-    implementation_status = ImplementationStatus.NATIVE
+    _prior_consumptions_ = ()
     source_status = SourceStatus.OFFICIAL_RELATED
     backend = Backend.TORCH
     maturity = Maturity.EXPERIMENTAL
@@ -110,9 +108,7 @@ class PANClassifier(BasePUClassifier):
         self.device = device
 
     @invalidate_failed_fit
-    def fit(
-        self, X, y_pu, *, class_prior=None, sample_weight=None, epoch_callback=None, os_or_ts="os"
-    ):
+    def fit(self, X, y_pu, *, sample_weight=None, epoch_callback=None, os_or_ts="os"):
         import torch
         from torch import nn
 
@@ -137,8 +133,6 @@ class PANClassifier(BasePUClassifier):
         for name in ("learning_rate", "adversarial_weight"):
             if not np.isfinite(getattr(self, name)) or getattr(self, name) <= 0:
                 raise ValueError(f"{name} must be finite and positive")
-        if class_prior is not None and (not np.isfinite(class_prior) or not 0 < class_prior < 1):
-            raise ValueError("class_prior, if supplied, must be in (0, 1)")
         X = np.asarray(X, dtype=np.float32)
         if not np.isfinite(X).all():
             raise ValueError("X must remain finite after float32 conversion")
@@ -189,7 +183,6 @@ class PANClassifier(BasePUClassifier):
         self.n_positive_, self.n_unlabeled_ = len(positive), len(unlabeled)
         self.n_features_in_, self._X_shape_ = X.shape[1], X.shape
         self.input_shape_ = tuple(X.shape[1:])
-        self._class_prior = None
         self.classes_ = np.array([0, 1])
         for epoch in range(self.max_epochs):
             d_losses, c_losses = [], []

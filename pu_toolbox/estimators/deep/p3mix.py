@@ -20,7 +20,6 @@ from ...core.tags import (
     AlgorithmFamily,
     Assumption,
     Backend,
-    ImplementationStatus,
     Maturity,
     SampleWeightSupport,
     Scenario,
@@ -291,8 +290,7 @@ class P3MixClassifier(BasePUClassifier):
     label_semantics = "pu"
     assumption = (Assumption.SCAR,)
     scenario = (Scenario.SINGLE_TRAINING_SET,)
-    requires_class_prior = False
-    implementation_status = ImplementationStatus.NATIVE
+    _prior_consumptions_ = ()
     source_status = SourceStatus.NOT_FOUND
     backend = Backend.TORCH
     maturity = Maturity.EXPERIMENTAL
@@ -355,7 +353,6 @@ class P3MixClassifier(BasePUClassifier):
         X,
         y_pu,
         *,
-        class_prior=None,
         sample_weight=None,
         epoch_callback=None,
         os_or_ts="os",
@@ -380,13 +377,6 @@ class P3MixClassifier(BasePUClassifier):
             "merged_shuffle",
         }:
             raise ValueError("batching_policy must be 'role_balanced' or 'merged_shuffle'")
-        if class_prior is not None and (
-            isinstance(class_prior, bool | np.bool_)
-            or not isinstance(class_prior, Real)
-            or not np.isfinite(class_prior)
-            or not 0 < class_prior < 1
-        ):
-            raise ValueError("class_prior, if supplied, must be in (0, 1)")
         if self.encoder is not None and not isinstance(self.encoder, nn.Module):
             raise TypeError("encoder must be a torch.nn.Module")
         X, y_pu = validate_pu_X_y(
@@ -518,7 +508,6 @@ class P3MixClassifier(BasePUClassifier):
             "teacher_initialization": "copy_of_student",
             "learning_rate": float(self.learning_rate),
             "max_epochs": self.max_epochs,
-            "class_prior_used": False,
             "clean_labels_read": False,
             "external_selection_data_read": False,
             "formal_admission": False,

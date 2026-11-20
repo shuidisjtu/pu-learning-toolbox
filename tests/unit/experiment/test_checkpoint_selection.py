@@ -65,7 +65,10 @@ def _run(tmp_path, bundle=None, *, candidates=None):
     if candidates is not None:
         config["candidates"] = candidates
     return ExperimentRunner(
-        config=config, manifest_path=str(tmp_path / "manifest.json"), class_prior=0.5
+        config=config,
+        manifest_path=str(tmp_path / "manifest.json"),
+        training_population_prior=0.5,
+        validation_population_prior=0.5,
     ).fit(OppositeOptima(), bundle.train, bundle.pu_val, bundle.clean_val, bundle.test)
 
 
@@ -195,9 +198,9 @@ def test_param_truncated_budget_cannot_clear_formal_checkpoint_blocker(tmp_path)
 
 def test_basic_in_memory_run_retains_models_but_no_invalid_persistent_paths():
     bundle = _bundle()
-    result = ExperimentRunner(config={"c": 1.0}, class_prior=0.5).fit(
-        OppositeOptima(), bundle.train, bundle.pu_val, bundle.clean_val, bundle.test
-    )
+    result = ExperimentRunner(
+        config={"c": 1.0}, training_population_prior=0.5, validation_population_prior=0.5
+    ).fit(OppositeOptima(), bundle.train, bundle.pu_val, bundle.clean_val, bundle.test)
     assert all(
         reference["checkpoint"]["path"] is None
         for reference in result.manifest["selection"].values()

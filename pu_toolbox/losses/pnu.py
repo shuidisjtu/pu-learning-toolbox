@@ -45,36 +45,36 @@ def _eta_to_gamma(eta: float) -> tuple[float, str]:
 def _compute_pn_risk(
     positive_scores: np.ndarray,
     negative_scores: np.ndarray,
-    class_prior: float,
+    population_prior: float,
 ) -> float:
     """PN (supervised) risk with squared composite loss.
 
     R_PN(g) = theta_P * mean_P[-g] + theta_N * mean_N[g]
     """
-    theta_N = 1.0 - class_prior
-    return float(class_prior * np.mean(-positive_scores) + theta_N * np.mean(negative_scores))
+    theta_N = 1.0 - population_prior
+    return float(population_prior * np.mean(-positive_scores) + theta_N * np.mean(negative_scores))
 
 
 def _compute_pu_risk_squared(
     positive_scores: np.ndarray,
     unlabeled_scores: np.ndarray,
-    class_prior: float,
+    population_prior: float,
 ) -> float:
     """C-PU risk with squared composite loss.
 
     R_C-PU(g) = theta_P * mean_P[-g] + mean_U[g]
     """
-    return float(class_prior * np.mean(-positive_scores) + np.mean(unlabeled_scores))
+    return float(population_prior * np.mean(-positive_scores) + np.mean(unlabeled_scores))
 
 
 def _compute_nu_risk_squared(
     negative_scores: np.ndarray,
     unlabeled_scores: np.ndarray,
-    class_prior: float,
+    population_prior: float,
 ) -> float:
     """C-NU risk with squared composite loss.
 
     R_C-NU(g) = theta_N * mean_N[g] + mean_U[-g]
     """
-    theta_N = 1.0 - class_prior
+    theta_N = 1.0 - population_prior
     return float(theta_N * np.mean(negative_scores) + np.mean(-unlabeled_scores))

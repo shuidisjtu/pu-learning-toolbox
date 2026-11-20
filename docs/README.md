@@ -15,20 +15,19 @@ consult the [API index](user/reference/api/index.md) for exact contracts.
 | Category | Document | Purpose |
 |---|---|---|
 | Entry | [user/README.md](user/README.md) | Reading order and task navigation |
-| Quickstart | [user/quickstart.md](user/quickstart.md) | Installation, three CLI commands, and a minimal Python example |
+| Quickstart | [user/quickstart.md](user/quickstart.md) | Installation, standalone tools, and explicit estimator training |
 | Concept | [user/concepts/pu_problem.md](user/concepts/pu_problem.md) | PU problem settings, notation, and the roles of π |
 | Concept | [user/concepts/pu_sampling.md](user/concepts/pu_sampling.md) | OS/TS, finite-pool provenance, and training risk roles |
 | Concept | [user/concepts/scar_sar.md](user/concepts/scar_sar.md) | SCAR/SAR mechanisms and identifiability limits |
 | Concept | [user/concepts/class_prior_semantics.md](user/concepts/class_prior_semantics.md) | Population, U, risk-pool, and training-table priors; conversion conditions and limits |
 | Concept | [user/concepts/pu_model_selection.md](user/concepts/pu_model_selection.md) | PA/OA, supervision budgets, and independent selection |
 | Concept | [user/concepts/representations.md](user/concepts/representations.md) | Encoders, end-to-end CNNs, frozen features, and comparison conditions |
-| Concept | [user/concepts/method_selection.md](user/concepts/method_selection.md) | Recommender logic and method selection tables |
-| How-to | [user/howto/pipeline.md](user/howto/pipeline.md) | End-to-end training and evaluation with PUPipeline |
+| Concept | [user/concepts/method_selection.md](user/concepts/method_selection.md) | Explicit method selection and decision tables |
+| How-to | [user/howto/pipeline.md](user/howto/pipeline.md) | Migration from the retired single-table workflow |
 | How-to | [user/howto/cli.md](user/howto/cli.md) | Command-line interface |
 | How-to | [user/howto/model_tuning.md](user/howto/model_tuning.md) | Model parameters and PU-aware grid search |
 | How-to | [user/howto/custom_experiments.md](user/howto/custom_experiments.md) | Four-role experiment API, parameters, and strategy injection |
 | How-to | [user/howto/custom_encoders.md](user/howto/custom_encoders.md) | Encoder injection, shared backbones, frozen features, and persistence |
-| How-to | [user/howto/ui.md](user/howto/ui.md) | Graphical interface installation and use |
 | How-to | [user/howto/data_profiling.md](user/howto/data_profiling.md) | Data profiling and assumption warnings |
 | How-to | [user/howto/pu_sampling.md](user/howto/pu_sampling.md) | Same-pool fixed-count labeling, independent TS, metadata, and legacy API migration |
 | How-to | [user/howto/diagnostic_reports.md](user/howto/diagnostic_reports.md) | Diagnostic report generation |

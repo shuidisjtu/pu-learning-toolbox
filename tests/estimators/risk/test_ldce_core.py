@@ -53,7 +53,14 @@ class TestPriorCalculation:
         clf = LDCEClassifier(flip_probability=0.25, max_iter=5, random_state=42)
         clf.fit(X, y_pu)
         # p = k / [n (1-h)] = 30 / [100 * 0.75] = 0.4
-        np.testing.assert_allclose(clf.class_prior_, 0.4, rtol=0.01)
+        np.testing.assert_allclose(clf.training_table_prior_, 0.4, rtol=0.01)
+        (receipt,) = clf._prior_consumptions_
+        assert receipt["derivation"] == {
+            "rule": "solve_prior_from_positive_fraction",
+            "n_labeled": 30,
+            "n_train": 100,
+            "flip_probability": 0.25,
+        }
 
     def test_derived_prior_over_one_raises(self, rng):
         rng2 = np.random.RandomState(6)
@@ -63,22 +70,25 @@ class TestPriorCalculation:
         with pytest.raises(ValueError, match="class prior"):
             clf.fit(X, y_pu)
 
-    def test_class_prior_one_raises(self, rng):
-        """class_prior=1.0 is excluded by the open (0, 1) bound."""
+    def test_training_table_prior_one_raises(self, rng):
+        """training_table_prior=1.0 is excluded by the open (0, 1) bound."""
         rng2 = np.random.RandomState(9)
         X = rng2.randn(30, 3)
         y_pu = np.concatenate([np.ones(10, dtype=int), np.zeros(20, dtype=int)])
         clf = LDCEClassifier(flip_probability=0.3, max_iter=5)
-        with pytest.raises(ValueError, match="class_prior"):
-            clf.fit(X, y_pu, class_prior=1.0)
+        with pytest.raises(ValueError, match="training_table_prior"):
+            clf.fit(X, y_pu, training_table_prior=1.0)
 
-    def test_class_prior_override(self, rng):
+    def test_training_table_prior_override(self, rng):
         rng2 = np.random.RandomState(7)
         X = rng2.randn(100, 3)
         y_pu = np.concatenate([np.ones(40, dtype=int), np.zeros(60, dtype=int)])
         clf = LDCEClassifier(flip_probability=0.3, max_iter=5, random_state=42)
-        clf.fit(X, y_pu, class_prior=0.55)
-        assert clf.class_prior_ == 0.55
+        clf.fit(X, y_pu, training_table_prior=0.55)
+        assert clf.training_table_prior_ == 0.55
+        (receipt,) = clf._prior_consumptions_
+        assert receipt["source"] == "fit.training_table_prior"
+        assert "derivation" not in receipt
 
     def test_1_minus_2ph_near_zero_raises(self, rng):
         rng2 = np.random.RandomState(8)
@@ -106,7 +116,7 @@ class TestFittedAttributes:
         clf.fit(X, y_pu)
 
         assert hasattr(clf, "coef_")
-        assert hasattr(clf, "class_prior_")
+        assert hasattr(clf, "training_table_prior_")
         assert hasattr(clf, "flip_probability_")
         assert hasattr(clf, "corrupted_centroid_")
         assert hasattr(clf, "true_unlabeled_centroid_")
@@ -134,7 +144,7 @@ class TestFittedAttributes:
         assert clf.corrupted_centroid_.shape == (d,)
         assert clf.true_unlabeled_centroid_.shape == (d,)
         assert clf.centroid_covariance_.shape == (d, d)
-        assert isinstance(clf.class_prior_, float)
+        assert isinstance(clf.training_table_prior_, float)
         assert isinstance(clf.flip_probability_, float)
 
 
@@ -194,5 +204,5 @@ class TestDeterminism:
         first.fit(X, y_pu)
         second.fit(X, y_pu)
         np.testing.assert_allclose(first.coef_, second.coef_)
-        assert first.class_prior_ == second.class_prior_
+        assert first.training_table_prior_ == second.training_table_prior_
         np.testing.assert_array_equal(first.predict(X), second.predict(X))

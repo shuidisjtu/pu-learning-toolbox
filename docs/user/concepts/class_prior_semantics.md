@@ -15,9 +15,6 @@ training, model-selection, or evaluation interface.
 
 Research records should include the value, target, source (known / estimated /
 sensitivity setting), estimation pool, input sampling design, and conversion basis.
-The public `PriorInfo` records the original input, resolved population value,
-conversions, and per-fold training consumption. See the [API reference](../reference/api/tools.md#class-prior-resolution-precedence)
-for its fields.
 
 ## 2. Probability-mass identities within one OS population
 
@@ -81,7 +78,7 @@ and distributions; see [sampling concepts](pu_sampling.md).
 | `KernelMeanPriorEstimator`, KM1/KM2 | Native U is mixture F; P is component H; returns mixture proportion κ | Interpret as the U positive proportion only when positive representativeness and the corresponding identifiability conditions hold |
 | `ClassPriorEstimator` (penL1) | Compares basis-function means for P and native U; returns mixture target θ | Interpretable as the U mixture proportion under the relevant density/identifiability conditions; consumers resolve population conversion |
 | `ReCPEEstimator` | Copies high-scoring U into P, retaining complete U as the mixture; defaults to KM2 | Approximates the native-U positive prior through a regrouped component weight; metadata records `regrouping_approximation` |
-| `BBEMixtureEstimator` | Held-out U from independent TS; outputs `alpha_U` | Requires explicit `input_sampling="ts"`; outside the ordinary Pipeline automatic estimation chain |
+| `BBEMixtureEstimator` | Held-out U from independent TS; outputs `alpha_U` | Requires explicit `input_sampling="ts"`; requires explicit estimation |
 
 The [semantic baseline](../../dev/pu_research_semantics.md) is optional Chinese
 background on implementation locations and focused acceptance work. Public `.estimate()`
@@ -97,29 +94,10 @@ in the selected region. Reports preserve the auxiliary target and its approximat
 
 ## 5. From estimation to reporting and training
 
-`PUPipeline(input_sampling="os")` first uses a population `class_prior` supplied
-at call time, then a classifier constructor value, and finally estimates a prior
-if needed. A constructor value is interpreted according to the classifier's
-`class_prior_target`. The automatic chain resolves native-U estimates to population
-values using the input design; the report's `prior.value` always targets the
-population. OS uses the mass identities above; in independent TS, U and population
-targets coincide.
-
-Each training fold and the final refit then receive a conversion to the target of
-the default risk view. uPU, nnPU, RobustPU, DistPU, WConPU, and other methods consume
-native-U priors; LDCE/KLDCE consume training-table priors. PUSBKernel uses
-`class_prior` for a training-table quantile threshold and a separate `risk_class_prior`
-for native-U risk. OS fold conversions use that fold's P fraction. All values actually
-passed are recorded in `training_consumption`. Third-party classifiers default to
-the `population` target.
-
-The Pipeline retains the classifier's default risk view. For direct estimator calls,
-prepare the risk-pool prior required by its `os_or_ts` contract. See the
-[Pipeline guide](../howto/pipeline.md) and
-[example 16](../../../examples/minimal/16_prior_targets.py) for the complete workflow.
+For direct estimator calls, choose the prior for the actual risk pool and compute conversions using the training partition. In independent TS, native U and population targets coincide. For OS native-U risk, convert the population prior using the training labeled fraction. For a complete OS marginal risk pool, use the population prior. See [migration](../howto/pipeline.md) and [example 05](../../../examples/minimal/05_recpe_pipeline.py).
 
 Contracts also differ by method: CVIR uses `unlabeled_positive_prior` for the selected
-risk pool and rejects `class_prior`; RobustPU uses `class_prior` for warm-up U risk;
+risk pool; RobustPU uses `risk_prior` for warm-up U risk;
 VPU and GradPU accept it as a compatibility field. Interpret each parameter by where
 the method actually consumes it.
 

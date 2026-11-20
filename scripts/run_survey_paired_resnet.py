@@ -42,7 +42,8 @@ from pu_toolbox.experiment.survey_profile_identity import profile_training_view_
 from pu_toolbox.experiment.survey_staged_budget import verify_trajectory
 from pu_toolbox.experiment.training_views import resolve_training_view
 from pu_toolbox.prior import population_to_native_unlabeled
-from pu_toolbox.registry import get_algorithm, register_all_builtin_methods
+from pu_toolbox.prior._evidence import risk_pool_target
+from pu_toolbox.registry import get_algorithm, get_metadata
 from pu_toolbox.utils.serialization import file_hash, strict_canonical_hash
 from scripts.run_survey_experiment import load_split_parts, resolve_split_ref
 
@@ -176,12 +177,10 @@ def _model(args, protocol, encoder, prior):
             "dist_pu": dict(warmup_epochs=1, pu_epochs=1),
         }
         params.update(reductions[name])
-    register_all_builtin_methods()
     cls = get_algorithm(name)
     params["random_state"] = args.seed
     params["device"] = args.device
-    if prior is not None:
-        params["class_prior"] = prior
+    params.update(dict.fromkeys(get_metadata(name).required_prior_parameters, prior))
     arm = args.arm == "trainable"
     set_encoder_training_policy(encoder, trainable=arm)
     head_hash = None
@@ -288,10 +287,33 @@ class EncoderAudit:
         }
 
 
-def _assert_consumed_prior(estimator):
-    expected = getattr(estimator, "class_prior", None)
-    if getattr(estimator, "_class_prior", None) != expected:
-        raise ValueError("estimator used a different prior than the paired request")
+def _training_prior(algorithm, population, observed_labels, view):
+    if not get_metadata(algorithm).required_prior_parameters:
+        return None
+    if view == "ts":
+        return population
+    labeled_fraction = float(np.mean(observed_labels == 1))
+    return population_to_native_unlabeled(population, labeled_fraction, input_sampling="os")
+
+
+def _assert_consumed_prior(estimator, view):
+    parameter = getattr(estimator, "_runner_prior_parameter", None)
+    records = [
+        row for row in getattr(estimator, "_prior_consumptions_", ()) if row["partition"] == "train"
+    ]
+    if parameter is None:
+        if records:
+            raise ValueError("estimator consumed an undeclared prior in the paired run")
+        return
+    expected = getattr(estimator, parameter)
+    target = risk_pool_target(view == "ts")
+    primary_uses = [row for row in records if row["source"] == f"estimator.{parameter}"]
+    if (
+        not primary_uses
+        or any(row["target"] != target for row in primary_uses)
+        or any(row["value"] != expected for row in records)
+    ):
+        raise ValueError(f"estimator did not consume {parameter} as requested for {target}")
 
 
 def _checkpoint_peak(trajectory):
@@ -321,11 +343,10 @@ class AuditedCheckpointTrainer(EpochCheckpointTrainer):
         self.audit.record(epoch, fitted)
         return super()._checkpoint_context(fitted, epoch)
 
-    def fit(self, estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None):  # noqa: N803
-        # Selection is external over all recorded epochs; estimator-internal
-        # PU validation selection must not introduce a different model schedule.
-        trajectory = super().fit(estimator, X, y, class_prior=class_prior, os_or_ts=os_or_ts)
-        _assert_consumed_prior(estimator)
+    def fit(self, estimator, X, y, *, val_pu=None, os_or_ts=None):  # noqa: N803
+        # External PA and OA select among the recorded epochs.
+        trajectory = super().fit(estimator, X, y, os_or_ts=os_or_ts)
+        _assert_consumed_prior(estimator, os_or_ts)
         self.checkpoint_peak_bytes = _checkpoint_peak(trajectory)
         if self.contract is not None:
             verify_trajectory(
@@ -342,26 +363,24 @@ class AuditedSupportTrainer(SelfPUCleanSupportCheckpointTrainer):
         self._capture_all_epochs = True
         self._audit.update(selection_scope="completed_epochs", warmup_snapshots_eligible=True)
 
-    def _fit_checkpoint_trajectory(self, estimator, X, y, class_prior, os_or_ts):  # noqa: N803
-        trajectory = super()._fit_checkpoint_trajectory(estimator, X, y, class_prior, os_or_ts)
+    def _fit_checkpoint_trajectory(self, estimator, X, y, risk_prior, os_or_ts):  # noqa: N803
+        trajectory = super()._fit_checkpoint_trajectory(estimator, X, y, risk_prior, os_or_ts)
         self.checkpoint_peak_bytes = _checkpoint_peak(trajectory)
         return trajectory
 
-    def _fit_support_estimator(self, estimator, X, y, *, class_prior, epoch_callback=None):  # noqa: N803
+    def _fit_support_estimator(self, estimator, X, y, *, risk_prior, epoch_callback=None):  # noqa: N803
         def record(epoch, fitted):
             self.audit.record(epoch, fitted)
             epoch_callback(epoch, fitted)
 
         super()._fit_support_estimator(
-            estimator, X, y, class_prior=class_prior, epoch_callback=record
+            estimator, X, y, risk_prior=risk_prior, epoch_callback=record
         )
-        _assert_consumed_prior(estimator)
+        _assert_consumed_prior(estimator, "os")
 
     def _finish_support_fit(self, estimator, y):
         super()._finish_support_fit(estimator, y)
-        provenance = estimator.training_provenance_
-        provenance.pop("training_population_prior", None)
-        provenance["training_native_u_prior"] = estimator._class_prior
+        estimator.training_provenance_["training_native_u_prior"] = estimator.risk_prior_
 
 
 def run(args):
@@ -387,7 +406,6 @@ def run(args):
     _, val_meta = generator.generate(bundle.pu_val.X, bundle.pu_val.labels, C, args.seed)
     population = float(split_ref["class_prior"]["population"])
     algorithm = profile["algorithm"]
-    register_all_builtin_methods()
     cls = get_algorithm(algorithm)
     view = resolve_training_view(
         load_ledger(),
@@ -396,15 +414,7 @@ def run(args):
         is_oracle=False,
         estimator_class=cls,
     )
-    prior = None
-    if cls.requires_class_prior:
-        prior = (
-            population
-            if view == "ts"
-            else population_to_native_unlabeled(
-                population, float(np.mean(train_pu == 1)), input_sampling="os"
-            )
-        )
+    prior = _training_prior(algorithm, population, train_pu, view)
     estimator, params, head_hash = _model(args, protocol, encoder, prior)
     audit = EncoderAudit(encoder, args.arm)
     capacity_epochs = int(getattr(estimator, "checkpoint_epoch_count", params.get("max_epochs", 0)))
@@ -455,8 +465,7 @@ def run(args):
         generator=generator,
         protocols=protocols,
         manifest_path=str(args.output / "manifest.json"),
-        # The runner obtains PA's population prior from split_ref, while the
-        # estimator constructor carries its own (possibly different) prior.
+        # PA reads the population prior from split_ref; the estimator is bound to its risk pool.
         config={
             "c": C,
             "os_or_ts": view,
@@ -492,10 +501,15 @@ def run(args):
         identity["label_hashes"]
     ):
         raise ValueError("runner PU label view differs from the paired request")
+    selection_priors = [
+        (row["protocol"], row["target"], row["value"])
+        for row in payload["research_settings"]["prior"]
+        if row["consumer"] == "pa_risk" and row["partition"] == "pu_val"
+    ]
+    if selection_priors != [(protocols[0].name, "population", population)]:
+        raise ValueError("PA selection used the wrong population prior")
     selected = {}
     for name, selection in payload["selection"].items():
-        if selection["class_prior"]["population"] != population:
-            raise ValueError("selection used the wrong population prior")
         ck = selection["checkpoint"]
         template = result.selected_models[name].model_
         replay = load_selected_checkpoint(selection, template)

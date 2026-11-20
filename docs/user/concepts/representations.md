@@ -50,7 +50,8 @@ estimators for generator, multi-network, and head lifecycles. See
 [nnpu.py](../../../pu_toolbox/estimators/risk/nnpu.py) and
 [vision.py](../../../pu_toolbox/estimators/deep/vision.py).
 
-Check architecture declarations without training or downloading weights:
+Check architecture declarations without training or downloading weights. Built-in algorithms
+are available on first lookup; no explicit registry initialization is needed:
 
 ```python
 from pu_toolbox.registry import get_algorithm

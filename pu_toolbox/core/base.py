@@ -14,6 +14,7 @@ See ``docs/dev/architecture.md`` §2 (Core 地基层) for the full specification
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from dataclasses import asdict
 
 import numpy as np
 from scipy import sparse
@@ -24,8 +25,8 @@ from .tags import (
     AlgorithmFamily,
     Assumption,
     Backend,
-    ImplementationStatus,
     Maturity,
+    PriorConsumer,
     SampleWeightSupport,
     Scenario,
     SourceStatus,
@@ -41,7 +42,7 @@ class BasePUClassifier(BaseEstimator, ClassifierMixin, ABC):
 
     Every PU classifier **must** implement:
 
-    * ``fit(X, y_pu, *, class_prior=None, sample_weight=None)``
+    * ``fit(X, y_pu, ...)`` with any method-specific prior inputs declared by name
     * ``_predict(X)`` — called by the public ``predict(X)`` wrapper
     * ``_decision_function(X)`` — called by ``decision_function(X)`` and
       the default ``score_samples(X)``
@@ -63,12 +64,7 @@ class BasePUClassifier(BaseEstimator, ClassifierMixin, ABC):
     family: AlgorithmFamily = AlgorithmFamily.UNKNOWN
     assumption: tuple[Assumption, ...] = (Assumption.UNKNOWN,)
     scenario: tuple[Scenario, ...] = (Scenario.UNKNOWN,)
-    requires_class_prior: bool = False
-    # Target of class_prior for fit's default risk view. Direct calls retain
-    # this contract; workflows convert their population prior at fit time.
-    class_prior_target: str = "population"
-    risk_class_prior_target: str | None = None
-    implementation_status: ImplementationStatus = ImplementationStatus.API_ONLY
+    prior_consumers: tuple[PriorConsumer, ...] = ()
     source_status: SourceStatus = SourceStatus.UNKNOWN
     backend: Backend = Backend.NUMPY
     maturity: Maturity = Maturity.EXPERIMENTAL
@@ -100,7 +96,6 @@ class BasePUClassifier(BaseEstimator, ClassifierMixin, ABC):
         pickle work correctly.
         """
         self._is_fitted = False
-        self._class_prior: float | None = None
         self._X_shape_: tuple[int, int] | None = None
 
     # ── Core API (public: fit-check → delegate to private) ─────────
@@ -111,7 +106,6 @@ class BasePUClassifier(BaseEstimator, ClassifierMixin, ABC):
         X: np.ndarray | sparse.spmatrix,
         y_pu: np.ndarray,
         *,
-        class_prior: float | None = None,
         sample_weight: np.ndarray | None = None,
     ) -> BasePUClassifier:
         """Fit the PU classifier.
@@ -123,10 +117,6 @@ class BasePUClassifier(BaseEstimator, ClassifierMixin, ABC):
         y_pu : array-like of shape (n_samples,)
             PU labels.  Accepted conventions: ``{+1, 0}``, ``{+1, -1}``,
             ``{1, 0}``, ``{1, -1}``.
-        class_prior : float, optional
-            Positive prior in the distribution declared by class_prior_target
-            for the default risk view. Concrete methods document additional
-            risk-view options and their corresponding prior targets.
         sample_weight : array-like of shape (n_samples,), optional
             Per-sample weights. Concrete classifiers declare one of the
             three behaviors in ``sample_weight_support``: use, ignore, or
@@ -217,20 +207,15 @@ class BasePUClassifier(BaseEstimator, ClassifierMixin, ABC):
     # ── Metadata ───────────────────────────────────────────────────
 
     def get_pu_metadata(self) -> dict:
-        """Return PU-specific metadata dict.
-
-        Includes assumption, scenario, class prior (if known),
-        implementation status, source status, and diagnostics.
-        """
+        """Return PU assumptions, prior information, capabilities, and fit metadata."""
         return {
             "family": self.family.value,
             "assumption": [a.value for a in self.assumption],
             "scenario": [s.value for s in self.scenario],
-            "requires_class_prior": self.requires_class_prior,
-            "class_prior_target": self.class_prior_target,
-            "risk_class_prior_target": self.risk_class_prior_target,
-            "class_prior": self._class_prior,
-            "implementation_status": self.implementation_status.value,
+            "prior_consumers": [asdict(use) for use in self.prior_consumers],
+            "prior_consumptions": [
+                dict(use) for use in getattr(self, "_prior_consumptions_", ()) if self._is_fitted
+            ],
             "source_status": self.source_status.value,
             "backend": self.backend.value,
             "maturity": self.maturity.value,
@@ -275,7 +260,6 @@ class BasePriorEstimator(BaseEstimator, ABC):
     ``estimation_pool`` records the data used to estimate that target.
     """
 
-    implementation_status: ImplementationStatus = ImplementationStatus.API_ONLY
     estimate_target: str = "population"
     estimation_pool: str = "input"
 
@@ -327,15 +311,13 @@ class BasePULoss(ABC):
     ``get_params`` / ``set_params`` if they carry hyper-parameters.
     """
 
-    requires_class_prior: bool = True
-
     @abstractmethod
     def __call__(
         self,
         positive_scores: np.ndarray,
         unlabeled_scores: np.ndarray,
         *,
-        class_prior: float,
+        risk_prior: float,
     ) -> float:
         """Compute the PU risk given model scores.
 
@@ -345,7 +327,7 @@ class BasePULoss(ABC):
             Model scores (or logits) for labeled-positive samples.
         unlabeled_scores : np.ndarray of shape (n_U,)
             Model scores (or logits) for unlabeled samples.
-        class_prior : float
+        risk_prior : float
             Class prior π = P(y=1).
 
         Returns

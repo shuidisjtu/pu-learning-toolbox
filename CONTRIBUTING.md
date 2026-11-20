@@ -83,12 +83,11 @@ creation link; do not push the change directly to `main`.
 - Normalize and validate labels through shared public interfaces. Public PU labels use `{1, 0}`:
   positive and unlabeled, respectively.
 - Classifiers implement `BasePUClassifier`; prior estimators implement `BasePriorEstimator`.
-- Register new methods and declare assumption, scenario, backend, source status, implementation
-  status, and capabilities as required by the [algorithm template](docs/dev/new_algorithm_template.md).
+- Register only concrete implementations. Declare assumption, scenario, backend, source status,
+  maturity, and capabilities as required by the [algorithm template](docs/dev/new_algorithm_template.md).
 - Keep optional imports lazy so base imports work without extras. Missing dependencies must
   produce an actionable error when the feature is used.
-- An `api_only` entry must not claim to be trainable. A clean-room implementation must not claim
-  official numerical reproduction.
+- A clean-room implementation must not claim official numerical reproduction.
 - Document and test public behavior. Breaking API changes require corresponding updates to
   architecture, examples, tests, and version notes.
 - Follow the module boundaries and dependency directions in the English architecture guide.

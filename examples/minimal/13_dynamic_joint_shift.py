@@ -11,10 +11,10 @@ def main() -> None:
     # This solver uses label-0 rows as its marginal-risk pool. Draw independent
     # P and population-mixture U so the supplied population priors apply to U.
     X_source, y_source, _, source = make_gaussian_case_control_data(
-        n_p=50, n_u=150, class_prior=0.5, n_features=4, separation=1.5, random_state=10
+        n_p=50, n_u=150, population_prior=0.5, n_features=4, separation=1.5, random_state=10
     )
     X_target, y_target, _, target = make_gaussian_case_control_data(
-        n_p=30, n_u=90, class_prior=0.4, n_features=4, separation=1.5, random_state=20
+        n_p=30, n_u=90, population_prior=0.4, n_features=4, separation=1.5, random_state=20
     )
     X_target += 0.25
 
@@ -31,8 +31,8 @@ def main() -> None:
         y_source,
         X_target=X_target,
         y_target_pu=y_target,
-        class_prior=source["population_class_prior"],
-        target_class_prior=target["population_class_prior"],
+        source_domain_prior=source["design_population_prior"],
+        target_domain_prior=target["design_population_prior"],
     )
     print("Input sampling: independent TS; synthetic research smoke, not paper reproduction.")
     print(model.get_pu_metadata())

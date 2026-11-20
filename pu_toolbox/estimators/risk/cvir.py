@@ -22,8 +22,8 @@ from ...core.tags import (
     AlgorithmFamily,
     Assumption,
     Backend,
-    ImplementationStatus,
     Maturity,
+    PriorConsumer,
     SampleWeightSupport,
     Scenario,
     SourceStatus,
@@ -56,10 +56,9 @@ def select_cvir_negatives(scores: np.ndarray, unlabeled_positive_prior: float) -
 class CVIRClassifier(BasePUClassifier):
     """Fit CVIR given the positive fraction within the selected risk pool.
 
-    ``class_prior`` is always rejected. A caller who establishes that U is a
-    sample of the population marginal can pass that verified fraction through
-    ``unlabeled_positive_prior`` explicitly. The frozen survey runner passes
-    population pi, so an explicit experiment adapter must bind the risk prior.
+    Set ``unlabeled_positive_prior`` for the distribution used by ranking and
+    the weighted objective. Experiment adapters bind a supplied population
+    prior to that distribution using the declared training view.
     ``os_or_ts='ts'`` restores training P to the risk pool before global ranking;
     this is an OS-to-TS-compatible adaptation, not independent TS sampling.
     """
@@ -68,8 +67,23 @@ class CVIRClassifier(BasePUClassifier):
     label_semantics = "pu"
     assumption = (Assumption.SCAR,)
     scenario = (Scenario.CASE_CONTROL,)
-    requires_class_prior = False  # population pi is not the required alpha_U
-    implementation_status = ImplementationStatus.NATIVE
+    prior_consumers = (
+        PriorConsumer(
+            "cvir_negative_selection",
+            "native_unlabeled",
+            parameter="unlabeled_positive_prior",
+            requires_input=True,
+            ts_compatible_target="positive_union_unlabeled",
+        ),
+        PriorConsumer(
+            "cvir_weighted_objective",
+            "native_unlabeled",
+            parameter="unlabeled_positive_prior",
+            requires_input=True,
+            ts_compatible_target="positive_union_unlabeled",
+        ),
+    )
+    _prior_consumptions_ = ()
     source_status = SourceStatus.OFFICIAL_EXACT
     backend = Backend.TORCH
     maturity = Maturity.EXPERIMENTAL
@@ -130,7 +144,6 @@ class CVIRClassifier(BasePUClassifier):
         X: np.ndarray,
         y_pu: np.ndarray,
         *,
-        class_prior: float | None = None,
         sample_weight: np.ndarray | None = None,
         epoch_callback=None,
         os_or_ts: str = "os",
@@ -142,11 +155,11 @@ class CVIRClassifier(BasePUClassifier):
         explicit; population-prior conversion belongs to the experiment layer.
         """
         self._is_fitted = False
+        self._prior_consumptions_ = ()
         try:
             return self._fit_impl(
                 X,
                 y_pu,
-                class_prior=class_prior,
                 sample_weight=sample_weight,
                 epoch_callback=epoch_callback,
                 os_or_ts=os_or_ts,
@@ -155,18 +168,13 @@ class CVIRClassifier(BasePUClassifier):
             self._is_fitted = False
             raise
 
-    def _fit_impl(self, X, y_pu, *, class_prior, sample_weight, epoch_callback, os_or_ts):
+    def _fit_impl(self, X, y_pu, *, sample_weight, epoch_callback, os_or_ts):
         import torch
 
         if sample_weight is not None:
             raise NotImplementedError("CVIR does not implement sample_weight")
         if epoch_callback is not None and not callable(epoch_callback):
             raise TypeError("epoch_callback must be callable or None")
-        if class_prior is not None:
-            raise ValueError(
-                "CVIR needs unlabeled_positive_prior=alpha_U; class_prior is the "
-                "population prior and cannot be substituted without a verified marginal U pool"
-            )
         alpha = self.unlabeled_positive_prior
         if (
             isinstance(alpha, bool | np.bool_)
@@ -273,16 +281,6 @@ class CVIRClassifier(BasePUClassifier):
                 else "explicit_os_adaptation"
             ),
             "calibration_applied": calibrated,
-            "known_prior": True,
-            "unlabeled_positive_prior": float(alpha),
-            "prior_semantics": (
-                "population positive prior for the restored training U union P risk pool"
-                if calibrated
-                else "distribution-level positive fraction in the supplied original U pool"
-            ),
-            "prior_source": self.prior_source or "caller_supplied_source_unverified",
-            "source_verified": False,
-            "empirical_unlabeled_positive_fraction": None,
             "n_positive": len(p_idx),
             "n_unlabeled_candidates": len(risk_idx),
             "n_original_unlabeled": len(u_idx),
@@ -372,6 +370,18 @@ class CVIRClassifier(BasePUClassifier):
             self.history_["cvir_loss"].append(train_epoch(negative_idx, reweight=True))
             completed("cvir", epoch + 1)
         self.classes_ = np.array([0, 1])
+        self._prior_consumptions_ = tuple(
+            {
+                "consumer": consumer,
+                "partition": "train",
+                "target": "positive_union_unlabeled" if calibrated else "native_unlabeled",
+                "source": "estimator.unlabeled_positive_prior",
+                "source_detail": self.prior_source,
+                "source_verified": False,
+                "value": self.unlabeled_positive_prior_,
+            }
+            for consumer in ("cvir_negative_selection", "cvir_weighted_objective")
+        )
         return self
 
     def _decision_function(self, X: np.ndarray) -> np.ndarray:

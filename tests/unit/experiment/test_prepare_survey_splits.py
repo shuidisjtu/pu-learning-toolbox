@@ -33,18 +33,23 @@ class _FakeEncoder:
 
 def test_basic_prepare_tabular_writes_scaled_products(prep_script, tmp_path):
     rng = np.random.RandomState(0)
-    X = rng.randn(500, 57)
-    y = np.array([1] * 150 + [0] * 350)
+    expected_X = rng.randn(500, 57)
+    expected_y = np.array([1] * 150 + [0] * 350)
+    raw = tmp_path / "spambase"
+    raw.mkdir()
+    np.savetxt(raw / "spambase.data", np.column_stack((expected_X, expected_y)), delimiter=",")
+    X, y = prep_script.load_spambase(tmp_path)
+    np.testing.assert_array_equal(X, expected_X)
+    np.testing.assert_array_equal(y, expected_y)
     run_dir = tmp_path / "split_0"
-
     prep_script.prepare_tabular("spambase", X, y, seed=0, run_dir=run_dir)
 
-    train = np.load(run_dir / "train.npz")
-    assert train["X"].dtype == np.float32
-    assert train["X"].shape[-1] == 57
-    # z-score applied on the train partition: near-zero mean, unit std.
-    assert abs(float(train["X"].mean())) < 1e-4
-    assert abs(float(train["X"].std()) - 1.0) < 1e-3
+    with np.load(run_dir / "train.npz", allow_pickle=False) as train:
+        assert train["X"].dtype == np.float32
+        assert train["X"].shape[-1] == 57
+        np.testing.assert_array_equal(train["y"], expected_y[train["indices"]])
+        assert abs(float(train["X"].mean())) < 1e-4
+        assert abs(float(train["X"].std()) - 1.0) < 1e-3
     manifest = json.loads((run_dir / "split_manifest.json").read_text(encoding="utf-8"))
     assert manifest["preprocessing"]["kind"] == "z-score"
     assert len(manifest["preprocessing"]["feature_mean"]) == 57
@@ -211,3 +216,29 @@ def test_edge_prepare_text_rejects_nonunit_pinned_model_output(prep_script, tmp_
             cache_dir=tmp_path / "cache",
         )
     assert not (tmp_path / "split_0/split_manifest.json").exists()
+
+
+def test_basic_cifar_batch_reader_preserves_official_partitions(prep_script, monkeypatch, tmp_path):
+    import sys
+    import types
+
+    calls = []
+
+    class FakeCIFAR10:
+        def __init__(self, root, train, download):
+            calls.append((root, train, download))
+            self.data = np.arange(24, dtype=np.uint8).reshape(2, 2, 2, 3) + (0 if train else 30)
+            self.targets = [1, 2] if train else [3, 4]
+
+    monkeypatch.setitem(sys.modules, "torchvision", types.ModuleType("torchvision"))
+    datasets = types.ModuleType("torchvision.datasets")
+    datasets.CIFAR10 = FakeCIFAR10
+    monkeypatch.setitem(sys.modules, "torchvision.datasets", datasets)
+    train, train_labels, test, test_labels = prep_script.load_cifar10(tmp_path)
+    root = str(tmp_path / "cifar10")
+    assert calls == [(root, True, False), (root, False, False)]
+    expected = np.arange(24, dtype=np.uint8).reshape(2, 2, 2, 3).transpose(0, 3, 1, 2)
+    np.testing.assert_array_equal(train, expected)
+    np.testing.assert_array_equal(test, train + 30)
+    np.testing.assert_array_equal(train_labels, [1, 2])
+    np.testing.assert_array_equal(test_labels, [3, 4])

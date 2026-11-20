@@ -152,11 +152,11 @@ def test_determ_legacy_resident_and_feature_stream_training_remain_equal():
     )
 
 
-def test_determ_cnn_clone_pickle_and_unused_prior_keep_scores():
+def test_determ_cnn_clone_and_pickle_keep_scores():
     X, y, support = data()
     template = model(encoder=ImageEncoder(), meta_update_bias=False)
     first = clone(template).fit(X, y, support_data=support)
-    second = clone(template).fit(X, y, support_data=support, class_prior=0.8)
+    second = clone(template).fit(X, y, support_data=support)
     assert first.history_ == second.history_
     np.testing.assert_array_equal(first.decision_function(X), second.decision_function(X))
     restored = pickle.loads(pickle.dumps(first))
@@ -230,12 +230,7 @@ def test_edge_late_callback_and_missing_support_refit_invalidate_success():
         fitted.predict(X)
 
 
-def test_basic_cnn_support_still_excluded_from_ui_pu_only_and_standard_trainer():
-    from pu_toolbox.ui.parameters import classifier_catalog, cnn_candidates
-
-    entry = next(c for c in classifier_catalog() if c["name"] == "lagam")
-    assert "lagam" in cnn_candidates() and not entry["ui_ready"]
-    assert entry["requires_clean_support"]
+def test_basic_cnn_support_excluded_from_standard_trainer():
     X, y, _ = data()
     with pytest.raises(ValueError, match="PA-ineligible"):
         EpochCheckpointTrainer().fit(model(encoder=ImageEncoder()), X, y)

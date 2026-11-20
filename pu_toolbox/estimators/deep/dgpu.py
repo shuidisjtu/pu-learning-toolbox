@@ -14,13 +14,14 @@ from ...core.tags import (
     AlgorithmFamily,
     Assumption,
     Backend,
-    ImplementationStatus,
     Maturity,
+    PriorConsumer,
     SampleWeightSupport,
     Scenario,
     SourceStatus,
 )
 from ...core.validation import check_scalar_in_range, validate_pu_X_y
+from ...prior._evidence import training_prior_uses
 
 
 class DGPUClassifier(BasePUClassifier):
@@ -30,9 +31,28 @@ class DGPUClassifier(BasePUClassifier):
     label_semantics = "pu"
     assumption = (Assumption.SCAR, Assumption.SAR)
     scenario = (Scenario.CASE_CONTROL, Scenario.SELECTION_BIASED)
-    requires_class_prior = True
-    class_prior_target = "native_unlabeled"
-    implementation_status = ImplementationStatus.NATIVE
+    _runner_prior_parameter = "unlabeled_prior"
+    prior_consumers = (
+        PriorConsumer(
+            "dgpu_initialization_alignment",
+            "native_unlabeled",
+            parameter="unlabeled_prior",
+            requires_input=True,
+        ),
+        PriorConsumer(
+            "dgpu_target_distribution_initialization",
+            "native_unlabeled",
+            parameter="unlabeled_prior",
+            requires_input=True,
+        ),
+        PriorConsumer(
+            "dgpu_generation_budget",
+            "native_unlabeled",
+            parameter="unlabeled_prior",
+            requires_input=True,
+        ),
+    )
+    _prior_consumptions_ = ()
     source_status = SourceStatus.NOT_FOUND
     backend = Backend.TORCH
     maturity = Maturity.EXPERIMENTAL
@@ -44,7 +64,7 @@ class DGPUClassifier(BasePUClassifier):
 
     def __init__(
         self,
-        class_prior: float,
+        unlabeled_prior: float,
         generator,
         *,
         model=None,
@@ -65,7 +85,7 @@ class DGPUClassifier(BasePUClassifier):
         device: str | None = None,
     ) -> None:
         super().__init__()
-        self.class_prior = class_prior
+        self.unlabeled_prior = unlabeled_prior
         self.generator = generator
         self.model = model
         self.hidden_dim = hidden_dim
@@ -84,8 +104,8 @@ class DGPUClassifier(BasePUClassifier):
         self.random_state = random_state
         self.device = device
 
-    def _validate_parameters(self, class_prior: float) -> None:
-        check_scalar_in_range(class_prior, 0.0, 1.0, "class_prior", inclusive=False)
+    def _validate_parameters(self, unlabeled_prior: float) -> None:
+        check_scalar_in_range(unlabeled_prior, 0.0, 1.0, "unlabeled_prior", inclusive=False)
         if self.generator is None:
             raise ValueError(
                 "generator is required and must implement fit(X, y, warm_start=...) "
@@ -119,7 +139,7 @@ class DGPUClassifier(BasePUClassifier):
         X: np.ndarray,
         y_pu: np.ndarray,
         *,
-        class_prior: float | None = None,
+        unlabeled_prior: float | None = None,
         sample_weight: np.ndarray | None = None,
     ) -> DGPUClassifier:
         """Fit DGPU's discriminative-generative collaborative loop."""
@@ -139,7 +159,7 @@ class DGPUClassifier(BasePUClassifier):
         X = np.asarray(X, dtype=np.float32)
         if not np.isfinite(X).all():
             raise ValueError("X contains NaN or Inf values")
-        pi = self.class_prior if class_prior is None else class_prior
+        pi = self.unlabeled_prior if unlabeled_prior is None else unlabeled_prior
         self._validate_parameters(pi)
         if sample_weight is not None:
             sample_weight = np.asarray(sample_weight, dtype=np.float32)
@@ -401,10 +421,18 @@ class DGPUClassifier(BasePUClassifier):
                 self.history_["unsupervised_loss"].append(float(unsupervised_loss.detach().cpu()))
 
         self.predicted_distribution_ = predicted_distribution.detach().cpu().numpy()
-        self.class_prior_ = float(pi)
+        self.unlabeled_prior_ = float(pi)
+        self._prior_consumptions_ = training_prior_uses(
+            "dgpu_initialization_alignment",
+            "dgpu_target_distribution_initialization",
+            "dgpu_generation_budget",
+            value=pi,
+            target="native_unlabeled",
+            parameter="unlabeled_prior",
+            fit_override=unlabeled_prior,
+        )
         self.classes_ = np.array([0, 1])
         self.device_ = device
-        self._class_prior = self.class_prior_
         self._X_shape_ = X.shape
         self._is_fitted = True
         return self

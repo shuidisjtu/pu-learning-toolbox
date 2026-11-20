@@ -5,7 +5,7 @@
 > Install the torch extra for image and encoder workflows.
 
 The skill chooses toolbox CLI commands or Python APIs from a natural-language task. It covers
-ordinary PU analysis, data construction, prior resolution, tuning/comparison, four-role studies,
+data construction, explicit prior resolution, four-role studies,
 PA/OA selection, image representations, shift, monitoring, human review, and benchmark audits.
 The entry loads six reference files by task and interprets actual saved artifacts.
 
@@ -60,36 +60,23 @@ These task descriptions can also be given in Chinese or another supported conver
 
 | Task | Route and artifacts |
 |---|---|
-| Ordinary OS tabular analysis | CLI/Pipeline: profiles, recommendations, priors, and training reports |
-| Independent TS and explicit prior targets | Python `input_sampling="ts"`: target conversions and per-fold consumption |
+| Ordinary OS tabular analysis | Profile data and train an explicitly configured estimator |
+| Independent TS and explicit prior targets | Python sampling and prior conversion APIs |
 | OS/TS and SCAR/SAR construction | Preprocessing APIs: PU labels, sampling policies, provenance, and prior metadata |
-| Tuning or multi-method comparison | `PUTuner` / `PUModelComparator` or CLI configuration: candidates and selections |
+| Controlled parameter tuning | `ExperimentRunner`: one model and a parameter grid with four clean input roles |
 | Four-role studies and PA/OA | `ExperimentRunner`: separate selections, checkpoints, thresholds, and test results |
 | Images, encoders, and frozen features | Capability-compatible models and representation paths: model/representation identities |
 | Shift, monitoring, review, and audits | Corresponding CLI commands: structured diagnostics and execution artifacts |
 
 The skill reuses existing user choices and authorization. Diagnostic findings inform method
-choice and reporting. The client asks concrete questions when missing research design, provenance,
-or extra budget affects the work. For a complete ordinary analysis, it can choose an appropriate
-prior estimator when required and record its provenance.
+choice and reporting. The client should ask when missing research design, provenance, or extra budget affects the work.
 
 ## 3. Sampling, priors, and images
 
-The current `profile`, `recommend`, and `run` CLI commands use OS input semantics.
-Independent TS uses Python APIs with an explicit sampling design; see the
-[pipeline guide](pipeline.md) and [sampling tutorial](pu_sampling.md).
-
-Pipeline's call-level `class_prior` and report `prior.value` target the population. Reports
-retain the estimator's original target, population conversion, and actual training consumption
-per fold. Standalone recommendations need a population prior with an explicit meaning; integrated
-automatic analysis uses the Pipeline to resolve the chain. See
-[prior semantics](../concepts/class_prior_semantics.md).
-
-For raw images, use finite NCHW arrays and an explicit compatible CNN classifier, for example:
-
-```bash
-pu-toolbox run --data X.npy --labels y_pu.csv --classifier nnpu --architecture cnn --class-prior 0.4 --device cpu --max-epochs 2 --cv 2 --out-dir work/images
-```
+The `profile` CLI uses OS input semantics. For independent TS and prior targets, see the
+[sampling tutorial](pu_sampling.md) and [migration guide](pipeline.md). Convert priors for
+the actual training risk pool using only the training partition. For images, use direct
+compatible estimators and explicit encoder configuration.
 
 For custom encoder and frozen-feature lifecycles, see
 [representation concepts](../concepts/representations.md) and the
@@ -117,8 +104,7 @@ directory using the included minimal examples. Source users can also run
 ## 5. Results and troubleshooting
 
 The client reads actual JSON artifacts and reports data settings, methods, prior provenance and
-consumption, available metrics, and next actions. Pipeline schema 1.1 includes
-`prior.training_consumption` and valid-fold counts. Research manifests retain separate PA/OA
+consumption, available metrics, and next actions. Research manifests retain separate PA/OA
 selections and final test results. Interpretations should state evidence-supported conclusions
 and their applicable conditions.
 

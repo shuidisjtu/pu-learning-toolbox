@@ -12,6 +12,7 @@ import numpy as np
 from sklearn.model_selection import StratifiedKFold, StratifiedShuffleSplit
 
 from pu_toolbox.core.config import MIN_POSITIVE_SAMPLES, POSITIVE_LABEL
+from pu_toolbox.core.exceptions import ValidationError
 from pu_toolbox.core.labels import normalize_pu_labels
 
 __all__ = ["PUStratifiedKFold", "PUStratifiedShuffleSplit"]
@@ -56,7 +57,7 @@ class PUStratifiedKFold:
         y = normalize_pu_labels(np.asarray(y))
         n_positive = int(np.sum(y == POSITIVE_LABEL))
         if n_positive < self.n_splits:
-            raise ValueError(
+            raise ValidationError(
                 f"Cannot split {n_positive} positive samples into "
                 f"{self.n_splits} folds. Reduce n_splits or add more positives."
             )
@@ -110,7 +111,7 @@ class PUStratifiedShuffleSplit:
         n_test_p = max(1, int(round(n_positive * self.test_size)))
         n_train_p = n_positive - n_test_p
         if n_train_p < MIN_POSITIVE_SAMPLES:
-            raise ValueError(
+            raise ValidationError(
                 f"test_size={self.test_size} leaves only {n_train_p} "
                 f"positive samples in training (need >= {MIN_POSITIVE_SAMPLES})."
             )

@@ -17,7 +17,7 @@ from pu_toolbox.estimators.deep.pan import (  # noqa: E402
     pan_discriminator_loss,
 )
 from pu_toolbox.experiment.checkpoints import EpochCheckpointTrainer  # noqa: E402
-from pu_toolbox.registry import get_algorithm, register_all_builtin_methods  # noqa: E402
+from pu_toolbox.registry import get_algorithm  # noqa: E402
 
 pytestmark = pytest.mark.unit
 
@@ -77,17 +77,16 @@ def test_fit_epoch_recovery_clone_and_pickle(tmp_path):
     restored = pickle.loads(pickle.dumps(fitted))
     np.testing.assert_array_equal(restored.decision_function(X), fitted.decision_function(X))
     np.testing.assert_allclose(fitted.predict_proba(X).sum(axis=1), 1)
-    register_all_builtin_methods()
     assert get_algorithm("pan") is PANClassifier
     assert get_algorithm("predictive_adversarial_pu") is PANClassifier
 
 
-def test_seed_determinism_prior_ignored_and_injected_models_not_mutated():
+def test_determ_seed_and_injected_models_not_mutated():
     X, y = data()
     network = torch.nn.Linear(3, 1)
     before = copy.deepcopy(network.state_dict())
     first = model(model=network).fit(X, y)
-    second = model(model=network).fit(X, y, class_prior=0.4)
+    second = model(model=network).fit(X, y)
     np.testing.assert_array_equal(first.decision_function(X), second.decision_function(X))
     for key in before:
         assert torch.equal(before[key], network.state_dict()[key])

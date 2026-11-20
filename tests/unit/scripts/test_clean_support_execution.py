@@ -109,7 +109,7 @@ def test_param_implicit_budget_gpu_or_prior_override_rejected(tmp_path, mode):
     elif mode == "missing_budget":
         del params["max_epochs"]
     elif mode == "prior":
-        params["class_prior"] = 0.4
+        params["risk_prior"] = 0.4
     elif mode == "seed":
         params["random_state"] = 99
     else:

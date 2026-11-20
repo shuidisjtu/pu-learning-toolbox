@@ -351,6 +351,6 @@ class TestLDCERegression:
         assert clf._is_fitted
         assert clf.n_iter_ >= 1
         assert hasattr(clf, "coef_")
-        assert hasattr(clf, "class_prior_")
+        assert hasattr(clf, "training_table_prior_")
         assert np.isfinite(clf.coef_).all()
         assert np.isfinite(clf.centroid_covariance_).all()

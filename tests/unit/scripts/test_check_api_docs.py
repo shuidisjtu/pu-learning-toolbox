@@ -21,7 +21,6 @@ import check_api_docs as m  # noqa: E402
 def test_extract_all_exports_parses_real_init():
     """Static parse yields the package-root exports (no import, no torch dependency)."""
     exports = m.extract_all_exports(m.PROJECT_ROOT)
-    assert "PUPipeline" in exports
     assert "build_encoder" in exports
     assert "pe" not in exports  # 'pe' is a deprecated alias, not an export
 
@@ -67,7 +66,7 @@ def test_missing_symbol_fails_even_when_named_in_index(tmp_path, monkeypatch, ca
         **{
             "index.md": "# API index: UPUClassifier",
             "classifiers.md": "# Classifiers",
-            "tools.md": "# Tools: PUPipeline",
+            "tools.md": "# Tools: build_encoder",
             "errors.md": "# Errors",
         },
     )
@@ -75,7 +74,7 @@ def test_missing_symbol_fails_even_when_named_in_index(tmp_path, monkeypatch, ca
     out = capsys.readouterr().out
     assert "Missing" in out
     assert "API doc missing symbol: UPUClassifier" in out
-    assert "API doc missing symbol: PUPipeline" not in out
+    assert "API doc missing symbol: build_encoder" not in out
 
 
 @pytest.mark.unit
@@ -124,7 +123,7 @@ def test_empty_registry_refuses(tmp_path, monkeypatch, capsys):
     """
     init = tmp_path / "pu_toolbox" / "__init__.py"
     init.parent.mkdir(parents=True)
-    init.write_text('__all__ = ["PUPipeline"]\n', encoding="utf-8")
+    init.write_text('__all__ = ["build_encoder"]\n', encoding="utf-8")
     monkeypatch.setattr(m, "PROJECT_ROOT", tmp_path)
     rc = m.main([])
     assert rc == 1

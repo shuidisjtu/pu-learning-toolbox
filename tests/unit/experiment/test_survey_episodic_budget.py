@@ -37,12 +37,12 @@ def fit(algorithm, tmp_path, *, seed=0, view="os", **overrides):
         3,
         seed=seed,
         params={},
-        class_prior=0.4,
+        population_prior=0.4,
         device="cpu",
     )
     features, labels = training_data()
     trajectory = EpochCheckpointTrainer(checkpoint_dir=tmp_path).fit(
-        model, features, labels, class_prior=0.4, os_or_ts=view
+        model, features, labels, os_or_ts=view
     )
     return protocol, model, trajectory, features, labels
 
@@ -81,7 +81,7 @@ def test_basic_real_cli_verifies_paid_stages_and_bounded_storage(
                 "0",
                 "--c",
                 ".5",
-                "--class-prior",
+                "--population-prior",
                 ".4",
                 "--os-or-ts",
                 view,
@@ -138,14 +138,14 @@ def test_determ_native_state_is_unchanged_by_recording_and_budget_verification(
         3,
         seed=seed,
         params={},
-        class_prior=0.4,
+        population_prior=0.4,
         device="cpu",
     )
     plain = copy.deepcopy(model)
     features, labels = training_data()
-    plain.fit(features, labels, class_prior=0.4, os_or_ts=view)
+    plain.fit(features, labels, os_or_ts=view)
     trajectory = EpochCheckpointTrainer(checkpoint_dir=tmp_path).fit(
-        model, features, labels, class_prior=0.4, os_or_ts=view
+        model, features, labels, os_or_ts=view
     )
     receipt = verify_trajectory(
         model, trajectory, protocol["budgets"]["native_stages"][FIELD], features, labels, view
@@ -308,7 +308,7 @@ def test_edge_unsupported_view_is_refused_before_a_training_attempt(
                 "0",
                 "--c",
                 ".5",
-                "--class-prior",
+                "--population-prior",
                 ".4",
                 "--os-or-ts",
                 "ts",
@@ -381,7 +381,7 @@ def test_edge_injected_module_cannot_masquerade_as_default_native_architecture(f
         3,
         seed=0,
         params={},
-        class_prior=0.4,
+        population_prior=0.4,
         device="cpu",
     )
     model.set_params(**{field: torch.nn.Linear(3, 1)})

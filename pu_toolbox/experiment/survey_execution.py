@@ -414,7 +414,7 @@ def assemble_model(
     *,
     seed: int,
     params: dict,
-    class_prior: float | None,
+    population_prior: float | None,
     device: str,
     encoder=None,
     preprocessing=None,
@@ -432,9 +432,8 @@ def assemble_model(
                 raise ValueError("CNN oracle requires an explicit image encoder")
             return PilotOracleCNN(encoder=encoder, **constructor, random_state=seed, device=device)
         return PilotOracleMLP(**constructor, random_state=seed, device=device)
-    from pu_toolbox.registry import get_algorithm, register_all_builtin_methods
+    from pu_toolbox.registry import get_algorithm
 
-    register_all_builtin_methods()
     cls = get_algorithm(algorithm)
     import inspect
 
@@ -443,8 +442,12 @@ def assemble_model(
         constructor["random_state"] = seed
     if "device" in accepted:
         constructor["device"] = device
-    if "class_prior" in accepted:
-        constructor["class_prior"] = class_prior
+    if algorithm == "puet":
+        constructor["tree_weight_prior"] = population_prior
+    elif algorithm == "dist_pu":
+        constructor["distribution_prior"] = population_prior
+    elif algorithm in {"robust_pu", "split_pu", "pulda", "genpu", "self_pu"}:
+        constructor["risk_prior"] = population_prior
     if algorithm in {"nnpu", "self_pu"}:
         import torch
 

@@ -56,7 +56,7 @@ def _squared_closed_form(X_P, X_loss_unlabeled, n_P, pi, reg_lambda):
 
 def _squared_kwargs(**overrides):
     kwargs = dict(
-        class_prior=0.4, loss="squared", reg_lambda=0.1, fit_intercept=False, random_state=0
+        risk_prior=0.4, loss="squared", reg_lambda=0.1, fit_intercept=False, random_state=0
     )
     kwargs.update(overrides)
     return kwargs

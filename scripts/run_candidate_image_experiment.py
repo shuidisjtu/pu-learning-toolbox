@@ -88,7 +88,7 @@ def _objects(method, image, *, prior, seed, parameters, checkpoint_bytes, prior_
         raise ValueError("explicit method and parameter object are required")
     parameters = json.loads(json.dumps(parameters, allow_nan=False))
     if set(parameters).intersection(
-        {"class_prior", "encoder", "train_transform", "model", "discriminator", "random_state"}
+        {"risk_prior", "encoder", "train_transform", "model", "discriminator", "random_state"}
     ):
         raise ValueError("image/seed/prior bindings cannot be overridden")
     budget_keys = (
@@ -151,7 +151,7 @@ def _objects(method, image, *, prior, seed, parameters, checkpoint_bytes, prior_
         method,
         image,
         seed=seed,
-        class_prior=prior if method == "pulda" else None,
+        training_population_prior=prior if method == "pulda" else None,
         device=parameters["device"],
     )
     default_epochs = (
@@ -375,7 +375,8 @@ def execute(plan, output):
     )
     runner = ExperimentRunner(
         seed=plan["seed"],
-        class_prior=plan["population_prior"],
+        training_population_prior=plan["population_prior"],
+        validation_population_prior=plan["population_prior"],
         protocols=[ProtocolPA(), ProtocolOA()],
         manifest_path=str(output / "manifest.json"),
         config={
@@ -474,6 +475,8 @@ def execute(plan, output):
         summary["source_default_snapshot_projection"]["origin"] = (
             "toolbox_constructor_not_author_or_frozen_recipe"
         )
+    if plan["method"] == "cvir":
+        summary["prior"] = result.manifest["research_settings"]["prior"]
     _write(output / "summary.json", summary)
     if not summary["accepted_engineering_run"]:
         raise ValueError("image warnings/retries require review; evidence retained, not accepted")
@@ -485,7 +488,7 @@ def main(argv=None):
     parser.add_argument("--method", required=True, choices=METHODS)
     parser.add_argument("--data-dir", type=Path, required=True)
     parser.add_argument("--dataset", required=True, choices=DATASETS)
-    parser.add_argument("--class-prior", type=float, required=True)
+    parser.add_argument("--population-prior", type=float, required=True)
     parser.add_argument("--prior-source", required=True)
     parser.add_argument("--seed", type=int, required=True)
     parser.add_argument("--parameters", type=Path, required=True)
@@ -506,7 +509,7 @@ def main(argv=None):
             args.data_dir,
             method=args.method,
             dataset=args.dataset,
-            prior=args.class_prior,
+            prior=args.population_prior,
             prior_source=args.prior_source,
             seed=args.seed,
             parameters=json.loads(args.parameters.read_text()),

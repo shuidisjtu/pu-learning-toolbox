@@ -82,10 +82,9 @@ def test_basic_determ_dual_selection_and_bound_actual_prior(tmp_path, view, warm
     assert 1 <= summary["retained_checkpoint_count"] <= 2
     facts = summary["training_provenance"]
     assert len(facts["epoch_cost_history"]) == warm + 2
-    assert not facts["population_prior_forwarded_to_fit"]
-    assert facts["population_prior_binding"]["risk_pool_positive_prior"] == pytest.approx(
-        expected_prior
-    )
+    ranking, weighted, pa = summary["prior"]
+    assert ranking["value"] == weighted["value"] == pytest.approx(expected_prior)
+    assert pa["consumer"] == "pa_risk"
     assert facts["bound_fit_receipt"]["calibration_applied"] is (view == "ts")
     assert summary["source_default_snapshot_projection"]["epochs"] == 21
     assert not summary["formal_admission"] and not summary["paper_numerical_reproduction"]

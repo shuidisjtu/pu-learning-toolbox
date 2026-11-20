@@ -28,6 +28,8 @@ def _write_inputs(tmp_path, rng):
 
 def _run_script(tmp_path, *extra, out_dir=None):
     out = tmp_path / "out" if out_dir is None else Path(out_dir)
+    if "--classifier" not in extra:
+        extra = (*extra, "--classifier", "elkan_noto")
     proc = subprocess.run(
         [sys.executable, "scripts/pu_workflow/sensitivity.py", *extra, "--out-dir", str(out)],
         capture_output=True,
@@ -51,7 +53,7 @@ def test_basic_sensitivity_writes_contract_json(tmp_path, rng):
 
 @pytest.mark.e2e
 def test_param_custom_grids(tmp_path, rng):
-    """Explicit --class-priors and --label-propensities override defaults."""
+    """Explicit --population-priors and --label-propensities override defaults."""
     X, y_pu = _write_inputs(tmp_path, rng)
     code, _, out = _run_script(
         tmp_path,
@@ -59,7 +61,7 @@ def test_param_custom_grids(tmp_path, rng):
         str(X),
         "--labels",
         str(y_pu),
-        "--class-priors",
+        "--population-priors",
         "0.2,0.4",
         "--label-propensities",
         "0.3,0.7",
@@ -74,7 +76,7 @@ def test_edge_invalid_grid_reports_error(tmp_path, rng):
     """A non-numeric grid value -> exit 1 with a clear stderr message."""
     X, y_pu = _write_inputs(tmp_path, rng)
     code, stderr, out = _run_script(
-        tmp_path, "--data", str(X), "--labels", str(y_pu), "--class-priors", "0.2,banana"
+        tmp_path, "--data", str(X), "--labels", str(y_pu), "--population-priors", "0.2,banana"
     )
     assert code == 1
     assert "error:" in stderr

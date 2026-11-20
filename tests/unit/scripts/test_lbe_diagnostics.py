@@ -32,10 +32,10 @@ def test_basic_scar_gradient_matches_independent_central_difference():
 def test_basic_lbe_diagnostics_do_not_impose_prior_or_assign_branch_truth():
     features = np.random.RandomState(0).normal(size=(40, 3))
     observed = np.r_[np.ones(8), np.zeros(32)]
-    fitted = LBEClassifier(n_em_iter=3).fit(features, observed, class_prior=0.4)
+    fitted = LBEClassifier(n_em_iter=3).fit(features, observed, initial_unlabeled_prior=0.4)
     assert len(fitted.posterior_max_delta_history_) == fitted.n_iter_ == 3
     assert len(fitted.m_step_iterations_) == 3
-    assert fitted.initial_class_prior_ == 0.4
+    assert fitted.initial_unlabeled_prior_ == 0.4
     diagnostics = fitted.decomposition_diagnostics_
     assert diagnostics["initial_prior_is_constraint"] is False
     assert not diagnostics["branch_semantics_identified_by_likelihood"]
@@ -61,8 +61,8 @@ def test_determ_scar_reference_is_repeatable_cloneable_and_not_registered():
     first = SCARFixedPropensityDiagnostic()
     with pytest.raises(NotFittedError):
         first.predict(features)
-    first.fit(features, observed, class_prior=0.4)
-    second = clone(first).fit(features, observed, class_prior=0.4)
+    first.fit(features, observed, assumed_population_prior=0.4)
+    second = clone(first).fit(features, observed, assumed_population_prior=0.4)
     assert first.propensity_ == 0.5
     np.testing.assert_array_equal(first.predict(features), second.predict(features))
     assert "scar_fixed_propensity" not in list_algorithms()
@@ -73,7 +73,7 @@ def test_param_invalid_scar_rate_or_prior_is_rejected(prior):
     features = np.zeros((20, 2))
     observed = np.r_[np.ones(5), np.zeros(15)]
     with pytest.raises(ValueError):
-        SCARFixedPropensityDiagnostic().fit(features, observed, class_prior=prior)
+        SCARFixedPropensityDiagnostic().fit(features, observed, assumed_population_prior=prior)
 
 
 def test_edge_plan_identity_and_output_nonoverwrite(tmp_path):

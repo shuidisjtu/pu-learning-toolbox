@@ -50,7 +50,7 @@ def test_basic_determ_actual_stage_cost_prior_and_plain_fit_parity(tmp_path, vie
         .fit(pixels, labels, os_or_ts=view)
     )
     trajectory = trainer(record, tmp_path).fit(
-        model, pixels, labels, class_prior=0.5, os_or_ts=view
+        model, pixels, labels, training_population_prior=0.5, os_or_ts=view
     )
     facts = model.training_provenance_
     receipt = facts["bound_fit_receipt"]
@@ -59,8 +59,10 @@ def test_basic_determ_actual_stage_cost_prior_and_plain_fit_parity(tmp_path, vie
     assert receipt["parameters_at_fit_entry"]["unlabeled_positive_prior"] == alpha
     assert receipt["parameters_at_fit_entry"]["prior_source"] == "synthetic population"
     assert receipt["calibration_applied"] is (view == "ts")
-    assert not facts["population_prior_forwarded_to_fit"]
-    assert not facts["population_prior_binding"]["uses_hidden_training_labels"]
+    ranking, weighted = model._prior_consumptions_
+    assert ranking["value"] == weighted["value"] == alpha
+    assert ranking["source_detail"] == weighted["source_detail"] == "synthetic population"
+    assert ("conversion" in ranking) is (view == "os")
     assert len(trajectory.checkpoints) == warm + 2
     warm_steps = 3 if view == "ts" else 2
     assert model.optimizer_steps_ == warm * warm_steps + 4
@@ -113,7 +115,7 @@ def test_param_invalid_binding_or_bn_budget_rejected_before_training(tmp_path, m
             model,
             pixels,
             labels,
-            class_prior=0.2 if fault == "impossible_prior" else 0.5,
+            training_population_prior=0.2 if fault == "impossible_prior" else 0.5,
             os_or_ts=None if fault == "missing_view" else "os",
         )
     assert not list(tmp_path.rglob("*.pt"))
@@ -138,7 +140,9 @@ def test_edge_corrupt_stage_refused_and_temporary_prior_restored(tmp_path, monke
 
     monkeypatch.setattr(model, "fit", bad_fit)
     with pytest.raises(ValueError, match="CVIR"):
-        trainer(record, tmp_path).fit(model, pixels, labels, class_prior=0.5, os_or_ts="os")
+        trainer(record, tmp_path).fit(
+            model, pixels, labels, training_population_prior=0.5, os_or_ts="os"
+        )
     assert model.unlabeled_positive_prior is None and model.prior_source is None
     assert not model._is_fitted and not hasattr(model, "training_provenance_")
     assert not list(tmp_path.rglob("*.pt"))
@@ -150,7 +154,7 @@ def test_param_population_source_required_and_edge_oversized_evidence_kept(tmp_p
         CandidateImageCheckpointTrainer(record, checkpoint_bytes_per_component=10)
     with pytest.raises(ValueError, match="byte bound"):
         trainer(record, tmp_path, bound=1).fit(
-            model, pixels, labels, class_prior=0.5, os_or_ts="os"
+            model, pixels, labels, training_population_prior=0.5, os_or_ts="os"
         )
     assert not model._is_fitted and model.unlabeled_positive_prior is None
     assert len(list(tmp_path.rglob("*.pt"))) == 3

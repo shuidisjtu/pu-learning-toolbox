@@ -40,8 +40,11 @@ def test_basic_param_determ_public_consumers_do_not_import_survey_process_module
                                  indices=np.arange(start, end), for_selection=(start != 40))
                      for start, end in ((0, 20), (20, 30), (30, 40), (40, 50))]
             def run():
-                return ExperimentRunner(seed=3, class_prior=0.5, config={"c": 0.5}).fit(
-                    UPUClassifier(0.5, random_state=3), *parts)
+                runner = ExperimentRunner(
+                    seed=3, training_population_prior=0.5,
+                    validation_population_prior=0.5, config={"c": 0.5}
+                )
+                return runner.fit(UPUClassifier(0.5, random_state=3), *parts)
             first, second = run(), run()
             assert set(first.test_metrics) == {"PA", "OA"}
             assert first.test_metrics == second.test_metrics

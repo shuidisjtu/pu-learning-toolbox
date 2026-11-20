@@ -11,8 +11,8 @@ class PULearningError(Exception):
     """Base exception for all PU Learning Toolbox errors."""
 
 
-class ValidationError(PULearningError):
-    """Raised when input data or labels fail PU-specific validation rules.
+class ValidationError(PULearningError, ValueError):
+    """Raised when data, labels, or parameters are invalid.
 
     Typical causes: wrong label values, mismatched shapes, P/U ratio
     outside sensible ranges, or incompatible assumption/scenario combos.
@@ -30,11 +30,3 @@ class NotFittedError(PULearningError, _SklearnNotFittedError):
 
 class RegistryError(PULearningError):
     """Raised when registry operations fail (duplicate name, missing alias, etc.)."""
-
-
-class PipelineError(PULearningError):
-    """Workflow orchestration failed (unresolvable classifier/prior, etc.)."""
-
-
-class RunCancelledError(PULearningError):
-    """Raised at a safe boundary after cooperative cancellation is requested."""

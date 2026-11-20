@@ -24,7 +24,6 @@ from ...core.tags import (
     AlgorithmFamily,
     Assumption,
     Backend,
-    ImplementationStatus,
     Maturity,
     SampleWeightSupport,
     Scenario,
@@ -96,9 +95,8 @@ class GradPUClassifier(BasePUClassifier):
     one-hidden-layer MLP128, a benchmark-adapted architecture rather than the
     paper's four-layer MLP300 or image CNN.
 
-    ``class_prior`` is accepted by ``fit`` for the toolbox API but is unused:
-    the paper objective treats U as negative without a prior correction.
-    Non-None ``sample_weight`` is rejected rather than silently ignored.
+    The training objective assigns U to the negative role. It uses unweighted
+    samples and no external prior.
 
     ``activation_memory='cpu_offload'`` stores autograd's saved tensors on
     CPU and restores them on demand. It preserves full batches, float32,
@@ -111,8 +109,7 @@ class GradPUClassifier(BasePUClassifier):
     label_semantics = "pu"
     assumption = (Assumption.SCAR, Assumption.SAR)
     scenario = (Scenario.CASE_CONTROL, Scenario.SELECTION_BIASED)
-    requires_class_prior = False
-    implementation_status = ImplementationStatus.NATIVE
+    _prior_consumptions_ = ()
     source_status = SourceStatus.NOT_FOUND
     backend = Backend.TORCH
     maturity = Maturity.EXPERIMENTAL
@@ -172,7 +169,6 @@ class GradPUClassifier(BasePUClassifier):
         X: np.ndarray,
         y_pu: np.ndarray,
         *,
-        class_prior: float | None = None,
         sample_weight: np.ndarray | None = None,
         epoch_callback=None,
         os_or_ts: str = "os",
@@ -236,8 +232,6 @@ class GradPUClassifier(BasePUClassifier):
             raise ValueError("lr_final_ratio must be finite and in (0, 1]")
         if self.lr_schedule != "constant" and self.learning_rate * self.lr_final_ratio <= 0:
             raise ValueError("learning_rate * lr_final_ratio must remain positive")
-        if class_prior is not None and (not np.isfinite(class_prior) or not 0 < class_prior < 1):
-            raise ValueError("class_prior, if supplied, must be in (0, 1)")
 
         positive = np.asarray(X[y_pu == 1], dtype=np.float32)
         unlabeled = np.asarray(X[y_pu == 0], dtype=np.float32)
@@ -341,7 +335,6 @@ class GradPUClassifier(BasePUClassifier):
         self.n_features_in_ = X.shape[1]
         self.input_shape_ = tuple(X.shape[1:])
         self._X_shape_ = X.shape
-        self._class_prior = None  # accepted for API compatibility, never used by Eq. 7
         self._is_fitted = False
         # Plain JSON facts are picked up by ExperimentRunner's existing
         # training_provenance hook, independently of candidate overrides.

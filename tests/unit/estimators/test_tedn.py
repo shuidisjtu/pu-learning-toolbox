@@ -98,6 +98,9 @@ def test_basic_real_bbe_end_to_end_role_isolation_and_all_optimizer_cost(seed):
     assert np.all(roles[np.r_[tp, hp]] == 1)
     assert np.all(roles[np.r_[tu, hu]] == 0)
     assert (len(tp), len(tu), len(hp), len(hu)) == (480, 960, 120, 240)
+    assert [use["round_index"] for use in estimator._prior_consumptions_] == [1, 2, 3, 4]
+    assert [use["value"] for use in estimator._prior_consumptions_] == estimator.history_["alpha_u"]
+    assert all(use["estimation_pool"] == "heldout_pu" for use in estimator._prior_consumptions_)
     assert estimator.n_iter_ == 4
     assert len(estimator.bbe_history_) == len(estimator.history_["alpha_u"]) == 4
     assert set(estimator.selected_negative_indices_) <= set(tu)
@@ -174,7 +177,7 @@ def test_param_constructor_validation_before_any_training(params):
 
 def test_param_population_prior_weights_and_clean_truth_rejected():
     X, roles = data()
-    with pytest.raises(ValueError, match="population class_prior"):
+    with pytest.raises(TypeError, match="class_prior"):
         model().fit(X, roles, class_prior=0.3)
     with pytest.raises(NotImplementedError, match="sample_weight"):
         model().fit(X, roles, sample_weight=np.ones(len(X)))

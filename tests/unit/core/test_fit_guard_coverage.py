@@ -40,16 +40,21 @@ MODULES = {
 
 def _class_name(method: str) -> str:
     tree = ast.parse(REGISTRY.read_text(encoding="utf-8"))
-    declarations = [
+    catalog = next(
         node.value
-        for node in ast.walk(tree)
+        for node in tree.body
         if isinstance(node, ast.AnnAssign)
         and isinstance(node.target, ast.Name)
-        and node.target.id == "_native_imports"
-    ]
-    assert len(declarations) == 1, "registry must declare one native import table"
-    classes = {name: class_name for name, _, class_name in ast.literal_eval(declarations[0])}
-    return classes[method]
+        and node.target.id == "_BUILTIN"
+    )
+    assert isinstance(catalog, ast.Dict)
+    for key, metadata in zip(catalog.keys, catalog.values, strict=True):
+        assert isinstance(metadata, ast.Call)
+        name = next(ast.literal_eval(kw.value) for kw in metadata.keywords if kw.arg == "name")
+        if name == method:
+            _, class_name = ast.literal_eval(key)
+            return class_name
+    raise AssertionError(f"{method}: no built-in catalog entry")
 
 
 def _module_tree(method: str) -> ast.Module:

@@ -21,14 +21,15 @@ from ...core.tags import (
     AlgorithmFamily,
     Assumption,
     Backend,
-    ImplementationStatus,
     Maturity,
+    PriorConsumer,
     SampleWeightSupport,
     Scenario,
     SourceStatus,
 )
 from ...core.training_views import build_training_view
 from ...core.validation import check_scalar_in_range, validate_pu_X_y
+from ...prior._evidence import risk_pool_target, training_prior_uses
 
 
 def symmetric_softplus_distance(left, right, *, temperature: float):
@@ -45,7 +46,7 @@ def pulda_distribution_alignment(
     logits,
     labels,
     *,
-    class_prior: float,
+    risk_prior: float,
     temperature: float,
     unlabeled_expectation=None,
     ema_correction: float = 1.0,
@@ -68,18 +69,18 @@ def pulda_distribution_alignment(
     expectation = (
         unlabeled_scores.mean() if unlabeled_expectation is None else unlabeled_expectation
     )
-    target = torch.as_tensor(class_prior, dtype=logits.dtype, device=logits.device)
+    target = torch.as_tensor(risk_prior, dtype=logits.dtype, device=logits.device)
     unlabeled_term = (
         symmetric_softplus_distance(expectation, target, temperature=temperature) / ema_correction
     )
-    return 2.0 * class_prior * positive_term + unlabeled_term, positive_term, unlabeled_term
+    return 2.0 * risk_prior * positive_term + unlabeled_term, positive_term, unlabeled_term
 
 
 def pulda_two_way_margin(
     logits,
     labels,
     *,
-    class_prior: float,
+    risk_prior: float,
     margin: float,
     temperature: float,
     positive_negative_expectation=None,
@@ -113,12 +114,12 @@ def pulda_two_way_margin(
         if unlabeled_negative_expectation is None
         else unlabeled_negative_expectation
     )
-    target = class_prior * positive_minus
+    target = risk_prior * positive_minus
     distribution = (
         symmetric_softplus_distance(unlabeled_minus, target, temperature=temperature)
         / ema_correction
     )
-    return class_prior * positive_plus + distribution, positive_plus, distribution
+    return risk_prior * positive_plus + distribution, positive_plus, distribution
 
 
 class _PULDAEMA:
@@ -177,9 +178,24 @@ class PULDAClassifier(BasePUClassifier):
     label_semantics = "pu"
     assumption = (Assumption.SCAR,)
     scenario = (Scenario.CASE_CONTROL,)
-    requires_class_prior = True
-    class_prior_target = "native_unlabeled"
-    implementation_status = ImplementationStatus.NATIVE
+    _runner_prior_parameter = "risk_prior"
+    prior_consumers = (
+        PriorConsumer(
+            "pulda_warmup_risk",
+            "native_unlabeled",
+            parameter="risk_prior",
+            requires_input=True,
+            ts_compatible_target="positive_union_unlabeled",
+        ),
+        PriorConsumer(
+            "pulda_mixup_risk",
+            "native_unlabeled",
+            parameter="risk_prior",
+            requires_input=True,
+            ts_compatible_target="positive_union_unlabeled",
+        ),
+    )
+    _prior_consumptions_ = ()
     source_status = SourceStatus.OFFICIAL_RELATED
     backend = Backend.TORCH
     maturity = Maturity.EXPERIMENTAL
@@ -202,7 +218,7 @@ class PULDAClassifier(BasePUClassifier):
 
     def __init__(
         self,
-        class_prior: float,
+        risk_prior: float,
         *,
         hidden_dim: int = 64,
         depth: int = 2,
@@ -226,7 +242,7 @@ class PULDAClassifier(BasePUClassifier):
         device: str | None = None,
     ) -> None:
         super().__init__()
-        self.class_prior = class_prior
+        self.risk_prior = risk_prior
         self.hidden_dim = hidden_dim
         self.depth = depth
         self.warmup_epochs = warmup_epochs
@@ -254,7 +270,7 @@ class PULDAClassifier(BasePUClassifier):
         X,
         y_pu,
         *,
-        class_prior=None,
+        risk_prior=None,
         sample_weight=None,
         epoch_callback=None,
         os_or_ts: str = "os",
@@ -283,8 +299,8 @@ class PULDAClassifier(BasePUClassifier):
             if not isinstance(self.train_transform, nn.Module):
                 raise TypeError("train_transform must be a torch.nn.Module")
         view = build_training_view(X, y_pu, requested_view=os_or_ts)
-        prior = self.class_prior if class_prior is None else class_prior
-        check_scalar_in_range(prior, 0.0, 1.0, "class_prior", inclusive=False)
+        prior = self.risk_prior if risk_prior is None else risk_prior
+        check_scalar_in_range(prior, 0.0, 1.0, "risk_prior", inclusive=False)
         self._validate_parameters()
 
         rng = np.random.RandomState(self.random_state)
@@ -324,7 +340,21 @@ class PULDAClassifier(BasePUClassifier):
         self.n_features_in_ = X.shape[1]
         self._X_shape_ = X.shape
         self.input_shape_ = tuple(X.shape[1:])
-        self._class_prior = float(prior)
+        self.risk_prior_ = float(prior)
+        self._prior_consumptions_ = training_prior_uses(
+            *(
+                use
+                for use, epochs in (
+                    ("pulda_warmup_risk", self.warmup_epochs),
+                    ("pulda_mixup_risk", self.pu_epochs),
+                )
+                if epochs
+            ),
+            value=prior,
+            target=risk_pool_target(view.calibration_applied),
+            parameter="risk_prior",
+            fit_override=risk_prior,
+        )
         self.training_view_ = os_or_ts
         self.calibration_applied_ = view.calibration_applied
         self.n_positive_ = len(view.positive_positions)
@@ -461,7 +491,7 @@ class PULDAClassifier(BasePUClassifier):
             distribution, _, _ = pulda_distribution_alignment(
                 risk_logits,
                 risk_y,
-                class_prior=prior,
+                risk_prior=prior,
                 temperature=self.temperature,
                 unlabeled_expectation=u_exp,
                 ema_correction=u_correction,
@@ -469,7 +499,7 @@ class PULDAClassifier(BasePUClassifier):
             margin_loss, _, _ = pulda_two_way_margin(
                 risk_logits,
                 risk_y,
-                class_prior=prior,
+                risk_prior=prior,
                 margin=self.margin,
                 temperature=1.0,
                 positive_negative_expectation=p_neg,

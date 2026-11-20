@@ -80,7 +80,8 @@ def _runner(tmp_path, name, **config):
     return ExperimentRunner(
         seed=0,
         generator=SCARGenerator(),
-        class_prior=20 / 48,
+        training_population_prior=20 / 48,
+        validation_population_prior=20 / 48,
         threshold_candidates=np.linspace(0, 1, 4),
         manifest_path=str(tmp_path / name),
         config={"c": 0.5, **config},
@@ -96,6 +97,14 @@ class TestManifestViewFields:
         )
         assert res.manifest["run_view"] == "ts-compatible"
         assert res.manifest["calibration_applied"] is True
+        fit, validation, pa = res.manifest["research_settings"]["prior"]
+        assert fit["source"] == "runner.training_population_prior"
+        assert fit["value"] == validation["value"] == 20 / 48
+        assert fit["target"] == "positive_union_unlabeled"
+        assert validation["target"] == "native_unlabeled"
+        assert validation["reused_from"] == fit["consumer"]
+        assert pa["source"] == "runner.validation_population_prior"
+        assert res.manifest["candidate_runs"][0]["epoch_checkpoints"]
 
     def test_uncalibrated_run_is_recorded_as_os(self, tmp_path):
         train, pu_val, clean_val, test = _bundle()
@@ -132,7 +141,8 @@ class TestManifestViewFields:
         runner = ExperimentRunner(
             seed=0,
             generator=SCARGenerator(),
-            class_prior=20 / 60,
+            training_population_prior=20 / 60,
+            validation_population_prior=20 / 60,
             threshold_candidates=np.linspace(0, 1, 4),
             manifest_path=str(path),
             config={"os_or_ts": "ts", "trainer": _FailingTrainer()},

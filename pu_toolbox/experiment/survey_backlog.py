@@ -169,7 +169,7 @@ class SurveyBacklogTrainer(EpochCheckpointTrainer):
             )
         return super()._checkpoint_context(fitted, epoch)
 
-    def fit(self, estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None):
+    def fit(self, estimator, X, y, *, training_population_prior=None, val_pu=None, os_or_ts=None):
         if os_or_ts != VIEWS[self.method] or not hasattr(self, "_epoch_bound"):
             raise ValueError("backlog trainer must be validated before fitting")
         try:
@@ -181,7 +181,11 @@ class SurveyBacklogTrainer(EpochCheckpointTrainer):
                     checkpoint_dir=self.checkpoint_dir,
                 )
                 trajectory = adapter.fit(
-                    estimator, X, y, class_prior=class_prior, os_or_ts=os_or_ts
+                    estimator,
+                    X,
+                    y,
+                    training_population_prior=training_population_prior,
+                    os_or_ts=os_or_ts,
                 )
             else:
                 # These objectives do not consume population pi. PA still does.

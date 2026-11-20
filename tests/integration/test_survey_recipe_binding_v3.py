@@ -90,7 +90,7 @@ def bound_run(tmp_path_factory, survey_script):
             "0.5",
             "--seeds",
             "0",
-            "--class-prior",
+            "--population-prior",
             "0.3",
             "--recipe-registry",
             str(REGISTRY),

@@ -39,7 +39,7 @@ import torch
 from torch import nn
 
 from pu_toolbox.estimators.risk import NonNegativePUClassifier
-from pu_toolbox.preprocessing import make_scar_labels
+from pu_toolbox.preprocessing import PULabelingConfig, SourcePartition, construct_pu_dataset
 from pu_toolbox.prior import population_to_native_unlabeled
 
 torch.manual_seed(7)
@@ -50,20 +50,23 @@ template = nn.Sequential(
 rng = np.random.RandomState(7)
 y_true = np.tile([0, 1], 16)
 X = rng.uniform(size=(32, 1, 8, 8)).astype(np.float32)
-y_pu = make_scar_labels(y_true, c=0.5, random_state=7)
+constructed = construct_pu_dataset(
+    SourcePartition(X, y_true, "encoder-example", "train"),
+    PULabelingConfig("scar", "fixed_count", 7, c=0.5),
+    positive_classes=(1,), negative_classes=(0,),
+)
+y_pu = constructed.observations.labels
 pi_u = population_to_native_unlabeled(0.5, y_pu.mean(), input_sampling="os")
 model = NonNegativePUClassifier(
-    encoder=template, class_prior=pi_u, batch_size=8,
+    encoder=template, risk_prior=pi_u, batch_size=8,
     max_epochs=2, random_state=7, device="cpu",
 ).fit(X, y_pu)
 assert model.encoder_ is not template
 assert model.decision_function(X).shape == (32,)
 ```
 
-Direct nnPU `fit` with its default risk view consumes a native-U `class_prior`; the explicit
-conversion uses this train partition's labeled fraction. `PUPipeline` instead accepts a
-population prior and converts it using classifier declarations and per-fold counts; see the
-[pipeline guide](pipeline.md).
+Direct nnPU `fit` with its default risk view consumes a native-U `risk_prior`; the explicit
+conversion uses this train partition's labeled fraction; recompute it within each training fold. See the [migration guide](pipeline.md).
 
 The template retains initialization state; `model.encoder_` holds fitted state. Reuse the
 initial template across candidates or folds, with each fit obtaining its own copy.
@@ -114,7 +117,13 @@ for role, size in (("train", 32), ("pu_val", 12), ("clean_val", 12), ("test", 12
     ))
     offset += size
 bundle = DatasetBundle(*parts)
-y_pu = make_scar_labels(bundle.train.labels, c=0.5, random_state=7)
+constructed = construct_pu_dataset(
+    SourcePartition(bundle.train.X, bundle.train.labels, "encoder-bundle", "train",
+                    sample_ids=bundle.train.indices),
+    PULabelingConfig("scar", "fixed_count", 7, c=0.5),
+    positive_classes=(1,), negative_classes=(0,),
+)
+y_pu = constructed.observations.labels
 pi_u = population_to_native_unlabeled(0.5, y_pu.mean(), input_sampling="os")
 
 features, representation = adapt_image_bundle_to_features(
@@ -123,7 +132,7 @@ features, representation = adapt_image_bundle_to_features(
     encoder_fit_scope="fixed_external", batch_size=8, device="cpu",
 )
 frozen_model = UPUClassifier(
-    class_prior=pi_u, fit_intercept=False, random_state=7,
+    risk_prior=pi_u, fit_intercept=False, random_state=7,
 ).fit(features.train.X, y_pu)
 print(representation["representation_sha256"])
 ```

@@ -1,15 +1,4 @@
-"""Tests for rule-3: architecture.md S8 vs the registry NATIVE methods.
-
-Rule-3 used to degrade to a warning whenever it could not extract the
-NATIVE set, and ``main`` only counts errors -- so an absent registry file
-or a renamed ``_native_imports`` marker disabled the whole rule while the
-gate stayed green.  These tests pin the opposite: an unextractable set
-fails the gate.
-
-Separate file because ``test_check_doc_links.py`` sits at the per-file
-test budget (``scripts/check_test_quality.py``, max 15); rule-5/rule-2
-tests stay there.
-"""
+"""The architecture check fails if it cannot read the built-in catalog."""
 
 from __future__ import annotations
 
@@ -32,7 +21,7 @@ def _rule3_only_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """
     arch = tmp_path / "docs" / "dev" / "architecture.md"
     arch.parent.mkdir(parents=True, exist_ok=True)
-    arch.write_text("## 8. 论文方法到模块的映射\n", encoding="utf-8")
+    arch.write_text("## 6. Paper-to-implementation index\n", encoding="utf-8")
     monkeypatch.setattr(d, "PROJECT_ROOT", tmp_path)
     monkeypatch.setattr(d, "DOCS_DIR", tmp_path / "docs")
     monkeypatch.setattr(d, "_find_md_files", lambda: [])
@@ -53,7 +42,7 @@ def _registry_under(tmp_path: Path, body: str) -> Path:
 
 @pytest.mark.unit
 def test_basic_extraction_maps_synthetic_tuples_to_module_paths(tmp_path, monkeypatch):
-    """Each ``(name, module, class)`` tuple becomes one ``module`` path.
+    """Each ``(module, class)`` key becomes one ``module`` path.
 
     Pinned against a synthetic registry so the mapping is asserted exactly,
     with no reference to which algorithms the real registry happens to
@@ -61,14 +50,14 @@ def test_basic_extraction_maps_synthetic_tuples_to_module_paths(tmp_path, monkey
     """
     registry = _registry_under(
         tmp_path,
-        "_native_imports = [\n"
-        '    ("alpha", "..estimators.classic.alpha", "Alpha"),\n'
-        '    ("beta", "..prior.beta", "Beta"),\n'
-        '    ("gamma", "..estimators.deep.gamma_head", "Gamma"),\n'
-        "]\n",
+        "_BUILTIN: dict = {\n"
+        '    ("..estimators.classic.alpha", "Alpha"): AlgorithmMetadata(name="alpha"),\n'
+        '    ("..prior.beta", "Beta"): AlgorithmMetadata(name="beta"),\n'
+        '    ("..estimators.deep.gamma_head", "Gamma"): AlgorithmMetadata(name="gamma"),\n'
+        "}\n",
     )
     monkeypatch.setattr(d, "REGISTRY_FILE", registry)
-    assert d._get_native_module_paths() == {
+    assert d._get_builtin_module_paths() == {
         "estimators/classic/alpha.py",
         "prior/beta.py",
         "estimators/deep/gamma_head.py",
@@ -79,10 +68,10 @@ def test_basic_extraction_maps_synthetic_tuples_to_module_paths(tmp_path, monkey
 def test_basic_real_registry_yields_python_paths():
     """The real registry still yields paths, whatever they are.
 
-    Deliberately name-free: a renamed or retired NATIVE method is normal
+    Deliberately name-free: a renamed or retired built-in method is normal
     evolution and must not fail this rule for a reason unrelated to it.
     """
-    paths = d._get_native_module_paths()
+    paths = d._get_builtin_module_paths()
     assert paths
     assert all(path.endswith(".py") for path in paths)
 
@@ -96,33 +85,31 @@ def test_param_missing_registry_file_fails_the_gate(tmp_path, monkeypatch, capsy
     out = capsys.readouterr().out
     assert rc == 1
     assert "[ERROR]" in out
-    assert "could not extract NATIVE paths" in out
+    assert "could not extract estimator paths" in out
 
 
 @pytest.mark.unit
 def test_param_missing_extraction_marker_fails_the_gate(tmp_path, monkeypatch, capsys):
-    """A registry whose ``_native_imports`` marker is gone fails the gate."""
+    """A registry whose ``_BUILTIN`` catalog is gone fails the gate."""
     _rule3_only_root(tmp_path, monkeypatch)
     monkeypatch.setattr(d, "REGISTRY_FILE", _registry_under(tmp_path, "METHODS: dict = {}\n"))
     rc = d.main()
     out = capsys.readouterr().out
     assert rc == 1
     assert "[ERROR]" in out
-    assert "could not extract NATIVE paths" in out
+    assert "could not extract estimator paths" in out
 
 
 @pytest.mark.unit
-def test_edge_empty_native_import_block_fails_the_gate(tmp_path, monkeypatch):
-    """An empty extraction is a broken rule, not "no native methods".
+def test_edge_empty_catalog_fails_the_gate(tmp_path, monkeypatch):
+    """An empty extraction is a broken rule, not "no built-in methods".
 
     The marker exists but binds nothing, so the set is empty for a reason
     the mapping check cannot distinguish from a real absence; it must be
     reported rather than passed.
     """
     arch = _rule3_only_root(tmp_path, monkeypatch)
-    monkeypatch.setattr(
-        d, "REGISTRY_FILE", _registry_under(tmp_path, "_native_imports: list = []\n")
-    )
+    monkeypatch.setattr(d, "REGISTRY_FILE", _registry_under(tmp_path, "_BUILTIN: dict = {}\n"))
     issues = d.check_architecture_mapping(arch)
     assert [(i.rule, i.severity) for i in issues] == [("rule-3", "error")]
 
@@ -137,7 +124,7 @@ def test_determ_repeated_rule3_checks_agree(tmp_path, monkeypatch):
     """
     monkeypatch.setattr(d, "REGISTRY_FILE", tmp_path / "absent.py")
     arch = tmp_path / "architecture.md"
-    arch.write_text("## 8. 论文方法到模块的映射\n", encoding="utf-8")
+    arch.write_text("## 6. Paper-to-implementation index\n", encoding="utf-8")
     first = d.check_architecture_mapping(arch)
     second = d.check_architecture_mapping(arch)
     assert first == second

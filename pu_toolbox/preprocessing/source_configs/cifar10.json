@@ -1,0 +1,7 @@
+{
+  "source_id": "cifar10",
+  "version": "raw-v1",
+  "format": "cifar_batches",
+  "options": {"variant": "cifar10"},
+  "partitions": {"train": {"train": true}, "test": {"train": false}}
+}

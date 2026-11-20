@@ -16,7 +16,7 @@ from pu_toolbox.estimators.classic.rank_pruning import (
     confident_positive_noise_rate,
     rank_pruning_pu_mask,
 )
-from pu_toolbox.registry import get_algorithm, register_all_builtin_methods
+from pu_toolbox.registry import get_algorithm
 
 pytestmark = pytest.mark.unit
 
@@ -158,7 +158,6 @@ def test_fit_crossfit_isolation_reweighting_pickle_and_registry():
     restored = pickle.loads(pickle.dumps(fitted))
     np.testing.assert_array_equal(restored.predict_proba(X), fitted.predict_proba(X))
     np.testing.assert_array_equal(fitted.predict(X), fitted.predict_proba(X)[:, 1] >= 0.5)
-    register_all_builtin_methods()
     assert get_algorithm("rp") is RankPruningClassifier
     assert get_algorithm("rank_pruning") is RankPruningClassifier
 
@@ -166,7 +165,9 @@ def test_fit_crossfit_isolation_reweighting_pickle_and_registry():
 def test_seed_known_noise_and_fail_closed_views_and_base_estimator():
     X, y = data()
     first = RankPruningClassifier(frac_pos2neg=0.2, random_state=9).fit(X, y)
-    second = RankPruningClassifier(frac_pos2neg=0.2, random_state=9).fit(X, y, class_prior=0.4)
+    second = RankPruningClassifier(frac_pos2neg=0.2, random_state=9).fit(X, y, os_or_ts="os")
+    with pytest.raises(TypeError, match="class_prior"):
+        RankPruningClassifier(frac_pos2neg=0.2, random_state=9).fit(X, y, class_prior=0.4)
     assert first.rho1_ == 0.2 and first.rho0_ == 0
     np.testing.assert_array_equal(first.predict_proba(X), second.predict_proba(X))
     with pytest.raises(ValueError, match="native OS"):

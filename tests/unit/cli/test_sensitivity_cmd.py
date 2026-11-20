@@ -9,11 +9,11 @@ import json
 import pytest
 
 from pu_toolbox.cli import build_parser, main
-from pu_toolbox.preprocessing.pu_labeling import make_scar_dataset
+from tests.helpers import make_scar_data
 
 
 def _write_inputs(tmp_path, n=60, seed=42):
-    X, y_pu, _ = make_scar_dataset(n=n, c=0.5, n_features=5, separation=4.0, random_state=seed)
+    X, y_pu, _ = make_scar_data(n=n, c=0.5, n_features=5, separation=4.0, rng=seed)
     X_path = tmp_path / "X.csv"
     y_path = tmp_path / "y_pu.csv"
     X_path.write_text(
@@ -56,7 +56,7 @@ def test_param_custom_grid_size(tmp_path):
             str(X_path),
             "--labels",
             str(y_path),
-            "--class-priors",
+            "--population-priors",
             "0.2,0.4,0.6,0.8",
             "--out-dir",
             str(out_dir),
@@ -99,14 +99,14 @@ def test_edge_invalid_grid_reports_error(tmp_path, capsys):
                 str(X_path),
                 "--labels",
                 str(y_path),
-                "--class-priors",
+                "--population-priors",
                 "0.1,abc",
                 "--out-dir",
                 str(tmp_path / "out"),
             ]
         )
     assert exc.value.code == 1
-    assert "cannot parse class-priors grid" in capsys.readouterr().err
+    assert "cannot parse population-priors grid" in capsys.readouterr().err
 
 
 @pytest.mark.unit

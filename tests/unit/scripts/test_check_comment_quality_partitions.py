@@ -40,9 +40,6 @@ BASELINE_STRICT_PARTITIONS = (
     "pu_toolbox/metrics",
     "pu_toolbox/model_selection",
     "pu_toolbox/preprocessing",
-    "pu_toolbox/progress.py",
-    "pu_toolbox/run_config.py",
-    "pu_toolbox/ui",
 )
 
 

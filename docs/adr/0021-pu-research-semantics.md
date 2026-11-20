@@ -22,8 +22,8 @@ Survey 形成了可复用的采样、风险池和选模知识。`case_control`�
 3. 先验值先确定目标与估计池，再按消费者契约处理。OS 的质量恒等式可用于合法目标的换算，
    SAR 估计依据所选估计器的可辨识条件，第三方估计依据显式目标声明。
    ReCPE 等重组估计器专项核对目标回换。
-4. `PUPipeline` 保留日常画像、推荐、先验处理与内部 CV；`ExperimentRunner` 保留四角色、
-   候选轨迹、独立选模与最终测试。通用层沿既有依赖方向使用下层接口。
+4. `ExperimentRunner` 负责四角色、候选轨迹、独立选模与最终测试。原 `PUPipeline` 已退役，
+   现行训练与诊断入口见[迁移指南](../user/howto/pipeline.md)。通用层沿既有依赖方向使用下层接口。
 5. 当前接口与拟议能力分开登记。旧入口保持已定义行为；新能力用准确名称，后续改变通过
    回归测试、兼容边界和迁移文档实施。历史 manifest 按原记录解释。
 
@@ -33,10 +33,7 @@ Survey 形成了可复用的采样、风险池和选模知识。`case_control`�
 
 先验估计器通过 `estimate_target`、`estimation_pool` 声明目标与估计池；分类器通过
 `class_prior_target` 及可选的 `risk_class_prior_target` 声明消费目标。
-`prior.semantics` 统一 OS/TS 质量换算。Pipeline 的显式 `class_prior` 和 `PriorInfo.value`
-采用总体目标，每折与最终重训按分类器默认风险视图换算。
-`PriorInfo` 保存输入值/目标、估计池/细节、采样设计、换算及 `training_consumption`；
-Pipeline JSON schema 为 1.1。ReCPE 保留完整 U，并将所选 U 复制到正类 component，
+`prior.semantics` 统一 OS/TS 质量换算。ReCPE 保留完整 U，并将所选 U 复制到正类 component，
 以 regrouping 近似记录估计结果。
 
 ## 备选方案

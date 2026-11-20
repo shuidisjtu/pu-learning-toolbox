@@ -17,27 +17,17 @@ the prior consumed by each loss.
 Query installed capabilities before choosing an image method:
 
 ```python
-from pu_toolbox.registry import get_algorithm, register_all_builtin_methods
+from pu_toolbox.registry import get_algorithm
 
-register_all_builtin_methods()
 model_class = get_algorithm("nnpu")
 print(model_class.native_architectures, model_class.input_ndims,
       model_class.encoder_parameter, model_class.trains_encoder)
 ```
 
-The CNN Pipeline/CLI route uses an explicit classifier that declares encoder
-injection and CNN input support. Example for headered PU labels and a finite
-float NCHW array saved as `X.npy`, with a known population prior:
-
-```bash
-pu-toolbox run --data X.npy --labels y_pu.csv --classifier nnpu --architecture cnn --backbone cnn13_no_bn --device cpu --class-prior 0.4 --max-epochs 2 --cv 2 --out-dir image-output
-```
-
-Use `uv run pu-toolbox ...` in a uv-managed project. Choose device, epochs,
-batch size, prior source, and candidate count from the task's budget.
-Raw-image tasks use shape/finite-value and label-count checks; table profiling
-uses two-dimensional data. An explicit feature-extraction route supplies
-the two-dimensional features for table profiling and recommendations.
+Train image models with the Python estimator API. Match device, encoder,
+training budget and prior to the estimator contract. Validate NCHW shapes,
+finite values and label counts. Profile 2-D features only after extraction
+under the permitted fit scope.
 
 ## Train with an encoder template
 
@@ -56,7 +46,7 @@ from torch import nn
 
 from pu_toolbox.estimators.risk import NonNegativePUClassifier
 from pu_toolbox.experiment.feature_adapter import encoder_state_sha256
-from pu_toolbox.preprocessing import make_scar_labels
+from pu_toolbox.preprocessing import PULabelingConfig, SourcePartition, construct_pu_dataset
 from pu_toolbox.prior import population_to_native_unlabeled
 
 torch.manual_seed(7)
@@ -67,11 +57,16 @@ template = nn.Sequential(
 )
 y_true = np.tile([0, 1], 16)
 X = rng.uniform(size=(32, 1, 8, 8)).astype(np.float32)
-y_pu = make_scar_labels(y_true, c=0.5, random_state=7)
+constructed = construct_pu_dataset(
+    SourcePartition(X, y_true, "encoder-example", "train"),
+    PULabelingConfig("scar", "fixed_count", 7, c=0.5),
+    positive_classes=(1,), negative_classes=(0,),
+)
+y_pu = constructed.observations.labels
 pi_u = population_to_native_unlabeled(0.5, y_pu.mean(), input_sampling="os")
 initial_hash = encoder_state_sha256(template)
 model = NonNegativePUClassifier(
-    encoder=template, class_prior=pi_u, batch_size=8,
+    encoder=template, risk_prior=pi_u, batch_size=8,
     max_epochs=2, random_state=7, device="cpu",
 ).fit(X, y_pu)
 assert model.encoder_ is not template
@@ -94,8 +89,7 @@ print(settings)
 ```
 
 Direct nnPU `fit` with its default native-U loss consumes `pi_u` computed
-from the current train partition. `PUPipeline` accepts the population prior
-and resolves the declared consumer target for each fold and final fit.
+from the current train partition.
 nnPU deep-copies `template` into `encoder_` for each fit, giving candidates
 and folds their own trainable encoder. The encoder returns finite
 two-dimensional features; the model builds its prediction head from that
@@ -103,8 +97,7 @@ feature dimension.
 
 For shared backbones, use
 `build_encoder("cnn", backbone="cnn13_no_bn", in_channels=1)` from
-`pu_toolbox.estimators.deep`. Discover accepted backbones through the installed
-CLI or function signature. Shared encoders include channel normalization;
+`pu_toolbox.estimators.deep`. Discover accepted backbones through the installed Python API. Shared encoders include channel normalization;
 record the chosen means/stds and image range. Current ResNet builders use
 random initialization (`weights=None`) and require torchvision.
 
@@ -128,7 +121,13 @@ for role, size in (("train", 32), ("pu_val", 12), ("clean_val", 12), ("test", 12
     ))
     offset += size
 bundle = DatasetBundle(*parts)
-observed = make_scar_labels(bundle.train.labels, c=0.5, random_state=7)
+train = bundle.train
+constructed = construct_pu_dataset(
+    SourcePartition(train.X, train.labels, "encoder-bundle", "train", train.indices),
+    PULabelingConfig("scar", "fixed_count", 7, c=0.5),
+    positive_classes=(1,), negative_classes=(0,),
+)
+observed = constructed.observations.labels
 training_prior = population_to_native_unlabeled(
     0.5, observed.mean(), input_sampling="os"
 )
@@ -138,7 +137,7 @@ features, representation = adapt_image_bundle_to_features(
     encoder_fit_scope="fixed_external", batch_size=8, device="cpu",
 )
 frozen_model = UPUClassifier(
-    class_prior=training_prior, fit_intercept=False, random_state=7,
+    risk_prior=training_prior, fit_intercept=False, random_state=7,
 ).fit(features.train.X, observed)
 (output / "frozen.pkl").write_bytes(pickle.dumps((template, frozen_model)))
 (output / "representation.json").write_text(

@@ -82,7 +82,10 @@ def _bundle(n=8):
 
 def _smoke_run(tmp_path, model, *, config):
     runner = ExperimentRunner(
-        config=config, manifest_path=str(tmp_path / "manifest.json"), class_prior=0.5
+        config=config,
+        manifest_path=str(tmp_path / "manifest.json"),
+        training_population_prior=0.5,
+        validation_population_prior=0.5,
     )
     bundle = _bundle()
     runner.fit(model, bundle.train, bundle.pu_val, bundle.clean_val, bundle.test)
@@ -94,7 +97,7 @@ def _bound_self_pu(survey_script, tmp_path):  # noqa: F811
     parts = survey_script.load_split_parts(tmp_path)
     protocol = load_protocol()
     row = resolve_unit(protocol, "spambase", "self_pu")
-    model = assemble_model(protocol, row, 3, seed=0, params={}, class_prior=0.3, device="cpu")
+    model = assemble_model(protocol, row, 3, seed=0, params={}, population_prior=0.3, device="cpu")
     config = {
         "architecture": "mlp",
         "c": 0.5,
@@ -192,7 +195,12 @@ def test_param_versioned_pilot_insufficient_disk_writes_rejection_manifest(
 ):  # noqa: F811
     model, parts, config = _bound_self_pu(survey_script, tmp_path)
     manifest_path = tmp_path / "manifest.json"
-    runner = ExperimentRunner(config=config, manifest_path=str(manifest_path), class_prior=0.5)
+    runner = ExperimentRunner(
+        config=config,
+        manifest_path=str(manifest_path),
+        training_population_prior=0.5,
+        validation_population_prior=0.5,
+    )
     monkeypatch.setattr(resources, "disk_free_bytes", lambda directory: 0)
 
     with pytest.raises(ValueError, match="disk"):
@@ -288,7 +296,12 @@ def test_basic_versioned_pilot_derives_protocol_size_when_config_omits_it(
     config.pop("checkpoint_bytes_per_component")
     monkeypatch.setattr(resources, "disk_free_bytes", lambda directory: 0)
     manifest_path = tmp_path / "manifest.json"
-    runner = ExperimentRunner(config=config, manifest_path=str(manifest_path), class_prior=0.5)
+    runner = ExperimentRunner(
+        config=config,
+        manifest_path=str(manifest_path),
+        training_population_prior=0.5,
+        validation_population_prior=0.5,
+    )
 
     with pytest.raises(ValueError, match="insufficient disk"):
         runner.fit(model, *parts)
@@ -305,7 +318,12 @@ def test_edge_versioned_pilot_rejects_configured_size_below_protocol_bound(tmp_p
     model, parts, config = _bound_self_pu(survey_script, tmp_path)
     config["checkpoint_bytes_per_component"] = 1
     manifest_path = tmp_path / "manifest.json"
-    runner = ExperimentRunner(config=config, manifest_path=str(manifest_path), class_prior=0.5)
+    runner = ExperimentRunner(
+        config=config,
+        manifest_path=str(manifest_path),
+        training_population_prior=0.5,
+        validation_population_prior=0.5,
+    )
 
     with pytest.raises(ValueError, match="disagrees with the protocol-bound"):
         runner.fit(model, *parts)

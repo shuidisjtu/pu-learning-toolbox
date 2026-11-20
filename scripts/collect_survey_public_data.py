@@ -11,13 +11,11 @@ data artifacts, not amendments to the frozen pilot protocol.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
-import os
-import tempfile
-from datetime import datetime, timezone
 from pathlib import Path
 from urllib.request import urlopen
+
+from pu_toolbox.preprocessing.dataset_fetch import _collect
 
 #: Mirror of the Kaggle "Alzheimer's Dataset (4 class of Images)" that stands in for
 #: ADNI.  It is pinned to one commit and to per-archive digests because the mirror is
@@ -37,15 +35,21 @@ PROJECT_PINNED = frozenset({"adni"})
 
 def resources(dataset):
     if dataset in {"mnist", "fashion_mnist"}:
-        from torchvision.datasets import MNIST, FashionMNIST
-
-        cls = MNIST if dataset == "mnist" else FashionMNIST
-        base = (
-            "https://ossci-datasets.s3.amazonaws.com/mnist/"
-            if dataset == "mnist"
-            else "https://raw.githubusercontent.com/zalandoresearch/fashion-mnist/master/data/fashion/"
+        path = (
+            Path(__file__).resolve().parents[1]
+            / "pu_toolbox/preprocessing/source_configs"
+            / f"{dataset}.json"
         )
-        return [(name, base + name, "md5", checksum) for name, checksum in cls.resources]
+        config = json.loads(path.read_text(encoding="utf-8"))
+        return [
+            (
+                name,
+                artifact["url"],
+                artifact["checksum"]["algorithm"],
+                artifact["checksum"]["digest"],
+            )
+            for name, artifact in config["artifacts"].items()
+        ]
     if dataset == "twenty_newsgroups":
         from sklearn.datasets._twenty_newsgroups import ARCHIVE
 
@@ -65,86 +69,20 @@ def resources(dataset):
     raise ValueError(f"unsupported public dataset {dataset!r}")
 
 
-def checksum(path, algorithm):
-    value = hashlib.new(algorithm)
-    with path.open("rb") as stream:
-        for block in iter(lambda: stream.read(1024 * 1024), b""):
-            value.update(block)
-    return value.hexdigest()
-
-
 def collect(dataset, raw_dir):
     entries = resources(dataset)
-    directory = raw_dir / dataset
-    directory.mkdir(parents=True, exist_ok=True)
-    receipt_path = directory / "provenance.json"
-    previous = json.loads(receipt_path.read_text(encoding="utf-8")) if receipt_path.exists() else {}
-    previous_files = {entry["filename"]: entry for entry in previous.get("files", [])}
-    records = []
-    for name, url, algorithm, expected in entries:
-        publisher_expected = expected
-        target = directory / name
-        if target.exists():
-            if expected is None:
-                expected = previous_files.get(name, {}).get("sha256")
-                if expected is None:
-                    raise ValueError(f"unverified existing file: {target}")
-            if checksum(target, algorithm) != expected:
-                raise ValueError(f"checksum mismatch, existing file preserved: {target}")
-        else:
-            descriptor, temporary = tempfile.mkstemp(prefix=".download-", dir=directory)
-            staging = Path(temporary)
-            try:
-                with os.fdopen(descriptor, "wb") as output, urlopen(url, timeout=45) as response:
-                    total = 0
-                    while block := response.read(1024 * 1024):
-                        total += len(block)
-                        if total > 256 * 1024 * 1024:
-                            raise ValueError("public archive exceeded the 256 MiB safety limit")
-                        output.write(block)
-                if expected is not None and checksum(staging, algorithm) != expected:
-                    raise ValueError(f"publisher checksum mismatch: {name}")
-                # Exclusive destination creation prevents overwriting concurrent work.
-                os.link(staging, target)
-            finally:
-                staging.unlink(missing_ok=True)
-        pinned = dataset in PROJECT_PINNED
-        publisher = None if pinned else publisher_expected
-        record = {
-            "filename": name,
-            "source_url": url,
-            "bytes": target.stat().st_size,
-            "sha256": checksum(target, "sha256"),
-            "publisher_checksum_algorithm": algorithm if publisher else None,
-            "publisher_checksum": publisher,
-            "publisher_checksum_verified": publisher is not None,
-        }
-        if pinned:
-            record["checksum_source"] = "project_pin"
-            record["pinned_sha256"] = publisher_expected
-        records.append(record)
-        print(f"verified {dataset}/{name} ({target.stat().st_size} bytes)", flush=True)
-    payload = {
-        "dataset": dataset,
-        # Kept from the first collection: a verified reuse changes nothing, and a
-        # receipt that moved with every call could not be compared with itself.
-        "collected_at": previous.get("collected_at") or datetime.now(timezone.utc).isoformat(),
-        "files": records,
-        "status": "raw_collected_not_formal_splits",
-        "extracted": False,
-        "license_review": "see docs/research/pu_survey/data/README.md",
-    }
-    if dataset in PROJECT_PINNED:
-        payload["mirror_url"] = f"https://github.com/{ADNI_MIRROR_REPO}/tree/{ADNI_MIRROR_COMMIT}"
-    descriptor, temporary = tempfile.mkstemp(prefix=".receipt-", dir=directory)
-    try:
-        with os.fdopen(descriptor, "w") as output:
-            json.dump(payload, output, indent=2)
-            output.write("\n")
-        os.replace(temporary, receipt_path)
-    finally:
-        Path(temporary).unlink(missing_ok=True)
-    return payload
+    pinned = dataset in PROJECT_PINNED
+    mirror_url = (
+        f"https://github.com/{ADNI_MIRROR_REPO}/tree/{ADNI_MIRROR_COMMIT}" if pinned else None
+    )
+    return _collect(
+        dataset,
+        raw_dir / dataset,
+        entries,
+        urlopen,
+        checksum_source="project_pin" if pinned else "publisher",
+        mirror_url=mirror_url,
+    )
 
 
 def main():

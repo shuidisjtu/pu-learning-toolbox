@@ -80,7 +80,10 @@ def _run(tmp_path, *, reclaim):
     if reclaim is not None:
         config["reclaim_unselected_checkpoints"] = reclaim
     return ExperimentRunner(
-        config=config, manifest_path=str(tmp_path / "manifest.json"), class_prior=0.5
+        config=config,
+        manifest_path=str(tmp_path / "manifest.json"),
+        training_population_prior=0.5,
+        validation_population_prior=0.5,
     ).fit(ThreeEpochs(), bundle.train, bundle.pu_val, bundle.clean_val, bundle.test)
 
 

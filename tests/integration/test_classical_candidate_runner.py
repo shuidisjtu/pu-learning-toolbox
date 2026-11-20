@@ -41,7 +41,8 @@ def test_param_basic_determ_four_roles_preserve_selection_and_non_epoch_costs(
     path = tmp_path / "manifest.json"
     result = ExperimentRunner(
         seed=1,
-        class_prior=0.5,
+        training_population_prior=0.5,
+        validation_population_prior=0.5,
         manifest_path=str(path),
         config={
             "method": method,

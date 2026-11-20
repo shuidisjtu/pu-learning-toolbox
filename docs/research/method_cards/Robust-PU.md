@@ -94,7 +94,7 @@ behavior tests、换行哈希）已按下节补交；正式准入仍未完成。
 - `models.py:4–29` 的 MLP100 显式 Xavier-normal/零 bias，不等于本项目 Linear 默认初始化；
   `:32–106` 是9个 Conv/BN 与三层 FC，并非本项目注入的共享 CNN。
 - 源验证/测试都是按给定 U 先验再采样；U 正例数 `int(n_U*pi_U)` 有有限样本取整。
-  `class_prior` 裸 OS 调用应为所给 U 的比例；实验 TS 路径按既定裁决用 population π，
+  `risk_prior` 裸 OS 调用应为所给 U 的比例；实验 TS 路径按既定裁决用 population π，
   不自动从标记比例换算。先验只用于 nnPU，SPL 伪负例永远是原始 U。
 - 逐批 P/U 循环与 `array_split` 尾批属于既有适配；逐批拼接的角色比例不能据此
   冒充全池均匀抽样或精确分布等价。保留 `source_equivalence_claim=false`。

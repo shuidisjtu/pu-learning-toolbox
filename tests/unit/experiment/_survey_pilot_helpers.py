@@ -21,7 +21,7 @@ _SCRIPTS = Path(__file__).resolve().parents[3] / "scripts"
 
 #: The population priors the pilot datasets record.  A test that wants the
 #: *missing* prior path passes a splits tree that records none instead.
-ALL_PRIORS = ["--class-prior", "spambase=0.39,imdb=0.5,cifar10=0.1"]
+ALL_PRIORS = ["--population-prior", "spambase=0.39,imdb=0.5,cifar10=0.1"]
 SMOKE_DATASETS = ("cifar10", "imdb", "spambase")
 SMOKE_METHODS = ("upu", "nnpu", "pusb_kernel", "dist_pu", "lbe", "self_pu", "pn_oracle")
 

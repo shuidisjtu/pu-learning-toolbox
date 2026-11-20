@@ -106,7 +106,7 @@ class ClassPriorEstimator(BasePriorEstimator):
             positive_beta = np.maximum(beta, 0.0)
             objectives.append(float(np.dot(positive_beta, beta) / self.reg_lambda - theta + 1.0))
         best = int(np.argmin(objectives))
-        self.class_prior_ = float(theta_grid[best])
+        self.unlabeled_prior_estimate_ = float(theta_grid[best])
         self.objective_values_ = np.asarray(objectives)
         self.theta_grid_ = theta_grid
         self.n_features_in_ = X.shape[1]
@@ -117,4 +117,4 @@ class ClassPriorEstimator(BasePriorEstimator):
     def estimate(self) -> float:
         if not getattr(self, "_is_fitted", False):
             raise NotFittedError("ClassPriorEstimator is not fitted. Call fit() first.")
-        return self.class_prior_
+        return self.unlabeled_prior_estimate_

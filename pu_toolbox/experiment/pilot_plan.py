@@ -35,6 +35,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+from zipfile import BadZipFile
 
 from .bundle import split_indices_digest
 from .resources import (
@@ -57,7 +58,6 @@ from .survey_profile_identity import (
 from .survey_protocol import (
     ROLES,
     profile_mechanisms,
-    role_indices_digest,
     unit_checkpoint_bytes,
     unit_checkpoint_profile,
 )
@@ -558,13 +558,13 @@ def support_products(
     artifact carved its support rows out of train and removed them, so it is a
     different product with a different index digest -- and a plan that read the
     plain split would train on support rows it claims to have excluded.  The
-    convention ``<root>/<dataset>/split_<seed>`` is only a locator; what makes it
-    safe is proving the receipt names the dataset and seed it was planned for,
-    because a mistyped root otherwise reproduces another seed's support silently.
+    convention ``<root>/<dataset>/split_<seed>`` is only a locator. Before
+    planning or resuming, verify the receipt's dataset and seed and check the
+    original sample IDs in all five role files without reading feature arrays.
+    The unit script separately verifies the complete product before execution.
 
-    Returns ``(directory, index digest)`` per ``(dataset, seed)``: the directory
-    the run script is handed, and the digest a completed manifest of that run has
-    to record before the driver will count it as done.
+    Returns ``(directory, four-role index digest)`` per ``(dataset, seed)``
+    for matching completed run manifests.
     """
     found: dict[tuple[str, int], tuple[Path, str]] = {}
     for dataset, seed in sorted(set(dataset_seeds)):
@@ -591,9 +591,15 @@ def support_products(
                 f"clean-support product at {manifest_path} records no four-role indices, so "
                 "no run on it can be told from a run on a rebuilt one"
             )
+        if "support" not in indices:
+            raise ValueError(f"clean-support product at {manifest_path} records no support indices")
         if not isinstance(digest, str) or not digest:
             raise ValueError(f"clean-support product at {manifest_path} records no receipt digest")
-        found[(dataset, seed)] = (directory, role_indices_digest(indices))
+        try:
+            actual = split_indices_digest(directory, declared=digest, include_support=True)
+        except (BadZipFile, OSError, ValueError) as exc:
+            raise ValueError(f"invalid clean-support product at {directory}: {exc}") from exc
+        found[(dataset, seed)] = (directory, actual)
     return found
 
 
@@ -858,7 +864,7 @@ def batch_command(
     splits_root: str | Path,
     out_root: str | Path,
     protocol: str = "survey-v3.2",
-    class_prior: float | None = None,
+    population_prior: float | None = None,
     device: str | None = None,
     adapter_cache: str | None = None,
     extraction_batch_size: int | None = None,
@@ -908,7 +914,7 @@ def batch_command(
     ]
     if batch.method == PN_ORACLE:
         # An oracle is defined by a clean label view: no method, no mechanism,
-        # no c.  The script refuses --oracle beside --method or --class-prior.
+        # no c.  The script refuses --oracle beside --method or --population-prior.
         argv.append("--oracle")
     else:
         argv += [
@@ -919,8 +925,8 @@ def batch_command(
             "--c",
             ",".join(batch.tokens),
         ]
-        if class_prior is not None:
-            argv += ["--class-prior", repr(class_prior)]
+        if population_prior is not None:
+            argv += ["--population-prior", repr(population_prior)]
     if device is not None:
         argv += ["--device", device]
     if adapter_cache is not None:
@@ -947,9 +953,8 @@ def _declared_components(method: str) -> tuple[str, ...]:
     """
     if method == PN_ORACLE:
         return _ORACLE_COMPONENTS
-    from pu_toolbox.registry import get_algorithm, register_all_builtin_methods
+    from pu_toolbox.registry import get_algorithm
 
-    register_all_builtin_methods()
     declared = getattr(get_algorithm(method), "epoch_components", _ORACLE_COMPONENTS)
     return tuple(declared)
 

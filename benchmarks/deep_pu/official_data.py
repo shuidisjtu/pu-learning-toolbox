@@ -784,7 +784,9 @@ def run_official_data_benchmark(
                     dataset.y_validation_pu,
                 )
             estimator.fit(dataset.X_train, dataset.y_pu, **fit_parameters)
-            class_prior_used = float(estimator.class_prior_)
+            class_prior_used = float(
+                estimator.risk_prior_ if method == "infomax_pu" else estimator.unlabeled_prior_
+            )
             scores = np.asarray(estimator.decision_function(dataset.X_test), dtype=float)
             predictions = (scores >= 0.0).astype(int)
             rows.append(

@@ -7,7 +7,7 @@
 | 论文 | Long 等，*Positive-Unlabeled Learning by Latent Group-Aware Meta Disambiguation*，CVPR 2024；[论文](https://openaccess.thecvf.com/content/CVPR2024/papers/Long_Positive-Unlabeled_Learning_by_Latent_Group-Aware_Meta_Disambiguation_CVPR_2024_paper.pdf) 与 [补充材料 Algorithm 1](https://openaccess.thecvf.com/content/CVPR2024/supplemental/Long_Positive-Unlabeled_Learning_by_CVPR_2024_supplemental.pdf) |
 | 官方代码 | [`llong-cs/LaGAM`](https://github.com/llong-cs/LaGAM)，核对 commit `362a7f41fcf3d4e4161fe99f4aab4e6128b6a5d8` |
 | 源码位置 | `train.py:Trainer.train_loop`（元标签、mixup、warmup）；`utils/utils_algo.py:run_kmeans`；`utils/utils_loss.py:BCELoss/ContLoss` |
-| 先验 | 不需要类先验；`fit(class_prior=...)` 只作接口兼容，不进入优化 |
+| 先验 | 训练不使用类先验 |
 
 ## 核心机制与本实现
 

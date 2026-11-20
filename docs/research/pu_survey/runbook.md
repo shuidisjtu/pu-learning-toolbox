@@ -26,8 +26,8 @@ uv run python scripts/prepare_survey_splits.py --datasets spambase --seeds 0,1,2
 By default it reads `data/raw` and writes `data/splits/<dataset>/split_<seed>/`.
 Each split contains `train.npz`, `pu_val.npz`, `clean_val.npz`, `test.npz`, and
 `split_manifest.json`. NPZ files contain true labels and disjoint global indices;
-the generator constructs PU labels during execution. Read the prior from the split's
-`class_prior.population`, without deriving it from test truth.
+the generator constructs PU labels during execution. Use the prior recorded in the split's
+`class_prior.population`.
 
 PULNS, LaGAM, and full-meta Self-PU use independent clean support. For the five original
 tabular/image datasets, rebuild it through the reviewed raw reader. For IMDB, 20News,
@@ -52,6 +52,11 @@ cannot be checked; it does not establish isolation. The approval token above rec
 specific protocol-owner decision, not general authorization for another study. See the
 [data-source and interpretation limits](data/README.md).
 
+For `self_pu_full_meta`, omit `--os-or-ts` or set `--os-or-ts os`. The single-unit
+and batch paths reject `ts` for this versioned profile. Report its OS clean-support
+results separately from the TS-compatible `self_pu` ablation; see
+[protocol §2.3](pu_survey_protocol.md#23-pu-data-generation).
+
 ## Run the supplied Survey example
 
 Validate the current recipes:
@@ -63,15 +68,25 @@ uv run python scripts/check_survey_recipe_registry.py --require-present --requir
 Run one unit using a prepared split:
 
 ```powershell
-uv run python scripts/run_survey_experiment.py data/splits/spambase/split_0 --protocol survey-v3.2 --recipe-registry pu_toolbox/experiment/survey_recipe_registry_v1_3.json --dataset spambase --method upu --training-path native_2d --labeling-mechanism scar --seeds 0 --c 0.1 --class-prior 0.3940447729 --device cpu --out-dir results/example
+uv run python scripts/run_survey_experiment.py data/splits/spambase/split_0 --protocol survey-v3.2 --recipe-registry pu_toolbox/experiment/survey_recipe_registry_v1_3.json --dataset spambase --method upu --training-path native_2d --labeling-mechanism scar --seeds 0 --c 0.1 --population-prior 0.3940447729 --device cpu --out-dir results/example
 ```
 
 The prior above illustrates the current Spambase setting; use your split's own
 `class_prior.population`. Supply it explicitly to this prior-requiring single-unit method;
-the batch entry reads recorded split priors. For a PN oracle, replace `--method upu` with
-`--oracle` and remove `--class-prior`; selection is OA only. Support methods require the
-corresponding `--support-dir`. Each seed must use its own split; do not pass `split_0`
-as input for multiple seeds.
+the batch entry reads recorded split priors. For uPU, PA uses this population prior in both
+views. The Survey default (`ts`-compatible) also fits with it; explicit `--os-or-ts os` fits
+with the native-U prior derived from the training split's realized labeled fraction.
+See `research_settings.prior` in the manifest for both values and sources.
+
+For PUSBKernel on OS input, `--population-prior` supplies the default training-table threshold
+prior and PA's validation population prior. The kernel risk reuses the table value by default.
+The manifest records the fit risk pool and the native-U internal CV validation pool separately.
+For a PN oracle, replace `--method upu` with
+`--oracle` and remove `--population-prior`; selection is OA only. Support methods require the
+corresponding `--support-dir`. The audited product keeps clean support as a fifth role,
+with original sample IDs disjoint from `train`, `pu_val`, `clean_val`, and `test`. The
+unit command verifies the product and its match to the actual split before training or
+evaluation. Each seed must use its own split; do not pass `split_0` as input for multiple seeds.
 
 Use the batch entry for deterministic grid execution and resumption:
 
@@ -83,7 +98,8 @@ Review the plan before removing `--dry-run`. Narrow the scope with `--datasets`,
 `--methods`, and `--training-paths`; `--plan-json` saves the dry-run plan. Repeating the same
 request skips runs whose manifests satisfy the completion and identity checks.
 `--keep-going` records a failure and continues. Methods requiring support need
-`--support-root`.
+`--support-root`. The batch driver checks all five role files and their sample IDs
+before planning or resuming runs.
 
 Batch runs store shared code/dependency evidence under `<results>/batch_evidence`, referenced
 by each manifest; single-unit execution records those identities directly. Retain shared
@@ -140,12 +156,11 @@ backfill original manifests, or automatically approve pending results.
 
 ## Supplemental paired ResNet-18 study
 
-The standalone `paired-resnet18-scar-c03-v1` study is separate from frozen Survey v3.2
-and does not change historical results. Compare a randomly initialized online-frozen
-encoder with the same initialized trainable encoder, using the same method, split,
-SCAR labels, seed, head and training budget. Frozen parameters and BN buffers are
-checked at completed epochs. With trainable encoders, changes to weights and training
-behavior such as BN are both part of the contrast.
+The standalone `paired-resnet18-scar-c03-v1` study uses frozen Survey v3.2 inputs.
+Compare a randomly initialized online-frozen encoder with a trainable encoder that
+starts from the same state. Each pair shares its method, split, SCAR labels, seed,
+head and training budget. The worker checks frozen parameters and batch-normalization
+buffers at completed epochs. The trainable arm updates encoder weights and buffers.
 
 The controller in `scripts/run_paired_resnet_campaign.py` is Linux-only for live
 GPU scheduling. Start with `--dry-run` to inspect the exact 120-fit plan: six methods,
@@ -153,13 +168,12 @@ two image datasets, c=0.3, five seeds and two arms. Live dispatch requires a cle
 committed source checkout, verified split files, a permitted GPU pool and explicit
 enablement for methods that passed the short technical checks.
 
-`scripts/run_survey_paired_resnet.py` is the per-fit worker. A short `--probe` run is
-never a full-budget fit. Full-meta Self-PU requires the audited independent 500-row
-support product; its PA track is PA+clean-support. Both Dist-PU arms use the same
-staged histogram recipe and image-space mixup, not the historical clean-room
-full-batch recipe. These are project adaptations, not author numerical reproductions.
+`scripts/run_survey_paired_resnet.py` is the per-fit worker. Use `--probe` for a short
+technical check. Full-meta Self-PU requires the audited independent 500-row support
+product and selects with PA+clean-support and OA. Both Dist-PU arms use the staged
+histogram recipe and image-space mixup. The run manifest records the prior each
+training objective consumes and the population prior used for PA selection.
 
-Use a new result root. The controller requires both valid seed-zero receipts before
-dispatching a family's other seeds, records checkpoint replay and releases unrelated
-families if one fails. Inspect its JSON status, per-attempt logs and paired CSV.
-A finished execution or an automatic receipt is not formal admission.
+Use a new result root. Two valid seed-zero receipts enable dispatch of that family's
+remaining seeds. The controller records checkpoint replay and schedules other
+families independently. Inspect its JSON status, per-attempt logs and paired CSV.

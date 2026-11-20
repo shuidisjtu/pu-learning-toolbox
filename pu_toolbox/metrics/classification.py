@@ -40,7 +40,7 @@ __all__ = [
 def pu_zero_one_risk(
     y_pu: np.ndarray,
     scores: np.ndarray,
-    class_prior: float,
+    evaluation_prior: float,
     *,
     input_sampling: str = "ts",
 ) -> float:
@@ -61,7 +61,7 @@ def pu_zero_one_risk(
         predictions in ``{0, 1}``.  Higher values mean more positive.  When
         an estimator uses a non-zero native threshold, pass its binary
         ``predict`` output rather than its raw decision values.
-    class_prior : float
+    evaluation_prior : float
         True class prior π = P(y=1), in (0, 1).
     input_sampling : {"os", "ts"}, default "ts"
         Input design. The default retains the historical native-U formula.
@@ -78,7 +78,7 @@ def pu_zero_one_risk(
         raise ValueError(
             f"y_pu and scores must have the same length, got {len(y_pu)} and {len(scores)}"
         )
-    check_scalar_in_range(class_prior, 0.0, 1.0, "class_prior", inclusive=False)
+    check_scalar_in_range(evaluation_prior, 0.0, 1.0, "evaluation_prior", inclusive=False)
 
     mask_p = y_pu == POSITIVE_LABEL
     mask_u = y_pu == UNLABELED_LABEL
@@ -91,7 +91,7 @@ def pu_zero_one_risk(
     fnr_p = float(np.mean(scores_p <= 0.0))
     population_scores = scores if input_sampling == "os" else scores_u
     fpr_u = float(np.mean(population_scores > 0.0))
-    return 2.0 * class_prior * fnr_p + fpr_u - class_prior
+    return 2.0 * evaluation_prior * fnr_p + fpr_u - evaluation_prior
 
 
 def pu_recall(y_pu: np.ndarray, y_pred: np.ndarray) -> float:
@@ -130,7 +130,7 @@ def pu_recall(y_pu: np.ndarray, y_pred: np.ndarray) -> float:
 def pu_estimated_precision(
     y_pu: np.ndarray,
     y_pred: np.ndarray,
-    class_prior: float,
+    evaluation_prior: float,
     *,
     input_sampling: str = "os",
 ) -> float:
@@ -146,7 +146,7 @@ def pu_estimated_precision(
         PU labels in {+1, 0}.
     y_pred : array-like of shape (n_samples,)
         Predicted binary labels (positive vs. non-positive).
-    class_prior : float
+    evaluation_prior : float
         True class prior π = P(y=1), in (0, 1).
     input_sampling : {"os", "ts"}, default "os"
         OS uses all input rows for the positive prediction rate; independent
@@ -165,7 +165,7 @@ def pu_estimated_precision(
         raise ValueError(
             f"y_pu and y_pred must have the same length, got {len(y_pu)} and {len(y_pred)}"
         )
-    check_scalar_in_range(class_prior, 0.0, 1.0, "class_prior", inclusive=False)
+    check_scalar_in_range(evaluation_prior, 0.0, 1.0, "evaluation_prior", inclusive=False)
 
     recall = pu_recall(y_pu, y_pred)
     population_predictions = y_pred if input_sampling == "os" else y_pred[y_pu == UNLABELED_LABEL]
@@ -175,14 +175,14 @@ def pu_estimated_precision(
     if predicted_positive_rate == 0.0:
         return 0.0
 
-    return float(min(class_prior * recall / predicted_positive_rate, 1.0))
+    return float(min(evaluation_prior * recall / predicted_positive_rate, 1.0))
 
 
 def pu_negative_rate(y_pu: np.ndarray, y_pred: np.ndarray) -> float:
     """Fraction of unlabeled samples predicted as negative.
 
-    Useful for PU model diagnostics: this rate should be higher than
-    ``1 - class_prior`` when the model is working properly.
+    This is a diagnostic prediction rate, not an accuracy measure. A model
+    that predicts every unlabeled sample as negative gives a rate of 1.0.
 
     Parameters
     ----------

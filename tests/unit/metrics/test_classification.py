@@ -45,7 +45,7 @@ class TestPUZeroOneRisk:
         y_pu = np.array([1, 1, 0, 0, 0])
         scores = np.array([1.0, 2.0, 0.5, 1.0, 0.1])
         pi = 0.4
-        risk = pu_zero_one_risk(y_pu, scores, class_prior=pi)
+        risk = pu_zero_one_risk(y_pu, scores, evaluation_prior=pi)
         assert risk == pytest.approx(1.0 - pi, abs=1e-10)
 
     @pytest.mark.math
@@ -54,7 +54,7 @@ class TestPUZeroOneRisk:
         y_pu = np.array([1, 1, 0, 0, 0])
         scores = np.array([-1.0, -2.0, -0.5, -1.0, -0.1])
         pi = 0.4
-        risk = pu_zero_one_risk(y_pu, scores, class_prior=pi)
+        risk = pu_zero_one_risk(y_pu, scores, evaluation_prior=pi)
         assert risk == pytest.approx(pi, abs=1e-10)
 
     @pytest.mark.math
@@ -65,7 +65,7 @@ class TestPUZeroOneRisk:
         # FNR_P: 1 of 2 positives has score <= 0 → 0.5
         # FPR_U: 2 of 4 unlabeled have score > 0 → 0.5
         # R = 2*0.5*0.5 + 0.5 - 0.5 = 0.5
-        risk = pu_zero_one_risk(y_pu, scores, class_prior=pi)
+        risk = pu_zero_one_risk(y_pu, scores, evaluation_prior=pi)
         assert risk == pytest.approx(0.5, abs=1e-10)
 
     @pytest.mark.unit
@@ -77,22 +77,22 @@ class TestPUZeroOneRisk:
         pi = 0.3
         scores_p, scores_u = scores[:60], scores[60:]
         expected = 2.0 * pi * float(np.mean(scores_p <= 0.0)) + float(np.mean(scores_u > 0.0)) - pi
-        actual = pu_zero_one_risk(y_pu, scores, class_prior=pi)
+        actual = pu_zero_one_risk(y_pu, scores, evaluation_prior=pi)
         assert actual == pytest.approx(expected, abs=1e-12)
 
     @pytest.mark.unit
     def test_length_mismatch_raises(self):
         with pytest.raises(ValueError, match="same length"):
-            pu_zero_one_risk(np.array([1, 0]), np.array([0.5]), class_prior=0.5)
+            pu_zero_one_risk(np.array([1, 0]), np.array([0.5]), evaluation_prior=0.5)
 
     @pytest.mark.unit
     def test_invalid_class_prior_raises(self):
         y_pu = np.array([1, 0])
         scores = np.array([0.5, -0.5])
-        with pytest.raises(ValueError, match="class_prior"):
-            pu_zero_one_risk(y_pu, scores, class_prior=0.0)
-        with pytest.raises(ValueError, match="class_prior"):
-            pu_zero_one_risk(y_pu, scores, class_prior=1.0)
+        with pytest.raises(ValueError, match="evaluation_prior"):
+            pu_zero_one_risk(y_pu, scores, evaluation_prior=0.0)
+        with pytest.raises(ValueError, match="evaluation_prior"):
+            pu_zero_one_risk(y_pu, scores, evaluation_prior=1.0)
 
     @pytest.mark.unit
     def test_empty_group_returns_inf(self):
@@ -144,14 +144,14 @@ class TestPUObservableMetrics:
         """Estimated precision with known class prior."""
         y_pu = np.array([1, 1, 1, 0, 0, 0, 0, 0, 0, 0])
         y_pred = np.array([1, 1, 1, 0, 0, 1, 1, 0, 0, 0])
-        prec = pu_estimated_precision(y_pu, y_pred, class_prior=0.5)
+        prec = pu_estimated_precision(y_pu, y_pred, evaluation_prior=0.5)
         assert prec == pytest.approx(1.0)
 
     def test_param_pu_estimated_precision_low_prior(self):
         """Lower class prior yields lower estimated precision."""
         y_pu = np.array([1, 1, 0, 0, 0, 0, 0, 0, 0, 0])
         y_pred = np.array([1, 1, 1, 1, 1, 0, 0, 0, 0, 0])
-        prec = pu_estimated_precision(y_pu, y_pred, class_prior=0.3)
+        prec = pu_estimated_precision(y_pu, y_pred, evaluation_prior=0.3)
         assert prec == pytest.approx(0.6)
 
     def test_basic_pu_negative_rate(self):
@@ -176,7 +176,7 @@ class TestDeterminism:
         y_pred = np.where(scores > 0.5, 1, 0)
         first = (
             pu_recall(y_pu, y_pred),
-            pu_estimated_precision(y_pu, y_pred, class_prior=0.3),
+            pu_estimated_precision(y_pu, y_pred, evaluation_prior=0.3),
             pu_negative_rate(y_pu, y_pred),
             pu_accuracy(y_true, y_pred),
             pu_f1(y_true, y_pred),
@@ -184,7 +184,7 @@ class TestDeterminism:
         )
         second = (
             pu_recall(y_pu, y_pred),
-            pu_estimated_precision(y_pu, y_pred, class_prior=0.3),
+            pu_estimated_precision(y_pu, y_pred, evaluation_prior=0.3),
             pu_negative_rate(y_pu, y_pred),
             pu_accuracy(y_true, y_pred),
             pu_f1(y_true, y_pred),

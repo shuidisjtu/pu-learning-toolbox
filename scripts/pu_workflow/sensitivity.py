@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # ruff: noqa: E402
-"""pu-workflow step 4: assumption sensitivity analysis on fitted predictions.
+"""Assumption sensitivity analysis on fitted predictions.
 
 Compatibility wrapper: delegates to the ``pu-toolbox sensitivity``
 subcommand.  Exit codes: 0 success; 1 user/input error.

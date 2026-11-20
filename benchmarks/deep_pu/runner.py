@@ -181,7 +181,7 @@ def _build_estimator(
     seed: int,
 ):
     parameters = dict(method_config.get("parameters", {}))
-    if "random_state" in parameters or "class_prior" in parameters:
+    if parameters.keys() & {"random_state", "class_prior", "risk_prior", "unlabeled_prior"}:
         raise ValueError("random_state and class_prior are controlled by the runner")
     if method == "infomax_pu":
         prior_config = parameters.get("prior_estimator")
@@ -194,7 +194,7 @@ def _build_estimator(
                 **prior_config.get("parameters", {})
             )
         return InfoMaxPUClassifier(
-            class_prior=class_prior,
+            risk_prior=class_prior,
             random_state=seed,
             **parameters,
         )
@@ -255,19 +255,19 @@ def _method_diagnostics(method: str, estimator: Any) -> dict[str, float]:
     if method == "infomax_pu":
         objective = estimator.representation_.history_["objective"]
         return {
-            "class_prior_used": float(estimator.class_prior_),
+            "class_prior_used": float(estimator.risk_prior_),
             "representation_objective_first": float(objective[0]),
             "representation_objective_last": float(objective[-1]),
         }
     if method == "weighted_contrastive_pu":
         return {
-            "class_prior_used": float(estimator.class_prior_),
+            "class_prior_used": float(estimator.unlabeled_prior_),
             "queue_final_size": float(len(estimator.queue_embeddings_)),
             "classification_loss_last": float(estimator.history_["classification_loss"][-1]),
             "contrastive_loss_last": float(estimator.history_["contrastive_loss"][-1]),
         }
     return {
-        "class_prior_used": float(estimator.class_prior_),
+        "class_prior_used": float(estimator.unlabeled_prior_),
         "generator_fit_calls": float(estimator.generator_.fit_calls_),
         "generated_positive_total": float(
             sum(item["positive"] for item in estimator.generated_counts_)

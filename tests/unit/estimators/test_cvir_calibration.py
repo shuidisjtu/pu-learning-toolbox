@@ -96,7 +96,10 @@ def test_basic_global_pool_ranked_before_truncation_includes_p_but_preserves_pos
     assert provenance["n_unlabeled_candidates"] == 19
     assert provenance["positive_rows_added_to_candidates"] == 6
     assert provenance["calibration_scope"] == "train_global_pool_before_truncation"
-    assert provenance["empirical_unlabeled_positive_fraction"] is None
+    assert all(
+        use["target"] == "positive_union_unlabeled" and use["value"] == 0.4
+        for use in fitted._prior_consumptions_
+    )
 
 
 @pytest.mark.parametrize("policy", ["resident", "cpu_stream"])
@@ -144,7 +147,7 @@ def test_edge_native_input_refuses_double_calibration_and_population_prior_remai
     X, y = data()
     with pytest.raises(ValueError, match="requires input_sampling=os"):
         model(input_sampling="ts").fit(X, y, os_or_ts="ts")
-    with pytest.raises(ValueError, match="class_prior is the population prior"):
+    with pytest.raises(TypeError, match="class_prior"):
         model().fit(X, y, class_prior=0.4, os_or_ts="ts")
 
 

@@ -13,7 +13,7 @@ X_pos = rng.randn(n, 5) + 2.0
 X_neg = rng.randn(n, 5) - 2.0
 X = np.vstack([X_pos, X_neg])
 y_true = np.array([1] * n + [0] * n)
-class_prior = 0.5
+population_prior = 0.5
 
 # Label 40% of positives as +1, 40% of negatives as -1, rest unlabeled (0)
 y_pnu = np.zeros(2 * n, dtype=int)
@@ -23,7 +23,7 @@ y_pnu[n:][rng.rand(n) < 0.4] = -1  # labeled negative
 # -- Train and evaluate --
 # Equal labeling rates preserve the population mixture in U in expectation.
 # eta=0.5 combines PN and PU risks; eta=0 would ignore U in this linear fit.
-clf = PNUClassifier(class_prior=class_prior, eta=0.5, random_state=42)
+clf = PNUClassifier(population_prior=population_prior, eta=0.5, random_state=42)
 clf.fit(X, y_pnu)
 
 y_pred = clf.predict(X)

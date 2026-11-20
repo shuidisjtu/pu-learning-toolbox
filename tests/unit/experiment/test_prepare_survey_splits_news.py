@@ -70,6 +70,17 @@ class _Encoder:
 def test_basic_news_preserves_original_text_and_seven_ids(prep_script, tmp_path):
     _write(tmp_path)
     train, labels, test, test_labels = prep_script.load_twenty_newsgroups(tmp_path)
+    from pu_toolbox.preprocessing._dataset_text import _read_text_documents
+
+    config_path = Path(__file__).resolve().parents[3] / (
+        "pu_toolbox/preprocessing/source_configs/twenty_newsgroups.json"
+    )
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    raw_text, raw_labels = _read_text_documents(
+        tmp_path / "twenty_newsgroups", config["partitions"]["train"], config["options"]
+    )
+    assert raw_text.dtype == object and raw_text.tolist() == train
+    assert raw_labels.tolist() == [category for category in CATEGORIES for _ in range(2)]
     assert len(train) == len(test) == 40
     assert train[0] == "From: train/alt.atheism/10\r\n\r\n> quotedÿ\r\n footer \n"
     assert test[0].startswith("From: test/")

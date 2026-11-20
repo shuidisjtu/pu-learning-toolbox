@@ -17,6 +17,7 @@ from typing import Any
 
 import numpy as np
 
+from ..core.training_views import RUN_VIEWS
 from .bundle import DatasetPart, LabelView
 from .tracking import RunTrajectory, SelectionArtifact
 
@@ -63,7 +64,7 @@ class Trainer(ABC):
         X: np.ndarray,
         y: np.ndarray,
         *,
-        class_prior: float | None = None,
+        training_population_prior: float | None = None,
         val_pu: tuple[np.ndarray, np.ndarray] | None = None,
         os_or_ts: str | None = None,
     ) -> RunTrajectory: ...
@@ -80,6 +81,12 @@ def accepts_training_view(parameters: Mapping[str, Any]) -> bool:
     return "os_or_ts" in parameters or any(
         parameter.kind is inspect.Parameter.VAR_KEYWORD for parameter in parameters.values()
     )
+
+
+def validate_training_view_request(os_or_ts: str | None) -> None:
+    """Reject unknown views before they can be silently dropped by routing."""
+    if os_or_ts is not None and os_or_ts not in RUN_VIEWS:
+        raise ValueError(f"os_or_ts must be 'os', 'ts', or None; got {os_or_ts!r}.")
 
 
 def route_training_view(
@@ -112,6 +119,7 @@ def route_training_view(
     ``runner._select_kwargs``: a named parameter or an explicit ``**kwargs``,
     detected by signature inspection, never by catching ``TypeError``.
     """
+    validate_training_view_request(os_or_ts)
     if os_or_ts is None:
         return
     if os_or_ts == "ts":
@@ -129,11 +137,8 @@ def route_training_view(
 class SelectionProtocol(ABC):
     """Model-selection protocol: trajectories + its val view -> artifact.
 
-    ``class_prior`` is the population class prior pi (protocol §3.1), passed by
-    keyword.  A protocol whose criterion needs pi (PA) MUST fail loudly when it
-    is None; one whose criterion does not (OA) must ignore it, so every protocol
-    in the tree shares a single call shape.  Keyword-only and optional: this is
-    an addition to the interface, not a reordering of it.
+    PA takes ``validation_population_prior`` as a keyword. OA evaluates
+    validation labels directly.
     """
 
     @abstractmethod
@@ -143,5 +148,18 @@ class SelectionProtocol(ABC):
         val_part: DatasetPart,
         threshold_candidates: np.ndarray | None = None,
         *,
-        class_prior: float | None = None,
+        validation_population_prior: float | None = None,
     ) -> SelectionArtifact: ...
+
+
+def fit_prior_kwargs(parameters, **explicit_priors):
+    """Forward named prior arguments only when the estimator explicitly accepts them."""
+    unsupported = {
+        name
+        for name, value in explicit_priors.items()
+        if name == "class_prior"
+        or (value is not None and (name not in parameters or not name.endswith("_prior")))
+    }
+    if unsupported:
+        raise TypeError(f"estimator fit does not accept prior inputs: {sorted(unsupported)}")
+    return {name: value for name, value in explicit_priors.items() if value is not None}

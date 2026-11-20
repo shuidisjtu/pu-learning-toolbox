@@ -7,7 +7,6 @@ import runpy
 import subprocess
 import sys
 from pathlib import Path
-from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -41,7 +40,7 @@ def test_basic_param_scripts_run_with_default_arguments(example, tmp_path):
 def test_basic_upu_validation_uses_population_os_risk():
     demo = runpy.run_path(str(ROOT / "examples/minimal/02_upu.py"))
     expected_prior = (0.5 - demo["y_pu"].mean()) / (1 - demo["y_pu"].mean())
-    assert demo["clf"].class_prior_ == pytest.approx(expected_prior)
+    assert demo["clf"].risk_prior_ == pytest.approx(expected_prior)
     expected_risk = pu_zero_one_risk(
         demo["y_pu"], demo["clf"].decision_function(demo["X"]), 0.5, input_sampling="os"
     )
@@ -59,7 +58,7 @@ def test_basic_nnpu_consumes_native_unlabeled_prior():
     pytest.importorskip("torch")
     demo = runpy.run_path(str(ROOT / "examples/minimal/03_nnpu.py"))
     expected = (0.5 - demo["y_pu"].mean()) / (1 - demo["y_pu"].mean())
-    assert demo["clf"].class_prior_ == pytest.approx(expected)
+    assert demo["clf"].risk_prior_ == pytest.approx(expected)
     assert np.isfinite(demo["risk"])
 
 
@@ -73,7 +72,7 @@ def test_edge_self_pu_converts_only_training_label_mass(monkeypatch):
     def audited_fit(self, features, labels, **kwargs):
         model = original_fit(self, features, labels, **kwargs)
         expected = (0.3 - np.mean(labels == 1)) / (1 - np.mean(labels == 1))
-        observed.append((model.class_prior_, expected))
+        observed.append((model.risk_prior_, expected))
         return model
 
     monkeypatch.setattr(SelfPUClassifier, "fit", audited_fit)
@@ -124,8 +123,8 @@ def test_basic_joint_shift_uses_independent_population_pools(monkeypatch):
         assert np.all(truth[labels_drawn == 1] == 1)
         assert len(np.unique(metadata["sample_ids"])) == len(truth)
         assert (
-            kwargs["class_prior" if index == 0 else "target_class_prior"]
-            == metadata["population_class_prior"]
+            kwargs["source_domain_prior" if index == 0 else "target_domain_prior"]
+            == metadata["design_population_prior"]
         )
         np.testing.assert_array_equal(labels if index == 0 else kwargs["y_target_pu"], labels_drawn)
         np.testing.assert_array_equal(
@@ -133,34 +132,23 @@ def test_basic_joint_shift_uses_independent_population_pools(monkeypatch):
         )
 
 
-@pytest.mark.parametrize(
-    ("recommendation", "has_weighted", "use_weighted"),
-    [
-        ("reweight_recommended", True, True),
-        ("no_clear_benefit", True, False),
-        ("audit_only", True, False),
-        ("collect_target_data", False, False),
-    ],
-)
-def test_edge_shift_review_respects_comparison_decision(
-    monkeypatch, recommendation, has_weighted, use_weighted
-):
-    from pu_toolbox import diagnostics, workflows
+def test_basic_shift_review_uses_fitted_model_and_target_data(monkeypatch):
+    from pu_toolbox import diagnostics
 
-    baseline, weighted = object(), object()
-    comparison = SimpleNamespace(
-        recommendation=recommendation,
-        baseline=SimpleNamespace(final_model=baseline),
-        weighted=SimpleNamespace(final_model=weighted) if has_weighted else None,
-    )
-    monkeypatch.setattr(workflows.ShiftAwarePUPipeline, "compare", lambda *a, **kw: comparison)
-    observed = []
+    real_review = diagnostics.analyze_pu_uncertainty
+    calls = []
 
-    def record_review(model, *args, **kwargs):
-        observed.append(model)
-        return SimpleNamespace(summary={"coverage": 1.0}, query_indices=np.array([], dtype=int))
+    def record_review(model, features, **kwargs):
+        result = real_review(model, features, **kwargs)
+        calls.append((model, features, kwargs, result))
+        return result
 
     monkeypatch.setattr(diagnostics, "analyze_pu_uncertainty", record_review)
     demo = runpy.run_path(str(ROOT / "examples/minimal/12_shift_decision_tools.py"))
     demo["main"]()
-    assert observed == [weighted if use_weighted else baseline]
+    assert len(calls) == 1
+    model, features, kwargs, result = calls[0]
+    assert model.predict(features).shape == (len(features),)
+    assert len(kwargs["y_pu"]) == len(features) == len(kwargs["y_true"])
+    assert kwargs["query_budget"] == 10
+    assert len(result.query_indices) <= kwargs["query_budget"]

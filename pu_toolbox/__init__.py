@@ -1,8 +1,7 @@
 """PU Learning Toolbox -- Positive-Unlabeled Learning in Python."""
 
-__version__ = "1.11.0"
+__version__ = "2.0.0"
 
-from .advisor import ScoringConfig, recommend_from_profile, recommend_methods
 from .diagnostics import (
     DomainAssumptionReport,
     PUShiftMonitor,
@@ -45,17 +44,10 @@ from .estimators.risk.puet import PUExtraTreesClassifier
 from .estimators.risk.pulda import PULDAClassifier
 from .estimators.risk.upu import UPUClassifier
 from .estimators.risk.vpu import VPUClassifier
-from .preprocessing import make_sar_dataset, profile_pu_data
+from .preprocessing import profile_pu_data
 from .prior.kernel_mean import KernelMeanPriorEstimator
 from .prior.pen_l1 import ClassPriorEstimator
 from .prior.recpe import ReCPEEstimator
-from .workflows import (
-    PipelineReport,
-    PUPipeline,
-    ShiftAwarePipelineReport,
-    ShiftAwarePUPipeline,
-    ShiftComparisonReport,
-)
 
 __all__ = [
     "ClassPriorEstimator",
@@ -83,18 +75,12 @@ __all__ = [
     "PULDAClassifier",
     "PUSBClassifier",
     "PUSBKernelClassifier",
-    "PipelineReport",
-    "PUPipeline",
     "PUShiftReport",
     "PUShiftMonitor",
     "PUUncertaintyReport",
     "ReCPEEstimator",
     "RankPruningClassifier",
     "RobustPUClassifier",
-    "ScoringConfig",
-    "ShiftAwarePUPipeline",
-    "ShiftAwarePipelineReport",
-    "ShiftComparisonReport",
     "SelfPUClassifier",
     "SplitPUClassifier",
     "TEDnClassifier",
@@ -107,8 +93,5 @@ __all__ = [
     "analyze_pu_uncertainty",
     "build_diagnostic_report",
     "build_encoder",
-    "make_sar_dataset",
     "profile_pu_data",
-    "recommend_from_profile",
-    "recommend_methods",
 ]

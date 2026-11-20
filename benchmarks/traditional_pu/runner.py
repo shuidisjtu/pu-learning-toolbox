@@ -55,7 +55,6 @@ from pu_toolbox.metrics.classification import (
     pu_recall,
     pu_zero_one_risk,
 )
-from pu_toolbox.workflows._evaluation import extract_proba, extract_scores
 
 PROTOCOL = "traditional_pu_baseline"
 METRIC_COLUMNS = [
@@ -84,13 +83,13 @@ ESTIMATOR_FACTORY = {
         **params, random_state=seed
     ),
     "upu": lambda params, *, seed, prior, meta: UPUClassifier(
-        class_prior=prior, **params, random_state=seed
+        risk_prior=prior, **params, random_state=seed
     ),
     "nnpu": lambda params, *, seed, prior, meta: NonNegativePUClassifier(
-        class_prior=prior, **params, random_state=seed
+        risk_prior=prior, **params, random_state=seed
     ),
     "pnu": lambda params, *, seed, prior, meta: PNUClassifier(
-        class_prior=prior, **params, random_state=seed
+        population_prior=prior, **params, random_state=seed
     ),
     "ldce": lambda params, *, seed, prior, meta: LDCEClassifier(
         flip_probability=meta["real_h"], **params, random_state=seed
@@ -379,7 +378,14 @@ def _trial_body(row: dict, method_name: str, scenario_spec: dict, seed: int, con
     guard_fit_labels(y_fit, y_true)
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
-        estimator.fit(X, y_fit, class_prior=class_prior)
+        if method_name in ("ldce", "kldce"):
+            estimator.fit(X, y_fit, training_table_prior=class_prior)
+        elif method_name in ("nnpu", "upu", "elkan_noto", "pnu"):
+            estimator.fit(X, y_fit)
+        elif method_name == "llsvm":
+            estimator.fit(X, y_fit, calibration_prior=class_prior)
+        else:
+            raise ValueError(f"No fit prior contract for {method_name!r}")
     row["warning_count"] = int(len(caught))
     row.update(_extract_diagnostics(estimator, method_name))
     if getattr(estimator, "converged_", None) is not None and not estimator.converged_:
@@ -390,8 +396,8 @@ def _trial_body(row: dict, method_name: str, scenario_spec: dict, seed: int, con
     # degenerate — kept for diagnostics, excluded from promotion evidence.
     row["pred_positive_rate"] = positive_rate
     row["degenerate_prediction"] = bool(positive_rate in (0.0, 1.0))
-    scores = extract_scores(estimator, X)
-    proba = extract_proba(estimator, X)
+    scores = _extract_scores(estimator, X)
+    proba = _extract_proba(estimator, X)
     metrics: dict = {}
     for name in METRIC_COLUMNS:
         # Missing prerequisites are recorded as NaN + reason (contract §1):
@@ -441,8 +447,32 @@ def _trial_body(row: dict, method_name: str, scenario_spec: dict, seed: int, con
     return "success", "", metrics
 
 
+def _extract_scores(estimator, X) -> np.ndarray | None:
+    """Prefer decision scores for ranking metrics, with a probability fallback."""
+    if hasattr(estimator, "decision_function"):
+        try:
+            return np.asarray(estimator.decision_function(X), dtype=float)
+        except Exception:  # noqa: BLE001 - scores are best-effort
+            pass
+    return _extract_proba(estimator, X)
+
+
+def _extract_proba(estimator, X) -> np.ndarray | None:
+    """Use the positive column of predict_proba for calibration metrics."""
+    proba_fn = getattr(estimator, "predict_proba", None)
+    if proba_fn is None:
+        return None
+    try:
+        proba = np.asarray(proba_fn(X), dtype=float)
+        if proba.ndim == 2 and proba.shape[1] == 2:
+            return proba[:, 1]
+    except Exception:  # noqa: BLE001 - probability is best-effort
+        return None
+    return None
+
+
 def _metric_value(name, y_fit, pred, scores, y_true, proba, prior):
-    """Dispatch same metric family as workflows._evaluation.compute_metric."""
+    """Compute one benchmark metric from the trial predictions."""
     if name == "pu_zero_one_risk":
         # Use the estimator's native prediction threshold.  A continuous
         # score's numeric origin is estimator-specific and need not be zero.

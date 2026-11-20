@@ -31,7 +31,7 @@ alpha>0 时，现明确拒绝非零 Dropout、随机 RReLU 和带 dropout 的 RN
 | DOI | [10.1609/aaai.v37i6.25889](https://doi.org/10.1609/aaai.v37i6.25889) |
 | 原文 | [AAAI 论文及 PDF](https://ojs.aaai.org/index.php/AAAI/article/view/25889) |
 | 官方代码 | 截至 2026-10-19，AAAI 正式论文页只列 PDF，按标题/作者检索未确认作者仓库；`source_status=not_found` |
-| 类先验 | 目标函数不使用；`fit(class_prior=...)` 仅为统一接口兼容 |
+| 类先验 | 目标函数以 U 承担负例角色，拟合入口只接收算法实际使用的输入 |
 | 数据 | 可靠正样本 P 与未标记样本 U；不需要负类真值 |
 
 论文的泛化界在 SCAR 条件下推导；另在正样本选择偏差情形做了实验。注册表中的 SAR / `selection_biased` 对应该实验情形。

@@ -95,7 +95,7 @@ class PUDiagnosticReport:
     def to_dict(self) -> dict[str, Any]:
         """Return a strict JSON-serializable nested dictionary."""
         payload = {
-            "schema_version": "1.0",
+            "schema_version": "2.0",
             "data_profile": self.data_profile.to_dict(),
             "model": self.model,
             "metrics": {name: metric.to_dict() for name, metric in self.metrics.items()},
@@ -294,7 +294,7 @@ def _build_metrics(
     predictions: np.ndarray | None,
     scores: np.ndarray | None,
     y_true: np.ndarray | None,
-    class_prior: float | None,
+    evaluation_prior: float | None,
     input_sampling: str,
 ) -> dict[str, DiagnosticMetric]:
     no_predictions = "Predictions were not supplied."
@@ -321,19 +321,23 @@ def _build_metrics(
 
     if predictions is None:
         precision = risk = _unavailable(no_predictions)
-    elif class_prior is None:
+    elif evaluation_prior is None:
         precision = risk = _unavailable(no_prior)
     elif not has_labeled_positives or not has_unlabeled:
         reason = "Both labeled-positive and unlabeled groups are required."
         precision = risk = _unavailable(reason)
     else:
         precision = _metric(
-            pu_estimated_precision(y_pu, predictions, class_prior, input_sampling=input_sampling),
+            pu_estimated_precision(
+                y_pu, predictions, evaluation_prior, input_sampling=input_sampling
+            ),
             "class_prior_dependent",
         )
         signed_predictions = np.where(predictions == 1, 1.0, -1.0)
         risk = _metric(
-            pu_zero_one_risk(y_pu, signed_predictions, class_prior, input_sampling=input_sampling),
+            pu_zero_one_risk(
+                y_pu, signed_predictions, evaluation_prior, input_sampling=input_sampling
+            ),
             "class_prior_dependent",
         )
 
@@ -386,7 +390,7 @@ def build_diagnostic_report(
     y_pred: np.ndarray | None = None,
     scores: np.ndarray | None = None,
     y_true: np.ndarray | None = None,
-    class_prior: float | None = None,
+    evaluation_prior: float | None = None,
     input_sampling: str = "os",
     random_state: int | None = 42,
     profile: PUDataProfile | None = None,
@@ -403,7 +407,7 @@ def build_diagnostic_report(
     profiled on a flattened ``(n_samples, -1)`` view; estimator scoring
     still receives the raw ``X`` so deep vision encoders keep NCHW tensors.
     ``input_sampling`` selects the population evaluation pool: all rows for
-    OS, native U for independent TS. ``class_prior`` targets that population.
+    OS, native U for independent TS. ``evaluation_prior`` targets that population.
     """
     validate_input_sampling(input_sampling)
     if estimator is not None and (y_pred is not None or scores is not None):
@@ -421,7 +425,7 @@ def build_diagnostic_report(
             profile_X,
             y_pu,
             y_true=y_true,
-            class_prior=class_prior,
+            evaluation_prior=evaluation_prior,
             input_sampling=input_sampling,
             random_state=random_state,
             **profile_kwargs,
@@ -511,7 +515,7 @@ def build_diagnostic_report(
         predictions,
         score_values,
         audited_truth,
-        class_prior,
+        evaluation_prior,
         input_sampling,
     )
     model = {
@@ -522,7 +526,7 @@ def build_diagnostic_report(
     }
     provenance = {
         "n_samples": n_samples,
-        "class_prior_supplied": class_prior is not None,
+        "evaluation_prior_supplied": evaluation_prior is not None,
         "audited_truth_supplied": y_true is not None,
         "random_state": random_state,
         "profile_parameters": dict(profile_kwargs),

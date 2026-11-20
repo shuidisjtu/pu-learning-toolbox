@@ -73,7 +73,7 @@ def _objects(
     parameters = json.loads(json.dumps(parameters, allow_nan=False))
     if parameters.get("device") != "cpu":
         raise ValueError("this entry point requires explicit device=cpu; no GPU fallback")
-    if any(key in parameters for key in ("class_prior", "random_state", "encoder", "backbone")):
+    if parameters.keys() & {"risk_prior", "class_prior", "random_state", "encoder", "backbone"}:
         raise ValueError("prior/seed are artifact-bound; injected architectures are not admitted")
     required = (*_BUDGETS[method], "batch_size", "hidden_dim")
     if any(key not in parameters for key in required):
@@ -89,7 +89,7 @@ def _objects(
     if method == "self_pu":
         from pu_toolbox.estimators.deep.self_pu import SelfPUClassifier
 
-        model = SelfPUClassifier(class_prior=prior, random_state=seed, **parameters)
+        model = SelfPUClassifier(risk_prior=prior, random_state=seed, **parameters)
         model._validate_parameters(prior)
         adapter = SelfPUCleanSupportTrainer
     elif method == "lagam":
@@ -325,7 +325,8 @@ def execute(plan, output):
     )
     runner = ExperimentRunner(
         seed=plan["seed"],
-        class_prior=plan["population_prior"],
+        training_population_prior=plan["population_prior"],
+        validation_population_prior=plan["population_prior"],
         protocols=[ProtocolPACleanSupport(), ProtocolOA()] if checkpoints else [ProtocolOA()],
         manifest_path=str(directory / "manifest.json"),
         config={

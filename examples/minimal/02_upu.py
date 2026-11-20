@@ -24,7 +24,7 @@ y_pu[:n][labeled_mask] = 1
 # -- Train and evaluate --
 # The default risk uses native U; class_prior above describes the whole OS pool.
 native_prior = population_to_native_unlabeled(class_prior, float(y_pu.mean()), input_sampling="os")
-clf = UPUClassifier(class_prior=native_prior, loss="squared", fit_intercept=False, random_state=42)
+clf = UPUClassifier(risk_prior=native_prior, loss="squared", fit_intercept=False, random_state=42)
 clf.fit(X, y_pu)
 
 y_pred = clf.predict(X)

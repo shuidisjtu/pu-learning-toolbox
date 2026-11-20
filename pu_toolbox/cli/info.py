@@ -3,19 +3,15 @@
 from __future__ import annotations
 
 import argparse
+import inspect
 
 from ..core.base import BasePriorEstimator, BasePUClassifier
 from ..core.exceptions import RegistryError
-from ..registry.builtin_methods import register_all_builtin_methods
 from ..registry.registry import get_algorithm, list_algorithms
-from ..workflows.pipeline import _missing_required_params
 
 __all__ = ["build_info_parser", "run_list_methods", "run_list_priors"]
 
-# km1/km2 map to KernelMeanPriorEstimator variants in PUPipeline (not
-# registry aliases), so they are the only names listed explicitly here.
-# Registry names and aliases (recpe, pen_l1, cpe, ...) are collected by
-# run_list_priors, keeping the accepted set in sync with the registry.
+# km1/km2 describe KernelMeanPriorEstimator variants, not registry aliases.
 _PRIOR_NAMES = ("km1", "km2")
 
 
@@ -29,16 +25,16 @@ def build_info_parser(sub: argparse._SubParsersAction) -> None:
 
 def run_list_methods(args: argparse.Namespace) -> None:
     """Print a table of registered classifiers with auto-instantiability."""
-    register_all_builtin_methods()
-    rows: list[tuple[str, str, str, str, str, str, str, str]] = []
+    rows: list[tuple[str, str, str, str, str, str, str]] = []
     for meta in list_algorithms():
         cls = _resolve_class(meta.name)
         if cls is None or not issubclass(cls, BasePUClassifier):
             continue
-        # Canonical name plus its aliases (e.g. "ldce" for "centroid_pu"):
-        # all of them are accepted by --classifier, so list every one.
+        # List canonical names and aliases accepted by the registry.
         for name in (meta.name, *meta.aliases):
-            auto_inst = "yes" if not _missing_required_params(cls) else "no"
+            auto_inst = (
+                "yes" if not _requires_extra_params(cls, meta.required_prior_parameters) else "no"
+            )
             input_dims = ",".join(str(d) for d in sorted(meta.input_ndims))
             # Display order per design doc §4.2 (mlp before cnn) — sorted()
             # would render "cnn,mlp", contradicting the documented order.
@@ -51,8 +47,7 @@ def run_list_methods(args: argparse.Namespace) -> None:
                 (
                     name,
                     meta.family.value,
-                    "yes" if meta.requires_class_prior else "no",
-                    meta.implementation_status.value,
+                    ", ".join(meta.required_prior_parameters) or "-",
                     input_dims,
                     arch,
                     meta.label_semantics,
@@ -61,32 +56,31 @@ def run_list_methods(args: argparse.Namespace) -> None:
             )
     rows.sort(key=lambda row: row[0])
     if not rows:
-        # Defensive: no registered classifier (e.g. a future api_only-only
-        # registry) should print an empty table, not crash on max().
         print("No registered classifiers.")
         return
     # Dynamic Name width so long canonical names and aliases stay aligned.
     name_width = max(len(row[0]) for row in rows) + 2
+    prior_title = "Required prior inputs"
+    prior_width = max(len(prior_title), *(len(row[2]) for row in rows)) + 2
     print(
-        f"{'Name':<{name_width}}{'Family':<22}{'Prior':<6}{'Status':<8}"
+        f"{'Name':<{name_width}}{'Family':<22}{prior_title:<{prior_width}}"
         f"{'Input':<7}{'Arch':<11}{'Labels':<8}{'Auto-inst':<10}"
     )
-    print("-" * (name_width + 72))
-    for name, family, prior, status, input_dims, arch, labels, auto in rows:
+    print("-" * (name_width + prior_width + 58))
+    for name, family, prior, input_dims, arch, labels, auto in rows:
         print(
-            f"{name:<{name_width}}{family:<22}{prior:<6}{status:<8}"
+            f"{name:<{name_width}}{family:<22}{prior:<{prior_width}}"
             f"{input_dims:<7}{arch:<11}{labels:<8}{auto:<10}"
         )
 
 
 def run_list_priors(args: argparse.Namespace) -> None:
-    """Print the class-prior estimators accepted by ``--prior-estimator``.
+    """Print registered prior estimators and kernel-mean variants.
 
     Each line shows one estimator: the canonical name followed by its
     aliases (e.g. ``class_prior_estimation (aliases: cpe, pe [deprecated], pen_l1)``)
     so users can tell estimators apart instead of seeing 8 flat names.
     """
-    register_all_builtin_methods()
     entries: dict[str, list[str]] = {name: [] for name in _PRIOR_NAMES}
     for meta in list_algorithms():
         cls = _resolve_class(meta.name)
@@ -96,13 +90,23 @@ def run_list_priors(args: argparse.Namespace) -> None:
             f"{alias} [deprecated]" if alias in meta.deprecated_aliases else alias
             for alias in meta.aliases
         ]
-    print("Pass one of these to --prior-estimator ('none' disables estimation):")
+    print("Registered prior estimators and KernelMeanPriorEstimator variants (km1, km2):")
     for name in sorted(entries):
         aliases = entries[name]
         if aliases:
             print(f"  {name} (aliases: {', '.join(aliases)})")
         else:
             print(f"  {name}")
+
+
+def _requires_extra_params(cls: type, prior_parameters: tuple[str, ...] = ()) -> bool:
+    """Whether a constructor requires settings beyond a prior and random seed."""
+    return any(
+        name not in {"self", "random_state", *prior_parameters}
+        and param.kind not in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
+        and param.default is inspect.Parameter.empty
+        for name, param in inspect.signature(cls.__init__).parameters.items()
+    )
 
 
 def _resolve_class(name: str) -> type | None:

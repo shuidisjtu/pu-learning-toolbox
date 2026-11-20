@@ -31,7 +31,7 @@ from sklearn.metrics import (
 
 from pu_toolbox.estimators.bias_aware import LBEClassifier, PUSBClassifier
 from pu_toolbox.estimators.risk import DistPUClassifier
-from pu_toolbox.preprocessing import make_sar_dataset
+from pu_toolbox.preprocessing import GaussianSourceConfig, PULabelingConfig, simulate_pu_dataset
 from pu_toolbox.prior import ClassPriorEstimator, ReCPEEstimator
 
 from .._common import canonical_hash, git_worktree_dirty
@@ -113,32 +113,38 @@ def _sar_data(
     np.ndarray,
     np.ndarray,
 ]:
-    common = {
-        "n_features": int(data["n_features"]),
-        "class_prior": float(data["class_prior"]),
-        "separation": float(data["separation"]),
-        "mechanism": mechanism,
-        "label_frequency": float(data["label_frequency"]),
-        "strength": float(data["sar_strength"]),
-    }
-    X_train, y_pu, y_train, propensity_train = make_sar_dataset(
-        n_samples=int(data["n_train"]),
-        random_state=seed,
-        **common,
-    )
-    X_test, _, y_test, propensity_test = make_sar_dataset(
-        n_samples=int(data["n_test"]),
-        random_state=seed + 1_000_003,
-        **common,
-    )
+    def draw(n_samples: int, seed: int):
+        # Keep generation and marking on the historical single stream per partition.
+        rng = np.random.RandomState(seed)
+        return simulate_pu_dataset(
+            GaussianSourceConfig(
+                n_samples,
+                int(data["n_features"]),
+                float(data["class_prior"]),
+                float(data["separation"]),
+                rng,
+            ),
+            PULabelingConfig(
+                "scar" if mechanism == "scar" else "sar",
+                "bernoulli",
+                rng,
+                c=float(data["label_frequency"]),
+                propensity_rule=None if mechanism == "scar" else mechanism,
+                strength=1.0 if mechanism == "scar" else float(data["sar_strength"]),
+                ensure_labeled=True,
+            ),
+        )
+
+    train = draw(int(data["n_train"]), seed)
+    test = draw(int(data["n_test"]), seed + 1_000_003)
     return (
-        X_train,
-        y_pu,
-        y_train,
-        X_test,
-        y_test,
-        propensity_train,
-        propensity_test,
+        train.observations.features,
+        train.observations.labels,
+        train.audit.true_labels,
+        test.observations.features,
+        test.audit.true_labels,
+        train.audit.propensity,
+        test.audit.propensity,
     )
 
 
@@ -208,7 +214,7 @@ def _run_classifier(
 ) -> dict[str, float]:
     if method == "dist_pu":
         estimator = DistPUClassifier(
-            class_prior=true_prior,
+            distribution_prior=true_prior,
             random_state=seed,
             **parameters,
         )
@@ -219,7 +225,7 @@ def _run_classifier(
         estimator = LBEClassifier(**parameters).fit(
             X_train,
             y_pu,
-            class_prior=true_prior,
+            initial_unlabeled_prior=true_prior,
         )
 
     scores = np.asarray(estimator.predict_proba(X_test)[:, 1], dtype=float)

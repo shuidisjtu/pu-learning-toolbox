@@ -194,7 +194,7 @@ def test_basic_cli_read_only_plan_does_not_fit_or_create_artifacts(tmp_path, cap
             str(directory),
             "--dataset",
             "synthetic",
-            "--class-prior",
+            "--population-prior",
             "0.5",
             "--prior-source",
             "generator",

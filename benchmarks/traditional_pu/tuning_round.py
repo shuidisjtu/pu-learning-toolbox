@@ -34,7 +34,14 @@ _ESTIMATOR_CLASSES = {
     "elkan_noto": ElkanNotoClassifier,
     "pnu": PNUClassifier,
 }
-_RUNNER_INJECTED = {"flip_probability", "random_state", "class_prior"}
+_RUNNER_INJECTED = {
+    "flip_probability",
+    "random_state",
+    "class_prior",
+    "risk_prior",
+    "population_prior",
+    "calibration_prior",
+}
 # Constructor params that a JSON config cannot meaningfully tune: torch
 # module/optimizer objects, the device string, and the Elkan-Noto base
 # estimator instance (plan §4: optimizer/lr stay outside the round-1

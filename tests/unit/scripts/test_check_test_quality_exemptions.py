@@ -134,14 +134,23 @@ def test_deterministic_list_printout_with_reasons(tmp_path, capsys):
     assert "test_import.py — smoke imports" in out
 
 
+@pytest.fixture
+def partial_case(monkeypatch):
+    monkeypatch.setattr(
+        gate,
+        "PARTIAL_COVERAGE",
+        {"test_partial.py": {"param": "no input validation path", "determ": "no RNG"}},
+    )
+
+
 @pytest.mark.unit
-def test_basic_partial_coverage_deducts_declared_categories(tmp_path):
+def test_basic_partial_coverage_deducts_declared_categories(tmp_path, partial_case):
     """Declared PARTIAL_COVERAGE categories are deducted from the missing set."""
-    # test_history.py declares param + determ, so a basic+edge-only report
+    # test_partial.py declares param + determ, so a basic+edge-only report
     # must have an empty effective missing set.
     report = _exempt_report(
         tmp_path,
-        "test_history.py",
+        "test_partial.py",
         ["test_basic_fit", "test_edge_empty"],
     )
     assert report.categories_missing == {"param", "determ"}
@@ -149,21 +158,21 @@ def test_basic_partial_coverage_deducts_declared_categories(tmp_path):
 
 
 @pytest.mark.unit
-def test_param_partial_coverage_printout_with_reasons(capsys):
+def test_param_partial_coverage_printout_with_reasons(capsys, partial_case):
     """Every run prints PARTIAL_COVERAGE with file, category, and reason."""
     review_exemptions([])
     out = capsys.readouterr().out
     assert "PARTIAL_COVERAGE (declared missing categories with reasons)" in out
-    assert "test_history.py [param]" in out
+    assert "test_partial.py [param]" in out
     assert "no input validation path" in out
 
 
 @pytest.mark.unit
-def test_edge_declared_category_now_covered_hints_removal(tmp_path, capsys):
+def test_edge_declared_category_now_covered_hints_removal(tmp_path, capsys, partial_case):
     """A declared category that is now covered is flagged as removable."""
     report = _exempt_report(
         tmp_path,
-        "test_history.py",
+        "test_partial.py",
         ["test_basic_fit", "test_edge_empty", "test_param_invalid"],
     )
     stale = review_exemptions([report])

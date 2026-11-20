@@ -18,7 +18,7 @@ from pu_toolbox.core.validation import check_scalar_in_range
 from pu_toolbox.metrics import pu_estimated_precision, pu_zero_one_risk
 from pu_toolbox.utils.serialization import format_from_suffix, format_value
 
-SensitivityAxis = Literal["class_prior", "label_propensity"]
+SensitivityAxis = Literal["population_prior", "label_propensity"]
 
 __all__ = [
     "PUSensitivityAnalysis",
@@ -34,7 +34,7 @@ class SensitivityPoint:
 
     axis: SensitivityAxis
     value: float
-    class_prior: float
+    population_prior: float
     label_propensity: float
     is_consistent: bool
     consistency_reason: str | None
@@ -46,7 +46,7 @@ class SensitivityPoint:
         return {
             "axis": self.axis,
             "value": self.value,
-            "class_prior": self.class_prior,
+            "population_prior": self.population_prior,
             "label_propensity": self.label_propensity,
             "is_consistent": self.is_consistent,
             "consistency_reason": self.consistency_reason,
@@ -71,20 +71,20 @@ class PUSensitivityAnalysis:
 
     def to_frame(self, *, axis: SensitivityAxis | None = None) -> pd.DataFrame:
         """Return all rows, or one axis, as an independent DataFrame."""
-        if axis not in {None, "class_prior", "label_propensity"}:
-            raise ValueError("axis must be 'class_prior', 'label_propensity', or None.")
+        if axis not in {None, "population_prior", "label_propensity"}:
+            raise ValueError("axis must be 'population_prior', 'label_propensity', or None.")
         rows = [point.to_dict() for point in self.points if axis is None or point.axis == axis]
         return pd.DataFrame(rows, columns=_POINT_COLUMNS)
 
     def to_dict(self) -> dict[str, Any]:
         """Return a strict JSON-serializable representation."""
         return {
-            "schema_version": "1.0",
+            "schema_version": "2.0",
             "analysis_type": "fixed_output_assumption_sensitivity",
             "observed_label_rate": self.observed_label_rate,
             "feasible_region": {
-                "class_prior_lower_bound": self.observed_label_rate,
-                "class_prior_upper_bound_exclusive": 1.0,
+                "population_prior_lower_bound": self.observed_label_rate,
+                "population_prior_upper_bound_exclusive": 1.0,
                 "mean_label_propensity_lower_bound": self.observed_label_rate,
                 "mean_label_propensity_upper_bound": 1.0,
             },
@@ -109,7 +109,7 @@ class PUSensitivityAnalysis:
             "",
             f"- Observed labeled-positive rate: `{self.observed_label_rate:.6f}`",
             "- Analysis mode: `fixed_output_assumption_sensitivity`",
-            "- Identity audited: `P(S=1) = class_prior * mean_label_propensity`",
+            "- Identity audited: `P(S=1) = population_prior * mean_label_propensity`",
             "",
             "| Axis | Assumed value | Class prior | Mean propensity | Consistent | "
             "Estimated precision | PU zero-one risk | Note |",
@@ -118,7 +118,7 @@ class PUSensitivityAnalysis:
         for point in self.points:
             lines.append(
                 f"| `{point.axis}` | {point.value:.6f} | "
-                f"{point.class_prior:.6f} | {point.label_propensity:.6f} | "
+                f"{point.population_prior:.6f} | {point.label_propensity:.6f} | "
                 f"`{point.is_consistent}` | "
                 f"{format_value(point.pu_estimated_precision)} | "
                 f"{format_value(point.pu_zero_one_risk)} | "
@@ -160,7 +160,7 @@ class PUSensitivityAnalysis:
 _POINT_COLUMNS = [
     "axis",
     "value",
-    "class_prior",
+    "population_prior",
     "label_propensity",
     "is_consistent",
     "consistency_reason",
@@ -202,15 +202,15 @@ def _metrics_for_prior(
     y_pu: np.ndarray,
     y_pred: np.ndarray,
     risk_scores: np.ndarray,
-    class_prior: float,
+    population_prior: float,
 ) -> tuple[float | None, float | None]:
     try:
-        check_scalar_in_range(class_prior, 0.0, 1.0, "class_prior", inclusive=False)
+        check_scalar_in_range(population_prior, 0.0, 1.0, "population_prior", inclusive=False)
     except ValueError:
         return None, None
     return (
-        pu_estimated_precision(y_pu, y_pred, class_prior, input_sampling="os"),
-        pu_zero_one_risk(y_pu, risk_scores, class_prior, input_sampling="os"),
+        pu_estimated_precision(y_pu, y_pred, population_prior, input_sampling="os"),
+        pu_zero_one_risk(y_pu, risk_scores, population_prior, input_sampling="os"),
     )
 
 
@@ -218,7 +218,7 @@ def _build_metric_ranges(
     points: tuple[SensitivityPoint, ...],
 ) -> dict[str, dict[str, dict[str, float | int | None]]]:
     result: dict[str, dict[str, dict[str, float | int | None]]] = {}
-    for axis in ("class_prior", "label_propensity"):
+    for axis in ("population_prior", "label_propensity"):
         axis_points = [point for point in points if point.axis == axis and point.is_consistent]
         result[axis] = {}
         for metric_name in ("pu_estimated_precision", "pu_zero_one_risk"):
@@ -238,7 +238,7 @@ def analyze_pu_sensitivity(
     y_pu: np.ndarray,
     y_pred: np.ndarray,
     *,
-    class_priors: Iterable[float] | None = None,
+    population_priors: Iterable[float] | None = None,
     label_propensities: Iterable[float] | None = None,
     scores: np.ndarray | None = None,
 ) -> PUSensitivityAnalysis:
@@ -248,14 +248,14 @@ def analyze_pu_sensitivity(
     positive-labeling propensity, and evaluates risk over the full input pool.
     Model outputs stay fixed while the supplied assumptions vary.
     """
-    priors = _validate_grid(class_priors, name="class_priors", include_one=False)
+    priors = _validate_grid(population_priors, name="population_priors", include_one=False)
     propensities = _validate_grid(
         label_propensities,
         name="label_propensities",
         include_one=True,
     )
     if not priors and not propensities:
-        raise ValueError("Supply class_priors, label_propensities, or both.")
+        raise ValueError("Supply population_priors, label_propensities, or both.")
 
     canonical_y = normalize_pu_labels(np.asarray(y_pu))
     predictions = np.asarray(y_pred)
@@ -286,16 +286,18 @@ def analyze_pu_sensitivity(
     observed_rate = float(np.mean(canonical_y == 1))
     tolerance = np.finfo(float).eps * 8
     points: list[SensitivityPoint] = []
-    for class_prior in priors:
-        implied_propensity = observed_rate / class_prior
+    for population_prior in priors:
+        implied_propensity = observed_rate / population_prior
         consistent = bool(implied_propensity <= 1.0 + tolerance)
         reason = None if consistent else "Implied mean propensity exceeds 1."
-        precision, risk = _metrics_for_prior(canonical_y, predictions, risk_scores, class_prior)
+        precision, risk = _metrics_for_prior(
+            canonical_y, predictions, risk_scores, population_prior
+        )
         points.append(
             SensitivityPoint(
-                axis="class_prior",
-                value=class_prior,
-                class_prior=class_prior,
+                axis="population_prior",
+                value=population_prior,
+                population_prior=population_prior,
                 label_propensity=implied_propensity,
                 is_consistent=consistent,
                 consistency_reason=reason,
@@ -313,7 +315,7 @@ def analyze_pu_sensitivity(
             SensitivityPoint(
                 axis="label_propensity",
                 value=propensity,
-                class_prior=implied_prior,
+                population_prior=implied_prior,
                 label_propensity=propensity,
                 is_consistent=consistent,
                 consistency_reason=reason,
@@ -329,7 +331,7 @@ def analyze_pu_sensitivity(
         "n_labeled_positive": int(np.sum(canonical_y == 1)),
         "n_unlabeled": int(np.sum(canonical_y == 0)),
         "score_source": score_source,
-        "class_prior_grid_size": len(priors),
+        "population_prior_grid_size": len(priors),
         "label_propensity_grid_size": len(propensities),
         "model_refit": False,
     }

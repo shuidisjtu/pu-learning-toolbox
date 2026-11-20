@@ -62,7 +62,7 @@ def _args(data, out):
         "spambase",
         "--method",
         "upu",
-        "--class-prior",
+        "--population-prior",
         "0.3",
         "--c",
         "0.5",
@@ -83,6 +83,10 @@ def test_basic_versioned_cli_records_protocol_and_actual_budget(survey_script, t
     assert payload["code_identity"]["code_commit_state"] in {"recorded", "unavailable"}
     assert payload["dependency_lock"]["state"] == "recorded"
     assert len(payload["dependency_lock"]["sha256"]) == 64
+    assert payload["estimator_parameters"]["risk_prior"] is None
+    risk, pa = payload["research_settings"]["prior"]
+    assert risk["source"] == "runner.training_population_prior"
+    assert pa["source"] == "runner.validation_population_prior"
 
 
 @pytest.mark.parametrize("batch", [None, {"batch_id": "b" * 64}])

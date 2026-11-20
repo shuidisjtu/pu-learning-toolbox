@@ -26,6 +26,20 @@
 
 ## 命令
 
+### 当前锁定配置
+
+[v7](configs/seven_methods_pu_baseline_v7.json) 使用当前源码的默认参数，Elkan–Noto 以
+`internal_cv_folds: 3` 执行分层倾向估计。沿用 v6 的网格和种子，新运行写入独立的 `baseline_v7` 目录。
+
+```bash
+uv run python -m benchmarks.traditional_pu.run \
+  --config benchmarks/traditional_pu/configs/seven_methods_pu_baseline_v7.json \
+  --seed-set confirmation \
+  --results-dir benchmarks/traditional_pu/results/baseline_v7
+```
+
+### 历史运行命令
+
 开发期（5 seeds 0..4，用于协议修复与验证）：
 
 ```bash
@@ -44,7 +58,7 @@ uv run python -m benchmarks.traditional_pu.run \
   --results-dir benchmarks/traditional_pu/results/confirmation_v1
 ```
 
-当前工具箱基线（v2，显式锁定默认参数，契约 §5 演进记录——契约 v1 口径历史快照，勿在当前源码下重跑）：
+历史基线（v2，显式锁定默认参数，契约 §5 演进记录——契约 v1 口径历史快照，勿在当前源码下重跑）：
 
 ```bash
 uv run python -m benchmarks.traditional_pu.run \
@@ -53,7 +67,7 @@ uv run python -m benchmarks.traditional_pu.run \
   --results-dir benchmarks/traditional_pu/results/baseline_v2
 ```
 
-当前工具箱基线（v3，契约 v2 口径：`pu_zero_one_risk` 跟随各分类器原生 `predict()`
+历史基线（v3，契约 v2 口径：`pu_zero_one_risk` 跟随各分类器原生 `predict()`
 阈值，修复 elkan_noto 概率尺度与零阈值不相容的 risk ≡ 1−π 失真，def1544）：
 
 ```bash

@@ -1,7 +1,7 @@
 """Paper Algorithm 1 BBE, explicitly estimating the positive fraction in U.
 
 This module is deliberately not a BasePriorEstimator or registry entry: its
-target is alpha_U, not the population pi consumed by the OS PU pipeline.
+target is alpha_U in the independent TS unlabeled sample.
 The scoring model must not have trained on the samples used to count tails.
 """
 
@@ -141,6 +141,9 @@ class BBEMixtureEstimator(BaseEstimator):
         Controls within-role holdout split and the default classifier.
     """
 
+    estimate_target = "native_unlabeled"
+    estimation_pool = "heldout_pu"
+
     def __init__(
         self,
         *,
@@ -237,7 +240,8 @@ class BBEMixtureEstimator(BaseEstimator):
         self.holdout_indices_ = holdout_indices
         self.result_ = result
         self.provenance_ = {
-            "target": "unlabeled_positive_fraction_alpha_U",
+            "estimate_target": self.estimate_target,
+            "estimation_pool": self.estimation_pool,
             "input_sampling": "ts",
             "sampling_design_verified": False,
             "split_policy": "within_observed_role_random_holdout_ceil",
@@ -256,7 +260,7 @@ class BBEMixtureEstimator(BaseEstimator):
         return self
 
     def estimate_unlabeled_prior(self) -> float:
-        """Return alpha_U, deliberately not the OS pipeline's estimate() API."""
+        """Return the positive mixture proportion alpha_U in the TS unlabeled sample."""
         if not hasattr(self, "result_"):
             raise NotFittedError("BBEMixtureEstimator is not fitted. Call fit() first.")
         return self.result_.alpha_u

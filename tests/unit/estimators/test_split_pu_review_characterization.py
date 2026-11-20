@@ -52,14 +52,14 @@ def test_basic_determ_teacher_batch_union_does_not_restore_population_mixture(
     def capture_risk(*args, **kwargs):
         p_ids, u_ids = score_inputs[-2:]
         assert np.all(p_ids < 8) and np.all(u_ids >= 8)
-        assert kwargs["class_prior"] == 0.4
+        assert kwargs["risk_prior"] == 0.4
         batches.append((p_ids.copy(), u_ids.copy()))
         return risk(*args, **kwargs)
 
     monkeypatch.setattr(module, "_score", capture_score)
     monkeypatch.setattr(module, "_nnpu_train_step", capture_risk)
     estimator = SplitPUClassifier(
-        class_prior=0.4,
+        risk_prior=0.4,
         hidden_dim=4,
         teacher_epochs=1,
         split_epochs=1,

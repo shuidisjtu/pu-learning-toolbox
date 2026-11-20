@@ -59,13 +59,13 @@ def test_basic_determ_native_fit_parity_student_snapshots_and_actual_cost(
     original_pixels, original_labels = pixels.copy(), labels.copy()
     plain = copy.deepcopy(model).fit(pixels, labels, os_or_ts="os")
     trajectory = trainer(record, tmp_path).fit(
-        model, pixels, labels, class_prior=0.4, os_or_ts="os"
+        model, pixels, labels, training_population_prior=0.4, os_or_ts="os"
     )
     facts = model.training_provenance_
     receipt = facts["bound_fit_receipt"]
     assert receipt["training_view"] == "os" and not receipt["calibration_applied"]
     assert receipt["student_only_inference"] and not receipt["backbone_is_paper_architecture"]
-    assert facts["selection_prior_not_forwarded_to_P3Mix"] and model._class_prior is None
+    assert facts["selection_prior_not_forwarded_to_P3Mix"] and model._prior_consumptions_ == ()
     assert not facts["external_validation_forwarded_to_fit"]
     assert not facts["teacher_selection_eligible"]
     assert [c.epoch_label for c in trajectory.checkpoints] == [1, 2]

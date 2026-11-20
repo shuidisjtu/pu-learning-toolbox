@@ -8,8 +8,7 @@ Rules:
    literal is checked too, not only one inside a comment or docstring.
 2. **(planned) consistency** -- ``project_structure.md`` tree must match
    actual file existence.
-3. **Architecture S8 mapping** -- ``architecture.md`` S8 table must agree
-   with registry NATIVE methods.
+3. **Architecture mapping** -- built-in estimator modules cannot be marked planned.
 4. **Index completeness** -- ``docs/README.md`` must list all doc files
    (whole docs tree; directory entries cover their subtree);
    ``scripts/`` must be mentioned in README/CLAUDE.md.
@@ -25,6 +24,7 @@ Exit 0 when all checks pass, 1 otherwise.
 
 from __future__ import annotations
 
+import ast
 import re
 import sys
 from pathlib import Path
@@ -40,8 +40,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DOCS_DIR = PROJECT_ROOT / "docs"
 SCRIPTS_DIR = PROJECT_ROOT / "scripts"
 
-# Registry of NATIVE methods, the source rule-3 maps architecture.md S8
-# against.  Module-level so tests can point it at a scratch copy.
+# Built-in catalog source, overridable by the rule-3 tests.
 REGISTRY_FILE = PROJECT_ROOT / "pu_toolbox" / "registry" / "builtin_methods.py"
 
 # Roots whose tree blocks generate_structure.py manages; Rule 2 delegates
@@ -369,16 +368,12 @@ def check_planned_consistency(structure_md: Path) -> list[Issue]:
 
 
 def check_architecture_mapping(arch_md: Path) -> list[Issue]:
-    """Rule 3: architecture.md S8 (planned) tags vs registry NATIVE methods.
-
-    Extracts NATIVE module paths from ``builtin_methods.py``, then checks
-    that architecture.md S8 does NOT mark them as (planned).
-    """
+    """Check that the architecture index does not mark registered methods as planned."""
     if not arch_md.exists():
         return [Issue("rule-3", _relative(arch_md), None, "architecture.md not found", "error")]
 
-    native_paths = _get_native_module_paths()
-    if not native_paths:
+    builtin_paths = _get_builtin_module_paths()
+    if not builtin_paths:
         # A missing registry file or a renamed extraction marker returns an
         # empty set; that is a broken rule, not a clean repository, so it
         # must fail rather than downgrade to a warning the verdict ignores.
@@ -387,73 +382,75 @@ def check_architecture_mapping(arch_md: Path) -> list[Issue]:
                 "rule-3",
                 _relative(arch_md),
                 None,
-                "could not extract NATIVE paths from builtin_methods.py "
-                "(registry file or `_native_imports` marker missing)",
+                "could not extract estimator paths from the `_BUILTIN` catalog",
                 "error",
             )
         ]
 
     text = arch_md.read_text(encoding="utf-8")
-    table_entries = _parse_arch_section8_table(text)
+    table_entries = _parse_architecture_index(text)
     issues: list[Issue] = []
 
-    for native_path in native_paths:
-        if native_path in table_entries and table_entries[native_path]:
+    for path in sorted(builtin_paths):
+        if path in table_entries and table_entries[path]:
             issues.append(
                 Issue(
                     "rule-3",
                     _relative(arch_md),
-                    table_entries[native_path],
-                    f"`{native_path}` is NATIVE in registry but marked "
-                    f"`(planned)` in architecture.md S8",
+                    table_entries[path],
+                    f"`{path}` is registered but marked `(planned)` in architecture.md",
                     "error",
                 )
             )
     return issues
 
 
-def _get_native_module_paths() -> set[str]:
-    """Extract NATIVE module file paths from builtin_methods.py via regex.
-
-    Looks for the ``_native_imports`` list and converts relative import
-    paths (e.g. ``..estimators.classic.elkan_noto``) to file paths
-    relative to ``pu_toolbox/`` (e.g. ``estimators/classic/elkan_noto.py``).
-
-    An empty return means *extraction failed* (no registry file, no
-    marker, no entries); callers treat it as a rule error, never as "this
-    repository has no native methods".
-    """
-    if not REGISTRY_FILE.exists():
+def _get_builtin_module_paths() -> set[str]:
+    """Read the catalog's (module, class) keys without importing the package."""
+    try:
+        tree = ast.parse(REGISTRY_FILE.read_text(encoding="utf-8"))
+    except (OSError, SyntaxError):
         return set()
 
-    text = REGISTRY_FILE.read_text(encoding="utf-8")
-    start = text.find("_native_imports")
-    if start == -1:
+    catalog = next(
+        (
+            item.value
+            for item in tree.body
+            if isinstance(item, ast.AnnAssign)
+            and isinstance(item.target, ast.Name)
+            and item.target.id == "_BUILTIN"
+        ),
+        None,
+    )
+    if not isinstance(catalog, ast.Dict):
         return set()
-
-    # Match tuples like ("name", "..estimators.classic.elkan_noto", "Class")
-    block = text[start:]
-    pattern = re.compile(r'\(\s*"[^"]+"\s*,\s*"([^"]+)"\s*,\s*"[^"]+"\s*\)')
 
     paths: set[str] = set()
-    for m in pattern.finditer(block):
-        mod = m.group(1)  # e.g. "..estimators.classic.elkan_noto"
-        # Strip leading dots, convert dots to slashes, append .py
-        paths.add(mod.lstrip(".").replace(".", "/") + ".py")
+    for key in catalog.keys:
+        if not isinstance(key, ast.Tuple) or len(key.elts) != 2:
+            return set()
+        module, cls = key.elts
+        if not (
+            isinstance(module, ast.Constant)
+            and isinstance(module.value, str)
+            and isinstance(cls, ast.Constant)
+            and isinstance(cls.value, str)
+        ):
+            return set()
+        paths.add(module.value.lstrip(".").replace(".", "/") + ".py")
     return paths
 
 
-def _parse_arch_section8_table(text: str) -> dict[str, int | None]:
-    """Parse architecture.md S8 table.
-
-    Returns ``{file_path: line_number_if_planned_or_None}``.
-    Paths are relative to ``pu_toolbox/`` to match ``_get_native_module_paths``.
-    """
-    section_start = text.find("## 8. 论文方法到模块的映射")
-    if section_start == -1:
+def _parse_architecture_index(text: str) -> dict[str, int | None]:
+    """Map paths in the implementation index to their planned-marker line."""
+    heading = re.search(
+        r"^## (?:6\. Paper-to-implementation index|8\. 论文方法到模块的映射)$", text, re.M
+    )
+    if heading is None:
         return {}
 
-    next_section = text.find("\n## 9.", section_start)
+    section_start = heading.start()
+    next_section = text.find("\n## ", heading.end())
     section_text = text[section_start:next_section] if next_section != -1 else text[section_start:]
     base_line = text[:section_start].count("\n") + 1
 
@@ -591,7 +588,7 @@ def main() -> int:
 
     issues = check_architecture_mapping(DOCS_DIR / "dev" / "architecture.md")
     all_issues.extend(issues)
-    _print_rule_report("Rule 3: Architecture S8 mapping", issues)
+    _print_rule_report("Rule 3: Architecture mapping", issues)
 
     docs_readme = DOCS_DIR / "README.md"
     root_readme = PROJECT_ROOT / "README.md"

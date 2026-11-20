@@ -14,17 +14,17 @@
 
 | 概念 | 权威真相源 | 消费者 | 兼容入口 | 判据 |
 |---|---|---|---|---|
-| 标签语义 | `pu_toolbox/core/labels.py:92` `normalize_pu_labels` / `:145` `normalize_pnu_labels`；字面值在 `pu_toolbox/core/config.py:8`-`:10` | `core/validation.py`（`validate_pu_X_y` / `validate_pnu_X_y` 的前置归一）、`metrics/classification.py`、`preprocessing/`、`model_selection/split.py`、`diagnostics/`、`workflows/shift.py`、`estimators/deep/self_pu.py`、`estimators/risk/nnpu.py`、`estimators/risk/vpu.py` | 无 | 单一 |
-| 设备 | `pu_toolbox/core/device.py:11` `resolve_device_name` / `:29` `resolve_device` | 14 个 torch 估计器（`estimators/deep/*`、`estimators/risk/{dist_pu,nnpu,pulda,vpu}.py`、`estimators/research/*`）、`workflows/pipeline.py:431`、`workflows/_reporting.py:91` | 无 | 单一 |
+| 标签语义 | `pu_toolbox/core/labels.py:92` `normalize_pu_labels` / `:145` `normalize_pnu_labels`；字面值在 `pu_toolbox/core/config.py:8`-`:10` | `core/validation.py`（`validate_pu_X_y` / `validate_pnu_X_y` 的前置归一）、`metrics/classification.py`、`preprocessing/`、`model_selection/split.py`、`diagnostics/`、`estimators/deep/self_pu.py`、`estimators/risk/nnpu.py`、`estimators/risk/vpu.py` | 无 | 单一 |
+| 设备 | `pu_toolbox/core/device.py:11` `resolve_device_name` / `:29` `resolve_device` | 14 个 torch 估计器（`estimators/deep/*`、`estimators/risk/{dist_pu,nnpu,pulda,vpu}.py`、`estimators/research/*`） | 无 | 单一 |
 | 随机源 | `pu_toolbox/core/random.py:8` `check_random_state` | `experiment/strategies.py`、`preprocessing/pu_labeling.py`、`preprocessing/selection_bias.py` | 无 | 重复（不可合并，理由：见说明） |
-| JSON 安全转换 | `pu_toolbox/utils/serialization.py:92` `json_safe`（宽容，报告载荷）与 `:107` `json_scalars`（严格，清单载荷）——**两者不是同一概念，不合并** | `json_safe`：`diagnostics/{benchmark,domain_assumptions,report,shift,shift_monitor,uncertainty}.py`、`preprocessing/data_profiler.py`、`workflows/report.py`；`json_scalars`：`experiment/{training_views,feature_adapter,datasets,survey_execution,survey_protocol}.py` | 无 | 单一 |
+| JSON 安全转换 | `pu_toolbox/utils/serialization.py:92` `json_safe`（宽容，报告载荷）与 `:107` `json_scalars`（严格，清单载荷）——**两者不是同一概念，不合并** | `json_safe`：`diagnostics/{benchmark,domain_assumptions,report,shift,shift_monitor,uncertainty}.py`、`preprocessing/data_profiler.py`；`json_scalars`：`experiment/{training_views,feature_adapter,datasets,survey_execution,survey_protocol}.py` | 无 | 单一 |
 | 哈希 | `pu_toolbox/utils/serialization.py`：`canonical_hash`（宽容，报告载荷）、`strict_canonical_hash`（严格，制品身份）、`array_hash`（数组 dtype/shape/字节）、`file_hash`（文件字节，流式）；不同语义不合并 | `canonical_hash`：`diagnostics/benchmark.py`、`experiment/{datasets,split_archive,strategies,image,training_views}.py`；`strict_canonical_hash`：`experiment/{feature_adapter,survey_protocol,results}.py`；`array_hash`：`experiment/{feature_adapter,image,survey_execution}.py`，并经 `survey_protocol.array_digest` 委托；`file_hash`：`experiment/{checkpoints,text}.py`，并经 `split_archive.file_sha256` 委托 | `survey_protocol.digest`、`survey_protocol.array_digest`、`split_archive.file_sha256` | 单一 |
 | RBF 权重 | `pu_toolbox/utils/basis.py:34` `build_rbf_basis`（`:62` `rbf_weights` 建于其上） | `prior/pen_l1.py`、`prior/kernel_mean.py`、`estimators/risk/kldce.py`、`estimators/risk/pnu.py`、`estimators/risk/upu.py`、`utils/basis.py:101` `resolve_basis_fn` | `pu_toolbox/utils/__init__.py` 重导出 | 重复（不可合并，理由：见说明） |
 | 类先验推导 | `pu_toolbox/estimators/risk/_class_prior.py:6` `solve_prior_from_positive_fraction` | `estimators/risk/kldce.py:935`、`estimators/risk/ldce.py:429` | 无 | 单一 |
-| 先验质量换算 | `pu_toolbox/prior/semantics.py`：`native_unlabeled_to_population` / `population_to_native_unlabeled` | `workflows/pipeline.py` 按输入设计及逐折消费目标调用；`experiment/cvir_adapter.py` 解析 OS 原生 U 风险先验 | 公开 `.estimate()` 保留标量，以类属性声明目标/池；CVIR 包装器维护严格域及视图政策 | 单一 |
+| 先验质量换算 | `pu_toolbox/prior/semantics.py`：`native_unlabeled_to_population` / `population_to_native_unlabeled` | 调用方按输入设计及风险池换算；`experiment/cvir_adapter.py` 解析 OS 原生 U 风险先验 | 公开 `.estimate()` 保留标量，以类属性声明目标/池；CVIR 包装器维护严格域及视图政策 | 单一 |
 | 固定正例配额与均匀抽样 | `pu_toolbox/preprocessing/_sampling.py`：`fixed_positive_count` / `sample_positive_labels` | `preprocessing/pu_labeling.py` 的 SCAR/定额入口；`experiment/strategies.py` 的 SCAR 及 SAR 配额计算 | `experiment.strategies._n_labeled` 委托计数原语；各入口保留输入契约 | 单一；seed、全选后的随机流与标签哈希一致 |
 | 训练视图 | `pu_toolbox/core/training_views.py:120` `build_training_view`；角色词表 `:42` `ViewRole` + `:48` `ROLES`；视图词表 `:38` `RunView` + `:47` `RUN_VIEWS`（运行时元组由 `get_args` 派生） | `estimators/risk/{vpu,upu,nnpu,dist_pu}.py`、`estimators/bias_aware/pusb_kernel.py`、`estimators/deep/self_pu.py`、`experiment/` 各消费者、`scripts/{run_survey_experiment,run_survey_pilot,prepare_survey_splits}.py`；另有三项词表与两处子集未并（不同概念，见说明） | `experiment/training_views.py:42` `TSOSBatchView`（legacy 边界适配器） | 单一（角色名与 os/ts 视图；未并项见说明） |
-| 方法能力字段 | 估计器类属性（如 `estimators/risk/puet.py:85`-`:86`），经 `registry/registry.py:141` `_sync_class_metadata_to_registry` 同步；**类未声明的字段以条目字面量为源**（`class_prior_estimation` 的 8 个字段、`pusb`/`lbe` 的 `requires_class_prior` 即如此） | `registry/registry.py` `get_metadata`、`advisor/`、`cli/`、`workflows/pipeline.py`、`ui/` | 无 | 单一（逐字段判定；`api_only` 边界见说明） |
+| 方法能力字段 | 估计器类属性（如 `estimators/risk/puet.py:85`-`:86`），经 `registry/registry.py` 的 `_sync_estimator_metadata` 同步；**类未声明的字段以条目字面量为源**（例如 `class_prior_estimation` 的 6 个条目字段） | `registry/registry.py` `get_metadata`、`cli/` | 无 | 单一（逐字段判定） |
 
 ## 说明
 
@@ -50,7 +50,7 @@
 **已收敛（单一）。** 权威源是 `utils/serialization.py` 的**一对**函数，二者**不是同一概念，不合并**：
 
 - `:56` `json_safe`——**宽容**（NaN/Inf → None、`np.generic` → `item`、`Path` → `str`、递归
-  dict/list），用于报告载荷，消费者在 `diagnostics/`、`workflows/`、`preprocessing/data_profiler.py`。
+  dict/list），用于报告载荷，消费者在 `diagnostics/`、`preprocessing/data_profiler.py`。
 - `:71` `json_scalars`——**严格**（非 JSON 标量或非有限浮点一律 `ValueError`），用于清单载荷
   （索引列表）。`name` 参数把报错归因到拒绝它的调用方。
 
@@ -129,20 +129,20 @@ pu_toolbox/ --include=*.py` 命中 2 处：`utils/serialization.py` 的 `def can
 
 ### 方法能力字段
 
-**已收敛（单一）。** 能力字段的权威源是估计器类属性：注册时 `bind_estimator_class` →
-`registry/registry.py:141` `_sync_class_metadata_to_registry` 按 `_SYNC_FIELDS`（**13** 个成员）
+**已收敛（单一）。** 能力字段的权威源是估计器类属性：注册时 `register_method(metadata, estimator_cls)` 通过
+`registry/registry.py` 的 `_sync_estimator_metadata` 按 `_SYNC_FIELDS`
 对类**自身**声明的字段做 `setattr`。分两半：
 
-- **8 个条目字段**：`family` / `assumption` / `scenario` / `requires_class_prior` /
-  `implementation_status` / `source_status` / `backend` / `maturity`。
+- **6 个条目字段**：`family` / `assumption` / `scenario` /
+  `source_status` / `backend` / `maturity`。
 - **5 个仅类/默认值字段**：`native_architectures` / `input_ndims` / `encoder_parameter` /
   `trains_encoder`（4 个架构能力字段）与 `label_semantics`，从不写字面量。
 
 逐字段判定：**类已声明的字段不得在字面量里重复出现**，**类未声明的字段必须在字面量里显式声明**
 （此时字面量是唯一源），由 `tests/test_builtin_methods.py` 的双向契约（clause 1 / clause 2）守卫。
-边界：clause 1 无条件禁止任何条目（含未来 `api_only`）写那 5 个仅类字段，`api_only` 条目因此没有
-声明途径——今日 `api_only` 为 0，规则空转。另 `experiment/method_ledger.json` 的
-`implementation_status` 与 `class` 是**未受门的第三份**，漂移不会使任何测试变红。
+注册项必须同时有元数据和具体实现，未实现的占位符不进入注册表。内置条目在同处记录
+元数据与实现类路径；`source_status` 和 `maturity` 仍表示独立的来源与成熟度。
+`experiment/method_ledger.json` 中的历史记录用于研究追溯，不等同于注册可用性。
 
 ### RBF 权重
 

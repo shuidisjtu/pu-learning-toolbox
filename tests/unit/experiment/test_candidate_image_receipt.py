@@ -27,7 +27,7 @@ def setup(method="pulda", augmentation="none"):
         method,
         preprocessing,
         seed=3,
-        class_prior=0.4 if method == "pulda" else None,
+        training_population_prior=0.4 if method == "pulda" else None,
     )
     if method == "pulda":
         model.set_params(
@@ -101,7 +101,7 @@ def test_param_stale_or_mislabelled_inputs_fail_before_any_fit(monkeypatch, faul
     if fault == "seed":
         model.random_state = 4
     elif fault == "prior":
-        model.class_prior = 0.3
+        model.risk_prior = 0.3
     elif fault == "encoder":
         with torch.no_grad():
             next(model.encoder.parameters()).add_(0.1)

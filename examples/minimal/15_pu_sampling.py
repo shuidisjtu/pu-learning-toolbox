@@ -7,18 +7,36 @@ import json
 
 import numpy as np
 
-from pu_toolbox.preprocessing import make_gaussian_case_control_data, make_scar_labels
+from pu_toolbox.preprocessing import (
+    PULabelingConfig,
+    SourcePartition,
+    construct_pu_dataset,
+    make_gaussian_case_control_data,
+)
 
 
 def compare_sampling(
     *, seed: int = 7, class_prior: float = 0.4, n_p: int = 80, n_u: int = 800, c: float = 0.5
 ) -> dict:
     """Use the TS population draw as the clean source pool of the OS condition."""
-    _, ts_labels, ts_truth, ts_metadata = make_gaussian_case_control_data(
-        n_p=n_p, n_u=n_u, class_prior=class_prior, n_features=2, random_state=seed
+    features, ts_labels, ts_truth, ts_metadata = make_gaussian_case_control_data(
+        n_p=n_p, n_u=n_u, population_prior=class_prior, n_features=2, random_state=seed
     )
-    population_truth = ts_truth[ts_labels == 0]
-    os_labels = make_scar_labels(population_truth, c=c, random_state=seed)
+    population = ts_labels == 0
+    population_truth = ts_truth[population]
+    result = construct_pu_dataset(
+        SourcePartition(
+            features[population],
+            population_truth,
+            f"gaussian-{seed}",
+            "population",
+            np.asarray(ts_metadata["sample_ids"])[population],
+        ),
+        PULabelingConfig("scar", "fixed_count", seed, c=c),
+        positive_classes=(1,),
+        negative_classes=(0,),
+    )
+    os_labels = result.observations.labels
     os_unlabeled = population_truth[os_labels == 0]
     return {
         "seed": seed,
@@ -38,8 +56,8 @@ def compare_sampling(
         "ts": {
             "n_labeled": n_p,
             "n_unlabeled": n_u,
-            "unlabeled_empirical_prior": ts_metadata["unlabeled_class_prior"],
-            "training_empirical_prior": ts_metadata["training_class_prior"],
+            "unlabeled_empirical_prior": ts_metadata["empirical_unlabeled_prior"],
+            "training_empirical_prior": ts_metadata["empirical_training_table_prior"],
             "n_unique_sample_ids": len(set(ts_metadata["sample_ids"])),
             "sampling_policy": ts_metadata["sampling_policy"],
         },

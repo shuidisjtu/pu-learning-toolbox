@@ -40,11 +40,17 @@ def test_basic_fit_predict_output_shapes(rng):
 @pytest.mark.unit
 def test_training_provenance_records_calibrated_view_without_changing_prior(rng):
     X, y = _data(rng)
-    model = DistPUClassifier(0.3, hidden_dim=8, epochs=1, random_state=3).fit(X, y, os_or_ts="ts")
+    model = DistPUClassifier(0.2, hidden_dim=8, epochs=1, random_state=3).fit(
+        X, y, distribution_prior=0.3, os_or_ts="ts"
+    )
     assert model.calibration_applied_ is True
     assert model.training_provenance_["run_view"] == "ts"
     assert model.training_provenance_["calibration_applied"] is True
-    assert model.training_provenance_["class_prior_used"] == pytest.approx(0.3)
+    (use,) = model._prior_consumptions_
+    assert use["consumer"] == "dist_pu_expectation_alignment"
+    assert use["target"] == "positive_union_unlabeled"
+    assert use["value"] == pytest.approx(0.3)
+    assert use["source"] == "fit.distribution_prior"
     assert model.training_provenance_["mixup_pool"] == "entire_training_matrix"
 
 
@@ -165,10 +171,7 @@ def test_author_staged_ts_calibration_changes_only_marginal_role_objective(rng):
     assert (
         os_model.training_provenance_["mixup_pool"] == ts_model.training_provenance_["mixup_pool"]
     )
-    assert (
-        os_model.training_provenance_["class_prior_used"]
-        == ts_model.training_provenance_["class_prior_used"]
-    )
+    assert os_model.distribution_prior_ == ts_model.distribution_prior_
     assert not np.array_equal(os_model._decision_function(X), ts_model._decision_function(X))
 
 

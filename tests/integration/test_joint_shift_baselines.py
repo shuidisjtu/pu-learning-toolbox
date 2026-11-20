@@ -34,7 +34,9 @@ def _data(seed=21):
 
 def _fit(model, data):
     Xs, ys, Xt, yt = data
-    return model.fit(Xs, ys, X_target=Xt, y_target_pu=yt, class_prior=0.4, target_class_prior=0.6)
+    return model.fit(
+        Xs, ys, X_target=Xt, y_target_pu=yt, source_domain_prior=0.4, target_domain_prior=0.6
+    )
 
 
 @pytest.mark.parametrize(

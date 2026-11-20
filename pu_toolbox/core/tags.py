@@ -7,6 +7,7 @@ on raw strings.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from enum import Enum
 
 # ── Scenario ───────────────────────────────────────────────────────
@@ -35,16 +36,6 @@ class Assumption(str, Enum):
     SCAR = "SCAR"  # P(s=1|y=1, x) = constant
     SAR = "SAR"  # P(s=1|y=1, x) = c(x)
     UNKNOWN = "unknown"
-
-
-# ── Implementation status ──────────────────────────────────────────
-
-
-class ImplementationStatus(str, Enum):
-    """How an algorithm is implemented in the toolbox."""
-
-    API_ONLY = "api_only"  # placeholder, no training logic
-    NATIVE = "native"  # clean-room implementation
 
 
 # ── Source status ──────────────────────────────────────────────────
@@ -132,3 +123,16 @@ class TrainingCost(str, Enum):
     MEDIUM = "medium"  # bounded iterative training (<= ~1000 epochs)
     HIGH = "high"  # heavy fixed-epoch non-convex training
     UNKNOWN = "unknown"  # not classified; scored neutrally
+
+
+@dataclass(frozen=True)
+class PriorConsumer:
+    """A possible use of a prior, independent of evidence from a fitted run."""
+
+    consumer: str
+    target: str
+    partition: str = "train"
+    parameter: str | None = None
+    # True when the default training path needs a caller-supplied value.
+    requires_input: bool = False
+    ts_compatible_target: str | None = None

@@ -1,6 +1,6 @@
 # 进度清单
 
-> 总体策略：**framework-first**——先完成稳定框架与 API 契约，用 mock estimator 跑通链路，再逐个集成论文算法。当前全部注册方法均有 clean-room 核心实现（NATIVE）；另有一个隔离的联合漂移 research 求解器。实现可运行与论文数值复现、研究结果审核分别判断；Survey 的当前能力与实验状态见 [Survey README](../research/pu_survey/README.md)。
+> 总体策略：**framework-first**——先完成稳定框架与 API 契约，用 mock estimator 跑通链路，再逐个集成论文算法。当前全部注册方法均有 clean-room 核心实现；另有一个隔离的联合漂移 research 求解器。实现可运行与论文数值复现、研究结果审核分别判断；Survey 的当前能力与实验状态见 [Survey README](../research/pu_survey/README.md)。
 > **Method Card 为可选文档**，新算法接入不要求必写。
 
 ## 阶段历史（已闭环）
@@ -15,6 +15,55 @@ Phase 0-9 已闭环（框架 → 核心风险估计 → 机制 → 推荐诊断 
 - ⚠️ v1 范围外：Phase 2 三经典包装器 + TIcE/AlphaMax 类先验估计
 
 ## 发布状态
+
+### 2.0.0（目标版本，未发布）
+
+- 旧 `run`、隐式 `auto` 选法和 `PUPipeline` 退出。显式选择 estimator 后训练、保存可信模型，
+  再用独立 `review`；保留 `list-methods` 和四角色实验 API。已安装的 Skill 可运行
+  `pu-toolbox skill install --force` 更新到当前安装包附带的版本。
+- Elkan–Noto 的 `n_cv_folds` 改为 `internal_cv_folds`。倾向估计按观测 PU 标签分层做折外预测，
+  只汇总留出的标记正例，移除旧折内 `sqrt` 补偿；新旧实现不承诺数值等价。
+- 传统 PU v6 用原 commit/tag 和当时的配置重放；v7 用现行实现和 v7 配置写到独立目录，
+  不回写 v6 结果。保留全部历史 1.x tag。
+
+### 未发布（显式训练工作流退役）
+
+- [x] 按 [ADR-0024](../adr/0024-estimator-and-experiment-workflows.md) 移除显式 Pipeline、单表候选评估、
+  漂移训练比较及对应 CLI/UI、配置和报告生成；不设兼容层，不重写历史产物。
+- [x] 保留 estimator、四角色实验、拆分与指标原语和独立 CLI，先验与验证边界见
+  [迁移指南](../user/howto/pipeline.md)。
+- [x] 定向验证 221 项通过、零失败或跳过；API、文档、技能、质量、依赖图与结构门禁通过。
+  sdist/wheel 构建及隔离 wheel CLI 冒烟通过；未执行全量或远程 CI。
+
+### 未发布（Elkan–Noto 标注倾向估计）
+
+- [x] 按观测 PU 标签划分倾向估计折，移除旧版折内 `sqrt` 补偿；仍只对留出的已标注正例汇总预测。
+- [x] 两类观测样本均需满足内部划分的折数要求；校准折数不超过训练数据中较小一类的样本数。
+
+### 未发布（输入校验与评估折数命名）
+
+- [x] 工作流、Elkan–Noto 的评估折数和样本权重校验，以及注册元数据校验，统一抛出
+  `ValidationError`；同时保留 `PULearningError` 与 `ValueError` 捕获路径。
+- [x] 外层评估用 `evaluation_cv`，Elkan–Noto 拟合内部用 `internal_cv_folds`；
+  `shift-run` 分别设置评估和漂移折数。
+
+### 未发布（注册表只登记可用实现）
+
+- [x] 首次查询、发现或登记时加载内置算法，导入本身不初始化；用户不再需要手动预热。
+- [x] 元数据与具体估计器一并登记，拒绝没有实现或抽象实现的条目。
+  删除占位状态和重复的可训练过滤，保留来源、成熟度及能力声明。
+- [x] 移除公开的手动初始化入口；脚本和安装验收通过查询自动初始化。
+
+### 未发布（注册表命名与冲突检查）
+
+- [x] 注册条目和别名统一为小写；查询仍不区分大小写，仅大小写不同的拼写不再登记为独立别名。
+- [x] 一次校验全部名称后再写入；冲突不留注册残余。
+
+### 未发布（模型选择指标方向）
+
+- [x] `PUTuner` 与 `PUModelComparator` 按指标固定选优方向：风险、Brier 和 ECE 取最小值。
+- [x] 移除 `higher_is_better` 构造参数；结果和序列化字段保留实际方向。
+  `pu_negative_rate` 和别名仅供报告，不再用作 `scoring`。
 
 ### 未发布（对外文档英语化：贡献者入口）
 
@@ -130,7 +179,7 @@ Phase 0-9 已闭环（框架 → 核心风险估计 → 机制 → 推荐诊断 
   文字直接陈述结果与适用条件。格式、测试质量、文档链接与生成目录门禁通过。
 
 输入设计和先验目标通过现有 API 路由：CLI 使用 OS，独立 TS 使用显式 Python 参数，
-Pipeline 记录总体解析与逐折训练消费。CLI 的显式采样参数和 recommend 目标解析作为后续工程项维护。
+Pipeline 记录总体解析与逐折训练消费。CLI 的显式采样参数作为后续工程项维护；recommend 路径按 [ADR 0023](../adr/0023-explicit-method-selection.md) 退役。
 
 ### 未发布（PU 研究能力整合）
 
@@ -156,6 +205,21 @@ S1/S2 已按失败回归驱动完成实现；旧同池入口保留输出与随�
 文档按有证据支持的结论和适用条件直接陈述。专项与适用静态门禁结果见
 [语义基线的验证记录](pu_research_semantics.md#7-本批验证记录2026-11-06)。
 
+### 未发布（PU 数据入口重构）
+
+- OS 已有数据与合成入口共用来源身份、标签预算和观测/审计/留痕契约。`make-demo-data`、
+  示例 15 和两份工作流 Skill 已接入；旧同池 `case_control` 别名及分派已移除。
+- 现行 OS 示例、测试夹具和传统/指定方法基准均迁到两个构造入口，删除旧 OS 标签、合成及分派函数。
+  基准保留采样政策、补标、种子和顺序随机流；Survey 仍通过中立原语保持原有标签轨迹。
+- 显式获取与离线读取按配置分离。MNIST/Fashion-MNIST 共用 IDX 格式实现，Survey 冻结 NPZ 走同一读取入口；
+  不把类别映射和角色划分放进数据源配置。Survey 的 NPZ 产品、映射及整数 ID 用相同来源切片逐字段核对。
+- Spambase 与自定义数值表共用分隔文本格式。列选择和标签类型由配置声明，不能截断非整数标签；同一份
+  真实 Spambase 输入、固定 seed 3 的原始数组、四角色特征/标签/整数 ID 与 manifest 前后相同。
+- 其余五个 Survey 数据源也走通用离线读取：Connect-4 使用分类表格，IMDB/20News 共用文本读法，
+  CIFAR-10 使用本地 batch，ADNI 替代集使用 ZIP 图像。协议映射、图像表示、划分和整数 ID 留在 Survey 层；
+  不重写历史产物。
+- 独立高斯 TS、负类 U 教学构造及先验消费按后续工作包迁移。
+
 ### 未发布（实验层收敛）
 
 实验层保留公共四角色 API、独立 PA/OA 选模、当前 Survey 配方执行和结果报告生成能力。
@@ -169,6 +233,27 @@ S1/S2 已按失败回归驱动完成实现；旧同池入口保留输出与随�
   IMDB、20News、ADNI（共 8 个数据集），文本从冻结 split 的 SBERT 特征 carve，ADNI 记录
   `group_policy="unverifiable"` 与 owner approval；配方注册表升至
   `survey-recipes-v1.3`。数据与监督预算按各次 manifest 解释，配方能力不自动代表数值复现。
+- **uPU 拟合与 PA 先验分开**：内置 trainer 在 OS 原生 U 风险下用训练标记比例换算总体先验；
+  TS-compatible 拟合与 PA 仍用总体先验。拒绝非法训练视图，以及对已声明独立 TS 的训练输入再做重构。
+- **2.0 先验契约**：训练、内部 PU 验证与 PA 的先验分别命名。注册表 `prior_consumers` 描述可用入口；新版
+  `research_settings.prior` 只记录实际消费，历史制品保留原结构。无先验方法不接收占位参数，诊断和估计按各自目标命名。
+  冻结 Survey 配方、先验数值、数据角色及 test 边界保持不变；只沿用原先明确启用的 uPU OS 换算。
+- **先验契约翻新 · uPU Runner 样板**：`training_population_prior` 和 `validation_population_prior`
+  分别设置训练与 PA 输入。uPU 的 `research_settings` 2.0 在同一处记录实际拟合值及 PA 总体值，
+  附训练目标池、来源及 OS 换算输入；结果汇总按原版本留存每个 seed 的记录。uPU 直接使用
+  `risk_prior`，PA 直接使用 `validation_population_prior`。Survey 单次与 pilot 使用 `--population-prior`，
+  在运行边界分别绑定训练、PA。
+- **先验契约翻新 · PUSBKernel**：`training_table_prior` 用于全训练表分位阈值，`risk_prior`
+  用于拟合与内部 CV；缺省风险值复用训练表先验。manifest 2.0 分开记录拟合风险、CV 验证风险
+  和训练表阈值。Survey OS 沿用总体先验作为训练表缺省，保留原 CV 与模型选择规则。
+- **先验契约翻新 · LDCE/KLDCE 与 CVIR**：LDCE/KLDCE 的 `training_table_prior` 区分显式覆盖和
+  训练计数推导；KLDCE 候选按独立策略绑定。CVIR 单独记录筛选、加权目标与 PA 的实际使用值，
+  原生 OS 的总体换算随训练风险先验记录，图像与四角色适配共用同一记录方式。
+- **先验契约翻新 · 无先验拟合入口**：Elkan–Noto、Rank Pruning、线性 PUSB、GradPU 和 Neural LBE
+  的拟合签名只暴露实际接受的参数。这些方法的先验记录由 PA 等实际使用方生成；Elkan–Noto 的总体
+  估计值和 Neural LBE 的训练表后验均值各有独立的拟合属性。
+- **clean-support 执行门禁**：批量计划和续跑前检查五角色文件及原始样本 ID；单元运行在训练、
+  选模和测试前校验支持集制品，并核对它与实际四角色输入逐行一致。样本行隔离不代表受试者隔离。
 
 发布前检查：
 

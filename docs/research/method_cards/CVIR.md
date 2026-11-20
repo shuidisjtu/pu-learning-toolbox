@@ -1,8 +1,7 @@
 # Method Card: CVIR
 
-研究运行的 `research_settings` 分别记录传给 Trainer 的基础先验输入、候选参数和
-实际训练留痕。CVIR 的留痕包含实际 `unlabeled_positive_prior`、`prior_source` 与
-`risk_pool`，总体先验适配器另保存 `population_prior_binding` 的换算值和公式。
+`research_settings.prior` 分别记录 CVIR 负例筛选与加权目标所用的风险池先验。
+总体先验适配器在原生 OS 记录原总体值、训练标记比例和换算规则；PA 另记录验证总体先验。
 可组合设置的公共解释见[先验语义](../../user/concepts/class_prior_semantics.md)，
 字段契约见 [API 参考](../../user/reference/api/classifiers.md#cvirclassifier-cvir-alias-conditional_value_ignoring_risk)。
 
@@ -26,7 +25,7 @@
 | 本项目入口 | `CVIRClassifier`，注册名 `cvir`，二维 MLP 或注入可训练 CNN 的四维图像，PyTorch |
 | 必需先验 | `unlabeled_positive_prior` 为实际风险池的混合比例；默认是原始 U 的 α_U，显式校准后为总体 π |
 
-算法每轮先按当前正类分数给**原始 U** 排序，保留分数最低的约 `1−α_U` 部分为临时负例；随后按 `α_U·L_P + (1−α_U)·L_N` 更新模型。保留数有限样本下取 `max(1, floor((1−α_U)·n_U))`，相同分数稳定排序。默认先做一轮 P-v-U warm-start，再运行固定 20 轮 CVIR；这两个预算是本工具箱适配选择，原文 Algorithm 2 使用收敛停机。`class_prior` 参数会显式拒绝，避免把公共接口传来的总体 `π` 无声当作 `α_U`。
+算法每轮先按当前正类分数给**风险池**排序，保留分数最低的约 `1−α_U` 部分为临时负例；随后按 `α_U·L_P + (1−α_U)·L_N` 更新模型。保留数有限样本下取 `max(1, floor((1−α_U)·n_U))`，相同分数稳定排序。默认先做一轮 P-v-U warm-start，再运行固定 20 轮 CVIR；这两个预算是本工具箱适配选择，原文 Algorithm 2 使用收敛停机。直接拟合使用 `unlabeled_positive_prior`；总体先验由实验适配器按视图绑定。
 
 ## 台账与校准
 

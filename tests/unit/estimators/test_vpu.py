@@ -15,8 +15,7 @@ torch = pytest.importorskip("torch")
 from pu_toolbox.core.exceptions import NotFittedError, ValidationError  # noqa: E402
 from pu_toolbox.estimators.risk.vpu import VPUClassifier, vpu_objective  # noqa: E402
 from pu_toolbox.experiment.checkpoints import EpochCheckpointTrainer  # noqa: E402
-from pu_toolbox.registry import get_algorithm, register_all_builtin_methods  # noqa: E402
-from pu_toolbox.workflows import PUPipeline  # noqa: E402
+from pu_toolbox.registry import get_algorithm  # noqa: E402
 
 pytestmark = pytest.mark.unit
 
@@ -82,21 +81,20 @@ def test_fit_normalization_checkpoint_and_registry(tmp_path):
     np.testing.assert_allclose(
         trajectory.checkpoints[-1].restore().decision_function(X), scores, atol=1e-6
     )
-    register_all_builtin_methods()
     assert get_algorithm("vpu") is VPUClassifier
     assert get_algorithm("variational_pu") is VPUClassifier
 
 
-def test_seed_prior_independence_and_pu_validation():
+def test_determ_pu_validation():
     X, y = _data()
     validation = (X, y)
     first = _model().fit(X, y, pu_validation_data=validation)
-    second = _model().fit(X, y, class_prior=0.4, pu_validation_data=validation)
+    second = _model().fit(X, y, pu_validation_data=validation)
     np.testing.assert_array_equal(first.decision_function(X), second.decision_function(X))
     assert first.history_ == second.history_
     assert len(first.history_["val_risk"]) == first.max_epochs
     assert np.isfinite(first.history_["val_risk"]).all()
-    assert first.get_pu_metadata()["class_prior"] is None
+    assert first.get_pu_metadata()["prior_consumptions"] == []
 
 
 @pytest.mark.parametrize(
@@ -121,7 +119,7 @@ def test_edge_input_guards_and_weight_rejection():
     X, y = _data()
     with pytest.raises(NotImplementedError, match="sample_weight"):
         _model().fit(X, y, sample_weight=np.ones(len(X)))
-    with pytest.raises(ValueError, match="class_prior"):
+    with pytest.raises(TypeError, match="class_prior"):
         _model().fit(X, y, class_prior=1.0)
     with pytest.raises(ValidationError, match="2-D"):
         _model().fit(X[:, :, None], y)
@@ -160,21 +158,6 @@ def test_weights_only_roundtrip_preserves_calibrated_scores():
         values = restored(torch.as_tensor(X, device=device)).flatten().cpu().numpy()
     np.testing.assert_allclose(values, fitted.decision_function(X), atol=1e-6)
     assert math.isfinite(fitted.max_log_phi_)
-
-
-@pytest.mark.integration
-def test_pipeline_resolves_vpu_without_prior():
-    X, y = _data()
-    report = PUPipeline(
-        classifier="vpu",
-        classifier_params={"hidden_dim": 8, "batch_size": 5},
-        prior_estimator=None,
-        max_epochs=2,
-        cv=2,
-        random_state=7,
-    ).fit_evaluate(X, y)
-    assert isinstance(report.final_model, VPUClassifier)
-    assert report.final_model.predict(X).shape == (len(X),)
 
 
 @pytest.mark.gpu

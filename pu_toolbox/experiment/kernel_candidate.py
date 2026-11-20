@@ -120,7 +120,7 @@ class KLDCECandidateTrainer(ClassicalCandidateTrainer):
             "source": "train_SCAR_generator_metadata",
         }
 
-    def preflight(self, estimator, X, y, *, class_prior=None, os_or_ts=None):  # noqa: N803
+    def preflight(self, estimator, X, y, *, training_population_prior=None, os_or_ts=None):  # noqa: N803
         """Use observed PU counts only; no fit, kernel allocation or label inference."""
         from ..estimators.risk._class_prior import (
             solve_prior_from_positive_fraction,
@@ -152,13 +152,13 @@ class KLDCECandidateTrainer(ClassicalCandidateTrainer):
             prior = solve_prior_from_positive_fraction(p, n, flip)
         else:
             if (
-                isinstance(class_prior, bool | np.bool_)
-                or not isinstance(class_prior, Real)
-                or not math.isfinite(class_prior)
-                or not 0 < class_prior < 1
+                isinstance(training_population_prior, bool | np.bool_)
+                or not isinstance(training_population_prior, Real)
+                or not math.isfinite(training_population_prior)
+                or not 0 < training_population_prior < 1
             ):
                 raise ValueError("population_override requires finite population prior in (0,1)")
-            prior = float(class_prior)
+            prior = float(training_population_prior)
         denominator = stable_centroid_denominator(prior, flip)
         # Same Aeq=[+1_P,-1_U,+1_gamma], alpha<=1/n, gamma<=1/(2n)
         # as the core's Phase-I LP, but this range check allocates no QP.
@@ -180,8 +180,8 @@ class KLDCECandidateTrainer(ClassicalCandidateTrainer):
             "observed_unlabeled_rows": u,
             "feature_count": d,
             "training_prior_policy": self.prior_policy,
-            "effective_training_prior": prior,
-            "external_class_prior_forwarded": self.prior_policy == "population_override",
+            "planned_training_table_prior": prior,
+            "uses_population_override": self.prior_policy == "population_override",
             "qp_equality_box_feasibility": {
                 "rhs": rhs,
                 "reachable_min": lower,
@@ -202,7 +202,7 @@ class KLDCECandidateTrainer(ClassicalCandidateTrainer):
             },
         }
 
-    def fit(self, estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None):  # noqa: N803
+    def fit(self, estimator, X, y, *, training_population_prior=None, val_pu=None, os_or_ts=None):  # noqa: N803
         self.last_receipt = None
         estimator._is_fitted = False
         if hasattr(estimator, "training_provenance_"):
@@ -229,15 +229,24 @@ class KLDCECandidateTrainer(ClassicalCandidateTrainer):
         self.last_receipt = receipt
         started = time.perf_counter()
         try:
-            bound = self.preflight(estimator, X, y, class_prior=class_prior, os_or_ts=os_or_ts)
+            bound = self.preflight(
+                estimator,
+                X,
+                y,
+                training_population_prior=training_population_prior,
+                os_or_ts=os_or_ts,
+            )
             receipt["preflight"] = bound
-            kwargs = (
-                {"class_prior": class_prior} if self.prior_policy == "population_override" else {}
+            table_override = (
+                training_population_prior if bound["uses_population_override"] else None
             )
             receipt["work_started"] = 1
-            estimator.fit(X, y, **kwargs)
-            if estimator.class_prior_ != bound["effective_training_prior"]:
+            estimator.fit(X, y, training_table_prior=table_override)
+            if estimator.training_table_prior_ != bound["planned_training_table_prior"]:
                 raise ValueError("actual KLDCE training prior differs from preflight")
+            if table_override is not None:
+                (consumption,) = estimator._prior_consumptions_
+                consumption["source"] = "trainer.training_population_prior"
             history = [
                 {
                     key: value.item() if isinstance(value, np.generic) else value
@@ -255,7 +264,6 @@ class KLDCECandidateTrainer(ClassicalCandidateTrainer):
                 work_completed=1,
                 acs_rounds_completed=estimator.n_acs_iter_,
                 converged=bool(estimator.converged_),
-                effective_training_prior=float(estimator.class_prior_),
                 acs_history=history,
                 inner_diagnostics_scope="final_QP_per_ACS_round_only; rollback_work_unobserved",
                 final_qp_inner_iterations_sum=sum(int(row["inner_n_iter"]) for row in history),

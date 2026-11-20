@@ -18,12 +18,23 @@ preprocessing. Raw data and training results are not stored in the repository.
 | `adni` slot | The Alzheimer MRI substitute described below; do not describe it as approved ADNI data |
 
 The collection entry point, `scripts/collect_survey_public_data.py`, uses recorded URLs and
-digests and refuses to overwrite an existing mismatched file. MNIST/Fashion checksums come
-from torchvision and 20 Newsgroups checksums from scikit-learn; these are checksums recorded
-by dependency projects. No publisher digest is registered for UCI Connect-4, so its local
+digests and refuses to overwrite an existing mismatched file. MNIST and Fashion-MNIST now
+share an IDX reader; their source configurations record the previously reviewed URLs and
+checksums from torchvision without importing it. The 20 Newsgroups checksums come from
+scikit-learn. These are checksums recorded by dependency projects, not source licenses.
+No publisher digest is registered for UCI Connect-4, so its local
 SHA-256 establishes byte identity only. Preserve licensing uncertainty from the source records:
 an unknown license is not a grant. Dataset provenance uses `not_stated_by_source` when no
 license is transcribed, retaining the date and notes of the source review.
+
+## Raw readers and Survey preparation
+
+All eight prepared sources use `read_dataset` by format. The configured readers retain
+raw rows, labels and official partitions; they never download. The Survey script then
+applies the fixed Connect-4 column encoding, 20 Newsgroups prefix mapping, IMDB label IDs,
+ADNI-substitute image representation and protocol splits. It retains the existing integer
+role IDs, archive provenance and preprocessing rules rather than adopting the raw reader's
+position-ID strings.
 
 ## Alzheimer MRI substitute
 

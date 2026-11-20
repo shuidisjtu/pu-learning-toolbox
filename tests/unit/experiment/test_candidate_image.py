@@ -29,10 +29,14 @@ def test_determ_shared_resnet_seed_is_rng_independent_and_normalizes_once():
     _, spec = preprocessing()
     torch.manual_seed(31)
     before = torch.get_rng_state().clone()
-    first, record = build_candidate_image_classifier("pulda", spec, seed=7, class_prior=0.4)
+    first, record = build_candidate_image_classifier(
+        "pulda", spec, seed=7, training_population_prior=0.4
+    )
     assert torch.equal(torch.get_rng_state(), before)
     torch.rand(31)
-    second, second_record = build_candidate_image_classifier("pulda", spec, seed=7, class_prior=0.4)
+    second, second_record = build_candidate_image_classifier(
+        "pulda", spec, seed=7, training_population_prior=0.4
+    )
     assert record == second_record
     assert first.encoder is not second.encoder
     with torch.random.fork_rng(devices=[]):
@@ -51,7 +55,9 @@ def test_determ_shared_resnet_seed_is_rng_independent_and_normalizes_once():
 
 def test_basic_pulda_real_resnet_updates_bn_and_encoder_not_shared_template():
     features, spec = preprocessing("simaugment")
-    estimator, record = build_candidate_image_classifier("pulda", spec, seed=1, class_prior=0.5)
+    estimator, record = build_candidate_image_classifier(
+        "pulda", spec, seed=1, training_population_prior=0.5
+    )
     before = copy.deepcopy(estimator.encoder.state_dict())
     estimator.set_params(
         warmup_epochs=1, pu_epochs=1, positive_batch_size=2, unlabeled_batch_size=2
@@ -115,7 +121,7 @@ def test_determ_gradpu_candidate_initialization_is_explicit_and_changes_identity
 def test_param_invalid_initialization_seed_is_rejected(seed):
     _, spec = preprocessing()
     with pytest.raises(ValueError, match="seed"):
-        build_candidate_image_classifier("pulda", spec, seed=seed, class_prior=0.4)
+        build_candidate_image_classifier("pulda", spec, seed=seed, training_population_prior=0.4)
 
 
 def test_edge_no_silent_prior_augmentation_or_backbone_substitution():
@@ -125,7 +131,7 @@ def test_edge_no_silent_prior_augmentation_or_backbone_substitution():
     with pytest.raises(ValueError, match="population"):
         build_candidate_image_classifier("pulda", spec, seed=0)
     with pytest.raises(ValueError, match="does not use"):
-        build_candidate_image_classifier("gradpu", spec, seed=0, class_prior=0.4)
+        build_candidate_image_classifier("gradpu", spec, seed=0, training_population_prior=0.4)
     _, augmented = preprocessing("simaugment")
     with pytest.raises(ValueError, match="train_augmentation"):
         build_candidate_image_classifier("gradpu", augmented, seed=0)
@@ -143,16 +149,18 @@ def test_param_invalid_population_prior_is_refused_before_encoder_allocation(mon
         pytest.fail("invalid prior must fail before constructing a backbone")
 
     monkeypatch.setattr(module, "build_survey_image_encoder", forbidden)
-    with pytest.raises(ValueError, match="class_prior"):
-        module.build_candidate_image_classifier("pulda", spec, seed=0, class_prior=prior)
+    with pytest.raises(ValueError, match="training_population_prior"):
+        module.build_candidate_image_classifier(
+            "pulda", spec, seed=0, training_population_prior=prior
+        )
 
 
 def test_edge_numpy_prior_produces_strict_json_without_claiming_validation_of_source():
     _, spec = preprocessing()
     model, record = build_candidate_image_classifier(
-        "pulda", spec, seed=0, class_prior=np.float32(0.4)
+        "pulda", spec, seed=0, training_population_prior=np.float32(0.4)
     )
     assert type(record["prior_contract"]["value"]) is float
-    assert model.class_prior == float(np.float32(0.4))
+    assert model.risk_prior == float(np.float32(0.4))
     json.dumps(record, allow_nan=False)
     assert record["prior_contract"]["source"] == "caller_supplied_population_prior"

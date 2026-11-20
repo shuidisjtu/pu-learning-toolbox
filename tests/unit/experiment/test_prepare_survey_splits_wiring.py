@@ -214,3 +214,36 @@ def test_determ_cli_default_dataset_list_remains_pilot(prep_script, monkeypatch,
         monkeypatch.setattr(prep_script, name, lambda *args, **kwargs: None)
     assert prep_script.main(["--seeds", "0", "--out-dir", str(tmp_path)]) == 0
     assert calls == ["spambase", "cifar10", "imdb"]
+
+
+def test_basic_imdb_archive_order_and_official_partitions(prep_script, tmp_path):
+    import io
+    import tarfile
+
+    from pu_toolbox.preprocessing import read_dataset
+
+    root = tmp_path / "imdb"
+    root.mkdir()
+    archive_path = root / "aclImdb_v1.tar.gz"
+    entries = [
+        ("aclImdb/train/neg/z.txt", b"negative z"),
+        ("aclImdb/test/pos/a.txt", b"test positive"),
+        ("aclImdb/train/pos/z.txt", b"positive z\xff"),
+        ("aclImdb/train/pos/a.txt", b"positive a"),
+        ("aclImdb/test/neg/a.txt", b"test negative"),
+        ("aclImdb/train/neg/a.txt", b"negative a"),
+    ]
+    with tarfile.open(archive_path, "w:gz") as archive:
+        for name, data in entries:
+            info = tarfile.TarInfo(name)
+            info.size = len(data)
+            archive.addfile(info, io.BytesIO(data))
+    profile = Path(prep_script.__file__).parents[1] / "pu_toolbox/preprocessing/source_configs"
+    train = read_dataset(profile / "imdb.json", root, partition="train")
+    test = read_dataset(profile / "imdb.json", root, partition="test")
+    assert train.features.dtype == object and train.features.ndim == 1
+    assert train.features.tolist() == ["positive z\ufffd", "positive a", "negative z", "negative a"]
+    assert train.labels.tolist() == ["pos", "pos", "neg", "neg"]
+    assert test.features.tolist() == ["test positive", "test negative"]
+    assert test.labels.tolist() == ["pos", "neg"]
+    assert set(train.sample_ids).isdisjoint(test.sample_ids)

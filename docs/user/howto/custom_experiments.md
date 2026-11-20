@@ -82,18 +82,19 @@ for start, stop in ((0, 300), (300, 400), (400, 500), (500, 600)):
 
 runner = ExperimentRunner(
     seed=7,
-    class_prior=0.5,
+    training_population_prior=0.5,
+    validation_population_prior=0.5,
     config={"c": 0.4, "trainer": FitTrainer(), "os_or_ts": "ts"},
 )
 result = runner.fit(
-    UPUClassifier(class_prior=0.5, fit_intercept=False),
+    UPUClassifier(fit_intercept=False),
     *parts,  # train, pu_val, clean_val, test
 )
 print(result.test_metrics)
 ```
 
 These inputs are fully labeled benchmark data. For existing real P/U observations, use an
-estimator or [PUPipeline](pipeline.md) directly; the four-role runner requires the complete-label
+estimator directly; the four-role runner requires the complete-label
 input views described above.
 
 ## 3. Configure parameters, candidates, and outputs
@@ -104,7 +105,8 @@ the model, trains each candidate, and lets PA and OA select candidates and thres
 ```python
 runner = ExperimentRunner(
     seed=7,
-    class_prior=0.5,
+    training_population_prior=0.5,
+    validation_population_prior=0.5,
     threshold_candidates=np.linspace(0, 1, 21),
     manifest_path="tmp/my-experiment.json",
     config={
@@ -124,7 +126,8 @@ Common configuration choices:
 | `seed` | Label-generation seed and candidate seed when `random_state` is not explicitly set |
 | `generator` | Label-generation strategy instance; defaults to `SCARGenerator()` |
 | `protocols` | Selection strategy instances; defaults to `[ProtocolPA(), ProtocolOA()]` |
-| `class_prior` | Population positive prior, required by PA; comes from generation settings or independent estimation |
+| `training_population_prior` | Population positive prior for the training distribution |
+| `validation_population_prior` | Population positive prior for PA on `pu_val`; defaults to the shared legacy value or the split metadata |
 | `threshold_candidates` | Validation-normalized threshold grid for built-in PA/OA; defaults to 11 points on 0–1 |
 | `manifest_path` | Persist the run manifest; if omitted, read `result.manifest` |
 | `config["c"]` | Positive-class labeling rate, default 0.1 |
@@ -134,12 +137,11 @@ Common configuration choices:
 | `config["os_or_ts"]` | Request a training risk view supported by the estimator; omitting it preserves the estimator's default |
 | `config["architecture"]` | Explicit `"mlp"` or `"cnn"` capability check |
 
-The runner hands its population `class_prior` to the Trainer; built-in `FitTrainer` forwards it
-according to the estimator's signature. The complete OS risk pool in this uPU example consumes
-population value 0.5. For default native-U risk instead, a custom Trainer converts this train
-partition's prior with `population_to_native_unlabeled(population_prior, mean(y_pu))` before
-calling `fit`. [Example 18](../../../examples/minimal/18_custom_encoders.py) demonstrates this
-conversion.
+The complete OS risk pool in this uPU example consumes the training population value 0.5.
+In the native OS view, the runner with the built-in `FitTrainer` uses the training labeled
+fraction to convert that value to the prior for native U. A custom trainer resolves the prior
+for its own fit path. [Example 18](../../../examples/minimal/18_custom_encoders.py) shows a direct
+conversion. Read the actual fit and PA values in `result.manifest["research_settings"]["prior"]`.
 
 New models must support sklearn cloning and parameter interfaces, declare
 `label_semantics="pu"` and their actual input capabilities, and return finite per-sample scores
@@ -187,11 +189,11 @@ from pu_toolbox.experiment.protocols import Trainer
 class ScaledFitTrainer(Trainer):
     trains_on_real_labels = False
 
-    def fit(self, estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None):
+    def fit(self, estimator, X, y, *, training_population_prior=None, val_pu=None, os_or_ts=None):
         scaler = StandardScaler()
         trajectory = FitTrainer().fit(
             estimator, scaler.fit_transform(X), y,
-            class_prior=class_prior, os_or_ts=os_or_ts,
+            risk_prior=training_population_prior, os_or_ts=os_or_ts,
         )
         trajectory.model = Pipeline([("scale", scaler), ("classifier", trajectory.model)])
         return trajectory
@@ -224,19 +226,16 @@ Implement `SelectionProtocol.select`, returning a `SelectionArtifact`. This exam
 a candidate using built-in PU proxy accuracy at validation-normalized threshold 0.5:
 
 ```python
-from dataclasses import replace
-
 from pu_toolbox.experiment import ProtocolOA, ProtocolPA
-from pu_toolbox.experiment.protocols import SelectionProtocol
 
-class FixedThresholdPA(SelectionProtocol):
+class FixedThresholdPA(ProtocolPA):
     name = "PA-fixed"
 
-    def select(self, trajectories, val_part, threshold_candidates=None, *, class_prior=None):
-        artifact = ProtocolPA().select(
-            trajectories, val_part, np.array([0.5]), class_prior=class_prior,
+    def select(self, trajectories, val_part, threshold_candidates=None, *, validation_population_prior=None):
+        return super().select(
+            trajectories, val_part, np.array([0.5]),
+            validation_population_prior=validation_population_prior,
         )
-        return replace(artifact, protocol=self.name)
 ```
 
 Inject it through `protocols=[FixedThresholdPA(), ProtocolOA()]`. The complete example injects
@@ -320,3 +319,8 @@ selections, and test metrics for reconstructing the setting.
   background on design rationale.
 - Use the [Survey runbook](../../research/pu_survey/runbook.md) for official
   recipes and workbook generation.
+
+If your custom trainer consumes a prior outside the estimator, put its actual uses in
+`RunTrajectory.prior_consumptions`. Each record gives `consumer`, `partition`, `target`,
+`value`, and `source`. If omitted, the runner records any fitted-estimator evidence.
+The runner never interprets an unused configuration value as a consumed prior.

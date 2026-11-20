@@ -46,5 +46,5 @@ def test_determ_repeated_seed_preserves_labels_and_source_records():
 def test_param_invalid_requested_rate_uses_generator_validation(frequency):
     demo = runpy.run_path(str(EXAMPLE))
     features, truth = demo["make_pool"]()
-    with pytest.raises(ValueError, match="label_frequency"):
+    with pytest.raises(ValueError, match=r"^c must be in \(0, 1\]$"):
         demo["compare_policies"](features, truth, label_frequency=frequency)

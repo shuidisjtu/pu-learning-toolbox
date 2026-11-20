@@ -27,7 +27,11 @@ def setup(method="pulda", seed=3):
     raw = np.random.RandomState(2).randint(0, 256, (12, 3, 8, 8)).astype(np.uint8)
     X, image = fit_survey_image_preprocessing(raw, dataset="cifar10", train_augmentation="none")
     model, record = build_candidate_image_classifier(
-        method, image, seed=seed, class_prior=0.4 if method == "pulda" else None, device="cpu"
+        method,
+        image,
+        seed=seed,
+        training_population_prior=0.4 if method == "pulda" else None,
+        device="cpu",
     )
     if method == "pulda":
         model.set_params(
@@ -68,14 +72,15 @@ def test_basic_real_four_role_fit_selection_cost_and_reclamation(method, tmp_pat
     monkeypatch.setattr(type(model), "fit", audit)
     result = ExperimentRunner(
         seed=3,
-        class_prior=0.4,
+        training_population_prior=0.4,
+        validation_population_prior=0.4,
         protocols=[ProtocolPA(), ProtocolOA()],
         config=config(record),
         manifest_path=str(tmp_path / "manifest.json"),
     ).fit(model, bundle.train, bundle.pu_val, bundle.clean_val, bundle.test)
     assert len(calls) == 1 and not result.failures
     assert set(calls[0][2]) == {"epoch_callback", "os_or_ts"} | (
-        {"class_prior"} if method == "pulda" else set()
+        {"risk_prior"} if method == "pulda" else set()
     )
     np.testing.assert_array_equal(calls[0][0], bundle.train.X)
     assert calls[0][1].sum() == 3 < bundle.train.labels.sum()
@@ -107,11 +112,11 @@ def test_determ_checkpoint_bridge_preserves_plain_fit_weights_history_scores(
     model, record, bundle = setup(method, seed)
     plain = copy.deepcopy(model)
     labels = np.r_[np.ones(3, int), np.zeros(9, int)]
-    kwargs = {"class_prior": 0.4} if method == "pulda" else {}
+    kwargs = {"risk_prior": 0.4} if method == "pulda" else {}
     plain.fit(bundle.train.X, labels, os_or_ts="ts", **kwargs)
     trajectory = CandidateImageCheckpointTrainer(
         record, checkpoint_bytes_per_component=BOUND, checkpoint_dir=tmp_path
-    ).fit(model, bundle.train.X, labels, class_prior=0.4, os_or_ts="ts")
+    ).fit(model, bundle.train.X, labels, training_population_prior=0.4, os_or_ts="ts")
     assert model.history_ == plain.history_ and model.optimizer_steps_ == plain.optimizer_steps_
     np.testing.assert_array_equal(
         model.decision_function(bundle.test.X), plain.decision_function(bundle.test.X)
@@ -147,7 +152,7 @@ def test_basic_preflight_uses_largest_candidate_not_base_budget(method):
         {"checkpoint_bytes_per_component": True},
         {"candidates": []},
         {"candidates": [{"device": "cuda"}]},
-        {"candidates": [{"class_prior": 0.3}]},
+        {"candidates": [{"risk_prior": 0.3}]},
     ],
 )
 def test_param_invalid_contract_refused_before_fit(options, monkeypatch):
@@ -184,6 +189,8 @@ def test_edge_oversize_payload_invalidates_fit_and_retains_all_evidence(tmp_path
         record, checkpoint_bytes_per_component=1, checkpoint_dir=tmp_path
     )
     with pytest.raises(ValueError, match="exceeded declared byte bound"):
-        trainer.fit(model, bundle.train.X, bundle.train.labels, class_prior=0.4, os_or_ts="ts")
+        trainer.fit(
+            model, bundle.train.X, bundle.train.labels, training_population_prior=0.4, os_or_ts="ts"
+        )
     assert not model._is_fitted and not hasattr(model, "training_provenance_")
     assert len(list(tmp_path.rglob("*.pt"))) == 3

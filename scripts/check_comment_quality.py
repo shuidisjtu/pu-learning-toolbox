@@ -70,15 +70,11 @@ STRICT_INLINE_PARTITIONS: tuple[str, ...] = (
     "pu_toolbox/metrics",
     "pu_toolbox/model_selection",
     "pu_toolbox/preprocessing",
-    "pu_toolbox/progress.py",
-    "pu_toolbox/run_config.py",
-    "pu_toolbox/ui",
 )
 # ``core`` and ``losses`` stay pending: their trailing comments are the
 # ones a prior ruling kept on purpose, so a whole-directory strict flip
 # would need that ruling revisited first.
 PENDING_INLINE_PARTITIONS: tuple[str, ...] = (
-    "pu_toolbox/advisor",
     "pu_toolbox/core",
     "pu_toolbox/estimators",
     "pu_toolbox/experiment",
@@ -86,7 +82,6 @@ PENDING_INLINE_PARTITIONS: tuple[str, ...] = (
     "pu_toolbox/prior",
     "pu_toolbox/registry",
     "pu_toolbox/utils",
-    "pu_toolbox/workflows",
 )
 TOOLING_PREFIXES = (
     "fmt",
@@ -179,7 +174,7 @@ def is_strict_path(
 
     A partition ending in ``.py`` is a single file and matches by exact
     relative path; any other partition is a directory and matches by path
-    prefix, so ``pu_toolbox/cli`` covers ``pu_toolbox/cli/run.py``.
+    prefix, so ``pu_toolbox/cli`` covers ``pu_toolbox/cli/profile.py``.
     """
     relative = _relative(path, root)
     for partition in strict_partitions:

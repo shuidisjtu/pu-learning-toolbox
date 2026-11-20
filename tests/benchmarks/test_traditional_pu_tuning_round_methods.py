@@ -120,13 +120,13 @@ class TestMethodRegistration:
         paths = generate_round_configs(
             base,
             tmp_path / "round",
-            [("c1", {"calibration_method": "isotonic", "n_cv_folds": 5})],
+            [("c1", {"calibration_method": "isotonic", "internal_cv_folds": 5})],
             method="elkan_noto",
         )
         produced = json.loads(paths[0].read_text(encoding="utf-8"))
         assert set(produced["methods"]) == {"elkan_noto"}
         params = produced["methods"]["elkan_noto"]
-        assert params["calibration_method"] == "isotonic" and params["n_cv_folds"] == 5
+        assert params["calibration_method"] == "isotonic" and params["internal_cv_folds"] == 5
         assert params["mode"] == "probability_correction"  # untouched default kept
         assert params["base_estimator"] is None  # JSON-inexpressible, kept at null
         assert "locks_source_defaults" not in produced
@@ -146,12 +146,12 @@ class TestMethodRegistration:
         paths = generate_round_configs(
             base,
             tmp_path / "round",
-            [("c1", {"n_cv_folds": 10, "eps": 1e-6})],
+            [("c1", {"internal_cv_folds": 10, "eps": 1e-6})],
             method="elkan_noto",
         )
         produced = json.loads(paths[0].read_text(encoding="utf-8"))
         params = produced["methods"]["elkan_noto"]
-        assert params["n_cv_folds"] == 10 and params["eps"] == 1e-6
+        assert params["internal_cv_folds"] == 10 and params["eps"] == 1e-6
         assert params["calibration_method"] == "sigmoid"  # untouched default kept
         assert params["mode"] == "probability_correction"
 

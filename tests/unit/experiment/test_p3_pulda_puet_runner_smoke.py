@@ -32,7 +32,7 @@ def test_pulda_puet_ts_four_role_pa_oa_smoke(tmp_path, method):
         from pu_toolbox.estimators.risk.pulda import PULDAClassifier
 
         model = PULDAClassifier(
-            class_prior=0.5,
+            risk_prior=0.5,
             hidden_dim=4,
             depth=1,
             warmup_epochs=1,
@@ -45,11 +45,14 @@ def test_pulda_puet_ts_four_role_pa_oa_smoke(tmp_path, method):
     else:
         from pu_toolbox.estimators.risk.puet import PUExtraTreesClassifier
 
-        model = PUExtraTreesClassifier(class_prior=0.5, n_estimators=3, max_depth=3, random_state=0)
+        model = PUExtraTreesClassifier(
+            tree_weight_prior=0.5, n_estimators=3, max_depth=3, random_state=0
+        )
     path = tmp_path / "manifest.json"
     runner = ExperimentRunner(
         seed=0,
-        class_prior=0.5,
+        training_population_prior=0.5,
+        validation_population_prior=0.5,
         manifest_path=str(path),
         config={"method": method, "c": 0.5, "os_or_ts": "ts"},
     )

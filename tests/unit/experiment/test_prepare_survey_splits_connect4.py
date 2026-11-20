@@ -8,6 +8,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from pu_toolbox.preprocessing import read_dataset
+
 pytestmark = pytest.mark.unit
 
 
@@ -32,6 +34,10 @@ def test_basic_connect4_fixed_columns_and_raw_labels(prep_script, tmp_path):
         for symbol, label in zip("box", ("win", "loss", "draw"), strict=True)
     ]
     _write(tmp_path, lines)
+    profile = Path(prep_script.__file__).parents[1] / "pu_toolbox/preprocessing/source_configs"
+    source = read_dataset(profile / "connect_4.json", tmp_path / "connect_4", partition="source")
+    assert source.features[:, 0].tolist() == ["b", "o", "x"]
+    assert source.labels.tolist() == ["win", "loss", "draw"]
     X, y = prep_script.load_connect4(tmp_path)
     assert X.shape == (3, 126)
     assert y.tolist() == ["win", "loss", "draw"]

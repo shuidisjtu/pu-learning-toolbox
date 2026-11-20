@@ -31,7 +31,7 @@ import numpy as np
 def _make_elkan_noto():
     from pu_toolbox.estimators.classic.elkan_noto import ElkanNotoClassifier
 
-    return ElkanNotoClassifier(n_cv_folds=3, random_state=42)
+    return ElkanNotoClassifier(internal_cv_folds=3, random_state=42)
 
 
 def _make_llsvm():
@@ -45,7 +45,7 @@ def _make_upu():
     from pu_toolbox.estimators.risk.upu import UPUClassifier
 
     return UPUClassifier(
-        class_prior=0.5, loss="logistic", reg_lambda=1.0, max_iter=200, random_state=42
+        risk_prior=0.5, loss="logistic", reg_lambda=1.0, max_iter=200, random_state=42
     )
 
 
@@ -61,7 +61,7 @@ def _make_nnpu():
 def _make_pnu():
     from pu_toolbox.estimators.risk.pnu import PNUClassifier
 
-    return PNUClassifier(class_prior=0.4, eta=0.5, reg_lambda=1.0, random_state=42)
+    return PNUClassifier(population_prior=0.4, eta=0.5, reg_lambda=1.0, random_state=42)
 
 
 def _make_ldce():
@@ -142,7 +142,7 @@ def _make_infomax_pu():
     from pu_toolbox.estimators.deep import InfoMaxPUClassifier
 
     return InfoMaxPUClassifier(
-        class_prior=0.33,
+        risk_prior=0.33,
         representation_dim=3,
         hidden_dim=8,
         representation_epochs=1,
@@ -218,7 +218,7 @@ def _make_robust_pu():
     from pu_toolbox.estimators.deep import RobustPUClassifier
 
     return RobustPUClassifier(
-        class_prior=0.33,
+        risk_prior=0.33,
         hidden_dim=8,
         pretrain_epochs=1,
         episodes=1,
@@ -231,7 +231,7 @@ def _make_split_pu():
     from pu_toolbox.estimators.deep import SplitPUClassifier
 
     return SplitPUClassifier(
-        class_prior=0.33,
+        risk_prior=0.33,
         hidden_dim=8,
         teacher_epochs=1,
         split_epochs=1,
@@ -279,7 +279,9 @@ def _make_pulda():
 def _make_puet():
     from pu_toolbox.estimators.risk import PUExtraTreesClassifier
 
-    return PUExtraTreesClassifier(class_prior=0.33, n_estimators=3, max_depth=4, random_state=42)
+    return PUExtraTreesClassifier(
+        tree_weight_prior=0.33, n_estimators=3, max_depth=4, random_state=42
+    )
 
 
 def _make_cvir():
@@ -307,7 +309,7 @@ def _make_genpu():
     from pu_toolbox import GenPUClassifier
 
     return GenPUClassifier(
-        class_prior=0.33,
+        risk_prior=0.33,
         hidden_dim=4,
         latent_dim=2,
         max_epochs=1,
@@ -419,6 +421,8 @@ def fit_kwargs(clf, y) -> dict[str, float]:
     from pu_toolbox.estimators.risk.nnpu import NonNegativePUClassifier
 
     n_p = int(np.sum(y == 1))
-    if isinstance(clf, NonNegativePUClassifier | PUSBKernelClassifier):
-        return {"class_prior": n_p / len(y)}
+    if isinstance(clf, PUSBKernelClassifier):
+        return {"training_table_prior": n_p / len(y)}
+    if isinstance(clf, NonNegativePUClassifier):
+        return {"risk_prior": n_p / len(y)}
     return {}

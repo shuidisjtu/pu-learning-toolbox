@@ -23,7 +23,9 @@
 | 0019 | 注释质量门禁 | 已接受 | 2026-10-03 |
 | 0020 | 主输入标签语义的公共入口门禁 | 已接受 | 2026-10-15 |
 | 0021 | [研究设置的语义维度与共享边界](0021-pu-research-semantics.md) | 已采用边界，运行时分阶段实施 | 2026-11-06 |
+| 0023 | [Explicit method selection](0023-explicit-method-selection.md) | Accepted | 2026-11-18 |
 | 0022 | [对外文档英文单源政策](0022-public-documentation-language.md) | 已接受，分批迁移 | 2026-11-15 |
+| 0024 | [Estimator and experiment workflows](0024-estimator-and-experiment-workflows.md) | Accepted | 2026-11-18 |
 
 ## 规则
 

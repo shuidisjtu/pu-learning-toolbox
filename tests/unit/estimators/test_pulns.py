@@ -9,7 +9,6 @@ from sklearn.base import clone
 
 torch = pytest.importorskip("torch")
 
-from pu_toolbox.advisor import recommend_methods  # noqa: E402
 from pu_toolbox.core.exceptions import NotFittedError  # noqa: E402
 from pu_toolbox.estimators.deep.pulns import (  # noqa: E402
     PULNSClassifier,
@@ -19,7 +18,6 @@ from pu_toolbox.estimators.deep.pulns import (  # noqa: E402
 from pu_toolbox.registry import (  # noqa: E402
     get_algorithm,
     get_metadata,
-    register_all_builtin_methods,
 )
 
 pytestmark = pytest.mark.unit
@@ -76,7 +74,7 @@ def test_missing_support_bad_labels_and_identity_overlap_fail_closed():
         model().fit(X, y, support_data=support, os_or_ts="ts")
 
 
-def test_fit_cloning_pickle_seed_registry_and_auto_recommendation_exclusion():
+def test_fit_cloning_pickle_seed_and_registry():
     X, y, support = data()
     fitted = clone(model())
     with pytest.raises(NotFittedError):
@@ -84,7 +82,7 @@ def test_fit_cloning_pickle_seed_registry_and_auto_recommendation_exclusion():
     fitted.fit(
         X, y, support_data=support, train_indices=np.arange(24), support_indices=np.arange(24, 30)
     )
-    repeated = model().fit(X, y, support_data=support, class_prior=0.4)
+    repeated = model().fit(X, y, support_data=support)
     np.testing.assert_array_equal(fitted.decision_function(X), repeated.decision_function(X))
     assert fitted.history_ == repeated.history_
     assert fitted.support_isolation_status_ == "train_support_ids_disjoint"
@@ -93,11 +91,8 @@ def test_fit_cloning_pickle_seed_registry_and_auto_recommendation_exclusion():
     assert set(fitted.selected_negative_indices_) <= set(np.flatnonzero(y == 0))
     restored = pickle.loads(pickle.dumps(fitted))
     np.testing.assert_array_equal(restored.predict_proba(X), fitted.predict_proba(X))
-    register_all_builtin_methods()
     assert get_algorithm("pulns") is PULNSClassifier
     assert get_metadata("pulns").requires_clean_support
-    recommendation = recommend_methods(X, y, class_prior=0.4, top_k=100)
-    assert "pulns" not in [m.name for m in recommendation.candidates]
 
 
 def test_clean_support_never_enters_classifier_minibatches(monkeypatch):

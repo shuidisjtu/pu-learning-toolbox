@@ -119,7 +119,7 @@ def test_determ_actual_crossfits_are_fresh_heldout_only_then_one_exact_weighted_
         frac_pos2neg=known_noise,
         min_retained=2,
         random_state=7,
-    ).fit(X, s, class_prior=0.4)
+    ).fit(X, s)
     calls = ProbeClassifier.calls
     assert len(calls) == len({id(model) for model in calls}) == folds + 1
     heldout_all, rates = [], []
@@ -152,7 +152,7 @@ def test_determ_actual_crossfits_are_fresh_heldout_only_then_one_exact_weighted_
     assert fitted.estimated_prior_ == pytest.approx(prior) and fitted.pi0_ == pytest.approx(inverse)
     np.testing.assert_array_equal(fitted.predict_proba(X)[:, 1], X[:, 1])
     np.testing.assert_array_equal(fitted.predict(X), X[:, 1] >= 0.5)
-    assert fitted._class_prior is None and fitted.calibration_applied_ is False
+    assert fitted._prior_consumptions_ == () and fitted.calibration_applied_ is False
     np.testing.assert_array_equal(template.rows_, [-1])
     np.testing.assert_array_equal(X, before[0])
     np.testing.assert_array_equal(s, before[1])
@@ -169,7 +169,7 @@ def test_edge_degenerate_prior_is_diagnostic_not_clipped_to_a_valid_prior(monkey
     assert fitted.estimated_prior_ >= 1
     assert fitted.prior_diagnostic_ == "incompatible_noise_model_estimate_not_a_valid_prior"
     assert fitted.pi0_ == 0.9999 and not fitted.pruned_mask_.any()  # Strict ties retain all.
-    assert fitted._class_prior is None and fitted.rho0_ == 0
+    assert fitted._prior_consumptions_ == () and fitted.rho0_ == 0
     assert len(ProbeClassifier.calls) == 4
 
 
@@ -214,11 +214,14 @@ def test_basic_determ_default_logistic_path_and_clone_repeat_without_external_pr
     X = np.random.RandomState(9).normal(size=(48, 3))
     s = np.r_[np.ones(16, int), np.zeros(32, int)]
     first = RankPruningClassifier(random_state=7).fit(X, s)
-    second = clone(first).fit(X, s, class_prior=0.9)
+    second = clone(first).fit(X, s)
     for field in ("oof_probabilities_", "pruned_mask_", "final_sample_weights_"):
         np.testing.assert_array_equal(getattr(first, field), getattr(second, field))
     np.testing.assert_array_equal(first.predict_proba(X), second.predict_proba(X))
-    assert first.rho1_ == second.rho1_ and first._class_prior is second._class_prior is None
+    assert (
+        first.rho1_ == second.rho1_
+        and first._prior_consumptions_ == second._prior_consumptions_ == ()
+    )
 
 
 @pytest.mark.parametrize("score", [0.0, 0.1, 0.2, 0.5, 1.0])
@@ -254,7 +257,7 @@ def test_edge_real_dummy_prior_cv_handles_nonbinary_constant_probability(known_n
     assert not fitted.pruned_mask_.any()  # All OOF scores tie at the pruning boundary.
     expected_positive = (9 / (1 - rho)) / (9 / (1 - rho) + 81)
     np.testing.assert_allclose(fitted.predict_proba(X)[:, 1], expected_positive)
-    assert fitted._class_prior is None and fitted.rho0_ == 0.0
+    assert fitted._prior_consumptions_ == () and fitted.rho0_ == 0.0
 
 
 @pytest.mark.parametrize("seed", [0, 5, 91])

@@ -22,7 +22,7 @@ def data():
 
 def estimator(**kwargs):
     return NonNegativePUClassifier(
-        max_epochs=2, batch_size=3, class_prior=0.4, random_state=7, device="cpu", **kwargs
+        max_epochs=2, batch_size=3, risk_prior=0.4, random_state=7, device="cpu", **kwargs
     )
 
 
@@ -33,7 +33,7 @@ def assert_unfitted(model, features):
             getattr(model, method)(features)
 
 
-@pytest.mark.parametrize("kwargs", [{"class_prior": -0.1}, {"y_true": None}])
+@pytest.mark.parametrize("kwargs", [{"risk_prior": -0.1}, {"y_true": None}])
 def test_param_failed_refit_including_argument_binding_blocks_old_predictions(kwargs):
     pytest.importorskip("torch")
     features, labels = data()

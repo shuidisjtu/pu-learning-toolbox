@@ -12,13 +12,11 @@ pytestmark = pytest.mark.unit
 
 def test_basic_full_estimator_is_registered_with_unavailable_author_code_status():
     from pu_toolbox import P3MixClassifier as PublicP3MixClassifier
-    from pu_toolbox.registry import get_algorithm, list_algorithms, register_all_builtin_methods
+    from pu_toolbox.registry import get_algorithm, list_algorithms
 
-    register_all_builtin_methods()
     methods = {meta.name: meta for meta in list_algorithms()}
     assert "p3mix" in methods
     assert methods["p3mix"].source_status.value == "not_found"
-    assert methods["p3mix"].implementation_status.value == "native"
     assert get_algorithm("p3mix") is PublicP3MixClassifier
 
 

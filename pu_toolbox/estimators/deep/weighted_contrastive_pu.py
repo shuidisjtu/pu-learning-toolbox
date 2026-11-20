@@ -15,13 +15,14 @@ from ...core.tags import (
     AlgorithmFamily,
     Assumption,
     Backend,
-    ImplementationStatus,
     Maturity,
+    PriorConsumer,
     SampleWeightSupport,
     Scenario,
     SourceStatus,
 )
 from ...core.validation import check_scalar_in_range, validate_pu_X_y
+from ...prior._evidence import training_prior_uses
 from ._validation import validate_encoder_features
 
 
@@ -47,9 +48,22 @@ class WeightedContrastivePUClassifier(BasePUClassifier):
     label_semantics = "pu"
     assumption = (Assumption.SCAR,)
     scenario = (Scenario.CASE_CONTROL,)
-    requires_class_prior = True
-    class_prior_target = "native_unlabeled"
-    implementation_status = ImplementationStatus.NATIVE
+    _runner_prior_parameter = "unlabeled_prior"
+    prior_consumers = (
+        PriorConsumer(
+            "wconpu_pseudo_label_initialization",
+            "native_unlabeled",
+            parameter="unlabeled_prior",
+            requires_input=True,
+        ),
+        PriorConsumer(
+            "wconpu_distribution_alignment",
+            "native_unlabeled",
+            parameter="unlabeled_prior",
+            requires_input=True,
+        ),
+    )
+    _prior_consumptions_ = ()
     source_status = SourceStatus.NOT_FOUND
     backend = Backend.TORCH
     maturity = Maturity.RESEARCH
@@ -61,7 +75,7 @@ class WeightedContrastivePUClassifier(BasePUClassifier):
 
     def __init__(
         self,
-        class_prior: float,
+        unlabeled_prior: float,
         *,
         encoder=None,
         hidden_dim: int = 128,
@@ -84,7 +98,7 @@ class WeightedContrastivePUClassifier(BasePUClassifier):
         device: str | None = None,
     ) -> None:
         super().__init__()
-        self.class_prior = class_prior
+        self.unlabeled_prior = unlabeled_prior
         self.encoder = encoder
         self.hidden_dim = hidden_dim
         self.embedding_dim = embedding_dim
@@ -105,8 +119,8 @@ class WeightedContrastivePUClassifier(BasePUClassifier):
         self.random_state = random_state
         self.device = device
 
-    def _validate_parameters(self, class_prior: float) -> None:
-        check_scalar_in_range(class_prior, 0.0, 1.0, "class_prior", inclusive=False)
+    def _validate_parameters(self, unlabeled_prior: float) -> None:
+        check_scalar_in_range(unlabeled_prior, 0.0, 1.0, "unlabeled_prior", inclusive=False)
         for name, value in (
             ("hidden_dim", self.hidden_dim),
             ("embedding_dim", self.embedding_dim),
@@ -134,7 +148,7 @@ class WeightedContrastivePUClassifier(BasePUClassifier):
         X: np.ndarray,
         y_pu: np.ndarray,
         *,
-        class_prior: float | None = None,
+        unlabeled_prior: float | None = None,
         sample_weight: np.ndarray | None = None,
     ) -> WeightedContrastivePUClassifier:
         """Fit the WConPU collaborative contrastive/classification objective."""
@@ -157,7 +171,7 @@ class WeightedContrastivePUClassifier(BasePUClassifier):
         X = np.asarray(X, dtype=np.float32)
         if not np.isfinite(X).all():
             raise ValueError("X contains NaN or Inf values")
-        pi = self.class_prior if class_prior is None else class_prior
+        pi = self.unlabeled_prior if unlabeled_prior is None else unlabeled_prior
         self._validate_parameters(pi)
         if sample_weight is not None:
             sample_weight = np.asarray(sample_weight, dtype=np.float32)
@@ -418,11 +432,18 @@ class WeightedContrastivePUClassifier(BasePUClassifier):
         self.queue_labels_ = queue_labels.detach().cpu().numpy()
         self.sat_global_ = float(sat_global.cpu())
         self.sat_classwise_ = sat_classwise.cpu().numpy()
-        self.class_prior_ = float(pi)
+        self.unlabeled_prior_ = float(pi)
+        self._prior_consumptions_ = training_prior_uses(
+            "wconpu_pseudo_label_initialization",
+            "wconpu_distribution_alignment",
+            value=pi,
+            target="native_unlabeled",
+            parameter="unlabeled_prior",
+            fit_override=unlabeled_prior,
+        )
         self.classes_ = np.array([0, 1])
         self.device_ = device
         self.final_learning_rate_ = float(optimizer.param_groups[0]["lr"])
-        self._class_prior = self.class_prior_
         self._X_shape_ = X.shape
         self._is_fitted = True
         return self

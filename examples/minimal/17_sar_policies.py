@@ -8,7 +8,7 @@ import json
 import numpy as np
 
 from pu_toolbox.experiment import SARLBEAGenerator, SARLBEBGenerator
-from pu_toolbox.preprocessing import make_sar_labels
+from pu_toolbox.preprocessing import PULabelingConfig, SourcePartition, construct_pu_dataset
 from pu_toolbox.utils.serialization import canonical_hash
 
 
@@ -27,16 +27,21 @@ def compare_policies(
     records = []
     n_positive = int(np.sum(truth == 1))
     for mechanism in ("linear", "nonlinear"):
-        labels, propensity = make_sar_labels(
-            features,
-            truth,
-            mechanism=mechanism,
-            label_frequency=label_frequency,
-            strength=1.5,
-            ensure_labeled=False,
-            return_propensity=True,
-            random_state=seed,
+        result = construct_pu_dataset(
+            SourcePartition(features, truth, "sar-policy-example", "source"),
+            PULabelingConfig(
+                "sar",
+                "bernoulli",
+                seed,
+                c=label_frequency,
+                propensity_rule=mechanism,
+                strength=1.5,
+                ensure_labeled=False,
+            ),
+            positive_classes=(1,),
+            negative_classes=(0,),
         )
+        labels, propensity = result.observations.labels, result.audit.propensity
         n_labeled = int(labels.sum())
         records.append(
             (

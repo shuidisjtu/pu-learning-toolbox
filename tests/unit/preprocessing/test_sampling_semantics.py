@@ -1,6 +1,6 @@
 # ruff: noqa: N803, N806
 
-"""Sampling designs, legacy aliases, and independent Gaussian P/U sources."""
+"""Sampling designs, fixed-count labeling, and independent Gaussian P/U sources."""
 
 from __future__ import annotations
 
@@ -10,62 +10,56 @@ import numpy as np
 import pytest
 
 from pu_toolbox import preprocessing
+from pu_toolbox.preprocessing import PULabelingConfig, SourcePartition, construct_pu_dataset
 
 pytestmark = pytest.mark.unit
 
 
-def test_basic_fixed_count_preserves_os_pool_and_empirical_prior():
+def test_determ_os_fixed_count_construction_replays_seed():
     y_true = np.array([1] * 40 + [0] * 60)
-    labels = preprocessing.make_fixed_count_labels(y_true, n_labeled=20, random_state=7)
-    assert labels.shape == y_true.shape
-    assert np.count_nonzero(labels) == 20
-    assert np.all(labels[y_true == 0] == 0)
-    assert np.mean(y_true[labels == 0]) == pytest.approx(0.25)
-    dispatched = preprocessing.make_pu_labels(
-        y_true, mechanism="fixed_count", n_labeled=20, random_state=7
+    features = np.arange(len(y_true)).reshape(-1, 1)
+    source = SourcePartition(features, y_true, "fixture", "train")
+
+    def labels(seed):
+        return construct_pu_dataset(
+            source,
+            PULabelingConfig("scar", "fixed_count", seed, n_labeled=20),
+            positive_classes=(1,),
+            negative_classes=(0,),
+        ).observations.labels
+
+    first = labels(7)
+    np.testing.assert_array_equal(first, labels(7))
+    assert not np.array_equal(first, labels(8))
+    assert first.shape == y_true.shape
+    assert np.count_nonzero(first) == 20
+    assert np.all(first[y_true == 0] == 0)
+    assert np.mean(y_true[first == 0]) == pytest.approx(0.25)
+
+
+def test_edge_fixed_count_accepts_single_positive_class():
+    truth = np.ones(3, dtype=int)
+    result = construct_pu_dataset(
+        SourcePartition(np.ones((3, 1)), truth, "fixture", "train"),
+        PULabelingConfig("scar", "fixed_count", 0, n_labeled=3),
+        positive_classes=(1,),
+        negative_classes=(0,),
     )
-    np.testing.assert_array_equal(labels, dispatched)
-
-
-@pytest.mark.parametrize("use_dispatcher", [False, True])
-def test_determ_legacy_case_control_alias_keeps_seed_and_warns(use_dispatcher):
-    y_true = np.array([1] * 40 + [0] * 60)
-    expected = preprocessing.make_fixed_count_labels(y_true, n_labeled=20, random_state=7)
-    with pytest.warns(FutureWarning, match="make_fixed_count_labels.*2.0"):
-        if use_dispatcher:
-            labels = preprocessing.make_pu_labels(
-                y_true, mechanism="case_control", n_labeled=20, random_state=7
-            )
-        else:
-            labels = preprocessing.make_case_control_labels(y_true, 20, random_state=7)
-    np.testing.assert_array_equal(labels, expected)
-
-
-@pytest.mark.parametrize("n_labeled", [True, 1.5, 0, -1, 4])
-def test_param_fixed_count_rejects_invalid_counts(n_labeled):
-    with pytest.raises((ValueError, TypeError), match="n_labeled"):
-        preprocessing.make_fixed_count_labels(np.array([1, 1, 0]), n_labeled=n_labeled)
-
-
-def test_edge_fixed_count_all_positive_and_missing_dispatch_count():
-    labels = preprocessing.make_fixed_count_labels(np.ones(3), n_labeled=3, random_state=0)
-    np.testing.assert_array_equal(labels, np.ones(3))
-    with pytest.raises(ValueError, match="n_labeled"):
-        preprocessing.make_pu_labels(np.array([1, 0]), mechanism="fixed_count")
+    np.testing.assert_array_equal(result.observations.labels, truth)
 
 
 def test_basic_independent_ts_records_population_and_empirical_priors():
     X, y_pu, y_true, metadata = preprocessing.make_gaussian_case_control_data(
-        n_p=50, n_u=10000, class_prior=0.4, n_features=2, random_state=17
+        n_p=50, n_u=10000, population_prior=0.4, n_features=2, random_state=17
     )
     assert X.shape == (10050, 2)
     assert np.all(y_true[y_pu == 1] == 1)
     assert np.count_nonzero(y_pu) == 50
     assert 0.37 < y_true[y_pu == 0].mean() < 0.43
     assert metadata["input_sampling"] == "ts"
-    assert metadata["population_class_prior"] == 0.4
-    assert metadata["unlabeled_class_prior"] == pytest.approx(y_true[y_pu == 0].mean())
-    assert metadata["training_class_prior"] == pytest.approx(y_true.mean())
+    assert metadata["design_population_prior"] == 0.4
+    assert metadata["empirical_unlabeled_prior"] == pytest.approx(y_true[y_pu == 0].mean())
+    assert metadata["empirical_training_table_prior"] == pytest.approx(y_true.mean())
     assert metadata["sampling_policy"] == "independent_generative"
     sample_ids = metadata["sample_ids"]
     assert len(set(sample_ids)) == len(X)
@@ -74,7 +68,7 @@ def test_basic_independent_ts_records_population_and_empirical_priors():
 
 
 def test_determ_independent_ts_draws_reproduce_both_class_distributions():
-    kwargs = dict(n_p=8, n_u=40, class_prior=0.4, n_features=2, random_state=13)
+    kwargs = dict(n_p=8, n_u=40, population_prior=0.4, n_features=2, random_state=13)
     first = preprocessing.make_gaussian_case_control_data(**kwargs)
     second = preprocessing.make_gaussian_case_control_data(**kwargs)
     for actual, expected in zip(first[:3], second[:3], strict=True):
@@ -90,13 +84,13 @@ def test_determ_independent_ts_draws_reproduce_both_class_distributions():
     np.testing.assert_array_equal(y_true[y_pu == 0], unlabeled_truth)
 
 
-@pytest.mark.parametrize("class_prior", [0.0, 1.0])
-def test_edge_ts_population_can_have_a_single_class(class_prior):
+@pytest.mark.parametrize("population_prior", [0.0, 1.0])
+def test_edge_ts_population_can_have_a_single_class(population_prior):
     _, y_pu, y_true, metadata = preprocessing.make_gaussian_case_control_data(
-        n_p=1, n_u=3, class_prior=class_prior, random_state=0
+        n_p=1, n_u=3, population_prior=population_prior, random_state=0
     )
-    assert np.all(y_true[y_pu == 0] == class_prior)
-    assert metadata["unlabeled_class_prior"] == class_prior
+    assert np.all(y_true[y_pu == 0] == population_prior)
+    assert metadata["empirical_unlabeled_prior"] == population_prior
 
 
 def test_determ_ts_randomstate_reuses_stream_and_metadata_serializes():
@@ -119,11 +113,11 @@ def test_determ_ts_randomstate_reuses_stream_and_metadata_serializes():
         {"n_u": -1},
         {"n_u": 1.5},
         {"n_features": True},
-        {"class_prior": -0.1},
-        {"class_prior": 1.1},
-        {"class_prior": float("nan")},
-        {"class_prior": True},
-        {"class_prior": "0.4"},
+        {"population_prior": -0.1},
+        {"population_prior": 1.1},
+        {"population_prior": float("nan")},
+        {"population_prior": True},
+        {"population_prior": "0.4"},
         {"separation": float("inf")},
         {"separation": -1},
     ],

@@ -107,6 +107,11 @@ class TestRouteTrainingView:
         route_training_view(kwargs, _params(estimator), "os", estimator)
         assert kwargs == {}
 
+    def test_edge_unknown_view_is_not_silently_omitted(self):
+        estimator = _DeclaringEstimator()
+        with pytest.raises(ValueError, match="os_or_ts"):
+            route_training_view({}, _params(estimator), "TS", estimator)
+
     def test_ts_is_routed_when_declared(self):
         declaring = _DeclaringEstimator()
         kwargs: dict = {}

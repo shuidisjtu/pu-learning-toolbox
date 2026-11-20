@@ -229,7 +229,11 @@ nonlinear:  e(x) = sigmoid(a1*x1 + a2*x2^2 + b)
 | kernel `sigma_grid` | 9 个值 | `0.01` 至 `20` 的带宽网格 | 官方源码 |
 | kernel `reg_grid` | 8 个值 | `0.001` 至 `5` 的正则网格 | 官方源码 |
 | kernel `random_state` | 2018 | 中心和折分配随机源 | 官方实验初始 seed |
-| kernel `class_prior` | 必填 | PU 风险与分位数规则中的 `pi` | 官方算法 |
+| kernel `training_table_prior` | 拟合时必需 | 整张训练表的分数分位阈值 | 官方分位数规则 |
+| kernel `risk_prior` | 复用训练表先验 | 拟合及内部 CV 风险项的 `pi` | 官方风险定义 |
+
+构造与 `fit` 使用同一组参数名，`fit` 显式值优先。原生 OS 与 TS-compatible 的最终风险池
+分别使用原生 U 和完整 OS 混合池；内部 CV 的验证项始终使用训练折分中的原生 U 与已解析的风险标量。
 
 ### 7.4 论文 Table 2 数据协议
 

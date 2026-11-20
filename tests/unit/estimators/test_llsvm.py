@@ -33,8 +33,8 @@ def _make_two_gaussian_pu(rng, n_p=50, n_u=150, d=2, separation=3.0):
     )
     X = np.vstack([X_p, X_u])
     y_pu = np.concatenate([np.ones(n_p), np.zeros(n_u)])
-    class_prior = n_pos_in_u / n_u
-    return X, y_pu, class_prior
+    calibration_prior = n_pos_in_u / n_u
+    return X, y_pu, calibration_prior
 
 
 # ═════════════════════════════════════════════════════════════════════
@@ -49,7 +49,7 @@ class TestLLSVMAPI:
     def test_basic_metadata(self):
         clf = LLSVMClassifier()
         assert clf.family.value == "risk_estimation"
-        assert clf.requires_class_prior is True
+        assert clf.prior_consumers[0].requires_input is False
         assert clf.backend.value == "numpy"
         meta = clf.get_pu_metadata()
         assert meta["is_fitted"] is False
@@ -57,7 +57,7 @@ class TestLLSVMAPI:
     def test_basic_fit_predict_shapes(self, rng):
         X, y_pu, pi = _make_two_gaussian_pu(rng)
         clf = LLSVMClassifier(max_epochs=50, random_state=42)
-        clf.fit(X, y_pu, class_prior=pi)
+        clf.fit(X, y_pu, calibration_prior=pi)
         assert clf._is_fitted
         assert clf.coef_.shape == (X.shape[1],)
         assert isinstance(clf.intercept_, float)
@@ -72,7 +72,7 @@ class TestLLSVMAPI:
     def test_basic_predict_proba_not_implemented(self, rng):
         X, y_pu, pi = _make_two_gaussian_pu(rng)
         clf = LLSVMClassifier(max_epochs=10, random_state=42)
-        clf.fit(X, y_pu, class_prior=pi)
+        clf.fit(X, y_pu, calibration_prior=pi)
         with pytest.raises(NotImplementedError):
             clf.predict_proba(X)
 
@@ -89,17 +89,17 @@ class TestLLSVMValidation:
     def test_param_invalid_class_prior_raises(self, rng):
         X, y_pu, _ = _make_two_gaussian_pu(rng)
         for bad_pi in (0.0, 1.0, -0.1, 1.5):
-            with pytest.raises(ValueError, match="class_prior"):
-                LLSVMClassifier(max_epochs=10).fit(X, y_pu, class_prior=bad_pi)
+            with pytest.raises(ValueError, match="calibration_prior"):
+                LLSVMClassifier(max_epochs=10).fit(X, y_pu, calibration_prior=bad_pi)
 
     def test_param_invalid_hyperparams_raise(self, rng):
         X, y_pu, pi = _make_two_gaussian_pu(rng)
         with pytest.raises(ValueError, match="alpha"):
-            LLSVMClassifier(alpha=-1.0, max_epochs=10).fit(X, y_pu, class_prior=pi)
+            LLSVMClassifier(alpha=-1.0, max_epochs=10).fit(X, y_pu, calibration_prior=pi)
         with pytest.raises(ValueError, match="learning_rate"):
-            LLSVMClassifier(learning_rate=0.0, max_epochs=10).fit(X, y_pu, class_prior=pi)
+            LLSVMClassifier(learning_rate=0.0, max_epochs=10).fit(X, y_pu, calibration_prior=pi)
         with pytest.raises(ValueError, match="max_epochs"):
-            LLSVMClassifier(max_epochs=0).fit(X, y_pu, class_prior=pi)
+            LLSVMClassifier(max_epochs=0).fit(X, y_pu, calibration_prior=pi)
 
 
 # ═════════════════════════════════════════════════════════════════════
@@ -119,7 +119,7 @@ class TestLLSVMTraining:
             learning_rate=1e-4,
             random_state=42,
         )
-        clf.fit(X, y_pu, class_prior=pi)
+        clf.fit(X, y_pu, calibration_prior=pi)
         scores = clf.decision_function(X)
         # Positive samples should mostly get positive scores
         pos_scores = scores[y_pu == 1]
@@ -135,7 +135,7 @@ class TestLLSVMTraining:
         """
         X, y_pu, pi = _make_two_gaussian_pu(rng)
         clf = LLSVMClassifier(max_epochs=200, early_stopping=False, random_state=42)
-        clf.fit(X, y_pu, class_prior=pi)
+        clf.fit(X, y_pu, calibration_prior=pi)
         history = clf.loss_history_
         assert len(history) == 200
         # First loss > last loss (allowing noise, compare first 10% vs last 10%)
@@ -151,7 +151,7 @@ class TestLLSVMTraining:
             max_epochs=300,
             random_state=42,
         )
-        clf.fit(X, y_pu, class_prior=pi)
+        clf.fit(X, y_pu, calibration_prior=pi)
         preds = clf.predict(X)
         # Should have both 0 and 1 predictions
         assert len(np.unique(preds)) == 2, "All predictions are the same class"
@@ -160,8 +160,8 @@ class TestLLSVMTraining:
         """All expected fitted attributes are set."""
         X, y_pu, pi = _make_two_gaussian_pu(rng)
         clf = LLSVMClassifier(max_epochs=10, random_state=42)
-        clf.fit(X, y_pu, class_prior=pi)
-        assert clf.class_prior_ == pytest.approx(pi)
+        clf.fit(X, y_pu, calibration_prior=pi)
+        assert clf.calibration_prior_ == pytest.approx(pi)
         assert clf.calibration_target_ == pytest.approx(2 * pi - 1)
         assert clf.n_positive_ == int(np.sum(y_pu == 1))
         assert clf.n_unlabeled_ == int(np.sum(y_pu == 0))
@@ -187,18 +187,18 @@ class TestLLSVMEarlyStopping:
             min_epochs=200,
             random_state=42,
         )
-        clf.fit(X, y_pu, class_prior=pi)
+        clf.fit(X, y_pu, calibration_prior=pi)
         assert 200 <= len(clf.loss_history_) < 3000
         assert clf.get_pu_metadata()["n_epochs"] == len(clf.loss_history_)
 
     def test_param_invalid_early_stopping_params_raise(self, rng):
         X, y_pu, pi = _make_two_gaussian_pu(rng)
         with pytest.raises(ValueError, match="patience"):
-            LLSVMClassifier(patience=0, max_epochs=10).fit(X, y_pu, class_prior=pi)
+            LLSVMClassifier(patience=0, max_epochs=10).fit(X, y_pu, calibration_prior=pi)
         with pytest.raises(ValueError, match="tol"):
-            LLSVMClassifier(tol=0.0, max_epochs=10).fit(X, y_pu, class_prior=pi)
+            LLSVMClassifier(tol=0.0, max_epochs=10).fit(X, y_pu, calibration_prior=pi)
         with pytest.raises(ValueError, match="min_epochs"):
-            LLSVMClassifier(min_epochs=0, max_epochs=10).fit(X, y_pu, class_prior=pi)
+            LLSVMClassifier(min_epochs=0, max_epochs=10).fit(X, y_pu, calibration_prior=pi)
 
     def test_edge_min_epochs_floor_respected(self, rng):
         """tol=10.0 always fires, but min_epochs keeps training to the floor."""
@@ -210,7 +210,7 @@ class TestLLSVMEarlyStopping:
             min_epochs=150,
             random_state=42,
         )
-        clf.fit(X, y_pu, class_prior=pi)
+        clf.fit(X, y_pu, calibration_prior=pi)
         assert len(clf.loss_history_) == 150
 
     def test_deterministic_early_stopping_same_seed(self, rng):
@@ -218,8 +218,8 @@ class TestLLSVMEarlyStopping:
         X, y_pu, pi = _make_two_gaussian_pu(rng)
         clf1 = LLSVMClassifier(max_epochs=3000, tol=1e-3, random_state=42)
         clf2 = LLSVMClassifier(max_epochs=3000, tol=1e-3, random_state=42)
-        clf1.fit(X, y_pu, class_prior=pi)
-        clf2.fit(X, y_pu, class_prior=pi)
+        clf1.fit(X, y_pu, calibration_prior=pi)
+        clf2.fit(X, y_pu, calibration_prior=pi)
         assert len(clf1.loss_history_) == len(clf2.loss_history_)
         np.testing.assert_allclose(clf1.coef_, clf2.coef_)
 
@@ -234,11 +234,12 @@ class TestLLSVMClassPrior:
     """Class prior: explicit vs auto-estimated."""
 
     def test_basic_explicit_prior(self, rng):
-        """Explicit class_prior is stored correctly."""
+        """Explicit calibration_prior is stored correctly."""
         X, y_pu, _ = _make_two_gaussian_pu(rng)
         clf = LLSVMClassifier(max_epochs=10, random_state=42)
-        clf.fit(X, y_pu, class_prior=0.4)
-        assert clf.class_prior_ == pytest.approx(0.4)
+        clf.fit(X, y_pu, calibration_prior=0.4)
+        assert clf.calibration_prior_ == pytest.approx(0.4)
+        assert clf._prior_consumptions_[0]["source"] == "fit.calibration_prior"
         assert clf.calibration_target_ == pytest.approx(2 * 0.4 - 1)
 
     def test_basic_auto_estimated_prior(self, rng):
@@ -246,5 +247,5 @@ class TestLLSVMClassPrior:
         X, y_pu, _ = _make_two_gaussian_pu(rng, n_p=80, n_u=200)
         clf = LLSVMClassifier(max_epochs=10, random_state=42)
         clf.fit(X, y_pu)
-        assert 0.0 < clf.class_prior_ < 1.0
-        assert clf.calibration_target_ == pytest.approx(2 * clf.class_prior_ - 1)
+        assert 0.0 < clf.calibration_prior_ < 1.0
+        assert clf.calibration_target_ == pytest.approx(2 * clf.calibration_prior_ - 1)

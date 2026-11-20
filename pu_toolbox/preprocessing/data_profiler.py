@@ -152,13 +152,13 @@ def _validate_x(X: Any) -> np.ndarray | sparse.csr_matrix:
     return array
 
 
-def _validate_class_prior(class_prior: float | None) -> float | None:
-    if class_prior is None:
+def _validate_class_prior(evaluation_prior: float | None) -> float | None:
+    if evaluation_prior is None:
         return None
-    if isinstance(class_prior, bool) or not np.isscalar(class_prior):
-        raise TypeError("class_prior must be a real scalar or None.")
-    value = float(class_prior)
-    check_scalar_in_range(value, 0.0, 1.0, "class_prior", inclusive=False)
+    if isinstance(evaluation_prior, bool) or not np.isscalar(evaluation_prior):
+        raise TypeError("evaluation_prior must be a real scalar or None.")
+    value = float(evaluation_prior)
+    check_scalar_in_range(value, 0.0, 1.0, "evaluation_prior", inclusive=False)
     return value
 
 
@@ -229,7 +229,7 @@ def profile_pu_data(
     y_pu: np.ndarray,
     *,
     y_true: np.ndarray | None = None,
-    class_prior: float | None = None,
+    evaluation_prior: float | None = None,
     input_sampling: str = "os",
     min_labeled_positives: int = 30,
     max_unlabeled_to_positive: float = 100.0,
@@ -250,7 +250,7 @@ def profile_pu_data(
     y_true : array-like of shape (n_samples,), optional
         Audited binary truth. When provided, the SCAR diagnostic conditions on
         true positives and becomes identifying for feature-dependent selection.
-    class_prior : float, optional
+    evaluation_prior : float, optional
         Assumed or independently estimated ``P(Y=1)``. It is used only for a
         labeling-frequency consistency check; it is never estimated from
         hidden truth.
@@ -296,11 +296,11 @@ def profile_pu_data(
         raise ValueError(f"y_pu must be 1-D; got ndim={y.ndim}.")
     if X_array.shape[0] != len(y):
         raise ValueError(f"X has {X_array.shape[0]} samples but y_pu has {len(y)}.")
-    prior = _validate_class_prior(class_prior)
+    prior = _validate_class_prior(evaluation_prior)
     audited_truth = _validate_audit_labels(y_true, y)
 
     summary = pu_data_summary(X_array, y)
-    summary["class_prior"] = prior
+    summary["evaluation_prior"] = prior
     summary["input_sampling"] = input_sampling
     summary["implied_label_frequency"] = (
         summary["positive_fraction"] / prior

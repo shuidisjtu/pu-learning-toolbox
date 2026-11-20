@@ -7,8 +7,7 @@ Positive-unlabeled (PU) learning has two observed supervision roles: **labeled p
 partial supervision distinguishes PU learning from fully supervised classification.
 
 The toolbox accepts existing PU arrays `X, y_pu`, constructs PU labels from fully labeled data
-using `make_scar_labels`, `make_fixed_count_labels`, or `make_sar_labels`, and provides synthetic
-data generators. For real PU data, record the actual sampling and labeling process. For controlled
+using `construct_pu_dataset`, and provides synthetic data through `simulate_pu_dataset`. For real PU data, record the actual sampling and labeling process. For controlled
 experiments, record the source data, sampling policy, and labeling mechanism. Operational details
 are in the [sampling guide](../howto/pu_sampling.md) and
 [SCAR/SAR simulation guide](../howto/sar_simulation.md).
@@ -70,16 +69,14 @@ Different method families use the prior differently:
   which can estimate π internally. The current `pusb` baseline does not consume a prior.
   Class-prior estimators themselves estimate a prior rather than requiring it as input.
 
-`requires_class_prior=False` means the caller may omit an external prior. It does not imply the
+An empty `required_prior_parameters` means the caller may omit an external prior. It does not imply the
 method has no prior-related quantities: LDCE/KLDCE derive a prior from the labeled fraction and
 `flip_probability`, and InfoMax can estimate one internally. For the current per-implementation
 inventory, see the [semantic baseline](../../dev/pu_research_semantics.md#4-历史-os_or_ts-的逐实现清单)
 (optional Chinese implementation background).
 
-The pipeline resolves a call-level population prior first, then a classifier constructor prior
-according to its declared target, then estimation when required. See the
-[pipeline guide](../howto/pipeline.md) for operations and
-[sensitivity analysis](../howto/sensitivity_analysis.md) for misspecification checks.
+Estimate or supply the prior explicitly and convert it for the estimator risk pool. See the
+[migration guide](../howto/pipeline.md) and [sensitivity analysis](../howto/sensitivity_analysis.md).
 
 ## 5. Differences from supervised learning
 
@@ -109,7 +106,7 @@ population prior + OA + trainable ResNet-18” specifies separate choices. SCAR/
 labeling mechanism, OS/TS describes input sampling, and historical `os_or_ts` describes a training
 risk view.
 
-For existing PU data, read sampling → labeling assumptions → priors → pipeline. For synthetic
+For existing PU data, read sampling → labeling assumptions → priors → direct estimator training. For synthetic
 or comparative studies, read sampling → labeling policy → risk view → model selection →
 representations → DIY experiments. Sources and formula conditions are listed on the relevant
 concept pages. The [semantic baseline](../../dev/pu_research_semantics.md) is optional Chinese

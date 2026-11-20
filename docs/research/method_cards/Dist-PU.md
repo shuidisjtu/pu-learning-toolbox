@@ -213,7 +213,7 @@ H(q)=-q\log q-(1-q)\log(1-q).
 
 | 参数 | 论文对应 |
 |---|---|
-| `class_prior` | `pi_P` |
+| `distribution_prior` | `pi_P` |
 | `alignment_weight` | 论文 `R_lab` 权重 |
 | `entropy_weight` | 论文 `mu` |
 | `mixup_weight` | 论文 `nu` 的工程化参数 |

@@ -31,7 +31,7 @@ def _data():
 
 def _model(**kwargs):
     args = dict(
-        class_prior=0.4,
+        risk_prior=0.4,
         hidden_dim=8,
         teacher_epochs=1,
         split_epochs=1,
@@ -138,6 +138,25 @@ def test_prediction_rejects_float32_overflow():
         fitted.decision_function(huge)
 
 
+@pytest.mark.parametrize(
+    "view,target", [("os", "native_unlabeled"), ("ts", "positive_union_unlabeled")]
+)
+def test_param_teacher_risk_consumes_fit_override_only(view, target):
+    X, y = _data()
+    model = _model(risk_prior=0.2).fit(X, y, risk_prior=0.6, os_or_ts=view)
+    reference = _model(risk_prior=0.6).fit(X, y, os_or_ts=view)
+    assert model.history_ == reference.history_
+    assert model._prior_consumptions_ == (
+        {
+            "consumer": "split_pu_teacher_risk",
+            "partition": "train",
+            "target": target,
+            "value": 0.6,
+            "source": "fit.risk_prior",
+        },
+    )
+
+
 def test_ts_calibrates_teacher_but_preserves_original_u_split():
     X, y = _data()
     assert (
@@ -165,11 +184,11 @@ def test_ts_teacher_marginal_is_exact_p_u_union(monkeypatch):
     original = module._nnpu_train_step
     inputs = []
 
-    def capture(pos_loss, pos_as_negative, unl_loss, *, class_prior):
+    def capture(pos_loss, pos_as_negative, unl_loss, *, risk_prior):
         inputs.append(
             (float(pos_loss.detach()), float(pos_as_negative.detach()), float(unl_loss.detach()))
         )
-        return original(pos_loss, pos_as_negative, unl_loss, class_prior=class_prior)
+        return original(pos_loss, pos_as_negative, unl_loss, risk_prior=risk_prior)
 
     monkeypatch.setattr(module, "_nnpu_train_step", capture)
     _model(batch_size=32).fit(X, y, os_or_ts="os")
@@ -182,8 +201,8 @@ def test_ts_teacher_marginal_is_exact_p_u_union(monkeypatch):
 @pytest.mark.parametrize(
     "params, message",
     [
-        ({"class_prior": None}, "class_prior"),
-        ({"class_prior": 1}, "class_prior"),
+        ({"risk_prior": None}, "risk_prior"),
+        ({"risk_prior": 1}, "risk_prior"),
         ({"teacher_epochs": 0}, "teacher_epochs"),
         ({"rounds": 0}, "rounds"),
         ({"agreement_threshold": 1}, "agreement_threshold"),

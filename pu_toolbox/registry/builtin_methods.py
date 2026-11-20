@@ -1,18 +1,12 @@
-"""Built-in algorithm registry — native paper methods.
-
-Each entry captures canonical metadata (name, aliases, family, scenario,
-assumption, source status, upstream URL, license, etc.) so that the
-registry browser and documentation generators have complete
-information even before training logic is implemented.
-
-See the method cards under ``docs/research/method_cards/`` for per-method source
-status, and ``docs/user/concepts/method_selection.md`` §§2–5 for the algorithm
-family taxonomy.
-"""
+"""Built-in algorithm metadata paired with concrete estimator import paths."""
 
 from __future__ import annotations
 
-from ..core.exceptions import RegistryError
+from collections.abc import Iterator
+from copy import deepcopy
+from importlib import import_module
+from typing import TYPE_CHECKING
+
 from ..core.tags import (
     AlgorithmFamily as Fam,
 )
@@ -24,9 +18,6 @@ from ..core.tags import (
     Maturity,
 )
 from ..core.tags import (
-    ImplementationStatus as Impl,
-)
-from ..core.tags import (
     Scenario as Scn,
 )
 from ..core.tags import (
@@ -36,34 +27,15 @@ from ..core.tags import (
     TrainingCost as Cost,
 )
 from .metadata import AlgorithmMetadata
-from .registry import register_method
 
-# ═════════════════════════════════════════════════════════════════════
-# Canonical method list -- this ordering is the authority; the registry is
-# the code-side source of truth for algorithm metadata.
-# ═════════════════════════════════════════════════════════════════════
+if TYPE_CHECKING:
+    from .registry import _EstimatorClass
 
-# NOTE: a bound entry must NOT repeat the fields its estimator class declares --
-# the class is the source, and `_sync_class_metadata_to_registry` overwrites the
-# literal at registration, so a literal there is computed and then discarded.
-# An entry with no bound class (`api_only`) is the opposite: the literal IS the
-# source, so it must declare all eight entry fields (the `_SYNC_FIELDS` members
-# that entries carry).
-# `tests/test_builtin_methods.py::test_static_entries_do_not_redeclare_class_fields`
-# enforces both halves.
-# The five `_SYNC_FIELDS` members an entry never carries -- `native_architectures`,
-# `input_ndims`, `encoder_parameter`, `trains_encoder`, `label_semantics` -- come
-# from the class or the dataclass default.  An `api_only` entry has no class to
-# declare them, so it takes the defaults; the guard's first clause rejects one
-# written here (known boundary, recorded in docs/dev/single_source_map.md).
-
-_BUILTIN: list[AlgorithmMetadata] = [
+# Estimator attributes own the capabilities they declare; literals supply the rest.
+_BUILTIN: dict[tuple[str, str], AlgorithmMetadata] = {
     # ── 1. Class-Prior Estimation ──────────────────────────────────
-    AlgorithmMetadata(
-        # NOTE: km1/km2 are NOT aliases here -- they denote
-        # KernelMeanPriorEstimator(variant=...) in PUPipeline (a different
-        # algorithm), so binding them to ClassPriorEstimator would repeat
-        # the kldce alias bug.
+    ("..prior.pen_l1", "ClassPriorEstimator"): AlgorithmMetadata(
+        # km1/km2 name KernelMeanPriorEstimator variants, not penL1 aliases.
         name="class_prior_estimation",
         aliases=["cpe", "pen_l1", "pe"],
         deprecated_aliases=["pe"],
@@ -71,19 +43,17 @@ _BUILTIN: list[AlgorithmMetadata] = [
         paper="Class-Prior Estimation for Learning from Positive and Unlabeled Data",
         scenario=[Scn.SINGLE_TRAINING_SET, Scn.CASE_CONTROL],
         assumption=[Asm.SCAR],
-        requires_class_prior=False,
         supports_sparse=False,
         supports_gpu=False,
         backend=Backend.NUMPY,
         maturity=Maturity.STABLE,
-        implementation_status=Impl.NATIVE,
         source_status=Src.OFFICIAL_RELATED,
         upstream_url="http://www.mcduplessis.com/index.php/software/",
         license="unknown",
         training_cost=Cost.LOW,  # convex scipy solve over a coarse grid
     ),
     # ── 2. ReCPE ───────────────────────────────────────────────────
-    AlgorithmMetadata(
+    ("..prior.recpe", "ReCPEEstimator"): AlgorithmMetadata(
         name="recpe",
         aliases=["re_cpe", "rethinking_cpe"],
         paper="Rethinking Class-Prior Estimation for Positive-Unlabeled Learning",
@@ -94,7 +64,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         training_cost=Cost.LOW,  # convex scipy solve
     ),
     # ── 3. Elkan-Noto ──────────────────────────────────────────────
-    AlgorithmMetadata(
+    ("..estimators.classic.elkan_noto", "ElkanNotoClassifier"): AlgorithmMetadata(
         name="elkan_noto",
         aliases=["en", "elkan-noto", "elkan_noto_calibration"],
         paper="Learning Classifiers from Only Positive and Unlabeled Data",
@@ -105,7 +75,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         training_cost=Cost.LOW,  # sklearn LogisticRegression wrapper
     ),
     # ── 4. Convex PU / uPU ─────────────────────────────────────────
-    AlgorithmMetadata(
+    ("..estimators.risk.upu", "UPUClassifier"): AlgorithmMetadata(
         name="upu",
         aliases=["convex_pu", "unbiased_pu", "u-pu"],
         paper="Convex Formulation for Learning from Positive and Unlabeled Data",
@@ -116,9 +86,9 @@ _BUILTIN: list[AlgorithmMetadata] = [
         training_cost=Cost.LOW,  # convex objective, scipy minimize
     ),
     # ── 5. nnPU ────────────────────────────────────────────────────
-    AlgorithmMetadata(
+    ("..estimators.risk.nnpu", "NonNegativePUClassifier"): AlgorithmMetadata(
         name="nnpu",
-        aliases=["non_negative_pu", "nn-pu", "nnPU"],
+        aliases=["non_negative_pu", "nn-pu"],
         paper="Positive-Unlabeled Learning with Non-Negative Risk Estimator",
         supports_sparse=False,
         supports_gpu=True,
@@ -127,7 +97,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         training_cost=Cost.MEDIUM,  # torch, fixed 200 epochs
     ),
     # ── 6. PNU ─────────────────────────────────────────────────────
-    AlgorithmMetadata(
+    ("..estimators.risk.pnu", "PNUClassifier"): AlgorithmMetadata(
         name="pnu",
         aliases=["pnu_classifier", "pn-pu-nu"],
         paper=(
@@ -141,7 +111,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         training_cost=Cost.LOW,  # closed-form linear solve
     ),
     # ── 7. Centroid Estimation / LDCE / KLDCE ──────────────────────
-    AlgorithmMetadata(
+    ("..estimators.risk.ldce", "LDCEClassifier"): AlgorithmMetadata(
         name="centroid_pu",
         aliases=["ldce", "centroid_estimation"],
         paper="Loss Decomposition and Centroid Estimation for Positive and Unlabeled Learning",
@@ -151,7 +121,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         license="unknown",
         training_cost=Cost.MEDIUM,  # fixed 10000-iteration alternating scheme
     ),
-    AlgorithmMetadata(
+    ("..estimators.risk.kldce", "KLDCEClassifier"): AlgorithmMetadata(
         name="kldce",
         aliases=["kernelized_ldce"],
         paper=(
@@ -165,7 +135,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         training_cost=Cost.MEDIUM,  # 100 iterations, QP oracle on RBF
     ),
     # ── 8. LLSVM ───────────────────────────────────────────────────
-    AlgorithmMetadata(
+    ("..estimators.classic.llsvm", "LLSVMClassifier"): AlgorithmMetadata(
         name="llsvm",
         aliases=["large_margin_svm", "label_calibrated_svm"],
         paper=(
@@ -179,7 +149,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         training_cost=Cost.HIGH,  # fixed 3000-epoch non-convex SGD
     ),
     # ── 9. Dist-PU ─────────────────────────────────────────────────
-    AlgorithmMetadata(
+    ("..estimators.risk.dist_pu", "DistPUClassifier"): AlgorithmMetadata(
         name="dist_pu",
         aliases=["distribution_pu", "distpu"],
         paper="Dist-PU: Positive-Unlabeled Learning from a Label Distribution Perspective",
@@ -190,7 +160,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         training_cost=Cost.MEDIUM,  # torch; optional two-stage 120-epoch mini-batch adapter
     ),
     # ── 9a. Variational PU (experimental tabular adapter) ───────────
-    AlgorithmMetadata(
+    ("..estimators.risk.vpu", "VPUClassifier"): AlgorithmMetadata(
         name="vpu",
         aliases=["variational_pu"],
         paper="A Variational Approach for Learning from Positive and Unlabeled Data",
@@ -201,7 +171,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         training_cost=Cost.MEDIUM,
     ),
     # ── 9b. PULDA (experimental tabular adapter) ───────────────────
-    AlgorithmMetadata(
+    ("..estimators.risk.pulda", "PULDAClassifier"): AlgorithmMetadata(
         name="pulda",
         aliases=["label_distribution_alignment"],
         paper="Positive-Unlabeled Learning with Label Distribution Alignment",
@@ -212,11 +182,10 @@ _BUILTIN: list[AlgorithmMetadata] = [
         training_cost=Cost.HIGH,
     ),
     # ── 10. PUSB ───────────────────────────────────────────────────
-    AlgorithmMetadata(
+    ("..estimators.bias_aware.pusb", "PUSBClassifier"): AlgorithmMetadata(
         name="pusb",
         aliases=["biased_pu", "selection_bias_pu", "nnPUSB"],
         paper="Learning from Positive and Unlabeled Data with a Selection Bias",
-        requires_class_prior=False,
         supports_sparse=False,
         supports_gpu=False,
         upstream_url="https://github.com/MasaKat0/PUlearning",
@@ -224,7 +193,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         training_cost=Cost.MEDIUM,  # sklearn LR, max_iter=1000
     ),
     # ── 10a. PUSB kernel (official-aligned RBF adapter) ─────────────
-    AlgorithmMetadata(
+    ("..estimators.bias_aware.pusb_kernel", "PUSBKernelClassifier"): AlgorithmMetadata(
         name="pusb_kernel",
         aliases=["kernelized_pusb"],
         paper=(
@@ -238,18 +207,17 @@ _BUILTIN: list[AlgorithmMetadata] = [
         training_cost=Cost.HIGH,  # full (sigma x reg) grid CV + refit
     ),
     # ── 11. LBE ────────────────────────────────────────────────────
-    AlgorithmMetadata(
+    ("..estimators.bias_aware.lbe", "LBEClassifier"): AlgorithmMetadata(
         name="lbe",
         aliases=["labeling_bias", "labeling_bias_estimation"],
         paper="Instance-Dependent Positive and Unlabeled Learning with Labeling Bias Estimation",
-        requires_class_prior=False,
         supports_sparse=False,
         supports_gpu=False,
         upstream_url="https://gcatnjust.github.io/ChenGong/code/LBE_TPAMI21.rar",
         license="needs_review",
         training_cost=Cost.MEDIUM,  # sklearn LR, max_iter=1000 + EM loop
     ),
-    AlgorithmMetadata(
+    ("..estimators.deep.lbe_neural", "NeuralLBEClassifier"): AlgorithmMetadata(
         name="lbe_neural",
         aliases=["neural_lbe"],
         paper="Instance-Dependent Positive and Unlabeled Learning with Labeling Bias Estimation",
@@ -260,7 +228,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         training_cost=Cost.MEDIUM,
     ),
     # ── 12. Self-PU ────────────────────────────────────────────────
-    AlgorithmMetadata(
+    ("..estimators.deep.self_pu", "SelfPUClassifier"): AlgorithmMetadata(
         name="self_pu",
         aliases=["self_pu_classifier"],
         paper="Self-PU: Self Boosted and Calibrated Positive-Unlabeled Training",
@@ -271,7 +239,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         training_cost=Cost.MEDIUM,  # torch, 200 epochs
     ),
     # ── 13. InfoMax PU ─────────────────────────────────────────────
-    AlgorithmMetadata(
+    ("..estimators.deep.infomax_pu", "InfoMaxPUClassifier"): AlgorithmMetadata(
         name="infomax_pu",
         aliases=["information_theoretic_pu", "pu_representation"],
         paper="Information-Theoretic Representation Learning for Positive-Unlabeled Classification",
@@ -282,7 +250,10 @@ _BUILTIN: list[AlgorithmMetadata] = [
         training_cost=Cost.HIGH,  # torch, ~600 epochs (two-stage)
     ),
     # ── 14. Weighted Contrastive PU ────────────────────────────────
-    AlgorithmMetadata(
+    (
+        "..estimators.deep.weighted_contrastive_pu",
+        "WeightedContrastivePUClassifier",
+    ): AlgorithmMetadata(
         name="weighted_contrastive_pu",
         aliases=["wcon_pu", "wconpu", "contrastive_pu"],
         paper=(
@@ -296,7 +267,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         training_cost=Cost.HIGH,  # torch, 100 epochs
     ),
     # ── 15. DGPU ───────────────────────────────────────────────────
-    AlgorithmMetadata(
+    ("..estimators.deep.dgpu", "DGPUClassifier"): AlgorithmMetadata(
         name="dgpu",
         aliases=["discriminative_generative_pu"],
         paper="Discriminative-Generative Positive and Unlabeled Learning",
@@ -307,7 +278,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         training_cost=Cost.MEDIUM,  # torch, 200 epochs + generative sampling
     ),
     # ── 16. GradPU ──────────────────────────────────────────────────
-    AlgorithmMetadata(
+    ("..estimators.deep.grad_pu", "GradPUClassifier"): AlgorithmMetadata(
         name="gradpu",
         aliases=["grad_pu"],
         paper="GradPU: Positive-Unlabeled Learning via Gradient Penalty and Positive Upweighting",
@@ -318,7 +289,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         training_cost=Cost.HIGH,  # second-order input-gradient penalty
     ),
     # ── 17. PU Extra Trees ──────────────────────────────────────────
-    AlgorithmMetadata(
+    ("..estimators.risk.puet", "PUExtraTreesClassifier"): AlgorithmMetadata(
         name="puet",
         aliases=["pu_extra_trees"],
         paper=(
@@ -331,7 +302,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         license="MIT",
         training_cost=Cost.HIGH,  # default 100-tree CPU forest
     ),
-    AlgorithmMetadata(
+    ("..estimators.deep.robust_pu", "RobustPUClassifier"): AlgorithmMetadata(
         name="robust_pu",
         aliases=["robust-pu"],
         paper="Robust Positive-Unlabeled Learning via Noise Negative Sample Self-correction",
@@ -341,7 +312,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         license="unknown",
         training_cost=Cost.HIGH,
     ),
-    AlgorithmMetadata(
+    ("..estimators.risk.cvir", "CVIRClassifier"): AlgorithmMetadata(
         name="cvir",
         aliases=["conditional_value_ignoring_risk"],
         paper="Mixture Proportion Estimation and PU Learning: A Modern Approach",
@@ -351,7 +322,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         license="Apache-2.0",
         training_cost=Cost.MEDIUM,
     ),
-    AlgorithmMetadata(
+    ("..estimators.deep.split_pu", "SplitPUClassifier"): AlgorithmMetadata(
         name="split_pu",
         aliases=["split-pu"],
         paper="Split-PU: Hardness-aware Training Strategy for Positive-Unlabeled Learning",
@@ -361,7 +332,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         license="unknown",
         training_cost=Cost.HIGH,
     ),
-    AlgorithmMetadata(
+    ("..estimators.deep.tedn", "TEDnClassifier"): AlgorithmMetadata(
         name="tedn",
         aliases=["transform_estimate_discard", "transform-estimate-discard"],
         paper="Mixture Proportion Estimation and PU Learning: A Modern Approach (TEDn)",
@@ -371,7 +342,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         license="Apache-2.0",
         training_cost=Cost.HIGH,
     ),
-    AlgorithmMetadata(
+    ("..estimators.deep.lagam", "LaGAMClassifier"): AlgorithmMetadata(
         name="lagam",
         aliases=["la_gam"],
         paper="Positive-Unlabeled Learning by Latent Group-Aware Meta Disambiguation",
@@ -382,7 +353,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         license="unknown",
         training_cost=Cost.HIGH,
     ),
-    AlgorithmMetadata(
+    ("..estimators.deep.gen_pu", "GenPUClassifier"): AlgorithmMetadata(
         name="genpu",
         aliases=["gen_pu", "generative_adversarial_pu"],
         paper="Generative Adversarial Positive-Unlabelled Learning",
@@ -392,7 +363,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         license="unknown",
         training_cost=Cost.HIGH,
     ),
-    AlgorithmMetadata(
+    ("..estimators.deep.holistic_pu", "HolisticPUClassifier"): AlgorithmMetadata(
         name="holistic_pu",
         aliases=["holisticpu", "holistic"],
         paper=(
@@ -405,7 +376,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         license="unknown",
         training_cost=Cost.HIGH,
     ),
-    AlgorithmMetadata(
+    ("..estimators.deep.pan", "PANClassifier"): AlgorithmMetadata(
         name="pan",
         aliases=["predictive_adversarial_pu"],
         paper="Predictive Adversarial Learning from Positive and Unlabeled Data",
@@ -415,7 +386,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         license="needs_review",
         training_cost=Cost.HIGH,
     ),
-    AlgorithmMetadata(
+    ("..estimators.deep.p3mix", "P3MixClassifier"): AlgorithmMetadata(
         name="p3mix",
         aliases=["p3_mix", "positive_unlabeled_partially_positive_mixup"],
         paper="Who Is Your Right Mixup Partner in Positive and Unlabeled Learning?",
@@ -425,7 +396,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         license="unknown",
         training_cost=Cost.HIGH,
     ),
-    AlgorithmMetadata(
+    ("..estimators.classic.rank_pruning", "RankPruningClassifier"): AlgorithmMetadata(
         name="rp",
         aliases=["rank_pruning", "rankpruning"],
         paper=(
@@ -438,7 +409,7 @@ _BUILTIN: list[AlgorithmMetadata] = [
         license="MIT",
         training_cost=Cost.MEDIUM,
     ),
-    AlgorithmMetadata(
+    ("..estimators.deep.pulns", "PULNSClassifier"): AlgorithmMetadata(
         name="pulns",
         aliases=["negative_selector_pu"],
         paper="PULNS: Positive-Unlabeled Learning with Effective Negative Sample Selector",
@@ -449,92 +420,10 @@ _BUILTIN: list[AlgorithmMetadata] = [
         license="needs_review",
         training_cost=Cost.HIGH,
     ),
-]
+}
 
 
-def register_all_builtin_methods() -> int:
-    """Register all paper methods and bind native implementations.
-
-    Returns the number of methods newly registered.  Idempotent —
-    methods already present in the registry are skipped, so calling
-    this repeatedly (e.g. from the recommender and the workflow
-    pipeline entry points) is safe without clearing the registry.
-
-    Native implementations (those with ``implementation_status=NATIVE``)
-    are automatically bound to their registry entries.
-    """
-    count = 0
-    for meta in _BUILTIN:
-        try:
-            register_method(meta)
-            count += 1
-        except RegistryError:
-            # Already registered by an earlier caller; skip.
-            continue
-
-    # Bind native estimator classes to their registry entries.
-    _bind_native_classes()
-    return count
-
-
-def _bind_native_classes() -> None:
-    """Lazy-import and bind native estimator classes.
-
-    Called automatically by :func:`register_all_builtin_methods`.
-    Safe to call repeatedly — each method checks individually
-    whether it is already bound.
-
-    When adding a new NATIVE method, add an entry to
-    ``_NATIVE_IMPORTS`` below.
-    """
-    from .registry import _CLASSES, bind_estimator_class
-
-    _native_imports: list[tuple[str, str, str]] = [
-        # (canonical_name, module_path, class_name)
-        ("elkan_noto", "..estimators.classic.elkan_noto", "ElkanNotoClassifier"),
-        ("upu", "..estimators.risk.upu", "UPUClassifier"),
-        ("nnpu", "..estimators.risk.nnpu", "NonNegativePUClassifier"),
-        ("pnu", "..estimators.risk.pnu", "PNUClassifier"),
-        ("recpe", "..prior.recpe", "ReCPEEstimator"),
-        ("class_prior_estimation", "..prior.pen_l1", "ClassPriorEstimator"),
-        ("dist_pu", "..estimators.risk.dist_pu", "DistPUClassifier"),
-        ("vpu", "..estimators.risk.vpu", "VPUClassifier"),
-        ("pulda", "..estimators.risk.pulda", "PULDAClassifier"),
-        ("pusb", "..estimators.bias_aware.pusb", "PUSBClassifier"),
-        ("pusb_kernel", "..estimators.bias_aware.pusb_kernel", "PUSBKernelClassifier"),
-        ("lbe", "..estimators.bias_aware.lbe", "LBEClassifier"),
-        ("lbe_neural", "..estimators.deep.lbe_neural", "NeuralLBEClassifier"),
-        ("centroid_pu", "..estimators.risk.ldce", "LDCEClassifier"),
-        ("kldce", "..estimators.risk.kldce", "KLDCEClassifier"),
-        ("llsvm", "..estimators.classic.llsvm", "LLSVMClassifier"),
-        ("self_pu", "..estimators.deep.self_pu", "SelfPUClassifier"),
-        ("infomax_pu", "..estimators.deep.infomax_pu", "InfoMaxPUClassifier"),
-        (
-            "weighted_contrastive_pu",
-            "..estimators.deep.weighted_contrastive_pu",
-            "WeightedContrastivePUClassifier",
-        ),
-        ("dgpu", "..estimators.deep.dgpu", "DGPUClassifier"),
-        ("gradpu", "..estimators.deep.grad_pu", "GradPUClassifier"),
-        ("puet", "..estimators.risk.puet", "PUExtraTreesClassifier"),
-        ("robust_pu", "..estimators.deep.robust_pu", "RobustPUClassifier"),
-        ("cvir", "..estimators.risk.cvir", "CVIRClassifier"),
-        ("tedn", "..estimators.deep.tedn", "TEDnClassifier"),
-        ("split_pu", "..estimators.deep.split_pu", "SplitPUClassifier"),
-        ("lagam", "..estimators.deep.lagam", "LaGAMClassifier"),
-        ("pan", "..estimators.deep.pan", "PANClassifier"),
-        ("p3mix", "..estimators.deep.p3mix", "P3MixClassifier"),
-        ("genpu", "..estimators.deep.gen_pu", "GenPUClassifier"),
-        ("holistic_pu", "..estimators.deep.holistic_pu", "HolisticPUClassifier"),
-        ("rp", "..estimators.classic.rank_pruning", "RankPruningClassifier"),
-        ("pulns", "..estimators.deep.pulns", "PULNSClassifier"),
-    ]
-
-    for canonical_name, module_path, class_name in _native_imports:
-        if canonical_name in _CLASSES:
-            continue  # Already bound
-        import importlib
-
-        mod = importlib.import_module(module_path, __package__)
-        cls = getattr(mod, class_name)
-        bind_estimator_class(canonical_name, cls)
+def _load_builtin_methods() -> Iterator[tuple[AlgorithmMetadata, _EstimatorClass]]:
+    for (module_path, class_name), metadata in _BUILTIN.items():
+        module = import_module(module_path, __package__)
+        yield deepcopy(metadata), getattr(module, class_name)

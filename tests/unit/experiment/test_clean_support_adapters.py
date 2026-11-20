@@ -42,7 +42,7 @@ def inputs():
 def estimator(method):
     if method == "self_pu":
         return SelfPUClassifier(
-            class_prior=0.5,
+            risk_prior=0.5,
             hidden_dim=4,
             warmup_epochs=0,
             self_paced_start=0,
@@ -84,7 +84,8 @@ def trainer(method, support):
 def run(method, parts, support, path=None):
     return ExperimentRunner(
         seed=0,
-        class_prior=0.5,
+        training_population_prior=0.5,
+        validation_population_prior=0.5,
         protocols=[ProtocolOA()],
         manifest_path=path,
         config={"c": 0.5, "trainer": trainer(method, support)},
@@ -143,12 +144,16 @@ def test_param_pa_and_ts_not_silently_supported(method):
     parts, support = inputs()
     with pytest.raises(ValueError, match="OA only"):
         ExperimentRunner(
-            protocols=[ProtocolPA()], class_prior=0.5, config={"trainer": trainer(method, support)}
+            protocols=[ProtocolPA()],
+            training_population_prior=0.5,
+            validation_population_prior=0.5,
+            config={"trainer": trainer(method, support)},
         ).fit(estimator(method), *parts)
     with pytest.raises(ValueError):
         ExperimentRunner(
             protocols=[ProtocolOA()],
-            class_prior=0.5,
+            training_population_prior=0.5,
+            validation_population_prior=0.5,
             config={"trainer": trainer(method, support), "os_or_ts": "ts"},
         ).fit(estimator(method), *parts)
 
@@ -170,7 +175,8 @@ def test_edge_warmup_only_budget_refused_before_fit(method, monkeypatch):
     with pytest.raises(ValueError, match="budget"):
         ExperimentRunner(
             protocols=[ProtocolOA()],
-            class_prior=0.5,
+            training_population_prior=0.5,
+            validation_population_prior=0.5,
             config={"trainer": adapter},
         ).fit(model, *parts)
     assert not adapter._prepared

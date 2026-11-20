@@ -22,14 +22,15 @@ from ...core.tags import (
     AlgorithmFamily,
     Assumption,
     Backend,
-    ImplementationStatus,
     Maturity,
+    PriorConsumer,
     SampleWeightSupport,
     Scenario,
     SourceStatus,
 )
 from ...core.training_views import RUN_VIEWS
 from ...core.validation import check_scalar_in_range, validate_pu_X_y
+from ...prior._evidence import risk_pool_target, training_prior_uses
 from ..deep._encoder_policy import (
     is_frozen_encoder,
     keep_frozen_encoder_eval,
@@ -177,9 +178,35 @@ class DistPUClassifier(BasePUClassifier):
     label_semantics = "pu"
     assumption = (Assumption.SCAR,)
     scenario = (Scenario.CASE_CONTROL,)
-    requires_class_prior = True
-    class_prior_target = "native_unlabeled"
-    implementation_status = ImplementationStatus.NATIVE
+    _runner_prior_parameter = "distribution_prior"
+    prior_consumers = (
+        PriorConsumer(
+            "dist_pu_expectation_alignment",
+            "native_unlabeled",
+            parameter="distribution_prior",
+            requires_input=True,
+            ts_compatible_target="positive_union_unlabeled",
+        ),
+        PriorConsumer(
+            "dist_pu_author_histogram_alignment",
+            "native_unlabeled",
+            parameter="distribution_prior",
+            ts_compatible_target="positive_union_unlabeled",
+        ),
+        PriorConsumer(
+            "dist_pu_warmup_histogram",
+            "native_unlabeled",
+            parameter="distribution_prior",
+            ts_compatible_target="positive_union_unlabeled",
+        ),
+        PriorConsumer(
+            "dist_pu_staged_histogram",
+            "native_unlabeled",
+            parameter="distribution_prior",
+            ts_compatible_target="positive_union_unlabeled",
+        ),
+    )
+    _prior_consumptions_ = ()
     source_status = SourceStatus.OFFICIAL_EXACT
     backend = Backend.TORCH
     maturity = Maturity.RESEARCH
@@ -191,7 +218,7 @@ class DistPUClassifier(BasePUClassifier):
 
     def __init__(
         self,
-        class_prior: float,
+        distribution_prior: float,
         *,
         hidden_dim: int = 64,
         epochs: int = 100,
@@ -218,7 +245,7 @@ class DistPUClassifier(BasePUClassifier):
         encoder: Any | None = None,
     ) -> None:
         super().__init__()
-        self.class_prior = class_prior
+        self.distribution_prior = distribution_prior
         self.hidden_dim = hidden_dim
         self.epochs = epochs
         self.batch_size = batch_size
@@ -259,7 +286,7 @@ class DistPUClassifier(BasePUClassifier):
         X,
         y_pu,
         *,
-        class_prior=None,
+        distribution_prior=None,
         sample_weight=None,
         os_or_ts="os",
         epoch_callback=None,
@@ -274,8 +301,8 @@ class DistPUClassifier(BasePUClassifier):
             and trained end to end, and must return finite 2-D features.
         y_pu : array-like of shape (n_samples,)
             PU labels.  +1 = labeled positive, 0 = unlabeled.
-        class_prior : float, optional
-            Override the constructor's ``class_prior``.  Must be in (0, 1).
+        distribution_prior : float, optional
+            Override the constructor's ``distribution_prior``.  Must be in (0, 1).
         distribution_loss (constructor setting) : {"expectation", "author_histogram"}
             Select the default clean-room mean-squared alignment or the
             author's one-bin polar histogram L1 terms. The histogram option
@@ -323,8 +350,8 @@ class DistPUClassifier(BasePUClassifier):
         # Before any RNG use: an invalid view must not perturb the torch seed.
         if os_or_ts not in RUN_VIEWS:
             raise ValueError(f"os_or_ts must be 'os' or 'ts'; got {os_or_ts!r}.")
-        pi = self.class_prior if class_prior is None else class_prior
-        check_scalar_in_range(pi, 0.0, 1.0, "class_prior", inclusive=False)
+        pi = self.distribution_prior if distribution_prior is None else distribution_prior
+        check_scalar_in_range(pi, 0.0, 1.0, "distribution_prior", inclusive=False)
         if self.epochs < 1 or self.hidden_dim < 1:
             raise ValueError("epochs must be >= 1 and hidden_dim must be >= 1")
         if self.distribution_loss not in {"expectation", "author_histogram"}:
@@ -399,6 +426,18 @@ class DistPUClassifier(BasePUClassifier):
             )
             self.model_ = nn.Sequential(self.encoder_, head).to(device, dtype=torch.float32)
         optimizer = torch.optim.Adam(self.model_.parameters(), lr=self.learning_rate)
+        if self.training_recipe == "author_staged":
+            consumers = ("dist_pu_warmup_histogram", "dist_pu_staged_histogram")
+        else:
+            consumers = (f"dist_pu_{self.distribution_loss}_alignment",)
+        self.distribution_prior_ = float(pi)
+        self._prior_consumptions_ = training_prior_uses(
+            *consumers,
+            value=pi,
+            target=risk_pool_target(os_or_ts == "ts"),
+            parameter="distribution_prior",
+            fit_override=distribution_prior,
+        )
         data_device = "cpu" if self.training_recipe == "author_staged" else device
         tx = torch.as_tensor(X, device=data_device)
         ty = torch.as_tensor(y_pu, device=data_device)
@@ -437,7 +476,6 @@ class DistPUClassifier(BasePUClassifier):
             "batch_size_parameter_effective": False,
             "configured_batch_size_not_used": repr(self.batch_size),
             "mixup_pool": "entire_training_matrix",
-            "class_prior_used": float(pi),
             "formal_admission": False,
         }
         self.loss_history_ = []
@@ -481,7 +519,7 @@ class DistPUClassifier(BasePUClassifier):
             if epoch_callback is not None:
                 epoch_callback(epoch, self)
         self.classes_ = np.array([0, 1])
-        self._class_prior, self._X_shape_, self._is_fitted = pi, X.shape, True
+        self._X_shape_, self._is_fitted = X.shape, True
         self.training_provenance_["optimizer_steps"] = self.optimizer_steps_
         self.training_provenance_["epochs_completed"] = self.epochs_completed_
         self.device_ = device
@@ -561,7 +599,6 @@ class DistPUClassifier(BasePUClassifier):
             "mixup_lambda": "Beta(alpha, alpha), no max(lambda, 1-lambda) bias",
             "mixup_partner": "uniform random permutation within current minibatch",
             "mixup_pool": "current minibatch; no full-dataset mixup in staged path",
-            "class_prior_used": float(pi),
             "clean_labels_read": False,
             "test_labels_read": False,
             "formal_admission": False,
@@ -708,7 +745,7 @@ class DistPUClassifier(BasePUClassifier):
 
         self.model_.eval()
         self.classes_ = np.array([0, 1])
-        self._class_prior, self._X_shape_, self._is_fitted = pi, tuple(tx.shape), True
+        self._X_shape_, self._is_fitted = tuple(tx.shape), True
         warmup_steps = self.warmup_epochs
         pu_steps = self.pu_epochs * int(np.ceil(n_samples / self.batch_size))
         self.training_provenance_["scheduler_step_counts"] = {

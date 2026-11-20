@@ -37,18 +37,18 @@ class SelfPUCleanSupportTrainer(_IndependentSupportTrainer):
         # the historical U-only ablation path used by the frozen pilot.
         model.set_params(distillation_scope="paper_population")
 
-    def fit(self, estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None):
+    def fit(self, estimator, X, y, *, training_population_prior=None, val_pu=None, os_or_ts=None):
         self._require_prepared(estimator, X, os_or_ts)
-        self._fit_support_estimator(estimator, X, y, class_prior=class_prior)
+        self._fit_support_estimator(estimator, X, y, risk_prior=training_population_prior)
         self._finish_support_fit(estimator, y)
         return RunTrajectory(epochs=[EpochRecord(epoch=1, metrics={})], model=estimator)
 
-    def _fit_support_estimator(self, estimator, X, y, *, class_prior, epoch_callback=None):
+    def _fit_support_estimator(self, estimator, X, y, *, risk_prior, epoch_callback=None):
         callbacks = {} if epoch_callback is None else {"epoch_callback": epoch_callback}
         estimator.fit(
             X,
             y,
-            class_prior=class_prior,
+            risk_prior=risk_prior,
             validation_data=(self.support.X, self.support.labels),
             os_or_ts="os",
             **callbacks,
@@ -59,6 +59,9 @@ class SelfPUCleanSupportTrainer(_IndependentSupportTrainer):
         if estimator.calibration_mode_ != "clean_validation_meta" or active_records == 0:
             raise ValueError("Self-PU support path unexpectedly ran an ablation")
         self._finish_provenance(estimator, y)
+        for use in estimator._prior_consumptions_:
+            if use["source"] == "fit.risk_prior":
+                use["source"] = "support_trainer.training_population_prior"
         estimator.training_provenance_.update(
             {
                 "method_variant": "clean_meta_extra_support",
@@ -67,7 +70,6 @@ class SelfPUCleanSupportTrainer(_IndependentSupportTrainer):
                 "teacher_selection_metrics": list(estimator.teacher_selection_metrics_),
                 "meta_reweight_records": len(estimator.reweight_history_),
                 "active_meta_reweight_records": active_records,
-                "training_population_prior": estimator.class_prior_,
                 "executed_epochs": len(estimator.history_["epoch"]),
                 "selection_scope": "terminal_after_support_teacher_selection",
                 "paper_full_reproduction": False,
@@ -99,12 +101,12 @@ class _SelfPUTSCleanSupportTrainer(SelfPUCleanSupportTrainer):
             }
         )
 
-    def _fit_support_estimator(self, estimator, X, y, *, class_prior, epoch_callback=None):
+    def _fit_support_estimator(self, estimator, X, y, *, risk_prior, epoch_callback=None):
         callbacks = {} if epoch_callback is None else {"epoch_callback": epoch_callback}
         estimator.fit(
             X,
             y,
-            class_prior=class_prior,
+            risk_prior=risk_prior,
             validation_data=(self.support.X, self.support.labels),
             os_or_ts="ts",
             **callbacks,
@@ -146,13 +148,13 @@ class LaGAMCleanSupportTrainer(_IndependentSupportTrainer):
             self._prepared = False
             raise ValueError("LaGAM meta budget must extend beyond warmup")
 
-    def fit(self, estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None):
+    def fit(self, estimator, X, y, *, val_pu=None, os_or_ts=None):
         self._require_prepared(estimator, X, os_or_ts)
-        self._fit_support_estimator(estimator, X, y, class_prior=class_prior)
+        self._fit_support_estimator(estimator, X, y, risk_prior=None)
         self._finish_support_fit(estimator, y)
         return RunTrajectory(epochs=[EpochRecord(epoch=1, metrics={})], model=estimator)
 
-    def _fit_support_estimator(self, estimator, X, y, *, class_prior, epoch_callback=None):
+    def _fit_support_estimator(self, estimator, X, y, *, risk_prior, epoch_callback=None):
         callbacks = {} if epoch_callback is None else {"epoch_callback": epoch_callback}
         estimator.fit(X, y, support_data=(self.support.X, self.support.labels), **callbacks)
 

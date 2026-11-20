@@ -109,9 +109,11 @@ def test_determ_nnpu_recipe_assembly_has_the_exact_legacy_network_weights(seed):
         if row["dataset"] == "spambase" and row["method"] == "nnpu"
     )
     new = draft("nnpu")
-    left = assemble_model(legacy, old_row, 3, seed=seed, params={}, class_prior=0.4, device="cpu")
+    left = assemble_model(
+        legacy, old_row, 3, seed=seed, params={}, population_prior=0.4, device="cpu"
+    )
     right = assemble_model(
-        new, new["execution_units"][0], 3, seed=seed, params={}, class_prior=0.4, device="cpu"
+        new, new["execution_units"][0], 3, seed=seed, params={}, population_prior=0.4, device="cpu"
     )
     assert type(left) is type(right) is get_algorithm("nnpu")
     assert left.max_epochs == 200 and right.max_epochs == 2
@@ -164,7 +166,7 @@ def test_edge_full_meta_class_can_be_constructed_but_not_run_via_four_roles():
         3,
         seed=0,
         params={},
-        class_prior=0.4,
+        population_prior=0.4,
         device="cpu",
     )
     assert type(model) is get_algorithm("self_pu") and model.require_validation

@@ -169,7 +169,7 @@ class CandidateImageCheckpointTrainer(EpochCheckpointTrainer):
                     "discriminator",
                     "train_transform",
                     "random_state",
-                    "class_prior",
+                    "risk_prior",
                     "device",
                 }
             ):
@@ -245,12 +245,12 @@ class CandidateImageCheckpointTrainer(EpochCheckpointTrainer):
             optimizer_steps=fitted.optimizer_steps_,
         )
 
-    def fit(self, estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None):
+    def fit(self, estimator, X, y, *, training_population_prior=None, val_pu=None, os_or_ts=None):
         """Forward train PU data only; preserve native losses and paid stage costs."""
         started = time.perf_counter()
         bound = self._validate(estimator, X, y, os_or_ts)
         method = self.image_setup["method"]
-        if method == "pulda" and class_prior != estimator.class_prior:
+        if method == "pulda" and training_population_prior != estimator.risk_prior:
             raise ValueError("PULDA constructor prior differs from the runner population prior")
         previous = getattr(estimator, "training_provenance_", {})
         if isinstance(previous, dict) and previous.get("candidate_image_runner_schema"):
@@ -261,13 +261,14 @@ class CandidateImageCheckpointTrainer(EpochCheckpointTrainer):
             self._p3mix_labels = bound[2]
             self._p3mix_epoch_records = []
         if method == "cvir":
-            from .cvir_adapter import cvir_risk_prior
+            from .cvir_adapter import cvir_risk_prior, record_cvir_population_binding
 
             self._cvir_labels, self._cvir_view = bound[2], os_or_ts
+            cvir_labeled_count = int(np.count_nonzero(y == 1))
             self._cvir_alpha = cvir_risk_prior(
-                class_prior,
+                training_population_prior,
                 n_samples=len(y),
-                n_labeled=int(np.count_nonzero(y == 1)),
+                n_labeled=cvir_labeled_count,
                 os_or_ts=os_or_ts,
             )
             _cvir_image_schedule(
@@ -298,11 +299,16 @@ class CandidateImageCheckpointTrainer(EpochCheckpointTrainer):
                     X,
                     y,
                     os_or_ts=os_or_ts,
-                    class_prior=class_prior if method == "pulda" else None,
+                    risk_prior=training_population_prior if method == "pulda" else None,
                 )
             finally:
                 if method == "cvir":
                     estimator.set_params(unlabeled_positive_prior=None, prior_source=None)
+            if method == "pulda":
+                for use in estimator._prior_consumptions_:
+                    use["source"] = (
+                        self.population_prior_source or "image_setup.prior_contract.value"
+                    )
             receipt = _candidate_image_training_receipt(estimator, bound, started)
             self._verify_trajectory(estimator, y, trajectory)
             sizes = [Path(checkpoint.path).stat().st_size for checkpoint in trajectory.checkpoints]
@@ -346,15 +352,14 @@ class CandidateImageCheckpointTrainer(EpochCheckpointTrainer):
                     epoch_cost_history=copy.deepcopy(self._p3mix_epoch_records),
                 )
             if method == "cvir":
+                record_cvir_population_binding(
+                    estimator,
+                    training_population_prior,
+                    n_train=len(y),
+                    n_labeled=cvir_labeled_count,
+                    view=os_or_ts,
+                )
                 estimator.training_provenance_.update(
-                    population_prior_forwarded_to_fit=False,
-                    population_prior_binding={
-                        "population_prior": float(class_prior),
-                        "risk_pool_positive_prior": self._cvir_alpha,
-                        "prior_source": self.population_prior_source,
-                        "source_verified": False,
-                        "uses_hidden_training_labels": False,
-                    },
                     eligible_stages=["warm_start", "cvir"],
                     checkpoint_scope="classifier_inference_only; no_optimizer_resume",
                     epoch_cost_history=copy.deepcopy(self._cvir_epoch_records),

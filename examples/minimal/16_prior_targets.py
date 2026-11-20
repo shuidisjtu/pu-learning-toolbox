@@ -1,35 +1,24 @@
-"""Known and estimated priors through OS/TS training and reporting."""
+# ruff: noqa: N806
+
+"""Convert a population prior for direct native-U risk training."""
 
 import numpy as np
 
-from pu_toolbox.workflows import PUPipeline
+from pu_toolbox.core.random import check_random_state
+from pu_toolbox.estimators.risk import UPUClassifier
+from pu_toolbox.preprocessing import GaussianSourceConfig, PULabelingConfig, simulate_pu_dataset
+from pu_toolbox.prior import population_to_native_unlabeled
 
-
-def main() -> None:
-    for sampling, positive_u in (("os", 10), ("ts", 16)):
-        # Disjoint supports make U's mixture weight identifiable.
-        features = np.vstack([np.ones((10 + positive_u, 1)), -np.ones((40 - positive_u, 1))])
-        y_pu = np.r_[np.ones(10, dtype=int), np.zeros(40, dtype=int)]
-        for source in ("known", "estimated"):
-            pipeline = PUPipeline(
-                classifier="upu",
-                classifier_params={"fit_intercept": False},
-                prior_estimator="pen_l1",
-                prior_params={"sigma": 0.5},
-                input_sampling=sampling,
-                cv=2,
-            )
-            report = pipeline.fit_evaluate(
-                features, y_pu, class_prior=0.4 if source == "known" else None
-            )
-            prior = report.prior
-            consumed = prior.training_consumption[-1]
-            print(
-                f"{sampling.upper()} {source}: input={prior.input_value:.3f} "
-                f"({prior.input_target}), population={prior.value:.3f}, "
-                f"training={consumed['value']:.3f} ({consumed['target']})"
-            )
-
-
-if __name__ == "__main__":
-    main()
+rng = check_random_state(42)
+result = simulate_pu_dataset(
+    GaussianSourceConfig(400, 5, 0.5, 4.0, rng, row_order="class_blocked"),
+    PULabelingConfig("scar", "fixed_count", rng, c=0.5),
+)
+X, y_pu = result.observations.features, result.observations.labels
+pi_population = 0.5
+pi_u = population_to_native_unlabeled(pi_population, float(np.mean(y_pu == 1)))
+# UPUClassifier directly consumes the native-U prior.
+model = UPUClassifier(risk_prior=pi_u, fit_intercept=False, random_state=42)
+model.fit(X, y_pu)
+print(f"native-U prior={pi_u:.3f}; population prior={pi_population:.3f}")
+print(f"predictions={len(model.predict(X))}")

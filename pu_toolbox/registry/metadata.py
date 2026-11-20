@@ -6,15 +6,16 @@ and documentation generators.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field, fields
+from dataclasses import asdict, dataclass, field, fields
 from enum import Enum
 
+from ..core.exceptions import ValidationError
 from ..core.tags import (
     AlgorithmFamily,
     Assumption,
     Backend,
-    ImplementationStatus,
     Maturity,
+    PriorConsumer,
     Scenario,
     SourceStatus,
     TrainingCost,
@@ -53,9 +54,6 @@ class AlgorithmMetadata:
     assumption: list[Assumption] = field(default_factory=lambda: [Assumption.UNKNOWN])
     """Labeling-mechanism assumptions the algorithm requires or expects."""
 
-    requires_class_prior: bool = False
-    """Whether the algorithm needs π = P(y=1) at training time."""
-
     requires_clean_support: bool = False
     """Whether fit needs an independently labeled clean support set.
 
@@ -74,9 +72,6 @@ class AlgorithmMetadata:
 
     maturity: Maturity = Maturity.STABLE
     """Implementation stability level."""
-
-    implementation_status: ImplementationStatus = ImplementationStatus.API_ONLY
-    """How the algorithm is implemented in the toolbox."""
 
     source_status: SourceStatus = SourceStatus.UNKNOWN
     """Availability of author/official source code."""
@@ -103,10 +98,7 @@ class AlgorithmMetadata:
     encoder_parameter: str | None = None
     """Constructor parameter name that receives an injected encoder.
 
-    Declarative metadata only: injection is signature-driven -- the pipeline
-    passes the built encoder to the constructor parameter named here when the
-    constructor declares it, never by reading this field. Capability
-    validation goes through signature checks and class-attribute consistency.
+    Declarative metadata only; callers must use the actual constructor signature.
     """
 
     trains_encoder: bool = False
@@ -115,20 +107,19 @@ class AlgorithmMetadata:
     label_semantics: str = "pu"
     """Meaning of the main ``fit(X, y)`` labels: ``pu``, ``pn`` or ``pnu``."""
 
-    class_prior_target: str = "population"
-    """Distribution targeted by class_prior in the default fit risk view."""
-
-    risk_class_prior_target: str | None = None
-    """Target of an optional independent risk_class_prior fit parameter."""
+    prior_consumers: tuple[PriorConsumer, ...] = ()
+    """Possible consumption points, not records of fitted values."""
 
     @property
-    def trainable(self) -> bool:
-        """``True`` when the algorithm has a working implementation.
-
-        Derived from :attr:`implementation_status` — safe to query after
-        mutating ``implementation_status`` in-place.
-        """
-        return self.implementation_status not in (ImplementationStatus.API_ONLY,)
+    def required_prior_parameters(self) -> tuple[str, ...]:
+        """External inputs needed by the default fitting path, without duplication."""
+        return tuple(
+            dict.fromkeys(
+                use.parameter
+                for use in self.prior_consumers
+                if use.requires_input and use.parameter is not None
+            )
+        )
 
     @property
     def is_tabular_only(self) -> bool:
@@ -143,34 +134,62 @@ class AlgorithmMetadata:
         result: dict = {}
         for f in fields(self):
             value = getattr(self, f.name)
-            if isinstance(value, list | tuple):
+            if f.name == "prior_consumers":
+                result[f.name] = [asdict(use) for use in value]
+            elif isinstance(value, list | tuple):
                 result[f.name] = [v.value if isinstance(v, Enum) else v for v in value]
             elif isinstance(value, Enum):
                 result[f.name] = value.value
             else:
                 result[f.name] = value
-        # Include derived property
-        result["trainable"] = self.trainable
         return result
 
 
 def _validate_metadata(meta: AlgorithmMetadata) -> None:
     """Validate required fields on AlgorithmMetadata (called by __post_init__)."""
-    if not meta.name or not meta.name.strip():
-        raise ValueError("AlgorithmMetadata.name must be a non-empty string")
-    if not meta.paper:
-        raise ValueError(f"AlgorithmMetadata.paper must be a non-empty string (got {meta.name!r})")
+    if not isinstance(meta.name, str) or not meta.name.strip():
+        raise ValidationError("AlgorithmMetadata.name must be a non-empty string")
+    if not isinstance(meta.paper, str) or not meta.paper.strip():
+        raise ValidationError(
+            f"AlgorithmMetadata.paper must be a non-empty string (got {meta.name!r})"
+        )
     if not isinstance(meta.label_semantics, str) or meta.label_semantics not in {"pu", "pn", "pnu"}:
-        raise ValueError("AlgorithmMetadata.label_semantics must be 'pu', 'pn', or 'pnu'")
+        raise ValidationError("AlgorithmMetadata.label_semantics must be 'pu', 'pn', or 'pnu'")
     if not isinstance(meta.requires_clean_support, bool):
-        raise ValueError("AlgorithmMetadata.requires_clean_support must be a boolean")
-    if meta.class_prior_target not in {"population", "native_unlabeled", "training_table"}:
-        raise ValueError("Invalid AlgorithmMetadata.class_prior_target")
-    if meta.risk_class_prior_target not in {None, "population", "native_unlabeled"}:
-        raise ValueError("Invalid AlgorithmMetadata.risk_class_prior_target")
-    unknown_deprecated = set(meta.deprecated_aliases) - set(meta.aliases)
+        raise ValidationError("AlgorithmMetadata.requires_clean_support must be a boolean")
+    if not isinstance(meta.prior_consumers, tuple):
+        raise ValidationError("AlgorithmMetadata.prior_consumers must be a tuple")
+    for use in meta.prior_consumers:
+        if not isinstance(use, PriorConsumer):
+            raise ValidationError("Each prior consumer must be a PriorConsumer")
+        if any(
+            not isinstance(name, str) or not name.isidentifier()
+            for name in (use.consumer, use.target, use.partition)
+        ):
+            raise ValidationError("Prior consumer, target and partition must be identifiers")
+        if use.parameter is not None and (
+            not isinstance(use.parameter, str) or not use.parameter.isidentifier()
+        ):
+            raise ValidationError("Invalid prior parameter")
+        if type(use.requires_input) is not bool or (use.requires_input and use.parameter is None):
+            raise ValidationError("A required prior input must name a parameter")
+        if use.ts_compatible_target is not None and (
+            not isinstance(use.ts_compatible_target, str)
+            or not use.ts_compatible_target.isidentifier()
+        ):
+            raise ValidationError("Invalid prior target for TS-compatible training")
+    keys = {(use.consumer, use.partition, use.target) for use in meta.prior_consumers}
+    if len(keys) != len(meta.prior_consumers):
+        raise ValidationError("Duplicate prior consumer for the same partition and target")
+    if any(
+        not isinstance(alias, str) or not alias.strip()
+        for alias in (*meta.aliases, *meta.deprecated_aliases)
+    ):
+        raise ValidationError("AlgorithmMetadata aliases must be non-empty strings")
+    aliases = {alias.lower() for alias in meta.aliases}
+    unknown_deprecated = {alias.lower() for alias in meta.deprecated_aliases} - aliases
     if unknown_deprecated:
-        raise ValueError(
+        raise ValidationError(
             "AlgorithmMetadata.deprecated_aliases must be a subset of aliases "
             f"(unknown: {sorted(unknown_deprecated)!r})"
         )

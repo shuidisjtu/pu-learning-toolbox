@@ -37,7 +37,7 @@ def _small_model(random_state=11):
 @pytest.mark.unit
 def test_basic_pusb_kernel_fit_exposes_selected_hyperparameters():
     X, y = _data()
-    model = _small_model().fit(X, y, class_prior=0.4)
+    model = _small_model().fit(X, y, training_table_prior=0.4)
 
     assert model.sigma_ in model.sigma_grid
     assert model.reg_lambda_ in model.reg_grid
@@ -45,27 +45,31 @@ def test_basic_pusb_kernel_fit_exposes_selected_hyperparameters():
     assert model.coef_.shape == (9,)
     assert np.isfinite(model.decision_function(X)).all()
     assert set(model.predict(X)) <= {0, 1}
+    assert model.training_table_prior_ == model.risk_prior_ == 0.4
 
 
 @pytest.mark.unit
-def test_basic_risk_prior_and_prediction_prior_have_independent_consumers():
+@pytest.mark.parametrize("view", ["os", "ts"])
+def test_basic_param_risk_prior_and_prediction_prior_have_independent_consumers(view):
     X, y = _data()
-    reference = _small_model().fit(X, y, class_prior=0.25)
-    model = _small_model().fit(X, y, class_prior=0.4, risk_class_prior=0.25)
+    reference = _small_model().fit(X, y, training_table_prior=0.25, os_or_ts=view)
+    model = _small_model().set_params(training_table_prior=0.6, risk_prior=0.7)
+    model.fit(X, y, training_table_prior=0.4, risk_prior=0.25, os_or_ts=view)
     assert_allclose(model.coef_, reference.coef_)
     assert_allclose(model.cv_scores_, reference.cv_scores_)
     _, expected_threshold = prior_quantile_predict(model.decision_function(X), 0.4)
     assert model.threshold_ == pytest.approx(expected_threshold)
-    assert model.risk_class_prior_ == 0.25
-    assert model._class_prior == 0.4
+    assert model.risk_prior_ == 0.25
+    assert model.training_table_prior_ == 0.4
+    assert (model.training_table_prior, model.risk_prior) == (0.6, 0.7)
 
 
 @pytest.mark.unit
-@pytest.mark.parametrize("class_prior", [None, 0.0, 1.0, -0.1])
-def test_param_pusb_kernel_rejects_invalid_class_prior(class_prior):
+@pytest.mark.parametrize("training_table_prior", [None, 0.0, 1.0, -0.1])
+def test_param_pusb_kernel_rejects_invalid_training_table_prior(training_table_prior):
     X, y = _data()
-    with pytest.raises(ValueError, match="class_prior"):
-        _small_model().fit(X, y, class_prior=class_prior)
+    with pytest.raises(ValueError, match="training_table_prior"):
+        _small_model().fit(X, y, training_table_prior=training_table_prior)
 
 
 @pytest.mark.unit
@@ -84,12 +88,12 @@ def test_param_pusb_kernel_rejects_invalid_hyperparameters(parameter, value):
     X, y = _data()
     model = _small_model().set_params(**{parameter: value})
     with pytest.raises(ValueError):
-        model.fit(X, y, class_prior=0.4)
+        model.fit(X, y, training_table_prior=0.4)
 
 
 @pytest.mark.unit
 def test_edge_prior_quantile_uses_strict_official_threshold():
-    predictions, threshold = prior_quantile_predict(np.arange(10.0), class_prior=0.3)
+    predictions, threshold = prior_quantile_predict(np.arange(10.0), positive_prior=0.3)
 
     assert threshold == 7.0
     assert predictions.sum() == 2
@@ -99,7 +103,7 @@ def test_edge_prior_quantile_uses_strict_official_threshold():
 @pytest.mark.unit
 def test_edge_public_prediction_is_independent_of_batch_composition():
     X, y = _data()
-    model = _small_model().fit(X, y, class_prior=0.4)
+    model = _small_model().fit(X, y, training_table_prior=0.4)
 
     single = model.predict(X[[0]])[0]
     batch = model.predict(np.vstack((X[[0]], X[-10:])))[0]
@@ -130,8 +134,8 @@ def test_determ_objective_gradient_matches_finite_difference():
 @pytest.mark.unit
 def test_determ_same_seed_reproduces_basis_folds_scores_and_predictions():
     X, y = _data()
-    first = _small_model().fit(X, y, class_prior=0.4)
-    second = clone(_small_model()).fit(X, y, class_prior=0.4)
+    first = _small_model().fit(X, y, training_table_prior=0.4)
+    second = clone(_small_model()).fit(X, y, training_table_prior=0.4)
 
     assert_allclose(first.centers_, second.centers_)
     assert_allclose(first.cv_scores_, second.cv_scores_)

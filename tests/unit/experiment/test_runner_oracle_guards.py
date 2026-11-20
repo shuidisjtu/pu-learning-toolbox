@@ -113,7 +113,8 @@ def test_param_oracle_rejects_class_prior():
         seed=0,
         generator=CleanLabelGenerator(),
         protocols=[ProtocolOA()],
-        class_prior=0.3,
+        training_population_prior=0.3,
+        validation_population_prior=0.3,
         config={"trainer": RecordingOracle(), "c": 0.3},
     )
     with pytest.raises(ValueError, match="must not receive a prior"):
@@ -129,7 +130,7 @@ def test_param_oracle_rejects_pu_trainer_on_clean_view():
     check only "PU view + supervised trainer".
     """
     train, pu_val, clean_val, test = make_bundle()
-    estimator = NonNegativePUClassifier(class_prior=0.3, max_epochs=2, random_state=0, device="cpu")
+    estimator = NonNegativePUClassifier(risk_prior=0.3, max_epochs=2, random_state=0, device="cpu")
     recorder = RecordingPU()
     runner = ExperimentRunner(
         seed=0,

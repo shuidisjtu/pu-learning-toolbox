@@ -10,8 +10,14 @@ import random
 
 import numpy as np
 
-from pu_toolbox.preprocessing import make_scar_dataset as _make_scar_dataset
-from pu_toolbox.preprocessing import make_scar_labels as _make_scar_labels
+from pu_toolbox.core.random import check_random_state
+from pu_toolbox.preprocessing import (
+    GaussianSourceConfig,
+    PULabelingConfig,
+    SourcePartition,
+    construct_pu_dataset,
+    simulate_pu_dataset,
+)
 
 
 def set_test_seed(seed: int) -> None:
@@ -30,13 +36,12 @@ def set_test_seed(seed: int) -> None:
 
 def make_scar_data(rng, n=100, c=0.5, n_features=5, separation=4.0):
     """Generate synthetic SCAR data with known labeling propensity ``c``."""
-    return _make_scar_dataset(
-        n=n,
-        c=c,
-        n_features=n_features,
-        separation=separation,
-        random_state=rng,
+    rng = check_random_state(rng)
+    result = simulate_pu_dataset(
+        GaussianSourceConfig(2 * n, n_features, 0.5, separation, rng, row_order="class_blocked"),
+        PULabelingConfig("scar", "fixed_count", rng, c=c),
     )
+    return result.observations.features, result.observations.labels, result.audit.true_labels
 
 
 def make_scar_data_unbalanced(
@@ -53,5 +58,10 @@ def make_scar_data_unbalanced(
     delta = separation / 2.0
     X = np.vstack([rng.randn(n_p, n_features) + delta, rng.randn(n_u, n_features) - delta])
     y_true = np.hstack([np.ones(n_p, dtype=int), np.zeros(n_u, dtype=int)])
-    y_pu = _make_scar_labels(y_true, c=c, random_state=rng)
-    return X, y_pu, y_true
+    result = construct_pu_dataset(
+        SourcePartition(X, y_true, "test-unbalanced", "generated"),
+        PULabelingConfig("scar", "fixed_count", rng, c=c),
+        positive_classes=(1,),
+        negative_classes=(0,),
+    )
+    return X, result.observations.labels, y_true

@@ -110,7 +110,7 @@ def test_basic_the_batches_run_under_the_protocol_the_request_names(driver, unit
             str(splits_tree(tmp_path, datasets=("imdb", "spambase"))),
             "--protocol",
             custom,
-            "--class-prior",
+            "--population-prior",
             "imdb=0.5,spambase=0.39",
         ]
     )

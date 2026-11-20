@@ -120,7 +120,7 @@ def test_determ_cnn_clone_pickle_and_checkpoint_replay_keep_scores_and_chunks(tm
     X, y = data()
     template = model(encoder=ImageEncoder())
     first = clone(template).fit(X, y)
-    second = clone(template).fit(X, y, class_prior=0.7)
+    second = clone(template).fit(X, y)
     assert first.history_ == second.history_
     np.testing.assert_array_equal(first.decision_function(X), second.decision_function(X))
     restored = pickle.loads(pickle.dumps(first))
@@ -189,22 +189,3 @@ def test_edge_late_callback_failure_invalidates_fitted_state_after_predictable_e
     assert completed == [0, 1]
     with pytest.raises(NotFittedError):
         fitted.predict(X)
-
-
-def test_basic_public_pipeline_accepts_injected_cnn(monkeypatch):
-    from pu_toolbox.estimators.deep import vision
-    from pu_toolbox.workflows import PUPipeline
-
-    monkeypatch.setattr(vision, "build_encoder", lambda *args, **kwargs: ImageEncoder())
-
-    X, y = data()
-    report = PUPipeline(
-        classifier="vpu",
-        prior_estimator=None,
-        cv=2,
-        device="cpu",
-        architecture="cnn",
-        classifier_params=dict(max_epochs=1, hidden_dim=4, iterations_per_epoch=1, batch_size=4),
-    ).fit_evaluate(X, y)
-    assert report.final_model.predict(X).shape == (17,)
-    assert report.final_model.data_device_policy_ == "cpu_stream"

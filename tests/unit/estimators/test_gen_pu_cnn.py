@@ -34,7 +34,7 @@ def problem(channels=3):
 
 def model(encoder, **overrides):
     params = dict(
-        class_prior=0.4,
+        risk_prior=0.4,
         encoder=encoder,
         hidden_dim=4,
         latent_dim=2,
@@ -278,7 +278,7 @@ def test_param_edge_invalid_image_recipe_fails_before_training(fault):
     elif fault == "weight":
         fit_kwargs["sample_weight"] = np.ones(len(labels))
     else:
-        kwargs["class_prior"] = None
+        kwargs["risk_prior"] = None
     fitted = model(encoder, **kwargs)
     with pytest.raises((ValueError, NotImplementedError)):
         fitted.fit(features, labels, **fit_kwargs)

@@ -10,7 +10,7 @@ from pu_toolbox.estimators.deep.self_pu import SelfPUClassifier
 
 pytestmark = pytest.mark.unit
 REAL_PARAMETERS = (
-    "class_prior",
+    "risk_prior",
     "max_trust_ratio",
     "pace_1",
     "pace_2",
@@ -112,8 +112,8 @@ def test_param_noninteger_or_negative_budgets_fail_before_rng(monkeypatch, name,
 @pytest.mark.parametrize(
     "name,value",
     [
-        ("class_prior", 0),
-        ("class_prior", 1),
+        ("risk_prior", 0),
+        ("risk_prior", 1),
         ("max_trust_ratio", 0.51),
         ("pace_1", -0.1),
         ("pace_2", 0.51),

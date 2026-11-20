@@ -37,7 +37,7 @@ def trainer(record, root, bound=64 * 2**20):
 def test_basic_actual_ts_pool_and_per_epoch_normalization_survive_snapshot(tmp_path):
     model, record, pixels, labels = setup()
     trajectory = trainer(record, tmp_path).fit(
-        model, pixels, labels, class_prior=0.4, os_or_ts="ts"
+        model, pixels, labels, training_population_prior=0.4, os_or_ts="ts"
     )
     facts = model.training_provenance_
     receipt = facts["bound_fit_receipt"]
@@ -47,7 +47,7 @@ def test_basic_actual_ts_pool_and_per_epoch_normalization_survive_snapshot(tmp_p
         and receipt["normalization_training_rows_per_epoch"] == 8
     )
     assert receipt["normalization_forward_batches_per_epoch"] == 2
-    assert facts["selection_prior_not_forwarded_to_VPU"] and model._class_prior is None
+    assert facts["selection_prior_not_forwarded_to_VPU"] and model._prior_consumptions_ == ()
     assert not facts["source_validation_diagnostic_forwarded"]
     assert (
         not facts["source_validation_risk_used_for_selection"] and model.history_["val_risk"] == []

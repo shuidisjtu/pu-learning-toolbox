@@ -144,10 +144,14 @@ ECE 使用 10 个等宽概率桶，并额外保存每个桶的样本数、平均
 
 演进记录（2026-08-28，ADR-0016 第 6 步写回）：基线随写回逐轮升版——v2/v3 摘除
 `locks_source_defaults` 冻结为历史快照（v1 先例），v4（LDCE 组合默认）、v5（uPU
-squared）、v6（elkan_noto weighted）逐轮带锁，当前锁定基线为
+squared）、v6（elkan_noto weighted）逐轮带锁，当时的锁定基线为
 `seven_methods_pu_baseline_v6.json` / `results/baseline_v6`；每轮写回均以
 companion 确认重跑 + 逐单元 max|diff|=0 审计锁定（详见 ADR-0016 跟进状态与各
 `results/baseline_v*/findings.md`）。
+
+当前源码使用 `seven_methods_pu_baseline_v7.json`。v7 保留 v6 的网格、种子、超时和参数数值，
+以 `internal_cv_folds: 3` 锁定 Elkan–Noto 分层倾向估计的折数。v6 转为历史配置，
+`results/baseline_v6` 继续对应当时的实现；v7 新运行使用独立结果目录。
 
 正式结果按以下目录契约保存：
 

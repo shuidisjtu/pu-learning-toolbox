@@ -194,7 +194,11 @@ def build_plan(
         model = _objects(method, parameters, prior, seed, view, flip_probability=flip)
         kernel_trainer.validate_generation(generation_meta["train"], generation_meta["pu_val"])
         kernel_screen = kernel_trainer.preflight(
-            model, bundle.train.X, kernel_train_labels, class_prior=prior, os_or_ts=view
+            model,
+            bundle.train.X,
+            kernel_train_labels,
+            training_population_prior=prior,
+            os_or_ts=view,
         )
         kernel_screen.update(kernel_trainer.prediction_screen(bundle))
     if method == "rp" and min(observed["train"].values()) < model.n_cv_folds:
@@ -349,7 +353,8 @@ def execute(plan, output):
             warnings.simplefilter("always")
             result = ExperimentRunner(
                 seed=plan["seed"],
-                class_prior=plan["population_prior"],
+                training_population_prior=plan["population_prior"],
+                validation_population_prior=plan["population_prior"],
                 protocols=[ProtocolPA(), ProtocolOA()],
                 manifest_path=str(output / "manifest.json"),
                 config={
@@ -427,6 +432,8 @@ def execute(plan, output):
             },
             accepted_engineering_run=not caught and not result.failures,
         )
+        if plan["method"] == "kldce":
+            summary["prior"] = result.manifest["research_settings"]["prior"]
         _write(output / "summary.json", summary)
         if not summary["accepted_engineering_run"]:
             raise ValueError("warnings/retries require review; evidence retained, not accepted")
@@ -452,7 +459,7 @@ def main(argv=None):
     parser.add_argument("--method", required=True, choices=METHODS)
     parser.add_argument("--data-dir", type=Path, required=True)
     parser.add_argument("--dataset", required=True)
-    parser.add_argument("--class-prior", type=float, required=True)
+    parser.add_argument("--population-prior", type=float, required=True)
     parser.add_argument("--prior-source", required=True)
     parser.add_argument("--seed", type=int, required=True)
     parser.add_argument("--view", required=True, choices=("os", "ts"))
@@ -478,7 +485,7 @@ def main(argv=None):
             args.data_dir,
             method=args.method,
             dataset=args.dataset,
-            prior=args.class_prior,
+            prior=args.population_prior,
             prior_source=args.prior_source,
             seed=args.seed,
             view=args.view,

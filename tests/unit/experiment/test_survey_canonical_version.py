@@ -67,7 +67,7 @@ def test_edge_real_v3_cli_keeps_subset_deviations_but_not_false_version_drift(
                 "0",
                 "--c",
                 "0.5",
-                "--class-prior",
+                "--population-prior",
                 "0.4",
                 "--out-dir",
                 str(output),

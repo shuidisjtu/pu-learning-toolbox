@@ -82,7 +82,7 @@ def test_determ_seed_clone_pickle_refit_and_all_stage_checkpoint_recovery(tmp_pa
     fitted = clone(model())
     trajectory = EpochCheckpointTrainer(checkpoint_dir=tmp_path).fit(fitted, features, labels)
     expected = fitted.decision_function(features)
-    repeated = clone(model()).fit(features, labels, class_prior=0.4)
+    repeated = clone(model()).fit(features, labels)
     np.testing.assert_array_equal(repeated.decision_function(features), expected)
     np.testing.assert_array_equal(repeated.pseudo_labels_, fitted.pseudo_labels_)
     np.testing.assert_array_equal(

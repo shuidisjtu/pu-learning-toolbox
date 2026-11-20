@@ -21,8 +21,8 @@ from ...core.tags import (
     AlgorithmFamily,
     Assumption,
     Backend,
-    ImplementationStatus,
     Maturity,
+    PriorConsumer,
     SampleWeightSupport,
     Scenario,
     SourceStatus,
@@ -59,7 +59,7 @@ def _pu_objective_and_gradient(
     coef: np.ndarray,
     positive_design: np.ndarray,
     unlabeled_design: np.ndarray,
-    class_prior: float,
+    risk_prior: float,
     reg_lambda: float,
 ) -> tuple[float, np.ndarray]:
     """Evaluate the numerically stable PUSB risk and its exact gradient.
@@ -74,12 +74,12 @@ def _pu_objective_and_gradient(
     unlabeled_scores = unlabeled_design @ coef
 
     objective = (
-        -class_prior * float(np.mean(positive_scores))
+        -risk_prior * float(np.mean(positive_scores))
         + float(np.mean(np.logaddexp(0.0, unlabeled_scores)))
         + 0.5 * reg_lambda * float(coef @ coef)
     )
     gradient = (
-        -class_prior * np.mean(positive_design, axis=0)
+        -risk_prior * np.mean(positive_design, axis=0)
         + np.mean(expit(unlabeled_scores)[:, None] * unlabeled_design, axis=0)
         + reg_lambda * coef
     )
@@ -106,15 +106,15 @@ def _risk_role_designs(
     return positive, design[y_pu == 0]
 
 
-def prior_quantile_predict(scores: np.ndarray, class_prior: float) -> tuple[np.ndarray, float]:
+def prior_quantile_predict(scores: np.ndarray, positive_prior: float) -> tuple[np.ndarray, float]:
     """Apply the official batch-level class-prior quantile decision rule."""
     scores = np.asarray(scores, dtype=float)
     if scores.ndim != 1 or scores.size == 0:
         raise ValueError("scores must be a non-empty one-dimensional array")
     if not np.isfinite(scores).all():
         raise ValueError("scores must contain only finite values")
-    check_scalar_in_range(class_prior, 0.0, 1.0, "class_prior", inclusive=False)
-    index = int(np.floor(scores.size * (1.0 - class_prior)))
+    check_scalar_in_range(positive_prior, 0.0, 1.0, "positive_prior", inclusive=False)
+    index = int(np.floor(scores.size * (1.0 - positive_prior)))
     threshold = float(np.sort(scores)[index])
     return (scores > threshold).astype(int), threshold
 
@@ -122,7 +122,7 @@ def prior_quantile_predict(scores: np.ndarray, class_prior: float) -> tuple[np.n
 def _fit_coefficients(
     positive_design: np.ndarray,
     unlabeled_design: np.ndarray,
-    class_prior: float,
+    risk_prior: float,
     reg_lambda: float,
     max_iter: int,
     tol: float,
@@ -131,7 +131,7 @@ def _fit_coefficients(
 
     def objective(coef):
         return _pu_objective_and_gradient(
-            coef, positive_design, unlabeled_design, class_prior, reg_lambda
+            coef, positive_design, unlabeled_design, risk_prior, reg_lambda
         )
 
     result = minimize(
@@ -159,14 +159,27 @@ class PUSBKernelClassifier(BasePUClassifier):
     label_semantics = "pu"
     assumption = (Assumption.SAR,)
     scenario = (Scenario.CASE_CONTROL, Scenario.SELECTION_BIASED)
-    requires_class_prior = True
-    class_prior_target = "training_table"
-    risk_class_prior_target = "native_unlabeled"
-    implementation_status = ImplementationStatus.NATIVE
     source_status = SourceStatus.OFFICIAL_RELATED
     backend = Backend.NUMPY
     sample_weight_support = SampleWeightSupport.NOT_IMPLEMENTED
     maturity = Maturity.RESEARCH
+    _runner_prior_parameter = "training_table_prior"
+    prior_consumers = (
+        PriorConsumer(
+            "pusb_threshold",
+            "training_table",
+            parameter="training_table_prior",
+            requires_input=True,
+        ),
+        PriorConsumer(
+            "pusb_fit_risk",
+            "native_unlabeled",
+            parameter="risk_prior",
+            ts_compatible_target="positive_union_unlabeled",
+        ),
+        PriorConsumer("pusb_cv_validation_risk", "native_unlabeled", parameter="risk_prior"),
+    )
+    _prior_consumptions_ = ()
 
     def __init__(
         self,
@@ -178,6 +191,8 @@ class PUSBKernelClassifier(BasePUClassifier):
         random_state: int | None = 2018,
         max_iter: int = 200,
         tol: float = 1e-5,
+        training_table_prior: float | None = None,
+        risk_prior: float | None = None,
     ) -> None:
         super().__init__()
         self.n_basis = n_basis
@@ -187,13 +202,17 @@ class PUSBKernelClassifier(BasePUClassifier):
         self.random_state = random_state
         self.max_iter = max_iter
         self.tol = tol
+        self.training_table_prior = training_table_prior
+        self.risk_prior = risk_prior
 
     def _validate_parameters(
-        self, X: np.ndarray, class_prior: float | None
+        self, X: np.ndarray, training_table_prior: float | None
     ) -> tuple[np.ndarray, np.ndarray]:
-        if class_prior is None:
-            raise ValueError("PUSBKernelClassifier requires class_prior in (0, 1)")
-        check_scalar_in_range(class_prior, 0.0, 1.0, "class_prior", inclusive=False)
+        if training_table_prior is None:
+            raise ValueError("PUSBKernelClassifier requires training_table_prior in (0, 1)")
+        check_scalar_in_range(
+            training_table_prior, 0.0, 1.0, "training_table_prior", inclusive=False
+        )
         if not isinstance(self.n_basis, int) or self.n_basis <= 0:
             raise ValueError("n_basis must be a positive integer")
         if not isinstance(self.cv, int) or self.cv < 2 or self.cv > len(X):
@@ -221,10 +240,10 @@ class PUSBKernelClassifier(BasePUClassifier):
         X,
         y_pu,
         *,
-        class_prior=None,
+        training_table_prior: float | None = None,
         sample_weight=None,
         os_or_ts: str = "os",
-        risk_class_prior: float | None = None,
+        risk_prior: float | None = None,
     ):
         """Fit the kernel PUSB classifier.
 
@@ -234,13 +253,13 @@ class PUSBKernelClassifier(BasePUClassifier):
             Feature matrix.
         y_pu : np.ndarray of shape (n_samples,)
             PU labels.  +1 = labeled positive, 0 = unlabeled.
-        class_prior : float
-            Prior for the training-score quantile decision rule. Required.
-            The risk uses this value when risk_class_prior is omitted.
-        risk_class_prior : float, optional
-            Positive prior in the risk's unlabeled distribution. For the
-            default view this is native U. The workflow supplies this value
-            separately from the training-table prior used by the quantile rule.
+        training_table_prior : float, optional
+            Positive prior for the quantile of all training scores. Supply at
+            construction or here; the fit value takes precedence.
+        risk_prior : float, optional
+            Positive prior for the distribution carrying the unlabeled risk.
+            The fit value takes precedence over the constructor value; the
+            default reuses the resolved training-table value.
         sample_weight : None
             Not supported: the official PUSB objective defines no weighting.
         os_or_ts : {"os", "ts"}, default "os"
@@ -273,9 +292,21 @@ class PUSBKernelClassifier(BasePUClassifier):
             raise ValueError(f"os_or_ts must be 'os' or 'ts'; got {os_or_ts!r}.")
         if sample_weight is not None:
             raise NotImplementedError("The official PUSB objective does not define sample_weight")
-        sigma_grid, reg_grid = self._validate_parameters(X, class_prior)
-        risk_prior = class_prior if risk_class_prior is None else risk_class_prior
-        check_scalar_in_range(risk_prior, 0.0, 1.0, "risk_class_prior", inclusive=False)
+        table_prior_source = (
+            "estimator.training_table_prior"
+            if training_table_prior is None
+            else "fit.training_table_prior"
+        )
+        table_prior = (
+            self.training_table_prior if training_table_prior is None else training_table_prior
+        )
+        sigma_grid, reg_grid = self._validate_parameters(X, table_prior)
+        risk_source = "estimator.risk_prior" if risk_prior is None else "fit.risk_prior"
+        risk_prior = self.risk_prior if risk_prior is None else risk_prior
+        reuse_table_prior = risk_prior is None
+        if reuse_table_prior:
+            risk_prior, risk_source = table_prior, table_prior_source
+        check_scalar_in_range(risk_prior, 0.0, 1.0, "risk_prior", inclusive=False)
 
         # ── TS-OS calibration (protocol §2.3) ─────────────────────────────
         # The unlabeled-risk role is carried by X_U under the OS view and by the
@@ -367,10 +398,32 @@ class PUSBKernelClassifier(BasePUClassifier):
         self.coef_ = result.x
         self.optimization_result_ = result
         train_scores = design @ self.coef_
-        _, self.threshold_ = prior_quantile_predict(train_scores, float(class_prior))
+        _, self.threshold_ = prior_quantile_predict(train_scores, float(table_prior))
         self.classes_ = np.array([0, 1])
-        self._class_prior = float(class_prior)
-        self.risk_class_prior_ = float(risk_prior)
+        self.training_table_prior_ = float(table_prior)
+        self.risk_prior_ = float(risk_prior)
+        risk_evidence = {"partition": "train", "source": risk_source, "value": self.risk_prior_}
+        if reuse_table_prior:
+            risk_evidence["reused_from"] = "pusb_threshold"
+        self._prior_consumptions_ = (
+            {
+                "consumer": "pusb_threshold",
+                "partition": "train",
+                "target": "training_table",
+                "source": table_prior_source,
+                "value": self.training_table_prior_,
+            },
+            {
+                **risk_evidence,
+                "consumer": "pusb_fit_risk",
+                "target": "positive_union_unlabeled" if calibrated_view else "native_unlabeled",
+            },
+            {
+                **risk_evidence,
+                "consumer": "pusb_cv_validation_risk",
+                "target": "native_unlabeled",
+            },
+        )
         self._X_shape_ = X.shape
         self._is_fitted = True
         return self
@@ -388,12 +441,15 @@ class PUSBKernelClassifier(BasePUClassifier):
 
     def predict_with_prior_quantile(self, X) -> np.ndarray:
         """Predict with the released code's batch-dependent quantile rule."""
-        predictions, _ = prior_quantile_predict(self._decision_function(X), self._class_prior)
+        predictions, _ = prior_quantile_predict(
+            self._decision_function(X), self.training_table_prior_
+        )
         return predictions
 
     def get_pu_metadata(self) -> dict:
         metadata = super().get_pu_metadata()
-        metadata["risk_class_prior"] = getattr(self, "risk_class_prior_", None)
+        metadata["training_table_prior"] = getattr(self, "training_table_prior_", None)
+        metadata["risk_prior"] = getattr(self, "risk_prior_", None)
         metadata["official_compatibility"] = {
             "regularizer": "0.5 * lambda * ||coef||^2, matching the released gradient",
             "public_threshold": "frozen training-score prior quantile",

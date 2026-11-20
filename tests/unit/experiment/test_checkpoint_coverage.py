@@ -73,7 +73,7 @@ def _selfpu(tmp_path):
 
 def _nnpu(tmp_path):
     X, y = _data()
-    model = NonNegativePUClassifier(class_prior=0.3, max_epochs=3, random_state=0, device="cpu")
+    model = NonNegativePUClassifier(risk_prior=0.3, max_epochs=3, random_state=0, device="cpu")
     return EpochCheckpointTrainer(checkpoint_dir=tmp_path).fit(model, X, y)
 
 
@@ -133,11 +133,11 @@ class _DroppingTrainer(DeepFitTrainer):
         super().__init__()
         self.checkpoint_dir = checkpoint_dir
 
-    def fit(self, estimator, X, y, *, class_prior=None, val_pu=None):
+    def fit(self, estimator, X, y, *, training_population_prior=None, val_pu=None):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             trajectory = EpochCheckpointTrainer(checkpoint_dir=self.checkpoint_dir).fit(
-                estimator, X, y, class_prior=class_prior, val_pu=val_pu
+                estimator, X, y, risk_prior=training_population_prior, val_pu=val_pu
             )
         return replace(
             trajectory,
@@ -152,9 +152,9 @@ class _RecordingTrainer(DeepFitTrainer):
         super().__init__()
         self.calls = 0
 
-    def fit(self, estimator, X, y, *, class_prior=None, val_pu=None):
+    def fit(self, estimator, X, y, *, training_population_prior=None, val_pu=None):
         self.calls += 1
-        return super().fit(estimator, X, y, class_prior=class_prior, val_pu=val_pu)
+        return super().fit(estimator, X, y, risk_prior=training_population_prior, val_pu=val_pu)
 
 
 def _parts(survey_script, tmp_path):
@@ -173,7 +173,7 @@ def _self_pu_bound(survey_script, tmp_path):
     parts = _parts(survey_script, tmp_path)
     protocol = load_protocol()
     row = resolve_unit(protocol, "spambase", "self_pu")
-    model = assemble_model(protocol, row, 3, seed=0, params={}, class_prior=0.3, device="cpu")
+    model = assemble_model(protocol, row, 3, seed=0, params={}, population_prior=0.3, device="cpu")
     config = {
         "architecture": "mlp",
         "c": 0.5,
@@ -226,7 +226,8 @@ def test_param_malformed_component_declaration_rejected_before_training(
     runner = ExperimentRunner(
         config={"c": 0.5, "trainer": trainer},
         manifest_path=str(tmp_path / "manifest.json"),
-        class_prior=0.5,
+        training_population_prior=0.5,
+        validation_population_prior=0.5,
     )
     model = type("BadDeclaration", (_OneNetwork,), {"epoch_components": bad})()
     with pytest.raises(ValueError, match="epoch_components"):
@@ -258,7 +259,8 @@ def test_edge_dropped_component_cannot_claim_verified_selection(tmp_path, survey
     runner = ExperimentRunner(
         config={**config, "trainer": _DroppingTrainer(tmp_path / "ckpt")},
         manifest_path=str(manifest_path),
-        class_prior=0.5,
+        training_population_prior=0.5,
+        validation_population_prior=0.5,
     )
     with pytest.raises(RuntimeError, match="all candidate runs failed"):
         runner.fit(model, *parts)
@@ -284,7 +286,12 @@ def test_basic_complete_versioned_run_verifies_independent_selection(tmp_path, s
     """
     model, parts, config = _self_pu_bound(survey_script, tmp_path)
     manifest_path = tmp_path / "manifest.json"
-    runner = ExperimentRunner(config=config, manifest_path=str(manifest_path), class_prior=0.5)
+    runner = ExperimentRunner(
+        config=config,
+        manifest_path=str(manifest_path),
+        training_population_prior=0.5,
+        validation_population_prior=0.5,
+    )
     runner.fit(model, *parts)
 
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))

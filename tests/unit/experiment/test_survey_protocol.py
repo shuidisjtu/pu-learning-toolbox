@@ -28,7 +28,7 @@ def _bound(survey_script, tmp_path):
     parts = survey_script.load_split_parts(tmp_path)
     protocol = load_protocol()
     row = resolve_unit(protocol, "spambase", "upu")
-    model = assemble_model(protocol, row, 3, seed=0, params={}, class_prior=0.3, device="cpu")
+    model = assemble_model(protocol, row, 3, seed=0, params={}, population_prior=0.3, device="cpu")
     config = {
         "architecture": "mlp",
         "c": 0.5,
@@ -115,7 +115,9 @@ def test_param_cnn_oracle_never_falls_back_to_flattened_mlp():
 
 def test_basic_runner_consumes_matrix_and_records_blockers(survey_script, tmp_path):
     model, parts, config = _bound(survey_script, tmp_path)
-    result = ExperimentRunner(class_prior=0.3, config=config).fit(model, *parts)
+    result = ExperimentRunner(
+        training_population_prior=0.3, validation_population_prior=0.3, config=config
+    ).fit(model, *parts)
     manifest = result.manifest
     assert manifest["protocol_version"] == "survey-v3.2"
     assert manifest["protocol_revision"] == "2026-11-08-clean-support-coverage"
@@ -137,9 +139,12 @@ def test_edge_selection_artifact_cannot_change_its_declared_protocol(survey_scri
 
     model, parts, config = _bound(survey_script, tmp_path)
     with pytest.raises(ValueError, match="selection artifact disagrees with its protocol"):
-        ExperimentRunner(class_prior=0.3, config=config, protocols=[ChangedPA(), ProtocolOA()]).fit(
-            model, *parts
-        )
+        ExperimentRunner(
+            training_population_prior=0.3,
+            validation_population_prior=0.3,
+            config=config,
+            protocols=[ChangedPA(), ProtocolOA()],
+        ).fit(model, *parts)
 
 
 def test_param_runner_preflight_rejects_budget_override_with_failure_manifest(
@@ -149,7 +154,12 @@ def test_param_runner_preflight_rejects_budget_override_with_failure_manifest(
     config["candidates"] = [{"max_iter": 1}]
     path = tmp_path / "rejected.json"
     with pytest.raises(ValueError, match="protocol-locked"):
-        ExperimentRunner(class_prior=0.3, config=config, manifest_path=str(path)).fit(model, *parts)
+        ExperimentRunner(
+            training_population_prior=0.3,
+            validation_population_prior=0.3,
+            config=config,
+            manifest_path=str(path),
+        ).fit(model, *parts)
     payload = json.loads(path.read_text(encoding="utf-8"))
     assert payload["formal_eligible"] is False
     assert payload["failures"][0]["stage"] == "protocol_preflight"
@@ -181,7 +191,13 @@ def test_param_modified_execution_is_excluded_from_formal_results(
         path = tmp_path / "custom.json"
         path.write_text(json.dumps(protocol))
         config["survey_protocol"]["path"] = str(path)
-    payload = ExperimentRunner(class_prior=0.3, config=config).fit(model, *parts).manifest
+    payload = (
+        ExperimentRunner(
+            training_population_prior=0.3, validation_population_prior=0.3, config=config
+        )
+        .fit(model, *parts)
+        .manifest
+    )
     assert deviation in payload["protocol_deviation"]
     assert payload["formal_eligible"] is False
     assert set(payload["selection"]) == {"PA", "OA"}
@@ -192,7 +208,13 @@ def test_param_modified_execution_is_excluded_from_formal_results(
 
 def test_param_paths_and_budgets_cannot_be_mixed(survey_script, tmp_path):
     model, parts, config = _bound(survey_script, tmp_path)
-    left = ExperimentRunner(class_prior=0.3, config=config).fit(model, *parts).manifest
+    left = (
+        ExperimentRunner(
+            training_population_prior=0.3, validation_population_prior=0.3, config=config
+        )
+        .fit(model, *parts)
+        .manifest
+    )
     right = copy.deepcopy(left)
     right["training_path"] = "native_cnn"
     with pytest.raises(ValueError, match="training_path"):
@@ -210,7 +232,13 @@ def test_param_paths_and_budgets_cannot_be_mixed(survey_script, tmp_path):
 
 def test_param_source_labels_and_features_must_match(survey_script, tmp_path):
     model, parts, config = _bound(survey_script, tmp_path)
-    left = ExperimentRunner(class_prior=0.3, config=config).fit(model, *parts).manifest
+    left = (
+        ExperimentRunner(
+            training_population_prior=0.3, validation_population_prior=0.3, config=config
+        )
+        .fit(model, *parts)
+        .manifest
+    )
     right = copy.deepcopy(left)
     right["generation"]["train"]["label_view_sha256"] = "changed"
     with pytest.raises(ValueError, match="label-view"):
@@ -219,8 +247,20 @@ def test_param_source_labels_and_features_must_match(survey_script, tmp_path):
 
 def test_determ_bound_runs_reproduce_label_and_representation_hashes(survey_script, tmp_path):
     model, parts, config = _bound(survey_script, tmp_path)
-    first = ExperimentRunner(class_prior=0.3, config=config).fit(model, *parts).manifest
-    second = ExperimentRunner(class_prior=0.3, config=config).fit(model, *parts).manifest
+    first = (
+        ExperimentRunner(
+            training_population_prior=0.3, validation_population_prior=0.3, config=config
+        )
+        .fit(model, *parts)
+        .manifest
+    )
+    second = (
+        ExperimentRunner(
+            training_population_prior=0.3, validation_population_prior=0.3, config=config
+        )
+        .fit(model, *parts)
+        .manifest
+    )
     assert first["generation"] == second["generation"]
     assert first["representation"] == second["representation"]
     # Frozen: this digest covers the serialised role indices of the bound
@@ -235,6 +275,12 @@ def test_determ_bound_runs_reproduce_label_and_representation_hashes(survey_scri
 def test_edge_diy_runner_is_explicitly_technical(survey_script, tmp_path):
     model, parts, config = _bound(survey_script, tmp_path)
     config.pop("survey_protocol")
-    payload = ExperimentRunner(class_prior=0.3, config=config).fit(model, *parts).manifest
+    payload = (
+        ExperimentRunner(
+            training_population_prior=0.3, validation_population_prior=0.3, config=config
+        )
+        .fit(model, *parts)
+        .manifest
+    )
     assert payload["execution_mode"] == "technical_smoke"
     assert payload["formal_eligible"] is False

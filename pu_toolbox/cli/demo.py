@@ -5,11 +5,13 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
 import pandas as pd
 
-from ..preprocessing.pu_labeling import make_scar_dataset
+from ..core.random import check_random_state
+from ..preprocessing import GaussianSourceConfig, PULabelingConfig, simulate_pu_dataset
 
 __all__ = ["build_demo_parser", "run_demo"]
 
@@ -40,30 +42,35 @@ def build_demo_parser(sub: argparse._SubParsersAction) -> None:
 
 def run_demo(args: argparse.Namespace) -> None:
     """Generate demo CSVs into ``--out-dir``."""
-    n_labeled = max(1, round(args.n * args.c))
-    if n_labeled < 5:
-        # The demo must be consumable by `run` with its default 5-fold CV:
-        # PUPipeline rejects n_labeled_positives < n_splits.  --cv 2 is the
-        # escape hatch for very small demos.
-        raise ValueError(
-            f"--n/--c produce {n_labeled} labeled positives, fewer than the "
-            "default 5-fold CV requires; increase --n (e.g. --n 10 at c=0.5) "
-            f"or run with --cv 2. Got n={args.n}, c={args.c}."
-        )
-    X, y_pu, y_true = make_scar_dataset(
-        n=args.n,
-        c=args.c,
-        n_features=args.n_features,
-        separation=args.separation,
-        random_state=args.seed,
+    rng = check_random_state(args.seed)
+    result = simulate_pu_dataset(
+        GaussianSourceConfig(
+            2 * args.n, args.n_features, 0.5, args.separation, rng, row_order="class_blocked"
+        ),
+        PULabelingConfig("scar", "fixed_count", rng, c=args.c),
     )
+    observed = result.observations
+    n_labeled = result.manifest["labeling"]["n_labeled_actual"]
+    if n_labeled < 5:
+        raise ValueError(
+            f"Demo data requires at least 5 labeled positives; --n/--c produce {n_labeled}. "
+            f"Increase --n or --c (got n={args.n}, c={args.c})."
+        )
     out = Path(args.out_dir)
     out.mkdir(parents=True, exist_ok=True)
     # String feature names: numeric headers are indistinguishable from data
-    # rows when `run` checks for a missing header (see cli/run.py).
-    pd.DataFrame(X, columns=[f"feature_{i}" for i in range(X.shape[1])]).to_csv(
+    # rows when a CLI reader checks for a missing header.
+    features = observed.features
+    pd.DataFrame(features, columns=[f"feature_{i}" for i in range(features.shape[1])]).to_csv(
         out / "X.csv", index=False
     )
-    pd.DataFrame({"label": y_pu}).to_csv(out / "y_pu.csv", index=False)
-    pd.DataFrame({"label": y_true}).to_csv(out / "y_true.csv", index=False)
-    print(f"Wrote X.csv, y_pu.csv, y_true.csv to {out} ({len(y_pu)} samples)")
+    pd.DataFrame({"label": observed.labels}).to_csv(out / "y_pu.csv", index=False)
+    pd.DataFrame({"sample_id": observed.sample_ids}).to_csv(out / "sample_ids.csv", index=False)
+    pd.DataFrame({"label": result.audit.true_labels}).to_csv(out / "y_true.csv", index=False)
+    manifest = {**result.manifest, "cli_seed": args.seed}
+    (out / "construction.json").write_text(
+        json.dumps(manifest, indent=2, allow_nan=False) + "\n", encoding="utf-8"
+    )
+    print(
+        f"Wrote PU observations, audit truth and construction record to {out} ({len(features)} rows)"
+    )

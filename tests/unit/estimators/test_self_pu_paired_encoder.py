@@ -13,6 +13,7 @@ torch = pytest.importorskip("torch")
 
 from torch import nn
 
+from pu_toolbox.estimators.deep import self_pu
 from pu_toolbox.estimators.deep._encoder_policy import set_encoder_training_policy
 from pu_toolbox.estimators.deep.self_pu import SelfPUClassifier, _eval_logits
 
@@ -107,6 +108,29 @@ def test_param_chunked_predictions_keep_requested_rows_in_order(batch_size):
         expected = module(images[indices])[:, 0]
         actual = _eval_logits(module, images, batch_size, indices=indices)
     torch.testing.assert_close(actual, expected)
+
+
+def test_paired_image_validation_uses_its_own_prior_in_batches(monkeypatch):
+    model, features, labels, support = _fixed_full_meta_case()
+    observed = []
+    validation_risk = self_pu._pu_validation_risk
+
+    def record_risk(teacher, features, labels, risk_prior, batch_size=None):
+        observed.append((risk_prior, batch_size))
+        return validation_risk(teacher, features, labels, risk_prior, batch_size)
+
+    monkeypatch.setattr(self_pu, "_pu_validation_risk", record_risk)
+    model.fit(
+        features,
+        labels,
+        validation_data=support,
+        pu_validation_data=(features.copy(), labels.copy()),
+        validation_risk_prior=0.6,
+    )
+
+    assert observed == [(0.6, model.batch_size)] * (2 * model.max_epochs)
+    assert model.risk_prior_ == 0.4
+    assert model.validation_risk_prior_ == 0.6
 
 
 def _fixed_full_meta_case():

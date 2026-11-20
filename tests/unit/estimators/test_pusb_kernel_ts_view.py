@@ -171,7 +171,7 @@ def _role_spy(monkeypatch):
 class TestRiskGolden:
     def test_basic_os_frozen_golden_is_unchanged(self):
         X, y = _data()
-        model = _small_model().fit(X, y, class_prior=0.4)
+        model = _small_model().fit(X, y, training_table_prior=0.4)
 
         assert model.sigma_ == _OS_GOLDEN_SIGMA
         assert model.reg_lambda_ == _OS_GOLDEN_REG_LAMBDA
@@ -248,7 +248,7 @@ class TestViewRoles:
     def test_basic_ts_training_fold_loss_uses_every_training_row(self, monkeypatch):
         X, y = _data()
         calls = _role_spy(monkeypatch)
-        model = _small_model().fit(X, y, class_prior=0.4, os_or_ts="ts")
+        model = _small_model().fit(X, y, training_table_prior=0.4, os_or_ts="ts")
 
         n_total = len(X)
         fold_sizes = set(np.bincount(model.fold_ids_).tolist())
@@ -273,7 +273,7 @@ class TestViewRoles:
             return original(coef, positive, unlabeled, class_prior, reg_lambda)
 
         monkeypatch.setattr(pusb_kernel_module, "_pu_objective_and_gradient", spy)
-        model = _small_model().fit(X, y, class_prior=0.4, os_or_ts="ts")
+        model = _small_model().fit(X, y, training_table_prior=0.4, os_or_ts="ts")
 
         fold_sizes = set(np.bincount(model.fold_ids_).tolist())
         # A validation call is the only one whose two roles together are
@@ -295,7 +295,7 @@ class TestViewRoles:
     def test_basic_ts_final_refit_loss_uses_every_row(self, monkeypatch):
         X, y = _data()
         calls = _role_spy(monkeypatch)
-        _small_model().fit(X, y, class_prior=0.4, os_or_ts="ts")
+        _small_model().fit(X, y, training_table_prior=0.4, os_or_ts="ts")
 
         refits = [call for call in calls if call["design_rows"] == len(X)]
 
@@ -309,7 +309,7 @@ class TestViewRoles:
         """The helper never takes the run-level view string (plan §4.2)."""
         X, y = _data()
         calls = _role_spy(monkeypatch)
-        _small_model().fit(X, y, class_prior=0.4, os_or_ts=view)
+        _small_model().fit(X, y, training_table_prior=0.4, os_or_ts=view)
 
         assert len(calls) == 1 + 3 * 2 * 2  # one refit + cv folds x grid
         assert {call["include_positive"] for call in calls} == {expected}
@@ -323,7 +323,7 @@ class TestViewRoles:
         """
         X, y = _data()
         calls = _role_spy(monkeypatch)
-        model = _small_model().fit(X, y, class_prior=0.4, os_or_ts="ts")
+        model = _small_model().fit(X, y, training_table_prior=0.4, os_or_ts="ts")
 
         fold_size = len(X) // model.cv
         expected_rows = {len(X)} | {len(X) - fold_size}

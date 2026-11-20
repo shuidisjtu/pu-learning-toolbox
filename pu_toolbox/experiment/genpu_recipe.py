@@ -18,7 +18,9 @@ from .checkpoints import EpochCheckpointTrainer
 from .feature_adapter import encoder_state_sha256
 
 
-def build_genpu_recipe(*, prior, seed, device, gan_epochs, pn_epochs, batch_size, image=None):
+def build_genpu_recipe(
+    *, population_prior, seed, device, gan_epochs, pn_epochs, batch_size, image=None
+):
     """Build a fixed-topology TS recipe with explicit, unapproved run budgets.
 
     ``image`` is a train-fitted SurveyImagePreprocessing, or None for 2-D data.
@@ -27,10 +29,10 @@ def build_genpu_recipe(*, prior, seed, device, gan_epochs, pn_epochs, batch_size
     imposing the source demo's different tanh input coordinates.
     """
     if (
-        isinstance(prior, bool)
-        or not isinstance(prior, Real)
-        or not math.isfinite(prior)
-        or not 0 < prior < 1
+        isinstance(population_prior, bool)
+        or not isinstance(population_prior, Real)
+        or not math.isfinite(population_prior)
+        or not 0 < population_prior < 1
     ):
         raise ValueError("recipe requires a finite population prior in (0, 1)")
     for name, value in (
@@ -58,7 +60,7 @@ def build_genpu_recipe(*, prior, seed, device, gan_epochs, pn_epochs, batch_size
         torch.random.default_generator.manual_seed(seed)
         encoder = build_survey_image_encoder(image) if image is not None else None
     parameters = {
-        "class_prior": float(prior),
+        "class_prior": float(population_prior),
         "random_state": seed,
         "device": device,
         "hidden_dim": 256,
@@ -78,7 +80,9 @@ def build_genpu_recipe(*, prior, seed, device, gan_epochs, pn_epochs, batch_size
         encoder_state_sha256(encoder) if encoder is not None else None,
     )
     recipe["recipe_sha256"] = strict_canonical_hash(recipe)
-    return GenPUClassifier(encoder=encoder, **parameters), recipe
+    constructor = {**parameters, "risk_prior": parameters["class_prior"]}
+    del constructor["class_prior"]
+    return GenPUClassifier(encoder=encoder, **constructor), recipe
 
 
 def _recipe_payload(parameters, image, encoder_digest):
@@ -168,6 +172,7 @@ class GenPURecipeTrainer(EpochCheckpointTrainer):
             if type(p[key]) is not int or p[key] < 1:
                 raise ValueError("GenPU recipe has an invalid integer budget")
         actual = estimator.get_params(deep=False)
+        actual["class_prior"] = actual.pop("risk_prior")
         if any(
             type(actual.get(key)) is not type(value) or actual[key] != value
             for key, value in p.items()
@@ -213,12 +218,16 @@ class GenPURecipeTrainer(EpochCheckpointTrainer):
         """GAN has no deployable classifier and creates no candidate snapshots."""
         return self.recipe["parameters"]["classifier_epochs"]
 
-    def fit(self, estimator, X, y, *, class_prior=None, val_pu=None, os_or_ts=None):
+    def fit(self, estimator, X, y, *, training_population_prior=None, val_pu=None, os_or_ts=None):
         """Train once without external validation; verify all six paid stages."""
         self._validate(estimator, os_or_ts)
-        if class_prior != self.recipe["parameters"]["class_prior"]:
+        if training_population_prior != self.recipe["parameters"]["class_prior"]:
             raise ValueError("GenPU runner population prior differs from recipe")
-        result = super().fit(estimator, X, y, class_prior=class_prior, os_or_ts=os_or_ts)
+        result = super().fit(
+            estimator, X, y, risk_prior=training_population_prior, os_or_ts=os_or_ts
+        )
+        for use in estimator._prior_consumptions_:
+            use["source"] = "recipe.parameters.class_prior"
         steps = math.ceil(len(X) / estimator.batch_size)
         gan = steps * estimator.max_epochs
         expected = dict.fromkeys(

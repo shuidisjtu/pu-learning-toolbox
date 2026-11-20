@@ -14,8 +14,8 @@ from pu_toolbox.core.tags import (
     AlgorithmFamily,
     Assumption,
     Backend,
-    ImplementationStatus,
     Maturity,
+    PriorConsumer,
     SampleWeightSupport,
     Scenario,
     SourceStatus,
@@ -83,8 +83,21 @@ class JointShiftPUBaseline(BasePUClassifier):
     family = AlgorithmFamily.BIAS_AWARE
     assumption = (Assumption.SCAR,)
     scenario = (Scenario.SINGLE_TRAINING_SET,)
-    requires_class_prior = True
-    implementation_status = ImplementationStatus.NATIVE
+    prior_consumers = (
+        PriorConsumer(
+            "joint_shift_baseline_domain_risk",
+            "source_domain",
+            parameter="source_domain_prior",
+            requires_input=True,
+        ),
+        PriorConsumer(
+            "joint_shift_baseline_domain_risk",
+            "target_domain",
+            parameter="target_domain_prior",
+            requires_input=True,
+        ),
+    )
+    _prior_consumptions_ = ()
     source_status = SourceStatus.NOT_FOUND
     backend = Backend.TORCH
     maturity = Maturity.RESEARCH
@@ -138,10 +151,11 @@ class JointShiftPUBaseline(BasePUClassifier):
         *,
         X_target: Any | None = None,
         y_target_pu: Any | None = None,
-        class_prior: float | None = None,
-        target_class_prior: float | None = None,
+        source_domain_prior: float | None = None,
+        target_domain_prior: float | None = None,
         sample_weight: Any | None = None,
     ) -> JointShiftPUBaseline:
+        self._prior_consumptions_ = ()
         try:
             import torch
             from torch import nn
@@ -154,10 +168,10 @@ class JointShiftPUBaseline(BasePUClassifier):
             raise NotImplementedError("External sample_weight is not part of these baselines.")
         if X_target is None or y_target_pu is None:
             raise ValueError("X_target and y_target_pu are required for comparable baselines.")
-        if class_prior is None or target_class_prior is None:
-            raise ValueError("class_prior and target_class_prior are both required.")
-        check_scalar_in_range(class_prior, 0.0, 1.0, "class_prior", inclusive=False)
-        check_scalar_in_range(target_class_prior, 0.0, 1.0, "target_class_prior", inclusive=False)
+        if source_domain_prior is None or target_domain_prior is None:
+            raise ValueError("source_domain_prior and target_domain_prior are both required.")
+        check_scalar_in_range(source_domain_prior, 0.0, 1.0, "source_domain_prior", inclusive=False)
+        check_scalar_in_range(target_domain_prior, 0.0, 1.0, "target_domain_prior", inclusive=False)
         source_x, source_y = validate_pu_X_y(
             X, y_pu, accept_sparse=False, estimator_name=f"{type(self).__name__}(source)"
         )
@@ -196,7 +210,7 @@ class JointShiftPUBaseline(BasePUClassifier):
             return paper_pu_risk(
                 logits[labels == 1],
                 logits[labels == 0],
-                class_prior=prior,
+                risk_prior=prior,
                 correction=True,
             )
 
@@ -204,8 +218,8 @@ class JointShiftPUBaseline(BasePUClassifier):
             optimizer.zero_grad()
             source_features = self.feature_extractor_(source_tensor)
             target_features = self.feature_extractor_(target_tensor)
-            source_risk = domain_risk(source_features, source_labels, float(class_prior))
-            target_risk = domain_risk(target_features, target_labels, float(target_class_prior))
+            source_risk = domain_risk(source_features, source_labels, float(source_domain_prior))
+            target_risk = domain_risk(target_features, target_labels, float(target_domain_prior))
             mmd = torch.zeros((), device=device)
             if stage == "source":
                 loss = source_risk
@@ -240,11 +254,20 @@ class JointShiftPUBaseline(BasePUClassifier):
             for _ in range(self.max_epochs):
                 train_epoch(stage)
         self.device_ = device
-        self.source_class_prior_ = float(class_prior)
-        self.target_class_prior_ = float(target_class_prior)
-        self._class_prior = float(target_class_prior)
+        self.source_domain_prior_ = float(source_domain_prior)
+        self.target_domain_prior_ = float(target_domain_prior)
         self._X_shape_ = (len(source_y) + len(target_y), source_x.shape[1])
         self.classes_ = np.array([0, 1])
+        self._prior_consumptions_ = tuple(
+            {
+                "consumer": "joint_shift_baseline_domain_risk",
+                "partition": "train",
+                "target": f"{domain}_domain",
+                "source": f"fit.{domain}_domain_prior",
+                "value": float(prior),
+            }
+            for domain, prior in (("source", source_domain_prior), ("target", target_domain_prior))
+        )
         self._is_fitted = True
         return self
 

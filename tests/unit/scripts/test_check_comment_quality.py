@@ -134,7 +134,7 @@ def test_edge_unparsable_file_reports_scan_error(tmp_path):
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 GOVERNANCE_MD = PROJECT_ROOT / "docs" / "dev" / "comment_governance.md"
 # The anchor paragraph under §3's table, e.g.
-# "Section 3 retains 25 lines(...): `pu_toolbox/core/config.py` 4, ..." -- the counts
+# "Section 3 retains N lines(...): `pu_toolbox/core/config.py` 4, ..." -- the counts
 # are the part a human ruling cannot otherwise be checked against.
 _ANCHOR_TOTAL_RE = re.compile(r"Section 3 retains\s+(\d+)\s+lines")
 _ANCHOR_PAIR_RE = re.compile(r"`(pu_toolbox/[^`]+\.py)`\s+(\d+)")
@@ -188,19 +188,18 @@ def _drop_one_trailing_comment(path: Path) -> str:
 
 @pytest.mark.unit
 def test_basic_section3_kept_comment_counts_match_reality():
-    """§3 keeps 25 named trailing comments; they must still be there.
+    """§3 names the retained trailing comments and their counts.
 
     Without this the ruling and the code drift apart in silence: clean one
     away and both §3 and the gate's pending reason keep claiming it exists.
     """
     section = _section3(GOVERNANCE_MD.read_text(encoding="utf-8"))
-    total, counts = _anchor_counts(section)
+    _, counts = _anchor_counts(section)
 
-    assert total == 25
-    assert counts == {
-        "pu_toolbox/core/config.py": 4,
-        "pu_toolbox/core/tags.py": 8,
-        "pu_toolbox/losses/llsvm.py": 13,
+    assert set(counts) == {
+        "pu_toolbox/core/config.py",
+        "pu_toolbox/core/tags.py",
+        "pu_toolbox/losses/llsvm.py",
     }
     actual = {rel: _trailing_comments(PROJECT_ROOT / rel) for rel in counts}
 
@@ -215,7 +214,13 @@ def test_param_section3_anchor_detects_a_wrong_number_and_a_removed_comment(tmp_
     actual = {rel: _trailing_comments(PROJECT_ROOT / rel) for rel in counts}
 
     # (a) one anchor number edited -> the mismatch is named
-    wrong_number = section.replace("`pu_toolbox/core/tags.py` 8", "`pu_toolbox/core/tags.py` 9")
+    path = "pu_toolbox/core/tags.py"
+    wrong_number = re.sub(
+        rf"(`{re.escape(path)}`\s+)(\d+)",
+        lambda match: f"{match[1]}{int(match[2]) + 1}",
+        section,
+        count=1,
+    )
     assert wrong_number != section
     assert any("tags.py" in p for p in _anchor_problems(wrong_number, actual))
 

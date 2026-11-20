@@ -41,17 +41,20 @@ class SCARFixedPropensityDiagnostic(BasePUClassifier):
     label_semantics = "pu"
     assumption = (Assumption.SCAR,)
     scenario = (Scenario.SINGLE_TRAINING_SET,)
-    requires_class_prior = True
 
     def __init__(self, *, C=1.0, max_iter=1000):
         super().__init__()
         self.C = C
         self.max_iter = max_iter
 
-    def fit(self, X, y_pu, *, class_prior=None):  # noqa: N803
+    def fit(self, X, y_pu, *, assumed_population_prior=None):  # noqa: N803
         self._is_fitted = False
         features, observed = validate_pu_X_y(X, y_pu, accept_sparse=False)
-        if class_prior is None or not np.isfinite(class_prior) or not 0 < class_prior < 1:
+        if (
+            assumed_population_prior is None
+            or not np.isfinite(assumed_population_prior)
+            or not 0 < assumed_population_prior < 1
+        ):
             raise ValueError("SCAR diagnostic requires known population prior in (0,1)")
         if (
             not np.isfinite(self.C)
@@ -60,12 +63,12 @@ class SCARFixedPropensityDiagnostic(BasePUClassifier):
             or self.max_iter < 1
         ):
             raise ValueError("SCAR diagnostic needs finite positive C and integer max_iter")
-        self.propensity_ = float(np.mean(observed) / class_prior)
+        self.propensity_ = float(np.mean(observed) / assumed_population_prior)
         if not 0 < self.propensity_ < 1:
             raise ValueError("observed rate / population prior must lie in (0,1)")
         self.scaler_ = StandardScaler().fit(features)
         scaled = self.scaler_.transform(features)
-        initial = np.r_[np.zeros(scaled.shape[1]), logit(class_prior)]
+        initial = np.r_[np.zeros(scaled.shape[1]), logit(assumed_population_prior)]
         result = minimize(
             scar_objective,
             initial,
@@ -81,7 +84,15 @@ class SCARFixedPropensityDiagnostic(BasePUClassifier):
         self.optimizer_message_ = str(result.message)
         self.n_iter_ = int(result.nit)
         self.gradient_max_abs_ = float(np.max(np.abs(result.jac)))
-        self._class_prior = float(class_prior)
+        self._prior_consumptions_ = (
+            {
+                "consumer": "fixed_propensity_initialization",
+                "partition": "train",
+                "target": "population",
+                "source": "fit.assumed_population_prior",
+                "value": float(assumed_population_prior),
+            },
+        )
         self._X_shape_ = features.shape
         self.classes_ = np.array([0, 1])
         self._is_fitted = True

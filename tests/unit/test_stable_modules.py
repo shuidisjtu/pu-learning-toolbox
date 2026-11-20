@@ -11,8 +11,8 @@ the baseline release tag — has no mechanical guard, because no shallow
 clone can answer it (see the item's own 如实登记 paragraph).
 
 Scope note (口径): the tracked set is the top-level **directories** under
-``pu_toolbox/``.  The three tracked root-level modules (``__init__.py``,
-``progress.py``, ``run_config.py``) are deliberately outside the table:
+``pu_toolbox/``.  Tracked root-level modules such as ``__init__.py`` are deliberately
+outside the table:
 the criterion command is per-directory
 (``git log -- pu_toolbox/<模块>``), so a flat root file has no row.
 
@@ -200,15 +200,15 @@ def test_basic_tracked_scan_keeps_only_top_level_directories():
     listing = "\n".join(
         [
             "pu_toolbox/__init__.py",
-            "pu_toolbox/run_config.py",
+            "pu_toolbox/root_helper.py",
             "pu_toolbox/losses/__init__.py",
             "pu_toolbox/losses/llsvm.py",
-            "pu_toolbox/ui/app.py",
-            "pu_toolbox/ui/app.py",
+            "pu_toolbox/diagnostics/report.py",
+            "pu_toolbox/diagnostics/report.py",
         ]
     )
 
-    assert tracked_top_level_modules(listing) == {"losses", "ui"}
+    assert tracked_top_level_modules(listing) == {"losses", "diagnostics"}
 
 
 def test_param_blank_text_raises():
@@ -240,27 +240,27 @@ def test_param_empty_module_cell_raises():
 
 
 def test_edge_unclassified_tracked_module_is_reported():
-    text = _synthetic_doc(_complete_rows(["losses"], ["ui"]))
-    problems = find_stability_problems(text, {"losses", "ui", "newmod"})
+    text = _synthetic_doc(_complete_rows(["losses"], ["diagnostics"]))
+    problems = find_stability_problems(text, {"losses", "diagnostics", "newmod"})
 
     assert len(problems) == 1
     assert "unclassified" in problems[0] and "newmod" in problems[0]
 
 
 def test_edge_stale_classified_module_is_reported():
-    text = _synthetic_doc(_complete_rows(["losses", "gone"], ["ui"]))
-    problems = find_stability_problems(text, {"losses", "ui"})
+    text = _synthetic_doc(_complete_rows(["losses", "gone"], ["diagnostics"]))
+    problems = find_stability_problems(text, {"losses", "diagnostics"})
 
     assert len(problems) == 1
     assert "stale" in problems[0] and "gone" in problems[0]
 
 
 def test_edge_module_in_both_rows_is_reported():
-    text = _synthetic_doc(_complete_rows(["losses", "ui"], ["ui", "cli"]))
-    problems = find_stability_problems(text, {"losses", "ui", "cli"})
+    text = _synthetic_doc(_complete_rows(["losses", "diagnostics"], ["diagnostics", "cli"]))
+    problems = find_stability_problems(text, {"losses", "diagnostics", "cli"})
 
     assert len(problems) == 1
-    assert "both" in problems[0] and "ui" in problems[0]
+    assert "both" in problems[0] and "diagnostics" in problems[0]
 
 
 def test_determ_parse_is_independent_of_table_row_order():
@@ -272,7 +272,7 @@ def test_determ_parse_is_independent_of_table_row_order():
     to a second parse of the same text.
     """
     stable_row = _row(STABLE_LABEL, ["losses", "prior"])
-    active_row = _row(ACTIVE_LABEL, ["ui", "cli"])
+    active_row = _row(ACTIVE_LABEL, ["diagnostics", "cli"])
     header = ["| 分类 | 模块 |", "|---|---|"]
     rows = [*header, stable_row, active_row]
     swapped = [*header, active_row, stable_row]
@@ -280,7 +280,7 @@ def test_determ_parse_is_independent_of_table_row_order():
     original = parse_stability_table(_synthetic_doc(rows))
 
     assert original == parse_stability_table(_synthetic_doc(swapped))
-    assert original == {STABLE_LABEL: {"losses", "prior"}, ACTIVE_LABEL: {"ui", "cli"}}
+    assert original == {STABLE_LABEL: {"losses", "prior"}, ACTIVE_LABEL: {"diagnostics", "cli"}}
 
 
 def test_determ_problems_ignore_the_order_of_the_tracked_collection():
@@ -290,13 +290,13 @@ def test_determ_problems_ignore_the_order_of_the_tracked_collection():
     are pinned to their sorted form, so an implementation that iterates
     the caller's collection (or drops ``sorted``) is caught here.
     """
-    text = _synthetic_doc(_complete_rows(["losses", "gone"], ["ui"]))
+    text = _synthetic_doc(_complete_rows(["losses", "gone"], ["diagnostics"]))
     expected = [
         "tracked but unclassified: ['amod', 'zmod']",
         "classified but not tracked (stale): ['gone']",
     ]
 
-    forward = find_stability_problems(text, ["ui", "losses", "zmod", "amod"])
-    backward = find_stability_problems(text, ["amod", "zmod", "losses", "ui"])
+    forward = find_stability_problems(text, ["diagnostics", "losses", "zmod", "amod"])
+    backward = find_stability_problems(text, ["amod", "zmod", "losses", "diagnostics"])
 
     assert forward == backward == expected

@@ -76,13 +76,23 @@ def test_basic_determ_actual_realized_binding_and_dual_selection_replay(tmp_path
     assert binding["flip_probability"] == 1 - 3 / 11 != 1 - 0.3
     assert planned["work_units_per_attempt"] == 1 and planned["neural_epoch_count"] == 0
     expected_prior = 0.3 if policy == "population_override" else 3 / (36 * (1 - (1 - 3 / 11)))
-    assert planned["kldce_preflight"]["effective_training_prior"] == expected_prior
+    assert planned["kldce_preflight"]["planned_training_table_prior"] == expected_prior
     output = tmp_path / "output"
     summary = script.execute(planned, output)
     assert summary["accepted_engineering_run"] and summary["selected_models_replayed"]
     assert summary["warning_count"] == summary["retry_count"] == 0
     assert set(summary["selection"]) == {"PA", "OA"}
-    assert summary["training_provenance"]["effective_training_prior"] == expected_prior
+    training, pa = summary["prior"]
+    assert training["value"] == expected_prior
+    assert training["consumer"] == "kldce_label_distribution"
+    assert training["target"] == "training_table"
+    assert training["source"] == (
+        "trainer.training_population_prior"
+        if policy == "population_override"
+        else "derived.solve_prior_from_positive_fraction"
+    )
+    assert pa["value"] == 0.3
+    assert pa["source"] == "runner.validation_population_prior"
     assert summary["training_provenance"]["preflight"]["generation_binding"] == binding
     assert summary["training_provenance"]["acs_rounds_completed"] > 0
     assert summary["training_provenance"]["qp_solves_observed"] is None
@@ -166,7 +176,7 @@ def test_basic_cli_only_plan_binds_realized_flip_without_constructing_a_fit(
             str(directory),
             "--dataset",
             "synthetic",
-            "--class-prior",
+            "--population-prior",
             "0.3",
             "--prior-source",
             "external",

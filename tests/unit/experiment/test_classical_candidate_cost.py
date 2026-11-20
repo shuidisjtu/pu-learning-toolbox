@@ -59,7 +59,7 @@ def test_basic_determ_pruning_counts_every_cross_fit_and_unwraps_final_model():
     direct = clone(model).fit(features, labels)
     original = features.copy(), labels.copy()
     trainer = ClassicalCandidateTrainer()
-    trajectory = trainer.fit(model, features, labels, class_prior=0.4, os_or_ts="os")
+    trajectory = trainer.fit(model, features, labels, os_or_ts="os")
     receipt = model.training_provenance_
     assert trajectory.epochs == [] and receipt["work_completed"] == 4
     assert receipt["cross_fits_completed"] == 3 and receipt["final_refits_completed"] == 1
@@ -99,7 +99,7 @@ def test_edge_internal_typeerror_is_not_retried_or_hidden_and_partial_work_survi
     trainer = ClassicalCandidateTrainer()
     FailingBase.calls = 0
     with pytest.raises(TypeError, match="internal failure"):
-        trainer.fit(model, features, labels, class_prior=0.4)
+        trainer.fit(model, features, labels)
     assert FailingBase.calls == 2 and model.base_estimator is base
     assert not model._is_fitted and not hasattr(model, "training_provenance_")
     assert trainer.last_receipt["status"] == "failed"

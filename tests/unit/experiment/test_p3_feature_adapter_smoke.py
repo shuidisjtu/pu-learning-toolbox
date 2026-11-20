@@ -87,7 +87,7 @@ def _features(*, independent_support=False):
         (
             "genpu",
             lambda: GenPUClassifier(
-                class_prior=0.4,
+                risk_prior=0.4,
                 hidden_dim=4,
                 latent_dim=3,
                 max_epochs=1,
@@ -111,7 +111,7 @@ def _features(*, independent_support=False):
         (
             "pulda",
             lambda: PULDAClassifier(
-                class_prior=0.4,
+                risk_prior=0.4,
                 warmup_epochs=1,
                 pu_epochs=1,
                 positive_batch_size=4,
@@ -122,21 +122,21 @@ def _features(*, independent_support=False):
         ),
         (
             "puet",
-            lambda: PUExtraTreesClassifier(class_prior=0.4, n_estimators=2, random_state=3),
+            lambda: PUExtraTreesClassifier(tree_weight_prior=0.4, n_estimators=2, random_state=3),
             "ts",
         ),
         ("gradpu", lambda: GradPUClassifier(max_epochs=1, batch_size=8, random_state=3), "ts"),
         (
             "robust_pu",
             lambda: RobustPUClassifier(
-                class_prior=0.4, pretrain_epochs=1, episodes=1, batch_size=8, random_state=3
+                risk_prior=0.4, pretrain_epochs=1, episodes=1, batch_size=8, random_state=3
             ),
             "ts",
         ),
         (
             "split_pu",
             lambda: SplitPUClassifier(
-                class_prior=0.4,
+                risk_prior=0.4,
                 teacher_epochs=1,
                 split_epochs=1,
                 student_epochs=1,
@@ -230,7 +230,7 @@ def test_pulns_shared_features_require_a_separate_fifth_support_role():
     [
         lambda: VPUClassifier(max_epochs=1, batch_size=8, random_state=3, device="cuda"),
         lambda: PULDAClassifier(
-            class_prior=0.4,
+            risk_prior=0.4,
             warmup_epochs=1,
             pu_epochs=1,
             positive_batch_size=4,
@@ -240,7 +240,7 @@ def test_pulns_shared_features_require_a_separate_fifth_support_role():
         ),
         lambda: GradPUClassifier(max_epochs=1, batch_size=8, random_state=3, device="cuda"),
         lambda: RobustPUClassifier(
-            class_prior=0.4,
+            risk_prior=0.4,
             pretrain_epochs=1,
             episodes=1,
             batch_size=8,
@@ -248,7 +248,7 @@ def test_pulns_shared_features_require_a_separate_fifth_support_role():
             device="cuda",
         ),
         lambda: SplitPUClassifier(
-            class_prior=0.4,
+            risk_prior=0.4,
             teacher_epochs=1,
             split_epochs=1,
             student_epochs=1,

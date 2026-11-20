@@ -102,7 +102,7 @@ def test_basic_cli_bound_recipe_trains_full_small_trajectory_and_correct_selecti
             "cpu",
             "--c",
             "0.5",
-            "--class-prior",
+            "--population-prior",
             "0.4",
             "--labeling-mechanism",
             mechanism,
@@ -126,12 +126,9 @@ def test_basic_cli_bound_recipe_trains_full_small_trajectory_and_correct_selecti
         assert candidate["training_provenance"]["external_validation_forwarded_to_fit"] is False
         assert manifest["run_view"] == f"{VIEWS[method]}-compatible"
         if method == "cvir":
-            assert (
-                candidate["training_provenance"]["population_prior_binding"][
-                    "risk_pool_positive_prior"
-                ]
-                == 0.4
-            )
+            ranking, weighted, *_ = manifest["research_settings"]["prior"]
+            assert ranking["value"] == weighted["value"] == 0.4
+            assert ranking["target"] == weighted["target"] == "positive_union_unlabeled"
     else:
         assert not candidate.get("epoch_checkpoints")
     assert "seed_subset" in manifest["protocol_deviation"]
@@ -160,7 +157,7 @@ def test_determ_gradpu_encoder_seed_does_not_depend_on_or_change_caller_rng():
             3,
             seed=seed,
             params={},
-            class_prior=0.4,
+            population_prior=0.4,
             device="cpu",
             preprocessing=preprocessing,
         )
@@ -214,7 +211,7 @@ def test_basic_real_cnn_cli_retains_full_small_trajectory(tmp_path, survey_scrip
             "cpu",
             "--c",
             "0.5",
-            "--class-prior",
+            "--population-prior",
             "0.4",
             "--out-dir",
             str(output),

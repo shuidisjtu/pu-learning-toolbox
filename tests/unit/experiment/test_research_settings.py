@@ -5,6 +5,7 @@ import json
 import numpy as np
 import pytest
 
+from pu_toolbox.estimators.bias_aware.pusb_kernel import PUSBKernelClassifier
 from pu_toolbox.estimators.risk.upu import UPUClassifier
 from pu_toolbox.experiment import (
     DatasetPart,
@@ -18,7 +19,7 @@ from pu_toolbox.experiment.strategies import SARLBEAGenerator, SCARGenerator
 pytestmark = pytest.mark.unit
 
 
-def _fit(tmp_path, *, view="os", generator=None, prior=None):
+def _fit(tmp_path, *, view="os", generator=None, prior=None, model=None):
     rng = np.random.RandomState(7)
     labels = np.tile([0, 1], 40)
     features = rng.normal(size=(80, 3)) + labels[:, None]
@@ -34,31 +35,38 @@ def _fit(tmp_path, *, view="os", generator=None, prior=None):
     ]
     return ExperimentRunner(
         seed=7,
-        class_prior=prior,
+        training_population_prior=prior,
+        validation_population_prior=prior,
         generator=generator or SCARGenerator(),
         protocols=[ProtocolOA()],
         manifest_path=str(tmp_path / "manifest.json"),
         config={"c": 0.5, "os_or_ts": view, "trainer": FitTrainer()},
-    ).fit(UPUClassifier(0.3, random_state=7), *parts)
+    ).fit(
+        model if model is not None else UPUClassifier(0.3, fit_intercept=False, random_state=7),
+        *parts,
+    )
 
 
 @pytest.mark.parametrize(
-    ("view", "pool", "target"),
+    ("view", "pool"),
     [
-        ("os", "native_unlabeled", "native_unlabeled"),
-        ("ts", "positive_union_unlabeled", "risk_pool"),
+        ("os", "native_unlabeled"),
+        ("ts", "positive_union_unlabeled"),
     ],
 )
-def test_param_recorded_risk_and_prior_follow_the_training_view(tmp_path, view, pool, target):
+def test_param_recorded_risk_and_prior_follow_the_training_view(tmp_path, view, pool):
     result = _fit(tmp_path, view=view)
     settings = result.manifest["research_settings"]
     assert settings["sampling"]["input_sampling"] == "os"
     assert settings["risk"]["pool"] == pool
-    assert settings["prior"]["training"] == {
+    (fit_prior,) = settings["prior"]
+    assert fit_prior == {
+        "candidate_index": 0,
+        "consumer": "upu_risk",
+        "partition": "train",
         "value": 0.3,
-        "target": target,
-        "source": "estimator.class_prior",
-        "declared_target": "native_unlabeled",
+        "target": pool,
+        "source": "estimator.risk_prior",
     }
     assert settings["supervision"]["selection_roles"] == {"OA": "clean_val"}
     assert settings["representation"]["input_ndim"] == 2
@@ -80,10 +88,12 @@ def test_basic_sar_settings_preserve_weight_policy_and_score_source(tmp_path):
 
 
 def test_edge_runner_prior_records_the_forwarded_value_and_source(tmp_path):
-    settings = _fit(tmp_path, prior=0.4).manifest["research_settings"]
-    assert settings["prior"]["training"]["value"] == 0.4
-    assert settings["prior"]["training"]["source"] == "runner.class_prior"
-    assert settings["prior"]["selection"]["OA"]["population"] == 0.4
+    manifest = _fit(tmp_path, prior=0.4).manifest
+    settings = manifest["research_settings"]
+    (fit_prior,) = settings["prior"]
+    assert fit_prior["value"] == pytest.approx(0.2)
+    assert fit_prior["source"] == "runner.training_population_prior"
+    assert "class_prior" not in manifest["selection"]["OA"]
 
 
 def test_determ_same_seed_has_identical_settings_with_or_without_disk(tmp_path):
@@ -92,49 +102,59 @@ def test_determ_same_seed_has_identical_settings_with_or_without_disk(tmp_path):
     assert first == second
 
 
-def _build_settings(model=None, *, config=None, prior=None):
+@pytest.mark.parametrize("table_prior", [None, 0.6])
+def test_edge_param_pusb_independent_ts_requires_a_training_table_prior(tmp_path, table_prior):
+    class DeclaredTS(SCARGenerator):
+        def generate(self, X, y_true, c, seed=None):  # noqa: N803
+            labels, metadata = super().generate(X, y_true, c, seed=seed)
+            return labels, {**metadata, "input_sampling": "ts"}
+
+    model = PUSBKernelClassifier(
+        training_table_prior=table_prior,
+        risk_prior=0.25,
+        n_basis=6,
+        cv=2,
+        sigma_grid=(0.5,),
+        reg_grid=(0.1,),
+    )
+    if table_prior is None:
+        with pytest.raises(RuntimeError, match="all candidate runs failed"):
+            _fit(tmp_path, generator=DeclaredTS(), prior=0.4, model=model)
+        manifest = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
+        assert manifest["research_settings"]["prior"] == []
+        assert "requires training_table_prior" in manifest["failures"][0]["errors"][0]["message"]
+    else:
+        result = _fit(tmp_path, generator=DeclaredTS(), prior=0.4, model=model)
+        threshold, risk, cv = result.manifest["research_settings"]["prior"]
+        assert (threshold["value"], threshold["source"]) == (0.6, "estimator.training_table_prior")
+        assert risk["value"] == cv["value"] == 0.25
+
+
+class _LegacyPriorModel:
+    def fit(self, features, labels, *, class_prior=None):
+        return self
+
+    def get_params(self, deep=False):
+        return {"class_prior": 0.3}
+
+
+def _build_settings(model=None, *, config=None):
     return research_settings.build_research_settings(
-        model=model if model is not None else UPUClassifier(0.3),
+        model=model if model is not None else _LegacyPriorModel(),
         trainer=FitTrainer(),
         config=config or {},
         context={},
         generation={"train": {"input_sampling": "os"}, "pu_val": {}},
         input_ndim=2,
-        training_prior=prior,
-        selection_prior=None,
-        selection_prior_source=None,
         selection_roles={"OA": "clean_val"},
         label_view="pu",
     )
 
 
-@pytest.mark.parametrize(
-    ("prior", "candidates", "values", "sources"),
-    [
-        (
-            None,
-            [{"class_prior": 0.2}, {"class_prior": 0.4}],
-            [0.2, 0.4],
-            ["candidate.class_prior"] * 2,
-        ),
-        (0.45, [{"class_prior": 0.2}, {}], [0.45, 0.45], ["runner.class_prior"] * 2),
-        (None, [{}], [0.3], ["estimator.class_prior"]),
-    ],
-)
-def test_param_candidate_prior_inputs_follow_actual_override_order(
-    prior, candidates, values, sources
-):
-    settings = _build_settings(config={"candidates": candidates}, prior=prior)
-
-    inputs = settings["prior"]["candidates"]
-    assert [item["candidate_index"] for item in inputs] == list(range(len(candidates)))
-    assert [item["value"] for item in inputs] == values
-    assert [item["source"] for item in inputs] == sources
-    assert "base prior input=" in settings["summary"]
-    assert all(
-        f"candidate {index} prior input={value}" in settings["summary"]
-        for index, value in enumerate(values)
-    )
+def test_basic_new_writes_never_infer_consumption_from_legacy_model_parameters():
+    settings = _build_settings(config={"candidates": [{"class_prior": 0.2}]})
+    assert settings["schema_version"] == "2.0"
+    assert settings["prior"] == []
 
 
 @pytest.mark.parametrize("name", ["neural_lbe", "rank_pruning"])
@@ -149,63 +169,42 @@ def test_param_native_os_methods_keep_their_estimator_defined_pool(name):
     assert settings["risk"]["pool"] == "estimator_defined"
 
 
-def test_basic_cvir_candidate_inputs_record_constructor_alpha_and_source():
+def test_basic_cvir_candidate_inputs_do_not_create_prior_consumption():
     from pu_toolbox.estimators.risk.cvir import CVIRClassifier
 
     settings = _build_settings(
         CVIRClassifier(unlabeled_positive_prior=0.2, prior_source="study setting"),
         config={"candidates": [{}, {"unlabeled_positive_prior": 0.35}]},
-        prior=0.4,
     )
 
-    candidates = settings["prior"]["candidates"]
-    assert [item["value"] for item in candidates] == [0.4, 0.4]
-    assert [item["unlabeled_positive_prior"] for item in candidates] == [0.2, 0.35]
-    assert all(item["prior_source"] == "study setting" for item in candidates)
+    assert settings["schema_version"] == "2.0"
+    assert settings["prior"] == []
 
 
-def test_edge_finalization_preserves_actual_candidate_provenance_and_current_roles():
+def test_basic_finalization_summarizes_only_recorded_prior_consumption():
     settings = _build_settings()
     settings["supervision"]["selection_roles"] = {"custom": "pu_val"}
-    provenance = {
-        "unlabeled_positive_prior": 0.2,
-        "prior_source": "study setting",
-        "risk_pool": "original_U",
-        "population_prior_forwarded_to_fit": False,
-        "population_prior_binding": {"population_prior": 0.4, "risk_pool_positive_prior": 0.2},
-    }
-    runs = [
-        {"candidate_index": 0, "training_provenance": provenance},
-        {"candidate_index": 1, "status": "excluded"},
-    ]
-
-    research_settings.finalize_research_settings(settings, runs)
-
-    assert settings["prior"]["candidate_training"] == [
-        {"candidate_index": 0, "training_provenance": provenance}
-    ]
-    assert "unlabeled_positive_prior=0.2" in settings["summary"]
-    assert "prior_source=study setting" in settings["summary"]
-    assert "risk_pool=original_U" in settings["summary"]
-    assert "risk_pool_positive_prior=0.2" in settings["summary"]
-    assert "population_prior_forwarded_to_fit=False" in settings["summary"]
+    settings["prior"].append(
+        {
+            "candidate_index": 0,
+            "consumer": "custom_risk",
+            "value": 0.2,
+            "partition": "train",
+            "target": "native_unlabeled",
+            "source": "custom_trainer.risk_prior",
+        }
+    )
+    research_settings.finalize_research_settings(settings)
+    assert "candidate 0 custom_risk=0.2" in settings["summary"]
     assert "custom=pu_val" in settings["summary"]
     assert "OA=clean_val" not in settings["summary"]
-    provenance["population_prior_binding"]["population_prior"] = 0.9
-    assert (
-        settings["prior"]["candidate_training"][0]["training_provenance"][
-            "population_prior_binding"
-        ]["population_prior"]
-        == 0.4
-    )
 
 
 def test_determ_finalizing_settings_twice_preserves_the_same_summary():
     settings = _build_settings()
-    runs = [{"candidate_index": 0, "training_provenance": {"risk_pool": "original_U"}}]
 
-    research_settings.finalize_research_settings(settings, runs)
+    research_settings.finalize_research_settings(settings)
     first = json.dumps(settings, sort_keys=True)
-    research_settings.finalize_research_settings(settings, runs)
+    research_settings.finalize_research_settings(settings)
 
     assert json.dumps(settings, sort_keys=True) == first
